@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMX · Ficha del Desarrollo · 9 pestañas (diseño fiel al repo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFB;--surface:#FFFFFF;--surface-2:#F1F2F6;--ink:#1E2230;--ink-2:#5A6172;--ink-3:#969CAB;
+    --line:#E6E8EE;--line-2:#D5D8E2;--accent:#6D4AFF;--accent-2:#5B37E0;--accent-text:#5B37E0;
+    --accent-soft:rgba(109,74,255,.10);--grad:linear-gradient(120deg,#6D4AFF,#C63FAE);
+    --hot:#F2635B;--warm:#E2982E;--cold:#3B82F6;--ok:#1FA06A;--ok-ink:#15803d;--warm-ink:#B7791F;--hot-ink:#DC2626;
+    --shadow:0 1px 2px rgba(20,25,45,.04),0 4px 10px rgba(20,25,45,.06);
+    --serif:'Outfit',system-ui,sans-serif;--sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:16px}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(760px 540px at 0% -10%,rgba(109,74,255,.20),transparent 56%),radial-gradient(840px 620px at 105% -4%,rgba(120,150,255,.20),transparent 60%)}
+  .app{position:relative;z-index:1;display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .serif{font-family:var(--serif)}
+  .side{padding:24px 16px;border-right:1px solid var(--line);background:rgba(255,255,255,.5)}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;padding:0 6px}
+  .brand .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:18px}
+  .brand b{font-family:var(--serif);font-weight:700;font-size:17px}
+  .nav-label{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:6px 10px 10px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:var(--ink-2);font-size:14.5px;font-weight:500;margin-bottom:2px;text-decoration:none}
+  .nav-item:hover{background:var(--surface-2);color:var(--ink)}.nav-item.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+  .ico{width:18px;opacity:.7}
+  .main{display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:14px;padding:16px 32px;border-bottom:1px solid var(--line)}
+  .search{flex:1;max-width:400px;display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;color:var(--ink-3);font-size:14px;background:var(--surface)}
+  .iconbtn{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2)}
+  .body{padding:22px 32px 64px}
+  .crumb{font-size:13px;color:var(--ink-3);margin-bottom:14px}.crumb a{color:var(--ink-3);text-decoration:none}.crumb b{color:var(--ink-2);font-weight:600}
+  .phead{display:flex;align-items:flex-start;gap:16px;margin-bottom:6px}
+  .phead h1{font-family:var(--serif);font-size:34px;font-weight:700;letter-spacing:-.6px;line-height:1.04}
+  .pmeta{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:13.5px;color:var(--ink-2);flex-wrap:wrap}
+  .pmeta .pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;text-transform:uppercase}
+  .pmeta .pill.dev{color:var(--accent-text);background:var(--accent-soft)}.pmeta .pill.pre{color:var(--warm-ink);background:rgba(226,152,46,.12)}
+  .phead .pact{margin-left:auto;display:flex;gap:9px}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:14px 0 22px;overflow-x:auto}
+  .tabs button{border:0;background:transparent;color:var(--ink-3);font-size:14px;font-weight:600;padding:11px 14px;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;white-space:nowrap}
+  .tabs button:hover{color:var(--ink-2)}.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit}
+  .btn.grad{background:var(--grad);border:0;color:#fff}.btn.sm{padding:8px 13px;font-size:12px}
+  .panel{display:none}.panel.on{display:block}
+  /* secciones / métricas / corona (Inicio) */
+  .ready{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 16px;box-shadow:var(--shadow);margin-bottom:16px}
+  .ready .rbar{flex:1;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;max-width:280px}.ready .rbar i{display:block;height:100%;background:var(--grad)}
+  .ready .rtxt{font-size:13px;color:var(--ink-2)}.ready .rtxt b{color:var(--ink);font-family:var(--serif)}
+  .lenses{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+  .lens{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);padding:13px 15px}
+  .lens .lh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;margin-bottom:4px}.lens .ld{font-size:12px;color:var(--ink-3)}
+  .crown{display:grid;grid-template-columns:230px 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow);margin-bottom:24px}
+  .crown .ringp{background:linear-gradient(150deg,rgba(109,74,255,.10),rgba(198,63,174,.05));padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-right:1px solid var(--line)}
+  .ringp .rl{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}.ringp .verdict{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-top:12px}
+  .ring{position:relative;width:120px;height:120px}.ring .rv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}.ring .rv b{font-family:var(--serif);font-size:34px;font-weight:800}.ring .rv span{font-size:10.5px;color:var(--ink-3)}
+  .play{padding:18px 20px}.play .ph{display:flex;align-items:center;gap:8px;margin-bottom:9px}.play .pav{width:24px;height:24px;border-radius:7px;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px}.play .ph b{font-size:13px}.play .ph .now{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--accent-text);background:var(--accent-soft);padding:3px 10px;border-radius:999px}
+  .play .pt{font-family:var(--serif);font-size:16.5px;font-weight:800;margin-bottom:5px}.play .pb{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin-bottom:11px}.play .pb b{color:var(--accent-text)}
+  .play .wi{display:inline-flex;gap:8px;background:rgba(31,160,106,.08);border:1px solid rgba(31,160,106,.28);color:var(--ok-ink);font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;margin-bottom:12px}.play .pa{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.play .pa .hint{margin-left:auto;font-size:11px;color:var(--ink-3)}
+  .sec{margin-bottom:20px}.sec .sh{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px}.sec .sh .n{width:20px;height:20px;border-radius:6px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center}.sec .sh .hint{color:var(--ink-3);font-weight:600;text-transform:none;letter-spacing:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(192px,1fr));gap:12px}
+  .metric{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+  .metric .ml{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}.metric .ml span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}.metric .dot{width:9px;height:9px;border-radius:50%}
+  .metric .mv{font-family:var(--serif);font-size:25px;font-weight:800;line-height:1.05}.metric .mv u{font-size:13px;color:var(--ink-3);font-weight:700;text-decoration:none}.metric .mv.sm{font-size:19px}.metric .mc{font-size:11.5px;font-weight:600;margin-top:6px}.metric .use{font-size:11px;color:var(--ink-2);margin-top:6px;line-height:1.45}.metric .assist{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:10.5px;font-weight:700;color:var(--accent-text)}
+  .t-green{color:var(--ok-ink)}.t-amber{color:var(--warm-ink)}.t-red{color:var(--hot-ink)}.t-flat{color:var(--ink-3)}.d-green{background:var(--ok)}.d-amber{background:var(--warm)}.d-red{background:var(--hot)}.d-flat{background:#CDCFD6}
+  /* bloque genérico (cockpits) */
+  .block{margin-bottom:22px}.block .bh{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}.block .bt{font-family:var(--serif);font-weight:700;font-size:19px}.block .bhint{font-size:12.5px;color:var(--ink-3)}
+  /* sub-tabs (Ventas, Insights) */
+  .subtabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .subtabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer;font-family:inherit}
+  .subtabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .subpanel{display:none}.subpanel.on{display:block}
+  /* filtros Ventas */
+  .filterbar{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .ff{display:flex;flex-direction:column;gap:4px}.ff label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3)}
+  .ff select,.ff input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--ink);font-family:inherit}
+  /* tabla de inventario */
+  .invwrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  table.inv{width:100%;border-collapse:collapse;min-width:1180px;background:var(--surface)}
+  table.inv th,table.inv td{padding:8px 12px;text-align:left;white-space:nowrap}
+  table.inv tr.cats th{text-align:center;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:7px 12px}
+  .c-unidad{background:rgba(100,116,139,.20);color:#334155;border-bottom:2px solid rgba(100,116,139,.7)}
+  .c-m2{background:rgba(56,150,230,.20);color:#1e40af;border-bottom:2px solid rgba(56,150,230,.7)}
+  .c-carac{background:rgba(139,92,246,.20);color:#5b21b6;border-bottom:2px solid rgba(139,92,246,.7)}
+  .c-adic{background:rgba(99,102,241,.20);color:#3730a3;border-bottom:2px solid rgba(99,102,241,.7)}
+  .c-precio{background:rgba(34,197,94,.20);color:#15803d;border-bottom:2px solid rgba(34,197,94,.7)}
+  table.inv tr.heads th{font-size:10.5px;font-weight:700;color:var(--ink-2);background:var(--surface-2);border-bottom:1px solid var(--line)}
+  table.inv tbody td{font-size:12px;color:var(--ink-2);border-bottom:1px solid var(--line)}
+  table.inv tbody tr:hover{background:rgba(109,74,255,.05)}
+  table.inv td.u{font-size:13px;font-weight:700;color:var(--ink)}
+  table.inv td.tot{font-weight:700;color:var(--ink)}
+  table.inv td.price{font-size:12.5px;font-weight:700;color:var(--ink)}
+  .protochip{display:inline-block;padding:1px 9px;border-radius:6px;background:rgba(100,116,139,.12);color:var(--ink-2);font-size:11px;font-weight:700}
+  .stchip{font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:7px;display:inline-block}
+  .st-disp{color:#15803d;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4)}
+  .st-res{color:#1d4ed8;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4)}
+  .st-vend{color:#b91c1c;background:rgba(224,70,61,.15);border:1px solid rgba(224,70,61,.4)}
+  .st-bloq{color:#475569;background:rgba(100,116,139,.18);border:1px solid rgba(100,116,139,.45)}
+  /* por prototipo */
+  .protos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+  .pcard .thumb{height:80px;border-radius:8px;margin-bottom:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:26px}
+  .pcard h4{font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:8px}
+  .pcard .pr{display:flex;justify-content:space-between;font-size:12px;margin-top:4px}.pcard .pr span:first-child{color:var(--ink-3)}.pcard .pr span:last-child{font-weight:600}
+  /* vista de planta */
+  .floor{margin-bottom:14px}.floor .fl-h{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+  .floor .fl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+  .ucell{border-radius:9px;padding:10px;text-align:center;border:1px solid var(--line);font-size:11px}
+  .ucell .un{font-family:var(--serif);font-weight:800;font-size:13px}.ucell .up{font-size:10px;margin-top:2px}
+  .ucell.disp{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.35)}
+  .ucell.res{background:rgba(59,130,246,.10);border-color:rgba(59,130,246,.35)}
+  .ucell.vend{background:rgba(224,70,61,.10);border-color:rgba(224,70,61,.35)}
+  /* formularios (Ubicación / Pagos) */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+  .card h3{font-family:var(--serif);font-size:16.5px;font-weight:800;margin-bottom:14px}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .fld label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);display:block;margin-bottom:5px}
+  .fld input,.fld select,.fld textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;background:var(--surface);color:var(--ink);font-family:inherit}
+  .maph{height:260px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(135deg,#eef0f6,#e3e7f2);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:13px;margin-top:14px}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+  .toggle{width:38px;height:22px;border-radius:999px;background:var(--accent);position:relative}.toggle::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;right:3px}
+  /* legal (documentos) */
+  .docrow{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:13px 16px;box-shadow:var(--shadow);margin-bottom:8px}
+  .docrow .di{width:34px;height:34px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;font-size:16px}
+  .docrow .dn{font-weight:700;font-size:13.5px}.docrow .dd{font-size:11.5px;color:var(--ink-3)}
+  .dstatus{margin-left:auto;font-size:10.5px;font-weight:800;padding:3px 11px;border-radius:999px}
+  .ds-pend{color:var(--warm-ink);background:rgba(245,158,11,.12)}.ds-apro{color:#15803d;background:rgba(34,197,94,.12)}.ds-rev{color:#1d4ed8;background:rgba(96,165,250,.16)}
+  .upbox{border:2px dashed var(--line-2);border-radius:12px;padding:22px;text-align:center;color:var(--ink-3);font-size:13px;background:var(--surface-2);margin-bottom:16px}
+  /* amenidades */
+  .amencat{margin-bottom:18px}.amencat h4{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-text);margin-bottom:9px}
+  .amenchips{display:flex;gap:8px;flex-wrap:wrap}
+  .amen{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;box-shadow:var(--shadow)}
+  .amen.on{border-color:rgba(109,74,255,.4);background:var(--accent-soft);color:var(--accent-text)}
+  .amen .ck{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px}.amen.on .ck{background:var(--accent);color:#fff}.amen.off .ck{border:1.5px solid var(--line-2)}
+  /* canales (asesores) */
+  .lrow{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);box-shadow:var(--shadow);padding:12px 15px;margin-bottom:8px}
+  .lrow .lrk{width:26px;height:26px;border-radius:7px;background:var(--surface-2);color:var(--ink-3);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:var(--serif)}.lrow .lrk.top{background:var(--grad);color:#fff}
+  .lrow .lname{font-family:var(--serif);font-weight:700;font-size:14px}.lrow .lsub{font-size:11.5px;color:var(--ink-3)}
+  .lrow .lr{text-align:right;margin-left:auto}.lrow .lr b{font-family:var(--serif);font-weight:800;font-size:14px}.lrow .lr span{font-size:10px;color:var(--ink-3);display:block}
+  .chip{font-size:9.5px;font-weight:800;padding:1px 8px;border-radius:999px}.chip.inhouse{color:var(--ok-ink);background:rgba(31,160,106,.12)}.chip.broker{color:var(--warm-ink);background:rgba(226,152,46,.13)}
+  /* obra */
+  .timeline{position:relative;padding-left:22px}.timeline::before{content:"";position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--line)}
+  .tlitem{position:relative;margin-bottom:14px}.tlitem::before{content:"";position:absolute;left:-22px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid #fff}
+  .tlitem .tt{font-weight:700;font-size:13.5px}.tlitem .td{font-size:12px;color:var(--ink-3)}
+  /* embudo / comparables (insights) */
+  .funnel{display:flex;gap:8px}.fstep{flex:1;border:1px solid var(--line);border-radius:11px;background:var(--surface);box-shadow:var(--shadow);padding:13px;text-align:center}.fstep .fn{font-family:var(--serif);font-weight:800;font-size:24px}.fstep .fl{font-size:11px;color:var(--ink-3);margin-top:2px}.fstep .fp{font-size:10.5px;color:var(--accent-text);font-weight:700;margin-top:3px}.farrow{display:flex;align-items:center;color:var(--ink-3)}
+  table.cmp{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden;box-shadow:var(--shadow)}
+  table.cmp th{font-size:10.5px;font-weight:800;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+  table.cmp td{font-size:12.5px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  table.cmp tr.me{background:var(--accent-soft)}table.cmp tr.me td{font-weight:700}
+  .link{background:none;border:0;color:var(--accent-text);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}.foot{text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">D</div><b>DesarrollosMX</b></div>
+    <div class="nav-label">MÓDULO</div>
+    <a class="nav-item"><span class="ico">▦</span> Inicio</a>
+    <a class="nav-item active"><span class="ico">🏢</span> Mis Proyectos</a>
+    <a class="nav-item"><span class="ico">👥</span> CRM &amp; Leads</a>
+    <a class="nav-item"><span class="ico">📊</span> Inteligencia</a>
+    <a class="nav-item"><span class="ico">🤝</span> Red comercial</a>
+    <a class="nav-item"><span class="ico">📣</span> Marketing</a>
+    <a class="nav-item"><span class="ico">⚙️</span> Ajustes</a>
+  </aside>
+  <div class="main">
+    <div class="top"><div class="search">🔎 Buscar proyecto, unidad…</div><div class="iconbtn">🔔</div><div class="iconbtn">👤</div></div>
+    <div class="body">
+      <div class="crumb"><a href="#">Mis Proyectos</a> &nbsp;/&nbsp; <b>Altavista Polanco</b></div>
+      <div class="phead">
+        <div><h1 class="serif">Altavista Polanco</h1>
+          <div class="pmeta"><span class="pill dev">Desarrollo</span><span class="pill pre">Preventa</span><span>Polanco · Miguel Hidalgo, CDMX</span><span>·</span><span>70 unidades</span><span>·</span><span>Entrega Dic 2026</span></div>
+        </div>
+        <div class="pact"><button class="btn">Ver como comprador</button><button class="btn grad">Publicar ficha</button></div>
+      </div>
+      <div class="tabs" id="tabs">
+        <button class="on" data-tab="inicio">Inicio</button>
+        <button data-tab="ubicacion">Ubicación</button>
+        <button data-tab="ventas">Ventas</button>
+        <button data-tab="insights">Insights</button>
+        <button data-tab="amenidades">Amenidades</button>
+        <button data-tab="obra">Obra</button>
+        <button data-tab="legal">Legal</button>
+        <button data-tab="pagos">Pagos</button>
+        <button data-tab="canales">Canales</button>
+      </div>
+
+      <!-- ══════ INICIO ══════ -->
+      <section class="panel on" data-panel="inicio">
+        <div class="ready"><span style="font-size:18px">✅</span><div class="rtxt"><b>92%</b> lista para publicar · te falta: <b>2 fotos</b> y la <b>escritura de obra</b></div><div class="rbar"><i style="width:92%"></i></div><button class="btn sm" style="margin-left:auto">Completar</button></div>
+        <div class="lenses">
+          <div class="lens"><div class="lh">🛒 Marketplace público</div><div class="ld">Ficha visible · 1,240 vistas este mes</div></div>
+          <div class="lens"><div class="lh">🤝 Red de brokers</div><div class="ld">Compartida con 8 asesores aliados</div></div>
+          <div class="lens"><div class="lh">👤 Comprador</div><div class="ld">Precio, plan de pagos y tour 3D activos</div></div>
+        </div>
+        <div class="crown">
+          <div class="ringp"><div class="rl">Salud del activo</div>
+            <div class="ring"><svg width="120" height="120" style="transform:rotate(-90deg)"><circle cx="60" cy="60" r="52" stroke="#ECEDF2" stroke-width="10" fill="none"/><circle cx="60" cy="60" r="52" stroke="url(#g)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="91.5"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6D4AFF"/><stop offset="1" stop-color="#C63FAE"/></linearGradient></defs></svg><div class="rv"><b>72</b><span>de 100</span></div></div>
+            <div class="verdict">Sano, con espacio para crecer</div></div>
+          <div class="play"><div class="ph"><span class="pav">✦</span><b>Tu asistente</b><span class="now">La jugada de hoy</span></div>
+            <div class="pt">Tu mayor freno: posición de mercado</div>
+            <div class="pb">Cruzando tus números, lo que más detiene a este activo es <b>tu precio vs la zona</b>: estás <b>+8% arriba</b> de mercado y por eso vendes 1.3/sem.</div>
+            <div class="wi">⚡ Si bajas a mercado, vendes ~30% más rápido y tu salud sube de 72 a ~81.</div>
+            <div class="pa"><button class="btn grad">Aprobar y ejecutar</button><button class="btn">Ver / editar</button><button class="btn">Rechazar</button><span class="hint">Lo seguro lo hace solo · lo delicado espera tu OK</span></div></div>
+        </div>
+        <div class="sec"><div class="sh"><span class="n">1</span> Inventario y ritmo</div><div class="grid">
+          <div class="metric"><div class="ml"><span>% Vendido</span><i class="dot d-green"></i></div><div class="mv">31<u>%</u></div><div class="mc t-green">22 de 70 unidades</div></div>
+          <div class="metric"><div class="ml"><span>Ritmo de venta</span><i class="dot d-amber"></i></div><div class="mv">1.3<u> uds/sem</u></div><div class="mc t-amber">↓ bajando</div></div>
+          <div class="metric"><div class="ml"><span>Se agota en</span><i class="dot d-red"></i></div><div class="mv">14<u> meses</u></div><div class="mc t-red">te quedas con inventario en la entrega</div></div>
+          <div class="metric"><div class="ml"><span>Avance de obra</span><i class="dot d-green"></i></div><div class="mv">62<u>%</u></div><div class="mc t-green">En tiempo · estructura</div></div>
+        </div></div>
+        <div class="sec"><div class="sh"><span class="n">2</span> Posición de mercado <span class="hint">· tu dato × la zona</span></div><div class="grid">
+          <div class="metric"><div class="ml"><span>Tu precio /m²</span><i class="dot d-amber"></i></div><div class="mv">$148K</div><div class="mc t-amber">+8% vs similares · caro</div><div class="assist">✦ Hay una jugada de precio</div></div>
+          <div class="metric"><div class="ml"><span>Qué sube el valor</span><i class="dot d-green"></i></div><div class="mv sm">Roof garden</div><div class="mc t-green">+6% en precio/m²</div></div>
+          <div class="metric"><div class="ml"><span>Interés</span><i class="dot d-green"></i></div><div class="mv">1,240<u> vistas</u></div><div class="mc t-green">a la ficha</div><div class="assist">✦ El asistente lo vigila</div></div>
+        </div></div>
+        <div class="sec"><div class="sh"><span class="n">3</span> Demanda y leads</div><div class="grid">
+          <div class="metric"><div class="ml"><span>Leads activos</span><i class="dot d-green"></i></div><div class="mv">12</div><div class="mc t-green">en seguimiento</div></div>
+          <div class="metric"><div class="ml"><span>Conversión</span><i class="dot d-amber"></i></div><div class="mv">6<u>%</u></div><div class="mc t-amber">de lead a cierre · 64 leads</div></div>
+          <div class="metric"><div class="ml"><span>Leads ganados</span><i class="dot d-green"></i></div><div class="mv">4</div><div class="mc t-green">cerrados</div></div>
+        </div></div>
+        <div class="sec"><div class="sh"><span class="n">4</span> Dinero</div><div class="grid">
+          <div class="metric"><div class="ml"><span>Vendido (valor)</span><i class="dot d-green"></i></div><div class="mv">$324M</div><div class="mc t-green">$412M por colocar</div></div>
+          <div class="metric"><div class="ml"><span>Margen estimado</span><i class="dot d-green"></i></div><div class="mv">24<u>%</u></div><div class="mc t-green">sano</div></div>
+          <div class="metric"><div class="ml"><span>Inventario por colocar</span><i class="dot d-amber"></i></div><div class="mv">48<u> uds</u></div><div class="mc t-amber">$412M</div><div class="assist">✦ Propone incentivos</div></div>
+        </div></div>
+      </section>
+
+      <!-- ══════ UBICACIÓN (GeolocalizacionTab) ══════ -->
+      <section class="panel" data-panel="ubicacion">
+        <div class="card"><h3>📍 Dirección</h3>
+          <div class="fgrid">
+            <div class="fld"><label>Calle y número</label><input value="Calle Campeche 322"></div>
+            <div class="fld"><label>Colonia</label><input value="Hipódromo"></div>
+            <div class="fld"><label>Alcaldía</label><input value="Cuauhtémoc"></div>
+            <div class="fld"><label>Código postal</label><input value="06100"></div>
+          </div>
+        </div>
+        <div class="card"><h3>🗺️ Geolocalización</h3>
+          <p style="font-size:12.5px;color:var(--ink-3)">Ubica el desarrollo en el mapa para activar el entorno (cercanías, conectividad, demanda de la zona).</p>
+          <div class="maph">— Mapa interactivo (Mapbox) · Polanco, CDMX —</div>
+        </div>
+        <div class="block"><div class="bh"><span class="bt">Tu comprador de esta zona</span><span class="bhint">quién compra aquí y cómo venderle</span></div><div class="grid">
+          <div class="metric"><div class="ml"><span>Ingreso</span><i class="dot d-green"></i></div><div class="mv sm">Ingreso alto</div><div class="use">Pueden pagar de contado o enganchar fuerte → vende exclusividad, no mensualidades.</div></div>
+          <div class="metric"><div class="ml"><span>Perfil</span><i class="dot d-green"></i></div><div class="mv sm">Zona familiar</div><div class="use">Destaca seguridad, escuelas cercanas y espacios para niños.</div></div>
+          <div class="metric"><div class="ml"><span>Conectividad</span><i class="dot d-green"></i></div><div class="mv sm">Bien conectada</div><div class="use">Presume cercanía a metro/vialidades en tu marketing.</div></div>
+        </div></div>
+      </section>
+
+      <!-- ══════ VENTAS (VentasTab: Inventario · Prototipo · Planta) ══════ -->
+      <section class="panel" data-panel="ventas">
+        <div class="subtabs" id="vsub">
+          <button class="on" data-vs="inventario">Inventario completo</button>
+          <button data-vs="prototipos">Por prototipo</button>
+          <button data-vs="planta">Vista de planta</button>
+          <span style="margin-left:auto"></span>
+          <button class="btn sm">Forma de pago: Lista ▾</button>
+          <button class="btn sm grad">✎ Editar inventario</button>
+        </div>
+
+        <div class="subpanel on" data-vsp="inventario">
+          <div class="filterbar">
+            <div class="ff"><label>Prototipo</label><select><option>Todos</option><option>A</option><option>B</option><option>PH</option></select></div>
+            <div class="ff"><label>Nivel</label><select><option>Todos</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+            <div class="ff"><label>Recámaras</label><select><option>Todas</option><option>2</option><option>3</option></select></div>
+            <div class="ff"><label>m² totales</label><select><option>Todos</option><option>78</option><option>112</option><option>142</option></select></div>
+            <div class="ff"><label>Estado</label><select><option>Todos</option><option>Disponible</option><option>Reservado</option><option>Vendido</option><option>Bloqueado</option></select></div>
+            <div class="ff"><label>Precio (rango)</label><input placeholder="$ mín — $ máx" style="width:150px"></div>
+            <div class="ff"><label>&nbsp;</label><button class="btn sm">⬆ Carga masiva</button></div>
+          </div>
+          <div class="invwrap"><table class="inv">
+            <thead>
+              <tr class="cats"><th colspan="3" class="c-unidad">Unidad</th><th colspan="5" class="c-m2">M² desglosados</th><th colspan="3" class="c-carac">Características</th><th colspan="3" class="c-adic">Adicionales</th><th colspan="2" class="c-precio">Precio</th><th></th></tr>
+              <tr class="heads"><th>ID</th><th>PROTO.</th><th>NIVEL</th><th>M² PRIV.</th><th>BALCÓN</th><th>TERRAZA</th><th>RG PRIV.</th><th>M² TOTALES</th><th>REC.</th><th>BAÑOS</th><th>CAJONES</th><th>TIPO CAJÓN</th><th>BODEGA</th><th>VISTA</th><th>PRECIO</th><th>ESTADO</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="u">A-101</td><td><span class="protochip">A</span></td><td>1</td><td>70 m²</td><td>5 m²</td><td>—</td><td>3 m²</td><td class="tot">78 m²</td><td>2</td><td>2</td><td>1</td><td>Interior</td><td>Sí</td><td>Calle</td><td class="price">$11,544,000</td><td><span class="stchip st-disp">Disponible</span></td><td>›</td></tr>
+              <tr><td class="u">A-202</td><td><span class="protochip">A</span></td><td>2</td><td>70 m²</td><td>5 m²</td><td>—</td><td>3 m²</td><td class="tot">78 m²</td><td>2</td><td>2</td><td>1</td><td>Exterior</td><td>No</td><td>Interior</td><td class="price">$11,664,000</td><td><span class="stchip st-res">Reservado</span></td><td>›</td></tr>
+              <tr><td class="u">A-303</td><td><span class="protochip">A</span></td><td>3</td><td>70 m²</td><td>5 m²</td><td>—</td><td>3 m²</td><td class="tot">78 m²</td><td>2</td><td>2</td><td>1</td><td>Interior</td><td>Sí</td><td>Amenidades</td><td class="price">$11,784,000</td><td><span class="stchip st-vend">Vendido</span></td><td>›</td></tr>
+              <tr><td class="u">B-104</td><td><span class="protochip">B</span></td><td>1</td><td>98 m²</td><td>8 m²</td><td>6 m²</td><td>—</td><td class="tot">112 m²</td><td>3</td><td>3</td><td>2</td><td>Interior</td><td>Sí</td><td>Calle</td><td class="price">$16,696,000</td><td><span class="stchip st-disp">Disponible</span></td><td>›</td></tr>
+              <tr><td class="u">B-205</td><td><span class="protochip">B</span></td><td>2</td><td>98 m²</td><td>8 m²</td><td>6 m²</td><td>—</td><td class="tot">112 m²</td><td>3</td><td>3</td><td>2</td><td>Exterior</td><td>Sí</td><td>Interior</td><td class="price">$16,816,000</td><td><span class="stchip st-disp">Disponible</span></td><td>›</td></tr>
+              <tr><td class="u">B-306</td><td><span class="protochip">B</span></td><td>3</td><td>98 m²</td><td>8 m²</td><td>6 m²</td><td>—</td><td class="tot">112 m²</td><td>3</td><td>3</td><td>2</td><td>Interior</td><td>No</td><td>Amenidades</td><td class="price">$16,936,000</td><td><span class="stchip st-res">Reservado</span></td><td>›</td></tr>
+              <tr><td class="u">PH-501</td><td><span class="protochip">PH</span></td><td>5</td><td>120 m²</td><td>—</td><td>22 m²</td><td>—</td><td class="tot">142 m²</td><td>3</td><td>3</td><td>2</td><td>Exterior</td><td>Sí</td><td>Panorámica</td><td class="price">$21,616,000</td><td><span class="stchip st-disp">Disponible</span></td><td>›</td></tr>
+              <tr><td class="u">PH-502</td><td><span class="protochip">PH</span></td><td>5</td><td>120 m²</td><td>—</td><td>22 m²</td><td>—</td><td class="tot">142 m²</td><td>3</td><td>3</td><td>2</td><td>Exterior</td><td>Sí</td><td>Panorámica</td><td class="price">$21,616,000</td><td><span class="stchip st-bloq">Bloqueado</span></td><td>›</td></tr>
+            </tbody>
+          </table></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:10px">Mostrando 7 de 70 unidades · Clic en una fila abre el detalle (m², precio, orientación, historial). En modo edición: edita celdas en línea o por lote (ej. “Prototipo A + 3 rec + 100 m²”).</div>
+        </div>
+
+        <div class="subpanel" data-vsp="prototipos">
+          <div class="protos">
+            <div class="pcard"><div class="thumb">🏢</div><h4>Tipo A</h4><div class="pr"><span>Total</span><span>24 uds</span></div><div class="pr"><span>Disponibles</span><span style="color:#22c55e">14</span></div><div class="pr"><span>Desde</span><span>$11.54M</span></div></div>
+            <div class="pcard"><div class="thumb">🏢</div><h4>Tipo B</h4><div class="pr"><span>Total</span><span>30 uds</span></div><div class="pr"><span>Disponibles</span><span style="color:#22c55e">6</span></div><div class="pr"><span>Desde</span><span>$16.70M</span></div></div>
+            <div class="pcard"><div class="thumb">🏢</div><h4>Tipo PH</h4><div class="pr"><span>Total</span><span>16 uds</span></div><div class="pr"><span>Disponibles</span><span style="color:#22c55e">12</span></div><div class="pr"><span>Desde</span><span>$21.62M</span></div></div>
+          </div>
+        </div>
+
+        <div class="subpanel" data-vsp="planta">
+          <div class="floor"><div class="fl-h">Nivel 5 · Penthouses</div><div class="fl-grid">
+            <div class="ucell disp"><div class="un">PH-501</div><div class="up">142 m² · $21.6M</div></div>
+            <div class="ucell vend"><div class="un">PH-502</div><div class="up">142 m² · vendida</div></div>
+            <div class="ucell disp"><div class="un">PH-503</div><div class="up">142 m² · $21.6M</div></div>
+            <div class="ucell disp"><div class="un">PH-504</div><div class="up">142 m² · $21.6M</div></div>
+          </div></div>
+          <div class="floor"><div class="fl-h">Nivel 2</div><div class="fl-grid">
+            <div class="ucell res"><div class="un">A-202</div><div class="up">78 m² · apartada</div></div>
+            <div class="ucell disp"><div class="un">B-205</div><div class="up">112 m² · $16.8M</div></div>
+            <div class="ucell disp"><div class="un">A-201</div><div class="up">78 m² · $11.6M</div></div>
+            <div class="ucell disp"><div class="un">B-204</div><div class="up">112 m² · $16.7M</div></div>
+          </div></div>
+          <div style="display:flex;gap:14px;font-size:11.5px;color:var(--ink-3);margin-top:6px">
+            <span><i class="stchip st-disp" style="padding:1px 8px">Disponible</i></span>
+            <span><i class="stchip st-res" style="padding:1px 8px">Reservado</i></span>
+            <span><i class="stchip st-vend" style="padding:1px 8px">Vendido</i></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════ INSIGHTS (InsightsTab + 6 sub-vistas) ══════ -->
+      <section class="panel" data-panel="insights">
+        <div class="subtabs" id="isub">
+          <button class="on" data-is="resumen">Resumen</button>
+          <button data-is="comparables">Comparables</button>
+          <button data-is="cashflow">Cash Flow</button>
+          <button data-is="engagement">Engagement</button>
+          <button data-is="ia">IA</button>
+          <button data-is="proyecto">Proyecto</button>
+        </div>
+        <div class="subpanel on" data-isp="resumen">
+          <div class="block"><div class="bh"><span class="bt">¿Cómo va el proyecto?</span></div><div class="grid">
+            <div class="metric"><div class="ml"><span>Salud</span><i class="dot d-green"></i></div><div class="mv">72<u>/100</u></div><div class="mc t-green">sano, con espacio</div></div>
+            <div class="metric"><div class="ml"><span>Tu precio /m²</span><i class="dot d-amber"></i></div><div class="mv">$148K</div><div class="mc t-amber">+8% vs zona</div></div>
+            <div class="metric"><div class="ml"><span>Colocado</span><i class="dot d-amber"></i></div><div class="mv">31<u>%</u></div><div class="mc t-amber">22 de 70</div></div>
+          </div></div>
+          <div class="card"><h3>✦ Resumen ejecutivo · IA</h3><p style="font-size:13px;color:var(--ink-2);line-height:1.6">Altavista Polanco va sano pero su precio está 8% arriba del valor de mercado de Polanco, lo que frena el ritmo (1.3 uds/sem). El prototipo A vuela; el B y el PH están lentos. Recomendación: ajustar precio del B a mercado y empujar marketing del PH antes de la entrega (6 meses) para no quedar con ~22 unidades sin colocar.</p></div>
+        </div>
+        <div class="subpanel" data-isp="comparables">
+          <div class="block"><div class="bh"><span class="bt">¿Cómo te comparas?</span><span class="bhint">proyectos parecidos en la zona</span></div>
+            <table class="cmp"><thead><tr><th>Proyecto</th><th>Precio /m²</th><th>Colocado</th><th>Velocidad</th><th>Días listado</th><th>Salud</th></tr></thead><tbody>
+              <tr class="me"><td>Altavista Polanco (tú)</td><td>$148K</td><td>31%</td><td>1.3/sem</td><td>210</td><td>72</td></tr>
+              <tr><td>Residencial Masaryk</td><td>$139K</td><td>54%</td><td>2.1/sem</td><td>180</td><td>81</td></tr>
+              <tr><td>Torre Anáhuac</td><td>$133K</td><td>67%</td><td>2.6/sem</td><td>150</td><td>85</td></tr>
+              <tr><td>Polanco Vertical</td><td>$151K</td><td>22%</td><td>0.9/sem</td><td>240</td><td>64</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="subpanel" data-isp="cashflow">
+          <div class="block"><div class="bh"><span class="bt">Forecast · escenario base</span><span class="bhint">flujo proyectado a 12 meses</span></div><div class="grid">
+            <div class="metric"><div class="ml"><span>Ingreso 12m (base)</span><i class="dot d-green"></i></div><div class="mv">$216M</div><div class="mc t-green">a este ritmo</div></div>
+            <div class="metric"><div class="ml"><span>Pesimista</span><i class="dot d-amber"></i></div><div class="mv">$158M</div><div class="mc t-amber">si el ritmo baja</div></div>
+            <div class="metric"><div class="ml"><span>Optimista</span><i class="dot d-green"></i></div><div class="mv">$281M</div><div class="mc t-green">con ajuste de precio</div></div>
+            <div class="metric"><div class="ml"><span>Colocado a 12m</span><i class="dot d-amber"></i></div><div class="mv">58<u>%</u></div><div class="mc t-amber">sumando lo ya vendido</div></div>
+          </div></div>
+        </div>
+        <div class="subpanel" data-isp="engagement">
+          <div class="block"><div class="bh"><span class="bt">Quién está viendo y contactando</span><span class="bhint">últimos 30 días</span></div><div class="grid">
+            <div class="metric"><div class="ml"><span>Conv. Cliente</span><i class="dot d-green"></i></div><div class="mv">5.2<u>%</u></div><div class="mc t-green">vista → lead</div></div>
+            <div class="metric"><div class="ml"><span>Conv. Asesor</span><i class="dot d-amber"></i></div><div class="mv">28<u>%</u></div><div class="mc t-amber">lead → cita</div></div>
+            <div class="metric"><div class="ml"><span>Top unidad · Cliente</span><i class="dot d-flat"></i></div><div class="mv sm">PH-501</div><div class="mc t-flat">la más vista</div></div>
+            <div class="metric"><div class="ml"><span>Top unidad · Asesor</span><i class="dot d-flat"></i></div><div class="mv sm">B-205</div><div class="mc t-flat">la más mostrada</div></div>
+          </div></div>
+          <div class="card"><h3>Distribución horaria · 24h</h3><div style="display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:6px">
+            <div style="flex:1;background:var(--accent-soft);height:20%"></div><div style="flex:1;background:var(--accent-soft);height:14%"></div><div style="flex:1;background:var(--accent-soft);height:30%"></div><div style="flex:1;background:var(--accent-soft);height:55%"></div><div style="flex:1;background:var(--accent);height:80%"></div><div style="flex:1;background:var(--accent);height:95%"></div><div style="flex:1;background:var(--accent);height:70%"></div><div style="flex:1;background:var(--accent-soft);height:60%"></div><div style="flex:1;background:var(--accent-soft);height:45%"></div><div style="flex:1;background:var(--accent-soft);height:35%"></div></div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:6px">Pico de interés: 18:00–21:00 · agenda tus envíos ahí.</div></div>
+        </div>
+        <div class="subpanel" data-isp="ia">
+          <div class="block"><div class="bh"><span class="bt">Predicción de venta (IA)</span></div><div class="grid">
+            <div class="metric"><div class="ml"><span>Cierre próx. 30d</span><i class="dot d-green"></i></div><div class="mv">2–3<u> uds</u></div><div class="mc t-green">confianza Media</div></div>
+            <div class="metric"><div class="ml"><span>Riesgo de sobre-inventario</span><i class="dot d-red"></i></div><div class="mv sm">Alto</div><div class="mc t-red">en PH a la entrega</div></div>
+          </div></div>
+          <div class="card"><h3>✦ Qué esperar y qué conviene hacer</h3>
+            <div style="font-size:13px;color:var(--ink-2);line-height:1.7">
+              · <b>Ajusta el precio del prototipo B</b> a mercado: hoy frena el ritmo.<br>
+              · <b>Empuja marketing del PH</b> ya — a tu ritmo quedarías con inventario en la entrega.<br>
+              · <b>Llama a los 3 leads calientes</b> del prototipo A esta semana, la demanda en Polanco subió 22%.
+            </div></div>
+        </div>
+        <div class="subpanel" data-isp="proyecto">
+          <div class="block"><div class="bh"><span class="bt">Resumen y valor de mercado</span><span class="bhint">tu precio vs la zona</span></div><div class="grid">
+            <div class="metric"><div class="ml"><span>Tu precio /m²</span><i class="dot d-amber"></i></div><div class="mv">$148K</div><div class="mc t-amber">lista</div></div>
+            <div class="metric"><div class="ml"><span>Valor mercado (AVM)</span><i class="dot d-flat"></i></div><div class="mv">$137K</div><div class="mc t-flat">modelo de la zona</div></div>
+            <div class="metric"><div class="ml"><span>Brecha</span><i class="dot d-amber"></i></div><div class="mv">+8<u>%</u></div><div class="mc t-amber">arriba de mercado</div></div>
+          </div></div>
+          <div class="block"><div class="bh"><span class="bt">Tu embudo</span><span class="bhint">del interés al cierre</span></div>
+            <div class="funnel"><div class="fstep"><div class="fn">1,240</div><div class="fl">Vistas</div></div><div class="farrow">→</div><div class="fstep"><div class="fn">64</div><div class="fl">Leads</div><div class="fp">5.2%</div></div><div class="farrow">→</div><div class="fstep"><div class="fn">18</div><div class="fl">Citas</div><div class="fp">28%</div></div><div class="farrow">→</div><div class="fstep"><div class="fn">4</div><div class="fl">Cierres</div><div class="fp">6%</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════ AMENIDADES (AmenidadesTab) ══════ -->
+      <section class="panel" data-panel="amenidades">
+        <div class="card"><h3>🏊 Amenidades del desarrollo <span style="font-size:12px;font-weight:600;color:var(--ink-3)">· marca las que tiene tu proyecto</span></h3>
+          <div class="amencat"><h4>Recreación y bienestar</h4><div class="amenchips">
+            <span class="amen on"><span class="ck">✓</span>Roof garden</span><span class="amen on"><span class="ck">✓</span>Gimnasio equipado</span><span class="amen on"><span class="ck">✓</span>Alberca</span><span class="amen off"><span class="ck"></span>Spa</span><span class="amen off"><span class="ck"></span>Pet zone</span>
+          </div></div>
+          <div class="amencat"><h4>Seguridad</h4><div class="amenchips">
+            <span class="amen on"><span class="ck">✓</span>Seguridad 24/7</span><span class="amen on"><span class="ck">✓</span>CCTV</span><span class="amen on"><span class="ck">✓</span>Acceso controlado</span>
+          </div></div>
+          <div class="amencat"><h4>Servicios y conveniencia</h4><div class="amenchips">
+            <span class="amen on"><span class="ck">✓</span>Salón de usos múltiples</span><span class="amen off"><span class="ck"></span>Coworking</span><span class="amen on"><span class="ck">✓</span>Elevadores</span><span class="amen off"><span class="ck"></span>Lockers de paquetería</span>
+          </div></div>
+          <button class="btn grad sm" style="margin-top:6px">Guardar cambios</button>
+        </div>
+        <div class="block"><div class="bh"><span class="bt">Lo que sube tu precio /m²</span><span class="bhint">amenidades que el mercado sí paga (modelo de la zona)</span></div><div class="grid">
+          <div class="metric"><div class="ml"><span>Roof garden</span><i class="dot d-green"></i></div><div class="mv">+6<u>%</u></div><div class="mc t-green">la que más valora tu zona</div></div>
+          <div class="metric"><div class="ml"><span>Gimnasio</span><i class="dot d-green"></i></div><div class="mv">+3<u>%</u></div><div class="mc t-green">en precio/m²</div></div>
+          <div class="metric"><div class="ml"><span>Te falta: Coworking</span><i class="dot d-amber"></i></div><div class="mv">+2.5<u>%</u></div><div class="mc t-amber">7 de 10 competidores lo tienen</div></div>
+        </div></div>
+      </section>
+
+      <!-- ══════ OBRA (AvanceObraTab) ══════ -->
+      <section class="panel" data-panel="obra">
+        <div class="grid" style="margin-bottom:18px">
+          <div class="metric"><div class="ml"><span>Avance</span><i class="dot d-green"></i></div><div class="mv">62<u>%</u></div><div class="mc t-green">completado · en tiempo</div></div>
+          <div class="metric"><div class="ml"><span>Etapa actual</span><i class="dot d-flat"></i></div><div class="mv sm">Estructura</div><div class="mc t-flat">en curso</div></div>
+          <div class="metric"><div class="ml"><span>A la entrega</span><i class="dot d-flat"></i></div><div class="mv">6<u> meses</u></div><div class="mc t-flat">Dic 2026</div></div>
+          <div class="metric"><div class="ml"><span>Última actualización</span><i class="dot d-flat"></i></div><div class="mv sm">mar 2026</div><div class="mc t-flat">del registro</div></div>
+        </div>
+        <div class="card"><h3>🧱 Con qué está construido el desarrollo</h3>
+          <div class="fgrid">
+            <div class="fld"><label>Sistema constructivo</label><input value="Concreto armado + losa aligerada"></div>
+            <div class="fld"><label>Estructura</label><input value="Marcos de concreto"></div>
+            <div class="fld"><label>Fachada</label><input value="Muro cortina + cantera"></div>
+          </div>
+        </div>
+        <div class="card"><h3>📅 Registro de avance</h3>
+          <div class="timeline">
+            <div class="tlitem"><div class="tt">Estructura · nivel 5 colado</div><div class="td">mar 2026 · 62% acumulado · 3 fotos</div></div>
+            <div class="tlitem"><div class="tt">Cimentación terminada</div><div class="td">dic 2025 · 38% acumulado · 5 fotos</div></div>
+            <div class="tlitem"><div class="tt">Excavación y muro Berlín</div><div class="td">sep 2025 · 15% acumulado · 2 fotos</div></div>
+          </div>
+          <button class="btn sm" style="margin-top:10px">＋ Registrar avance</button>
+        </div>
+      </section>
+
+      <!-- ══════ LEGAL (LegalTab) ══════ -->
+      <section class="panel" data-panel="legal">
+        <div class="upbox">⬆ Arrastra o selecciona documentos · PDF, DOCX hasta 12MB · la IA los categoriza automáticamente</div>
+        <div class="docrow"><div class="di">📄</div><div><div class="dn">Uso de suelo</div><div class="dd">uso-suelo-altavista.pdf · subido 12 mar</div></div><span class="dstatus ds-apro">Aprobado</span></div>
+        <div class="docrow"><div class="di">📄</div><div><div class="dn">Permiso SEDUVI</div><div class="dd">seduvi-2025.pdf · subido 12 mar</div></div><span class="dstatus ds-apro">Aprobado</span></div>
+        <div class="docrow"><div class="di">📐</div><div><div class="dn">Planos autorizados</div><div class="dd">planos-arq-v3.pdf · subido 8 mar</div></div><span class="dstatus ds-rev">En revisión</span></div>
+        <div class="docrow"><div class="di">📝</div><div><div class="dn">Contrato modelo</div><div class="dd">contrato-compraventa.docx · subido 1 mar</div></div><span class="dstatus ds-apro">Aprobado</span></div>
+        <div class="docrow"><div class="di">📄</div><div><div class="dn">Escritura de obra</div><div class="dd">— pendiente de subir —</div></div><span class="dstatus ds-pend">Pendiente</span></div>
+        <div class="docrow"><div class="di">🏦</div><div><div class="dn">Fideicomiso</div><div class="dd">fideicomiso-banco.pdf · subido 1 mar</div></div><span class="dstatus ds-apro">Aprobado</span></div>
+      </section>
+
+      <!-- ══════ PAGOS (ComercializacionTab) ══════ -->
+      <section class="panel" data-panel="pagos">
+        <div class="card"><h3>💳 Política comercial</h3>
+          <div class="fgrid">
+            <div class="fld"><label>Comisión default a broker</label><input value="4%"></div>
+            <div class="fld"><label>¿Incluye IVA?</label><select><option>Sí</option><option>No</option></select></div>
+          </div>
+          <div style="margin:16px 0 12px"><span class="switch"><span class="toggle"></span> Trabajar con brokers externos</span></div>
+          <div class="fld"><label>Condiciones para brokers externos</label><textarea rows="3">Comisión 4% sobre precio de lista. Pago a la firma de escritura. Registro previo del cliente obligatorio (regla 1 asesor × proyecto).</textarea></div>
+        </div>
+        <div class="card"><h3>📋 Esquemas de pago al comprador</h3>
+          <div class="grid">
+            <div class="metric"><div class="ml"><span>Contado</span><i class="dot d-green"></i></div><div class="mv">−8<u>%</u></div><div class="mc t-green">descuento por pago de contado</div></div>
+            <div class="metric"><div class="ml"><span>Enganche + mensualidades</span><i class="dot d-green"></i></div><div class="mv">20<u>%</u></div><div class="mc t-green">enganche · 24 meses sin intereses</div></div>
+            <div class="metric"><div class="ml"><span>Crédito hipotecario</span><i class="dot d-flat"></i></div><div class="mv sm">Aceptado</div><div class="mc t-flat">bancario e Infonavit</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════ CANALES (CanalesTab) ══════ -->
+      <section class="panel" data-panel="canales">
+        <div class="block"><div class="bh"><span class="bt">In-house vs Brokers</span><span class="bhint">este proyecto · 64 leads</span></div><div class="grid">
+          <div class="metric"><div class="ml"><span>In-house</span><i class="dot d-green"></i></div><div class="mv">38<u> leads</u></div><div class="mc t-green">3 cierres · ticket $14.2M</div></div>
+          <div class="metric"><div class="ml"><span>Brokers externos</span><i class="dot d-amber"></i></div><div class="mv">26<u> leads</u></div><div class="mc t-amber">1 cierre · ticket $15.1M</div></div>
+        </div></div>
+        <div class="card" style="padding:16px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">👥 Tu equipo in-house y brokers</h3><button class="btn grad sm">＋ Asignar asesor / broker</button></div>
+          <div class="lrow"><span class="lrk top">1</span><div><div class="lname">Mariana Cárdenas <span class="chip inhouse">In-house</span></div><div class="lsub">19 leads · muy activa · comisión 0%</div></div><div class="lr"><b>2</b><span>cierres · 11%</span></div><div class="lr"><b>$14.6M</b><span>ticket prom.</span></div><button class="btn sm" style="margin-left:10px">Pausar</button></div>
+          <div class="lrow"><span class="lrk">2</span><div><div class="lname">Grupo Lamudi <span class="chip broker">Broker</span></div><div class="lsub">15 leads · comisión 4%</div></div><div class="lr"><b>1</b><span>cierres · 7%</span></div><div class="lr"><b>$15.1M</b><span>ticket prom.</span></div><button class="btn sm" style="margin-left:10px">Revocar</button></div>
+          <div class="lrow"><span class="lrk">3</span><div><div class="lname">Diego Solís <span class="chip inhouse">In-house</span></div><div class="lsub">12 leads · comisión 0%</div></div><div class="lr"><b>1</b><span>cierres · 8%</span></div><div class="lr"><b>$13.8M</b><span>ticket prom.</span></div><button class="btn sm" style="margin-left:10px">Pausar</button></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+<script>
+  function go(tab){
+    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.dataset.panel===tab));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.tab)go(b.dataset.tab);});
+  // sub-tabs Ventas
+  document.getElementById('vsub').addEventListener('click',e=>{const b=e.target.closest('button[data-vs]');if(!b)return;
+    document.querySelectorAll('#vsub button[data-vs]').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('[data-vsp]').forEach(p=>p.classList.toggle('on',p.dataset.vsp===b.dataset.vs));});
+  // sub-tabs Insights
+  document.getElementById('isub').addEventListener('click',e=>{const b=e.target.closest('button[data-is]');if(!b)return;
+    document.querySelectorAll('#isub button[data-is]').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('[data-isp]').forEach(p=>p.classList.toggle('on',p.dataset.isp===b.dataset.is));});
+</script>
+</body>
+</html>
