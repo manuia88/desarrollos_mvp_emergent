@@ -76,6 +76,9 @@ DEFAULT_CATEGORIES = {
     "user_re_engagement":    {"in_app": True, "email": False, "whatsapp": False},
     "widget_embed_new_domain": {"in_app": True, "email": True,  "whatsapp": False},
     "macro_alert":           {"in_app": True, "email": True,  "whatsapp": False},
+    # [AUD-015] demand_build_alert era tipo VIVO en NOTIF_TYPES ("push real, no solo dashboard") pero
+    # faltaba aquí → caía al fallback {in_app:True} sin email, contradiciendo su intención de push proactivo.
+    "demand_build_alert":    {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
