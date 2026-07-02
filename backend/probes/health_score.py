@@ -81,7 +81,9 @@ async def _weekly_brief_generator(db, project_id, user):
                     "recommendation": "No hay briefs generados en los últimos 8 días. "
                                        "Verificar APScheduler o ejecutar generación manual."}
 
-        return {"passed": True, "extra": {"last_brief": recent.get("generated_at")}}
+        # [AUD-047] NO exponer el timestamp del brief (era de CUALQUIER tenant). El chequeo de salud
+        # solo necesita saber que existe uno reciente, no de quién ni cuándo.
+        return {"passed": True, "extra": {"has_recent_brief": True}}
     except Exception as e:
         return {"passed": False, "error_type": "wiring_broken",
                 "location": "weekly_brief module",

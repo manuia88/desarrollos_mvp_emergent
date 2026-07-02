@@ -1191,6 +1191,10 @@ async def demand_heatmap(request: Request):
     """M3 · E5 — índice de demanda REAL (búsquedas de asesores + oferta + funnel real).
     Reemplazó el heatmap sintético (random.seed). Se llena solo conforme entran búsquedas."""
     user = await require_dev_admin(request)
+    # [AUD-045] El índice de demanda agrega leads/búsquedas/citas de TODOS los tenants (dato de mercado).
+    # Decisión del founder: solo superadmin ve el agregado del mercado (un dev NO ve datos de otras cuentas).
+    if getattr(user, "role", None) != "superadmin":
+        raise HTTPException(403, "El índice de demanda de mercado es solo para superadmin")
     db = get_db(request)
     from services.demand_engine import compute_demand
     return await compute_demand(db)

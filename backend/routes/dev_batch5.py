@@ -545,15 +545,14 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
     org_id = template.get("dev_org_id", "default")
 
     # Aggregated data (always loaded once)
-    leads_q: Dict[str, Any] = {"created_at": {"$gte": period_from, "$lte": period_to}}
-    if org_id != "default":
-        leads_q["dev_org_id"] = org_id
+    # [AUD-048] SIEMPRE filtrar por dev_org_id (incluido 'default'). Antes org_id=='default' saltaba el
+    # filtro → el PDF leía leads/citas de TODOS los tenants. Ahora un template 'default' trae solo los
+    # docs de la casa (dev_org_id=='default'), nunca de otras cuentas.
+    leads_q: Dict[str, Any] = {"created_at": {"$gte": period_from, "$lte": period_to}, "dev_org_id": org_id}
     if project_id:
         leads_q["project_id"] = project_id
     leads = await db.leads.find(leads_q, {"_id": 0}).limit(5000).to_list(5000)
-    appts_q: Dict[str, Any] = {"created_at": {"$gte": period_from, "$lte": period_to}}
-    if org_id != "default":
-        appts_q["dev_org_id"] = org_id
+    appts_q: Dict[str, Any] = {"created_at": {"$gte": period_from, "$lte": period_to}, "dev_org_id": org_id}
     if project_id:
         appts_q["project_id"] = project_id
     appts = await db.appointments.find(appts_q, {"_id": 0}).limit(5000).to_list(5000)

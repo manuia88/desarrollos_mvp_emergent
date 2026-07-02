@@ -91,3 +91,37 @@ def test_aud042_workflow_test_valida_lead():
     src = _src("routes/workflows.py")
     tw = re.search(r"async def test_workflow\(.*?execute_workflow\(", src, re.S).group(0)
     assert "assert_lead_owner" in tw, "test_workflow debe validar dueño de body.lead_id (AUD-042)"
+
+
+# ─── Decisiones de producto (founder) sobre los diferidos ───────────────────────
+def test_aud045_demanda_solo_superadmin():
+    src = _src("routes/developer.py")
+    dh = re.search(r"async def demand_heatmap\(.*?compute_demand", src, re.S).group(0)
+    assert 'getattr(user, "role", None) != "superadmin"' in dh, \
+        "/demanda debe ser solo-superadmin (decisión founder AUD-045)"
+
+
+def test_aud043_cross_project_anonimizado():
+    src = _src("routes/dev_batch4_2.py")
+    assert '"cross_project_active": bool(cross_count > 0)' in src, \
+        "el Kanban debe exponer señal booleana, no el conteo exacto (AUD-043)"
+    assert '"cross_project_count": cross_count' not in src, "sigue exponiendo el conteo exacto"
+
+
+def test_aud046_probabilidad_login_y_rango():
+    src = _src("probability_engine.py")
+    assert "_leads_bucket" in src and "f\"leads_{lead_count}" not in src, \
+        "el conteo de leads debe ir en rango, no exacto (AUD-046)"
+    m = re.search(r'if type == "sells_complete":.*?compute_sells_complete', src, re.S).group(0)
+    assert "get_current_user" in m, "sells_complete debe exigir login (AUD-046)"
+
+
+def test_aud047_probe_sin_timestamp_ajeno():
+    src = _src("probes/health_score.py")
+    assert '"has_recent_brief": True' in src and '"last_brief": recent.get' not in src, \
+        "el probe no debe exponer el timestamp de weekly_briefs cross-tenant (AUD-047)"
+
+
+def test_aud048_build_pdf_siempre_filtra_org():
+    src = _src("routes/dev_batch5.py")
+    assert 'if org_id != "default":' not in src, "sigue saltando el filtro con org='default' (AUD-048)"

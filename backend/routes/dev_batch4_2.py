@@ -277,7 +277,9 @@ def _build_card(lead: Dict, name_by_id: Dict[str, str], now: datetime,
         "lost_reason": lead.get("lost_reason"),
         "intent": lead.get("intent"),
         "client_global_id": lead.get("client_global_id"),
-        "cross_project_count": cross_count,
+        # [AUD-043] Señal ANONIMIZADA (decisión founder): solo indica que el comprador está activo en
+        # otro lado, sin revelar el NÚMERO exacto de competidores (antes: cross_project_count cross-tenant).
+        "cross_project_active": bool(cross_count > 0),
         "can_move": can_move,
         "can_view_full": can_full,
         "velocity_flag": lead.get("velocity_flag", False),

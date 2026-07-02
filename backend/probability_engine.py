@@ -186,6 +186,10 @@ async def compute_sells_complete(db, project_id: str, months: int = 12) -> Dict[
     leads_contrib = leads_signal * 30.0
     total_contrib = max(wb_contrib + leads_contrib, 0.01)
 
+    # [AUD-046] Rango en vez del conteo exacto de leads (no exponer el volumen de ventas de un proyecto).
+    _leads_bucket = ("0" if lead_count <= 0 else "1-10" if lead_count <= 10 else
+                     "11-25" if lead_count <= 25 else "26-50" if lead_count <= 50 else
+                     "51-100" if lead_count <= 100 else "100+")
     sources = [
         {
             "source": "WhatIf",
@@ -195,7 +199,7 @@ async def compute_sells_complete(db, project_id: str, months: int = 12) -> Dict[
         {
             "source": "Comparables",
             "contribution_pct": round(leads_contrib / total_contrib * 100.0, 1),
-            "value_used": f"leads_{lead_count}_en_{months}m",
+            "value_used": f"leads_{_leads_bucket}_en_{months}m",
         },
     ]
 
@@ -460,6 +464,11 @@ async def get_probability(
 
     try:
         if type == "sells_complete":
+            # [AUD-046] Decisión founder: la prob. de venta de un proyecto (que deriva de su volumen de
+            # leads) exige LOGIN — antes era pública T0 y filtraba señal comercial a cualquiera.
+            from server import get_current_user
+            if not await get_current_user(request):
+                raise HTTPException(401, "Inicia sesión para ver la probabilidad de venta")
             result = await compute_sells_complete(db, id, months)
         elif type == "drpi_up":
             result = await compute_zone_drpi_up(db, id, months)

@@ -59,4 +59,12 @@
 
 **Batch 6 (aislamiento multi-tenant · workflow 36 finders + verif adversarial 3-lentes):** 143 archivos / 451 lecturas sensibles → **21 fugas confirmadas / 3 refutadas**. **15 corregidas** aquí (AUD-033..042 + 2 cubiertas de paso: ai_suggestions project/asesor por 034, casamentera→lead_to_asesor_match por 038); **6 diferidas** (PENDIENTES). Test: `test_aud_batch6_tenant.py` (10 verdes). Patrón dominante: fail-open cuando `tenant_id` es None/vacío + lecturas de PII con id del cliente sin `assert_lead_owner` (misma clase que AUD-023).
 
+| AUD-043 | N3 | (este commit) | `test_aud043` | Kanban cross_project_count exacto cross-tenant → **decisión founder: señal anonimizada** (`cross_project_active` booleano, sin número) |
+| AUD-045 | N3 | (este commit) | `test_aud045` | índice de demanda con datos de todos los tenants → **decisión founder: solo superadmin** (dev ya no ve el agregado de mercado) |
+| AUD-046 | N3 | (este commit) | `test_aud046` | conteo público de leads por proyecto → **decisión founder: login + rango** (sells_complete exige sesión; conteo bucketizado) |
+| AUD-047 | N2 | (este commit) | `test_aud047` | probe exponía timestamp de weekly_briefs ajeno → booleano `has_recent_brief` (higiene) |
+| AUD-048 | N2 | (este commit) | `test_aud048` | _build_pdf con org='default' no filtraba → SIEMPRE filtra `dev_org_id` (template 'default' = solo datos de la casa) |
+
+**Batch 6 · decisiones de producto (founder):** de los 6 diferidos, 5 resueltos aquí (AUD-043/045/046/047/048). Queda **AUD-044** (red comercial: mostrar volumen del socio) pendiente de aclaración → PENDIENTES. Test: `test_aud_batch6_tenant.py` (15 verdes).
+
 **Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.
