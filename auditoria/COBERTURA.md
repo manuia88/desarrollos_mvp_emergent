@@ -219,7 +219,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/facet_engine.py` | 420 | pendiente |  |  |
 | `backend/feature_dependencies.py` | 91 | pendiente |  |  |
 | `backend/feature_flags_engine.py` | 484 | pendiente |  |  |
-| `backend/feature_gate_engine.py` | 272 | pendiente |  |  |
+| `backend/feature_gate_engine.py` | 272 | auditado | 2026-07-01 | B3 |
 | `backend/feature_legacy_adapter.py` | 118 | pendiente |  |  |
 | `backend/feature_registry.py` | 152 | pendiente |  |  |
 | `backend/feature_registry_eager_loader.py` | 122 | pendiente |  |  |
@@ -313,7 +313,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/newsletter_pulse_engine.py` | 532 | pendiente |  |  |
 | `backend/norma3_engine.py` | 156 | pendiente |  |  |
 | `backend/notifications_engine.py` | 897 | pendiente |  |  |
-| `backend/oauth_calendar.py` | 514 | pendiente |  |  |
+| `backend/oauth_calendar.py` | 514 | auditado | 2026-07-01 | B3 |
 | `backend/observability.py` | 295 | pendiente |  |  |
 | `backend/osm_engine.py` | 187 | pendiente |  |  |
 | `backend/ownership_economics_engine.py` | 182 | pendiente |  |  |
@@ -321,7 +321,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/payment_schemes.py` | 319 | pendiente |  |  |
 | `backend/perception_risk_engine.py` | 166 | pendiente |  |  |
 | `backend/perfil_zona_engine.py` | 121 | pendiente |  |  |
-| `backend/permissions.py` | 318 | pendiente |  |  |
+| `backend/permissions.py` | 318 | auditado | 2026-07-01 | B3 |
 | `backend/photo_tagger.py` | 181 | pendiente |  |  |
 | `backend/pii_crypto.py` | 81 | pendiente |  |  |
 | `backend/pipeline_drift_personal.py` | 129 | pendiente |  |  |
@@ -351,7 +351,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/probes/schema.py` | 99 | pendiente |  |  |
 | `backend/project_wizard_engine.py` | 233 | pendiente |  |  |
 | `backend/projects_unified.py` | 135 | pendiente |  |  |
-| `backend/public_api_auth.py` | 198 | pendiente |  |  |
+| `backend/public_api_auth.py` | 198 | auditado | 2026-07-01 | B3 |
 | `backend/rag_context_helper.py` | 144 | pendiente |  |  |
 | `backend/rag_engine.py` | 915 | pendiente |  |  |
 | `backend/rag_reindex_cron.py` | 67 | pendiente |  |  |
@@ -405,7 +405,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/routes/asesor_playbook.py` | 134 | pendiente |  |  |
 | `backend/routes/asistente.py` | 344 | pendiente |  |  |
 | `backend/routes/atlax_persona.py` | 254 | pendiente |  |  |
-| `backend/routes/auth.py` | 522 | pendiente |  |  |
+| `backend/routes/auth.py` | 522 | auditado | 2026-07-01 | B3 |
 | `backend/routes/auto_pilot.py` | 83 | pendiente |  |  |
 | `backend/routes/avm_accuracy.py` | 186 | pendiente |  |  |
 | `backend/routes/avm_public.py` | 241 | pendiente |  |  |
@@ -646,7 +646,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/seismic_zone_ingest.py` | 140 | pendiente |  |  |
 | `backend/seo_combos_seed.py` | 223 | pendiente |  |  |
 | `backend/seo_landings_config.py` | 175 | pendiente |  |  |
-| `backend/server.py` | 3104 | pendiente |  |  |
+| `backend/server.py` | 3104 | auditado | 2026-07-01 | B3 |
 | `backend/services/__init__.py` | 1 | pendiente |  |  |
 | `backend/services/advisor_authorization.py` | 485 | pendiente |  |  |
 | `backend/services/ai_safety.py` | 111 | pendiente |  |  |
@@ -714,7 +714,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/smart_lists_engine.py` | 397 | pendiente |  |  |
 | `backend/soc_franchise_engine.py` | 564 | pendiente |  |  |
 | `backend/social_ads_engine.py` | 498 | pendiente |  |  |
-| `backend/social_ads_oauth.py` | 306 | pendiente |  |  |
+| `backend/social_ads_oauth.py` | 306 | auditado | 2026-07-01 | B3 |
 | `backend/social_cards_cache.py` | 80 | pendiente |  |  |
 | `backend/social_cards_engine.py` | 480 | pendiente |  |  |
 | `backend/state_of_cdmx_engine.py` | 240 | auditado | 2026-07-01 | B1 |
@@ -756,7 +756,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/tax_projector_cache.py` | 80 | pendiente |  |  |
 | `backend/tax_projector_engine.py` | 600 | pendiente |  |  |
 | `backend/tenant_dev_map.py` | 152 | pendiente |  |  |
-| `backend/tenant_scope.py` | 279 | pendiente |  |  |
+| `backend/tenant_scope.py` | 279 | auditado | 2026-07-01 | B3 |
 | `backend/terminal_celda.py` | 241 | pendiente |  |  |
 | `backend/terminal_indicadores.py` | 248 | pendiente |  |  |
 | `backend/terminal_mercado_engine.py` | 216 | pendiente |  |  |

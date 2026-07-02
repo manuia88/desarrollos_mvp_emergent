@@ -43,3 +43,22 @@
 | ID | Sev | Área | Hallazgo | Evidencia | Estado |
 |---|---|---|---|---|---|
 | AUD-020 | INFO→POSITIVO | Auth inventory | La columna `depends` de ENDPOINTS.csv marcaba 1,498/1,539 "sin auth" = FALSO (este backend enforza auth in-body). Detector mejorado (`enrich_endpoints_auth.py`): **1,020 in-body + 95 deleg + 41 Depends + 3 cron = 1,159 autenticados**; 380 residual "PÚBLICO?" (cota superior, incluye legítimamente-públicos: marketplace/widgets/simulador/invitación-por-token/visitor-tracking/webhooks). De 25 candidatos sensibles, spot-checks (advisor_whitelist, documents, agentic_crm) = **100% autenticados** con rol+ownership (`_require_dev_or_superadmin`+`_assert_dev_access`, `require_superadmin`, `_auth_dev`+dev_org scope). **Veredicto: auth ampliamente enforzada vía helpers; público-sensible-sin-auth ≈ 0 en la muestra.** Worklist para barrido IDOR: `auditoria/ENDPOINTS_PUBLICOS.csv`. | `auditoria/ENDPOINTS_PUBLICOS.csv`, `enrich_endpoints_auth.py` | **auditado** (positivo) |
+
+## Batch 3 — núcleo auth/permisos/tenant/OAuth (workflow 20 agentes · verificación adversarial)
+
+| ID | Sev | Área | Hallazgo (CONFIRMADO adversarialmente salvo nota) | Evidencia | Estado |
+|---|---|---|---|---|---|
+| AUD-021 | HIGH | auth | `account_blocked` solo se checaba en login-password; `get_current_user` (gate por-request) lo ignoraba → suspender NO cortaba sesiones vivas (JWT 8h/cookie 7d) + re-login por OAuth/magic-link | `server.py:1598-1646` | **corregido** `c5a37e74` |
+| AUD-022 | HIGH | auth | rate-limit magic-link usaba `X-Forwarded-For[0]` (spoofeable) → rotar header evade 5/min (spam correo/enum) | `routes/auth.py:309` | **corregido** `b31c635c` |
+| AUD-023 | BLOCKER | idor/tenant | register `developer_admin` con `tenant_id=None` → `tenant_of()` cae a sentinel COMPARTIDO `'default'` → todos los devs auto-registrados en el MISMO tenant = IDOR cross-tenant. Explotable HOY | `tenant_scope.py:42` + `routes/auth.py:141` | **corregido** `b31c635c` (tenant propio `org_{user_id}`) |
+| AUD-024 | HIGH | auth/gate | `derive_user_tier` toma el tier MÁS permisivo de CUALQUIER flag activo → escala a 'enterprise' global. Solo activo con `FEATURE_GATING_ENFORCED=true` (hoy false) | `feature_gate_engine.py:145-153` | **propuesto N3** (gating/billing · inactivo hoy) |
+| AUD-025 | MEDIUM | tests | Fragilidad de aislamiento: `test_conversation_ml`/`feature_flags`/`pipeline_v2` asumen entorno sin LLM y fallan si un test previo importa `server` (init de cliente LLM). Pasan aislados. Pre-existente (mis fixes de auth NO lo causan) | `test_conversation_ml.py:216` | abierto (batch test-hardening) |
+
+### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
+- **JWT_SECRET efímero** (HIGH→REFUTADO): requiere mala-config del operador (DMX_ENV vacío/typo); atacante sin influencia. Guard fail-closed cubre cookies/HSTS. Mitigación defensiva → N3.
+- **prefijo heurístico user_dev_ids** (HIGH→REFUTADO): precondición inalcanzable (atacante no controla developer_id ajeno).
+- **inm_of() namespace** (HIGH→PARCIAL): bug real de data-flow pero UserOut (pydantic extra=ignore) descarta el campo → exploit no alcanzable hoy.
+- **refresh_token sin endpoint de rotación** (HIGH→PARCIAL): deuda arquitectónica/UX, no vuln.
+- **redirect_uri desde base_url** (HIGH→PARCIAL): requiere Host spoof + env sin setear + sin TrustedHostMiddleware.
+- **_csrf_states en memoria** (HIGH→PARCIAL): solo rompe con >1 worker; deploy actual single-worker. Mitigación (Redis/HMAC state) → N4.
+- **require_role dead code** (MEDIUM): 0 callsites; no es vuln, invita a mal uso futuro → N4 (remover o documentar).
