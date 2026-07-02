@@ -71,14 +71,20 @@ def _prod_env_guard():
                "en producción.")
         logging.error(f"[startup] {msg}")
         raise RuntimeError(msg)   # fail-closed: mejor no bootear que bootear en modo dev abierto
-    if not _is_explicit_prod():
-        # dev/preview/desconocido: avisos suaves, no bloquea el arranque (no rompe preview sin secretos)
+    # [AUD-021b] Cierre del hueco del TYPO: si DMX_ENV está SETEADO pero no es ni dev ni prod reconocido
+    # (p.ej. 'prodd', 'production ', 'PROD1'), es casi seguro un prod mal escrito → tratarlo como prod para
+    # EXIGIR secretos (fail-closed), en vez de arrancar con JWT_SECRET efímero. UNSET se mantiene como dev
+    # local (arranque suave, sin romper el flujo de dev que no setea DMX_ENV).
+    _env_raw = os.environ.get("DMX_ENV", "").strip()
+    _ambiguous_set = bool(_env_raw) and not _is_dev() and not _is_explicit_prod()
+    if not _is_explicit_prod() and not _ambiguous_set:
+        # dev/preview/UNSET: avisos suaves, no bloquea el arranque (no rompe preview/local sin secretos)
         if not os.environ.get("JWT_SECRET"):
             logging.warning("[startup] JWT_SECRET no seteada — usando secreto efímero (OK en dev, NO en prod)")
-        if not _is_dev():
-            logging.error("[startup] DMX_ENV no es prod ni dev reconocido — se ASUME modo seguro (fail-closed). "
-                          "Setea DMX_ENV=production en prod, o DMX_ENV=local/preview en dev.")
         return
+    if _ambiguous_set:
+        logging.error(f"[startup] DMX_ENV='{_env_raw}' NO reconocido — se trata como PRODUCCIÓN (fail-closed) "
+                      "para exigir secretos. ¿Typo? Usa 'production' en prod o 'local'/'preview' en dev.")
     fatal = []
     if not os.environ.get("JWT_SECRET"):
         fatal.append("JWT_SECRET (sin esto las sesiones mueren al reiniciar / no validan entre instancias)")
