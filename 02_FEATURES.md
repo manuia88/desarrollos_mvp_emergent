@@ -1,4 +1,4 @@
-# DMX — Features Catalog (762 features)
+# DMX — Features Catalog (812 features)
 
 > Catálogo completo organizado por bloques. Cada feature en 1 línea. Lee de arriba a abajo o salta directo al bloque que necesites.
 
@@ -7,12 +7,12 @@
 | Sección | Bloques | Features |
 |---|---|---|
 | **A. Founder Catalog** | D1-D10 + A1-A10 + C1-C10 | 600 |
-| **B. DMX Studio S1** | S1.1-S1.10 (incl. Propads-style) | 50 |
+| **B. DMX Studio S1** | S1.1-S1.10 (incl. Propads-style) | 100 |
 | **C. CRM Pulppo+** | M03+, M04+, M05+, M06+, M07+, M13+ | 80 |
 | **D. Caya-style Comprador** | C11 | 10 |
 | **E. Cualquier-Link Branded** | A11 | 12 |
 | **F. Public Widgets B2B** | G1 | 10 |
-| **TOTAL** | | **762** |
+| **TOTAL** | | **812** |
 
 ---
 
@@ -776,7 +776,7 @@
 
 ---
 
-## SECCIÓN B — DMX STUDIO S1 (50)
+## SECCIÓN B — DMX STUDIO S1 (100)
 
 > Director IA Video Inmobiliario único LATAM. Texto/foto/URL → script → voz → avatar → video con music. Incluye features Propads-style para creativos estáticos.
 
@@ -1123,12 +1123,12 @@
 | Sección | Features |
 |---|---|
 | A. Founder catalog | 600 |
-| B. DMX Studio S1 | 50 |
+| B. DMX Studio S1 | 100 |
 | C. CRM Pulppo+ | 80 |
 | D. Caya-style C11 | 10 |
 | E. Cualquier-Link A11 | 12 |
 | F. Widgets B2B G1 | 10 |
-| **TOTAL** | **762** |
+| **TOTAL** | **812** |
 
 Cada feature es construible. Sin nice-to-have ambiguos. Sin pricing (emergent decide). Sin opiniones stack (emergent decide).
 

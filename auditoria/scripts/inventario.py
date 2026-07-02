@@ -11,7 +11,7 @@ Genera (en auditoria/):
 
 Determinista y honesto: lo que no puede resolver lo marca (p.ej. prefijo dinámico → '?').
 """
-import csv, os, re, sys
+import csv, os, re
 from collections import defaultdict
 from datetime import date
 
@@ -129,13 +129,18 @@ def gen_motores(py_files):
             all_src[rel] = open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read()
         except OSError:
             all_src[rel] = ""
-    engines = [r for r, _ in py_files if re.search(r"backend/(?:[\w]*engine[\w]*|[\w]*cron[\w]*)\.py$", r)
-               or "/agent_workforce/" in r or "/conversation_channels/" in r or "/cerebro/" in r]
+    engines = [r for r, _ in py_files if (re.search(r"backend/(?:[\w]*engine[\w]*|[\w]*cron[\w]*)\.py$", r)
+               or "/agent_workforce/" in r or "/conversation_channels/" in r or "/cerebro/" in r)
+               and not r.endswith("__init__.py")]  # los __init__ son marcadores de paquete, no motores
     rows = []
     for eng in sorted(set(engines)):
         mod = os.path.splitext(os.path.basename(eng))[0]
+        # importadores: import directo, `from X.mod import`, `import X.mod`, o el nombre como STRING
+        # (carga dinámica por registry/hub, p.ej. engines_hub itera nombres de módulo en un tuple).
         importers = [r for r, s in all_src.items()
-                     if r != eng and re.search(rf"(?:from|import)\s+(?:\w+\.)*{re.escape(mod)}\b", s)]
+                     if r != eng and re.search(
+                         rf"(?:from\s+(?:\w+\.)*{re.escape(mod)}\s+import|import\s+(?:\w+\.)*{re.escape(mod)}\b"
+                         rf"|[\"']{re.escape(mod)}[\"'])", s)]
         in_routes = [r for r in importers if "/routes/" in r or r.endswith("server.py")]
         in_cron = [r for r in importers if "cron" in r or "scheduler" in r.lower()]
         src = all_src.get(eng, "")

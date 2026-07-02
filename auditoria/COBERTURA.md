@@ -2,7 +2,7 @@
 
 Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como auditado sin fecha+batch.
 
-## Backend (.py) — 940 archivos · auditados: 0 (0%)
+## Backend (.py) — 942 archivos · auditados: 13 (1%)
 
 | archivo | LOC | estado | fecha | batch |
 |---|---|---|---|---|
@@ -67,7 +67,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/branding_helpers.py` | 112 | pendiente |  |  |
 | `backend/briefing_engine.py` | 522 | pendiente |  |  |
 | `backend/brochure_engine.py` | 493 | pendiente |  |  |
-| `backend/brochure_renderer.py` | 695 | auditado | 2026-07-01 | B1 |
+| `backend/brochure_renderer.py` | 694 | auditado | 2026-07-01 | B1 |
 | `backend/bulk_ingest_engine.py` | 800 | pendiente |  |  |
 | `backend/bulletins_engine.py` | 472 | pendiente |  |  |
 | `backend/buyer_coach_engine.py` | 695 | pendiente |  |  |
@@ -88,7 +88,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/cerebro/recommendations.py` | 124 | pendiente |  |  |
 | `backend/cerebro/store.py` | 181 | pendiente |  |  |
 | `backend/cerebro_mercado_engine.py` | 296 | pendiente |  |  |
-| `backend/cerebro_redteam_test.py` | 114 | auditado | 2026-07-01 | B1 |
+| `backend/cerebro_redteam_test.py` | 118 | auditado | 2026-07-01 | B1 |
 | `backend/churn_prediction_cron.py` | 205 | pendiente |  |  |
 | `backend/churn_prediction_engine.py` | 203 | pendiente |  |  |
 | `backend/climate_migration_cron.py` | 118 | pendiente |  |  |
@@ -230,7 +230,8 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/forecast_engine.py` | 342 | pendiente |  |  |
 | `backend/forecast_retrain_cron.py` | 134 | pendiente |  |  |
 | `backend/fraud_detection_engine.py` | 492 | pendiente |  |  |
-| `backend/free_audit_engine.py` | 656 | auditado | 2026-07-01 | B1 |
+| `backend/free_audit_engine.py` | 655 | auditado | 2026-07-01 | B1 |
+| `backend/fs_fallback.py` | 25 | pendiente |  |  |
 | `backend/fsd_engine.py` | 216 | pendiente |  |  |
 | `backend/generador_producto_engine.py` | 200 | pendiente |  |  |
 | `backend/generate_seo_static.py` | 53 | pendiente |  |  |
@@ -311,7 +312,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/natural_risk_engine.py` | 174 | pendiente |  |  |
 | `backend/newsletter_pulse_engine.py` | 532 | pendiente |  |  |
 | `backend/norma3_engine.py` | 156 | pendiente |  |  |
-| `backend/notifications_engine.py` | 894 | pendiente |  |  |
+| `backend/notifications_engine.py` | 897 | pendiente |  |  |
 | `backend/oauth_calendar.py` | 514 | pendiente |  |  |
 | `backend/observability.py` | 295 | pendiente |  |  |
 | `backend/osm_engine.py` | 187 | pendiente |  |  |
@@ -466,7 +467,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/routes/dev_batch4_2.py` | 956 | pendiente |  |  |
 | `backend/routes/dev_batch4_3.py` | 843 | pendiente |  |  |
 | `backend/routes/dev_batch4_4.py` | 816 | pendiente |  |  |
-| `backend/routes/dev_batch5.py` | 1033 | auditado | 2026-07-01 | B1 |
+| `backend/routes/dev_batch5.py` | 1036 | auditado | 2026-07-01 | B1 |
 | `backend/routes/dev_batch6.py` | 514 | pendiente |  |  |
 | `backend/routes/dev_batch7.py` | 1412 | pendiente |  |  |
 | `backend/routes/dev_batch7_2.py` | 446 | pendiente |  |  |
@@ -716,7 +717,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/social_ads_oauth.py` | 306 | pendiente |  |  |
 | `backend/social_cards_cache.py` | 80 | pendiente |  |  |
 | `backend/social_cards_engine.py` | 480 | pendiente |  |  |
-| `backend/state_of_cdmx_engine.py` | 236 | auditado | 2026-07-01 | B1 |
+| `backend/state_of_cdmx_engine.py` | 240 | auditado | 2026-07-01 | B1 |
 | `backend/stripe_billing_engine.py` | 290 | pendiente |  |  |
 | `backend/studio_asset_library.py` | 264 | pendiente |  |  |
 | `backend/studio_auto_content_cron.py` | 339 | pendiente |  |  |
@@ -759,16 +760,17 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/terminal_celda.py` | 241 | pendiente |  |  |
 | `backend/terminal_indicadores.py` | 248 | pendiente |  |  |
 | `backend/terminal_mercado_engine.py` | 216 | pendiente |  |  |
-| `backend/tests/conftest.py` | 96 | pendiente |  |  |
+| `backend/tests/conftest.py` | 195 | pendiente |  |  |
 | `backend/tests/integration/__init__.py` | 0 | pendiente |  |  |
 | `backend/tests/integration/test_tenant_isolation.py` | 662 | pendiente |  |  |
 | `backend/tests/test_agent_closer_analyst.py` | 185 | pendiente |  |  |
 | `backend/tests/test_agent_coach.py` | 148 | pendiente |  |  |
 | `backend/tests/test_agent_workforce.py` | 213 | pendiente |  |  |
-| `backend/tests/test_api.py` | 219 | auditado | 2026-07-01 | B1 |
+| `backend/tests/test_api.py` | 223 | auditado | 2026-07-01 | B1 |
 | `backend/tests/test_apify_trends.py` | 141 | pendiente |  |  |
 | `backend/tests/test_asesor_digest.py` | 113 | pendiente |  |  |
 | `backend/tests/test_asesor_overview.py` | 151 | pendiente |  |  |
+| `backend/tests/test_aud_batch1_regressions.py` | 57 | pendiente |  |  |
 | `backend/tests/test_auth_register_role.py` | 90 | pendiente |  |  |
 | `backend/tests/test_auto_pilot.py` | 159 | pendiente |  |  |
 | `backend/tests/test_batch05.py` | 103 | pendiente |  |  |
@@ -801,12 +803,12 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/tests/test_conversation_drift_routes.py` | 232 | pendiente |  |  |
 | `backend/tests/test_conversation_intel.py` | 133 | pendiente |  |  |
 | `backend/tests/test_conversation_ml.py` | 244 | pendiente |  |  |
-| `backend/tests/test_dev_hardening_c1_c3_c4.py` | 259 | pendiente |  |  |
+| `backend/tests/test_dev_hardening_c1_c3_c4.py` | 263 | pendiente |  |  |
 | `backend/tests/test_developments.py` | 303 | pendiente |  |  |
 | `backend/tests/test_inversion_v4_finance.py` | 49 | pendiente |  |  |
 | `backend/tests/test_inversion_v4_tax.py` | 54 | pendiente |  |  |
-| `backend/tests/test_pipeline_v2.py` | 223 | pendiente |  |  |
-| `backend/tests/test_search_parser.py` | 68 | auditado | 2026-07-01 | B1 |
+| `backend/tests/test_pipeline_v2.py` | 228 | pendiente |  |  |
+| `backend/tests/test_search_parser.py` | 93 | auditado | 2026-07-01 | B1 |
 | `backend/tests/test_tenant_scope.py` | 108 | pendiente |  |  |
 | `backend/tests/test_wave1_1_superadmin_guards.py` | 175 | pendiente |  |  |
 | `backend/tests/test_wave1_e2e_superadmin.py` | 224 | pendiente |  |  |
@@ -826,7 +828,7 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/tests/wave2/test_data_lake_etl_unit.py` | 112 | pendiente |  |  |
 | `backend/tests/wave2/test_feature_flags_engine_unit.py` | 192 | pendiente |  |  |
 | `backend/tests/wave2/test_intelligence_insights_engine_unit.py` | 118 | pendiente |  |  |
-| `backend/tests/wave2/test_metrics_cube_aggregations_unit.py` | 253 | pendiente |  |  |
+| `backend/tests/wave2/test_metrics_cube_aggregations_unit.py` | 256 | pendiente |  |  |
 | `backend/tests/wave2/test_trial_expiry_cron_unit.py` | 70 | pendiente |  |  |
 | `backend/tests/wave3/__init__.py` | 0 | pendiente |  |  |
 | `backend/tests/wave3/test_anonymization_engine_unit.py` | 210 | pendiente |  |  |
@@ -851,14 +853,14 @@ Estados: `pendiente` | `auditado` | `n-a` (generado/asset). Nada cuenta como aud
 | `backend/tests/wave4/test_avm_public_engine_unit.py` | 196 | pendiente |  |  |
 | `backend/tests/wave4/test_banxico_engine_unit.py` | 133 | pendiente |  |  |
 | `backend/tests/wave4/test_brochure_engine_unit.py` | 141 | pendiente |  |  |
-| `backend/tests/wave4/test_brochure_renderer_unit.py` | 111 | pendiente |  |  |
+| `backend/tests/wave4/test_brochure_renderer_unit.py` | 112 | pendiente |  |  |
 | `backend/tests/wave4/test_buyer_coach_engine_unit.py` | 147 | pendiente |  |  |
 | `backend/tests/wave4/test_catastro_engine_unit.py` | 119 | pendiente |  |  |
 | `backend/tests/wave4/test_director_agent_engine_unit.py` | 190 | pendiente |  |  |
 | `backend/tests/wave4/test_disc_inferencer_engine_unit.py` | 233 | pendiente |  |  |
 | `backend/tests/wave4/test_free_audit_engine_unit.py` | 157 | pendiente |  |  |
 | `backend/tests/wave4/test_gtfs_engine_unit.py` | 117 | pendiente |  |  |
-| `backend/tests/wave4/test_investment_simulator_engine_unit.py` | 189 | pendiente |  |  |
+| `backend/tests/wave4/test_investment_simulator_engine_unit.py` | 192 | pendiente |  |  |
 | `backend/tests/wave4/test_lead_journey_engine_unit.py` | 87 | pendiente |  |  |
 | `backend/tests/wave4/test_lead_nurture_engine_unit.py` | 314 | pendiente |  |  |
 | `backend/tests/wave4/test_luma_client_unit.py` | 122 | pendiente |  |  |
