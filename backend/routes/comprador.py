@@ -54,6 +54,29 @@ async def _require_buyer(request: Request):
     return user
 
 
+async def _verified_email(db, user) -> Optional[str]:
+    """Email del usuario SOLO si está VERIFICADO (magic-link o flag `email_verified`).
+
+    SEGURIDAD (B1-03): el portal une datos del comprador (leads, visitas, búsquedas) por email.
+    Sin este candado, quien se registra con el correo de OTRA persona (registro por contraseña,
+    que NO prueba propiedad del correo) podría reclamar sus datos. Solo unimos por email cuando
+    hay prueba de propiedad. Fail-closed: ante cualquier duda devuelve None (no une por email).
+    """
+    email = getattr(user, "email", None)
+    if not email:
+        return None
+    try:
+        doc = await db.users.find_one(
+            {"user_id": user.user_id},
+            {"_id": 0, "email_verified": 1, "auth_method": 1},
+        ) or {}
+    except Exception:
+        return None
+    if doc.get("email_verified") is True or doc.get("auth_method") == "magic_link":
+        return email
+    return None
+
+
 # ─── Pydantic models ─────────────────────────────────────────────────────────
 
 class ProfileUpdate(BaseModel):
@@ -89,7 +112,8 @@ class DeleteAccountBody(BaseModel):
 async def get_dashboard(request: Request, user=Depends(_require_buyer)):
     from services.comprador_dashboard import compute_dashboard
     db = _db(request)
-    return await compute_dashboard(db, user.user_id, user.email)
+    vemail = await _verified_email(db, user)
+    return await compute_dashboard(db, user.user_id, vemail or "")
 
 
 # ─── "Propiedades Para Ti" · recomendación personalizada ──────────────────────
@@ -100,8 +124,10 @@ async def get_dashboard(request: Request, user=Depends(_require_buyer)):
 async def get_recommended(request: Request, limit: int = 6, user=Depends(_require_buyer)):
     db = _db(request)
     lead = await db.leads.find_one({"user_id": user.user_id}, {"_id": 0, "id": 1})
-    if not lead and user.email:
-        lead = await db.leads.find_one({"email": user.email}, {"_id": 0, "id": 1})
+    if not lead:
+        vemail = await _verified_email(db, user)
+        if vemail:
+            lead = await db.leads.find_one({"email": vemail}, {"_id": 0, "id": 1})
     lead_id = (lead or {}).get("id")
     try:
         from fit_engine import top_properties_for_lead
@@ -119,8 +145,9 @@ async def get_recommended(request: Request, limit: int = 6, user=Depends(_requir
 async def get_visitas(request: Request, user=Depends(_require_buyer)):
     db = _db(request)
     q = {"$or": [{"user_id": user.user_id}]}
-    if user.email:
-        q["$or"].append({"email": user.email})
+    vemail = await _verified_email(db, user)
+    if vemail:
+        q["$or"].append({"email": vemail})
     items = []
     _ST = {"requested": "Solicitada", "accepted": "Confirmada", "declined": "No disponible"}
     try:
@@ -178,7 +205,10 @@ async def patch_profile(body: ProfileUpdate, request: Request, user=Depends(_req
 async def list_saved_searches(request: Request, user=Depends(_require_buyer)):
     db = _db(request)
     out: List[Dict[str, Any]] = []
-    q = {"$or": [{"user_id": user.user_id}, {"email": user.email, "user_id": {"$exists": False}}]}
+    vemail = await _verified_email(db, user)
+    q = {"$or": [{"user_id": user.user_id}]}
+    if vemail:
+        q["$or"].append({"email": vemail, "user_id": {"$exists": False}})
     async for s in db.saved_searches.find(
         q,
         {"_id": 0, "search_id": 1, "filters": 1, "alert_frequency": 1,
@@ -202,9 +232,13 @@ async def list_saved_searches(request: Request, user=Depends(_require_buyer)):
 @router.delete("/api/comprador/saved-searches/{search_id}")
 async def delete_saved_search(search_id: str, request: Request, user=Depends(_require_buyer)):
     db = _db(request)
+    vemail = await _verified_email(db, user)
+    owner_or: List[Dict[str, Any]] = [{"user_id": user.user_id}]
+    if vemail:
+        owner_or.append({"email": vemail})
     r = await db.saved_searches.delete_one({
         "search_id": search_id,
-        "$or": [{"user_id": user.user_id}, {"email": user.email}],
+        "$or": owner_or,
     })
     if r.deleted_count == 0:
         raise HTTPException(404, "Búsqueda no encontrada")
