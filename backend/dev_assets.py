@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.di.assets")
 
-ASSET_UPLOAD_DIR = Path(os.environ.get("ASSET_UPLOAD_DIR", "/app/backend/uploads/dev_assets"))
-ASSET_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008]
+ASSET_UPLOAD_DIR = dir_or_tmp(Path(os.environ.get("ASSET_UPLOAD_DIR", "/app/backend/uploads/dev_assets")), "dev_assets")
 
 ASSET_MAX_FILE_BYTES = 12 * 1024 * 1024  # 12 MB per image
 ASSET_MAX_BATCH = 20

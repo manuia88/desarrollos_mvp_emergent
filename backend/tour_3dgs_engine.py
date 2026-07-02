@@ -19,8 +19,8 @@ import luma_client
 
 log = logging.getLogger("dmx.tour_3dgs_engine")
 
-STORAGE_BASE = Path(os.environ.get("TOUR3DGS_STORAGE_PATH", "/app/backend/storage/3dgs"))
-STORAGE_BASE.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008]
+STORAGE_BASE = dir_or_tmp(Path(os.environ.get("TOUR3DGS_STORAGE_PATH", "/app/backend/storage/3dgs")), "3dgs")
 
 ALLOWED_FORMATS = {"luma", "polycam", "upload_ply", "upload_spz", "upload_splat"}
 ALLOWED_UPLOAD_EXTS = {"ply", "spz", "splat"}

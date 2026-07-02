@@ -52,8 +52,8 @@ log = logging.getLogger("dmx.di")
 
 
 # ─── Constants ────────────────────────────────────────────────────────────────
-DI_UPLOAD_DIR = Path(os.environ.get("DI_UPLOAD_DIR", "/app/backend/uploads/document_intelligence"))
-DI_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008]
+DI_UPLOAD_DIR = dir_or_tmp(Path(os.environ.get("DI_UPLOAD_DIR", "/app/backend/uploads/document_intelligence")), "document_intelligence")
 
 DI_MAX_FILE_BYTES = 50 * 1024 * 1024  # 50 MB
 

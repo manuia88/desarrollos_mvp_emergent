@@ -12,8 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 log = logging.getLogger("dmx.state_of_cdmx")
 
 CACHE_TTL_HOURS = 24
-OG_DIR = Path(os.environ.get("STATE_OF_CDMX_STORAGE", "/app/backend/storage/state_of_cdmx"))
-OG_DIR.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008]
+OG_DIR = dir_or_tmp(Path(os.environ.get("STATE_OF_CDMX_STORAGE", "/app/backend/storage/state_of_cdmx")), "state_of_cdmx")
 
 
 def _now() -> datetime:

@@ -22,10 +22,9 @@ from reportlab.pdfgen import canvas
 log = logging.getLogger("dmx.free_audit_engine")
 
 STORAGE_BASE = Path(os.environ.get("FREE_AUDIT_STORAGE", "/app/backend/storage/free_audit"))
-PDF_DIR = STORAGE_BASE / "pdf"
-PDF_DIR.mkdir(parents=True, exist_ok=True)
-UPLOAD_DIR = STORAGE_BASE / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008]
+PDF_DIR = dir_or_tmp(STORAGE_BASE / "pdf", "free_audit/pdf")
+UPLOAD_DIR = dir_or_tmp(STORAGE_BASE / "uploads", "free_audit/uploads")
 
 LFPDPPP_SALT = os.environ.get("LFPDPPP_SALT", "dmx_lfpdppp_2026")
 

@@ -25,10 +25,9 @@ log = logging.getLogger("dmx.brochure_renderer")
 
 # ─── Storage paths ───────────────────────────────────────────────────────────
 STORAGE_BASE = Path(os.environ.get("BROCHURE_STORAGE_PATH", "/app/backend/storage/brochures"))
-PDF_DIR = STORAGE_BASE / "pdf"
-SOCIAL_DIR = STORAGE_BASE / "social"
-PDF_DIR.mkdir(parents=True, exist_ok=True)
-SOCIAL_DIR.mkdir(parents=True, exist_ok=True)
+from fs_fallback import dir_or_tmp  # [AUD-008] fallback si /app no es escribible (local/CI)
+PDF_DIR = dir_or_tmp(STORAGE_BASE / "pdf", "brochures/pdf")
+SOCIAL_DIR = dir_or_tmp(STORAGE_BASE / "social", "brochures/social")
 
 # ─── Colors ──────────────────────────────────────────────────────────────────
 CREAM = HexColor("#F0EBE0")
