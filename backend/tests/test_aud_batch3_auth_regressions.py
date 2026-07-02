@@ -53,3 +53,25 @@ def test_aud_023_tenant_of_aisla_orgs_distintas():
     b = tenant_of({"tenant_id": "org_user_bbb", "role": "developer_admin"})
     assert a != b, "dos devs distintos NO deben compartir tenant"
     assert a != "default" and b != "default", "un dev provisionado no debe caer al sentinel compartido"
+
+
+def test_aud_024_feature_en_catalogo_inactiva_deniega():
+    """requires_feature ya NO otorga una feature catalogada-inactiva vía el tier global-max de otro flag
+    (escalación cross-feature). La rama in_catalog inactiva cae a _deny_or_soft, no a legacy_tier."""
+    src = _src("feature_gate_engine.py")
+    m = re.search(r"if in_catalog:.*?(?=\n            # NOT in catalog)", src, re.S)
+    assert m, "no se encontró la rama in_catalog"
+    # quita comentarios (que sí mencionan _tier_meets al documentar el fix) y checa el CÓDIGO real
+    code = "\n".join(ln for ln in m.group(0).splitlines() if not ln.strip().startswith("#"))
+    assert "if fallback_tier and _tier_meets" not in code, \
+        "la rama in_catalog-inactiva sigue otorgando por tier global-max (escalación AUD-024)"
+    assert "_deny_or_soft" in code, "la feature catalogada-inactiva debe denegar"
+
+
+def test_aud_021b_env_ambiguo_seteado_se_trata_como_prod():
+    """El guard de secretos trata un DMX_ENV seteado-pero-no-reconocido (typo) como prod (fail-closed),
+    sin romper el caso UNSET (dev local)."""
+    src = _src("server.py")
+    assert "_ambiguous_set" in src, "falta el manejo de DMX_ENV seteado-no-reconocido (AUD-021b)"
+    # el bloque fatal ya no está gobernado SOLO por _is_explicit_prod
+    assert "not _is_explicit_prod() and not _ambiguous_set" in src
