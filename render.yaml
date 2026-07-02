@@ -1,0 +1,70 @@
+# Blueprint de despliegue en Render (auto-deploy en cada push a main).
+# Al conectar este repo en Render → New > Blueprint, Render lee este archivo y crea:
+#   1. dmx-backend  (API FastAPI, Docker)         2. dmx-frontend (React estático)
+# MongoDB es EXTERNO (MongoDB Atlas · free M0 o superior) → se pega MONGO_URL en el dashboard.
+# Neo4j es OPCIONAL (el Knowledge Graph degrada solo si no está); se puede agregar después (Neo4j Aura).
+# Guía paso a paso: auditoria/DEPLOY_RENDER.md
+services:
+  # ─── Backend API ──────────────────────────────────────────────────────────
+  - type: web
+    name: dmx-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter            # 512MB; sube a standard si el build/RAM lo pide
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DMX_ENV
+        value: production
+      - key: DB_NAME
+        value: desarrollosmx
+      - key: AIRROI_ENABLED
+        value: "true"        # freno: ponlo "false" para apagar AirROI sin deploy
+      - key: CORS_ORIGINS
+        value: https://desarrollosmx.io,https://www.desarrollosmx.io
+      # — secretos que Render genera solos (fuertes) —
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LFPDPPP_SALT
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: LEAD_CAPTURE_SECRET
+        generateValue: true
+      - key: ERP_WEBHOOK_SECRET
+        generateValue: true
+      # — secretos/llaves que PEGAS tú en el dashboard (sync:false = no viven en el repo) —
+      - key: MONGO_URL          # de MongoDB Atlas (mongodb+srv://...)
+        sync: false
+      - key: ADMIN_PASSWORD     # contraseña real del superadmin (NO el default público)
+        sync: false
+      - key: IE_FERNET_KEY      # generar (ver guía): Fernet.generate_key()
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: MAPBOX_TOKEN
+        sync: false
+      # (otras integraciones opcionales — Apify/ElevenLabs/Twilio/R2 — se agregan igual en el dashboard)
+
+  # ─── Frontend (React estático · Create React App) ───────────────────────────
+  - type: web
+    name: dmx-frontend
+    runtime: static
+    buildCommand: cd frontend && yarn install --frozen-lockfile && yarn build
+    staticPublishPath: ./frontend/build
+    autoDeploy: true
+    envVars:
+      # URL del backend para el build de React. Tras el 1er deploy del backend, pon aquí su URL
+      # https completa (p.ej. https://dmx-backend.onrender.com o https://api.desarrollosmx.io) y redeploya.
+      - key: REACT_APP_BACKEND_URL
+        sync: false
+    routes:
+      # SPA: cualquier ruta desconocida → index.html (React Router la resuelve)
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,12 +1,16 @@
 # CHECKLIST DE DEPLOY — arreglos de seguridad + costo (auditoría 2026-07)
 
-> Todo el código ya está en `main` (commit `9c19382d`). Esto es lo que falta hacer FUERA del código
-> (config/infra/DB de prod) para que los arreglos protejan de verdad. Ordenado por urgencia.
-> Relacionado: `HALLAZGOS.md`, `CORRECCIONES.md`, `PENDIENTES_APROBACION.md`.
+> **HALLAZGO 2026-07-02:** NO existe producción todavía. La app corre solo en local; `desarrollosmx.io`
+> es la página placeholder de GoDaddy (no la app). Por lo tanto el PASO 0 real es **montar el hosting**:
+> ver **`DEPLOY_RENDER.md`** (Render + MongoDB Atlas, auto-deploy en cada push). Este checklist de env-vars
+> aplica DENTRO de ese montaje (los env-vars van en el dashboard de Render, no en un prod inexistente).
+> Todo el código ya está en `main`. Relacionado: `DEPLOY_RENDER.md`, `HALLAZGOS.md`, `CORRECCIONES.md`.
 
-## 0. AHORA MISMO (sin esperar deploy) — frenar los cargos de AirROI
-- [ ] En las variables de entorno de **producción**, deja `IE_AIRROI_API_KEY` **en blanco**.
-      Verificado: sin key el conector no hace ninguna llamada de red → corta los cargos al instante.
+## 0. Frenar los cargos de AirROI (donde CORRE la app hoy = tu local)
+- [ ] Como aún no hay prod, los cargos venían del scheduler del backend corriendo en LOCAL. Ya está
+      arreglado en el código (los crons excluyen AirROI). Si sigues corriendo código viejo local: deja
+      `IE_AIRROI_API_KEY` en blanco (o `AIRROI_ENABLED=false`) en tu `backend/.env`. En el deploy de Render,
+      pon `AIRROI_ENABLED=true` (ya viene así en render.yaml) — los crons ya no lo tocan.
 
 ## 1. Deploy del código (`main` @ 9c19382d)
 Activa, todos de golpe: freno de AirROI en los crons, cierre de la fuga de datos de prospectos
