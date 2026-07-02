@@ -287,8 +287,12 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     citations: List[Dict[str, Any]] = []
     chunks: List[Dict[str, Any]] = []
     try:
-        from rag_engine import semantic_search
-        rag_res = await semantic_search(db, payload.query, top_k=5)
+        from rag_engine import semantic_search, PUBLIC_SEARCH_SCOPES
+        # [AUD-033] atlax_query es PÚBLICO (anónimo). El corpus RAG indexa chunks scope='lead'/'activity'/
+        # 'conversation' con PII (nombre+notas del CRM de TODOS los tenants). Acotar el retrieval a los
+        # scopes NO-PII de mercado (development/colonia/external), igual que /api/search/semantic → un
+        # visitante ya no puede sacar PII de leads por una consulta libre.
+        rag_res = await semantic_search(db, payload.query, top_k=5, scopes_in=list(PUBLIC_SEARCH_SCOPES))
         chunks = rag_res.get("results", []) or []
         citations = [
             {

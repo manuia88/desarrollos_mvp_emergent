@@ -98,8 +98,11 @@ async def team_aggregated(
 
     # ── 1) Asesor pool scoped to admin tenant ───────────────────────────
     asesor_query: Dict[str, Any] = {"role": {"$in": list(ASESOR_ROLES)}}
-    if user.role != "superadmin" and tenant:
-        asesor_query["tenant_id"] = tenant
+    if user.role != "superadmin":
+        # [AUD-036] fail-CLOSED: antes con tenant vacío se SALTABA el filtro → el pool abarcaba asesores
+        # de TODOS los tenants (fuga de roster + métricas de negocio). Un admin sin tenant real ahora
+        # matchea CERO asesores (cae al payload vacío de abajo), no god-view.
+        asesor_query["tenant_id"] = tenant or "__no_tenant_fail_closed__"
     asesores = await db.users.find(
         asesor_query,
         {"_id": 0, "user_id": 1, "name": 1, "email": 1, "avatar_url": 1, "role": 1},

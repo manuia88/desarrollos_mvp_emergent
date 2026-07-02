@@ -112,12 +112,37 @@ async def calendar_sync_now(request: Request):
 
 # ═══ Sub-B: Visit Briefing ═══════════════════════════════════════════════════
 
+async def _assert_appointment_owner(db, user, appointment_id: str) -> None:
+    """[AUD-038] La cita (y su lead) deben ser del tenant del caller. Antes: el briefing se generaba
+    para CUALQUIER appointment_id y el bypass por rol admin no comparaba tenant → un admin del tenant A
+    obtenía el briefing (PII del lead) de una cita del tenant B. superadmin = god-view."""
+    from tenant_scope import is_superadmin, tenant_of, actor_id, assert_lead_owner, _demo_mode
+    if is_superadmin(user):
+        return
+    apt = await db.appointments.find_one(
+        {"$or": [{"appointment_id": appointment_id}, {"id": appointment_id}]},
+        {"_id": 0, "dev_org_id": 1, "asesor_id": 1, "inmobiliaria_id": 1, "tenant_id": 1, "lead_id": 1})
+    if not apt:
+        raise HTTPException(404, "Cita no encontrada")
+    owners = {apt.get(k) for k in ("dev_org_id", "asesor_id", "inmobiliaria_id", "tenant_id")}
+    owners.discard(None)
+    if tenant_of(user) in owners or actor_id(user) in owners:
+        return
+    if apt.get("lead_id"):
+        await assert_lead_owner(db, user, apt["lead_id"])
+        return
+    if _demo_mode():
+        return
+    raise HTTPException(403, "Esta cita es de otra cuenta")
+
+
 @router.post("/api/asesor/visit-briefing/generate")
 async def visit_briefing_generate(
     body: GenerateBriefingBody, request: Request,
 ):
     user = await _auth_asesor(request)
     db = _db(request)
+    await _assert_appointment_owner(db, user, body.appointment_id)  # [AUD-038] dueño-o-403 ANTES de generar
     from services.visit_auto_prep import generate_visit_briefing
     try:
         doc = await generate_visit_briefing(
@@ -138,6 +163,7 @@ async def visit_briefing_generate(
 async def visit_briefing_get(appointment_id: str, request: Request):
     user = await _auth_asesor(request)
     db = _db(request)
+    await _assert_appointment_owner(db, user, appointment_id)  # [AUD-038] dueño-o-403 (cross-tenant)
     from services.visit_auto_prep import get_briefing
     doc = await get_briefing(db, appointment_id)
     if not doc:

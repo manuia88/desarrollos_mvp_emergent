@@ -42,6 +42,15 @@ async def _remember_step(db, user, lead_id, patch):
 async def exec_enrich(db, user, params, ctx):
     lead_id = params.get("lead_id")
     out = {"engine": "fallback", "summary": "lead registrado (sin enriquecer)"}
+    # [AUD-039] lead_id viene del context del usuario sin validar; enrich_lead devuelve PII
+    # (email/phone/linkedin). Autorizar dueño ANTES de enriquecer — ajeno → degrada seguro (no lee PII).
+    from fastapi import HTTPException
+    from tenant_scope import assert_lead_owner
+    try:
+        await assert_lead_owner(db, user, lead_id)
+    except HTTPException:
+        log.warning(f"[cerebro] enrich denegado: lead {lead_id} no es del tenant del usuario")
+        return {"engine": "denied", "summary": "lead no autorizado para este usuario"}
     try:
         import lead_enrichment_engine
         r = await lead_enrichment_engine.enrich_lead(db, lead_id, tenant_id=tenant_of(user))

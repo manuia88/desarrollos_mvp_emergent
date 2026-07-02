@@ -86,14 +86,14 @@ async def resolve_dispute(lead_id: str, payload: ResolveDisputeBody, request: Re
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
-    if lead.get("status") != "under_review":
-        raise HTTPException(409, "El lead no esta en estado 'under_review'")
-
+    # [AUD-041] check de dueño ANTES del status: si va después, el 404/409 revela existencia/estado de
+    # leads ajenos (oráculo de enumeración). Ahora un lead de otro tenant da el mismo 404 que uno inexistente.
     dev_org_id_lead = lead.get("dev_org_id") or "default"
     dev_org_id_user = _user_dev_org(user)
-    # Superadmin puede actuar sobre cualquier dev_org_id; otros roles deben coincidir
     if user.role != "superadmin" and dev_org_id_lead != dev_org_id_user:
-        raise HTTPException(403, "No autorizado para este dev_org_id")
+        raise HTTPException(404, "Lead no encontrado")
+    if lead.get("status") != "under_review":
+        raise HTTPException(409, "El lead no esta en estado 'under_review'")
 
     asesor_id = lead.get("assigned_to") or lead.get("created_by")
     project_id = lead.get("project_id") or "default"

@@ -76,6 +76,25 @@
 ### BATCH 5 · REFUTADO
 - **`/api/voice/{audio_id}/download`** (LOW path_traversal → REFUTADO): el converter `str` de FastAPI (`[^/]+`) impide `/` en `{audio_id}` y siempre se anexa `.mp3` → confinado a `VOICE_DIR`, sin lectura arbitraria (mismo veredicto que Batch 4). Solo queda nota de defensa-en-profundidad (bindear a sesión).
 
+### BATCH 6 · aislamiento multi-tenant (143 archivos · workflow 36 finders + verif adversarial 3-lentes · **21 fugas cross-tenant confirmadas / 3 refutadas**)
+CONFIRMADAS: 21 lecturas de colecciones sensibles alcanzables cross-tenant. **Corregidas 15** (AUD-033..042, abajo); **6 diferidas** (MEDIO/BAJO · decisión de producto o bajo impacto → PENDIENTES_APROBACION.md).
+| AUD-033 | **CRITICAL** | ssrf-pii/rag | `POST /api/atlax/query` (ANÓNIMO) → `semantic_search` sin scope sobre corpus RAG que indexa chunks `lead/activity/conversation` con PII (nombre+notas CRM de TODOS los tenants) → un visitante sacaba PII por consulta libre | `atlax_engine.py:291` + `rag_engine.py:307` | **corregido** (scopes_in=PUBLIC_SEARCH_SCOPES) |
+| AUD-034 | **CRITICAL** | idor | `GET /api/ai/suggestions/{type}/{id}` (cualquier autenticado) leía lead/appointment/project/asesor de OTRO tenant por id → PII horneada en la sugerencia (3 sub-hallazgos) | `ai_suggestions.py:157,249,149` | **corregido** (`_authorize_entity` dueño-o-403) |
+| AUD-035 | HIGH | fail-open | `GET /api/asesor/links`: admin con `tenant_id` falsy → `q={}` → tracking_links de todos los tenants | `routes/tracking_links.py:154` | **corregido** (`tenant_filter` fail-closed) |
+| AUD-036 | HIGH | fail-open | `GET /api/metrics/team-aggregated`: `if role!=superadmin and tenant:` se saltaba con tenant vacío → roster+métricas de asesores de todos los tenants | `routes/team_aggregated.py:101` | **corregido** (fail-closed sentinel) |
+| AUD-037 | HIGH | idor | `POST /api/asesor/briefing-ie`: leía asesor_contactos + asesor_busquedas (PII/presupuesto) de otro tenant por id del body | `briefing_engine.py:242,246` | **corregido** (`tenant_filter` en ambas) |
+| AUD-038 | HIGH | idor/fail-open | visit-prep (`/api/agentic-crm/visit-prep/generate` fail-open en dev_org_id None) + casamentera (`/api/agentic-crm/casamentera/{lead_id}`) + visit-briefing (`/api/asesor/visit-briefing/*` bypass admin sin tenant) leían lead ajeno | `routes/agentic_crm.py:361,1244` + `routes/asesor_daily_tools.py:130` | **corregido** (`assert_lead_owner` / `_assert_appointment_owner`) |
+| AUD-039 | MEDIUM | idor | Cerebro `POST /api/cerebro/run` con lead_id ajeno en context → `enrich_lead` devolvía PII enriquecida | `cerebro/executors.py:47` | **corregido** (`assert_lead_owner`, degrada seguro) |
+| AUD-040 | MEDIUM | fail-open | `_comportamiento` (portal dev): `if dev_ids else {}` → dev con scope `[]` obtenía god-view de todos los leads | `routes/superadmin_devmaster.py:955` | **corregido** (chequeo `is None`) |
+| AUD-041 | LOW | oráculo | `POST /api/dev/disputes/{lead_id}/resolve`: check de dueño DESPUÉS del status → 404/409 revelaban existencia/estado de leads ajenos | `routes/disputes.py:95` | **corregido** (dueño antes del status → 404 uniforme) |
+| AUD-042 | LOW | oráculo | `POST /api/workflows/{id}/test`: validaba el workflow propio pero no `body.lead_id` → condition-outcomes filtraban atributos del lead ajeno | `routes/workflows.py:255` | **corregido** (`assert_lead_owner`) |
+
+**Diferidos a PENDIENTES (6):** cross_project_count (dev_batch4_2), red-comercial KPI de socio (directory_aggregator), índice de demanda (demand_engine), conteo público de leads (probability_engine) — los 4 son conteos "señal de mercado/cross-org" que necesitan decisión de producto (¿intencional?); + weekly_briefs timestamp (probes/health_score) y `_build_pdf` org='default' (dev_batch5) = higiene BAJA.
+
+### BATCH 6 · REFUTADOS (3)
+- **studio_landing_engine ab_winner** (LOW → REFUTADO): lee leads sin scope PERO solo devuelve agregados (completeness/count), nunca PII; además bug slug/id deja el conteo en 0. Higiene, no fuga.
+- **soc_franchise vía Atlax** + **buyer_score vía Atlax** (MEDIUM → REFUTADOS): el asistente público tiene allow-list dura `PUBLIC_TOOLS` que NO incluye esas tools → el dispatch es inalcanzable por el canal público. El gate ya existe (fix previo). Confirma que el candado de Atlax funciona.
+
 ### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
 - **JWT_SECRET efímero** (HIGH→REFUTADO): requiere mala-config del operador (DMX_ENV vacío/typo); atacante sin influencia. Guard fail-closed cubre cookies/HSTS. Mitigación defensiva → N3.
 - **prefijo heurístico user_dev_ids** (HIGH→REFUTADO): precondición inalcanzable (atacante no controla developer_id ajeno).

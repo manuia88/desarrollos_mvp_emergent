@@ -59,6 +59,47 @@ def _tenant(user) -> str:
     return getattr(user, "tenant_id", None) or "default"
 
 
+async def _authorize_entity(db, user, entity_type: str, entity_id: str) -> None:
+    """[AUD-034] Autoriza que `user` pueda ver este entity_id ANTES de armar el contexto de IA con su
+    PII. Sin esto, cualquier usuario autenticado leía leads/citas/proyectos/asesores de OTROS tenants
+    por id (fuga cross-tenant vía el body/título de la sugerencia). superadmin = god-view."""
+    from tenant_scope import (is_superadmin, tenant_of, actor_id, _demo_mode,
+                              assert_lead_owner, assert_db_project_owner)
+    if is_superadmin(user):
+        return
+    if entity_type == "lead":
+        await assert_lead_owner(db, user, entity_id)
+    elif entity_type == "project":
+        await assert_db_project_owner(db, user, entity_id)
+    elif entity_type == "appointment":
+        apt = await db.appointments.find_one(
+            {"$or": [{"appointment_id": entity_id}, {"id": entity_id}]},
+            {"_id": 0, "dev_org_id": 1, "asesor_id": 1, "inmobiliaria_id": 1, "tenant_id": 1, "lead_id": 1})
+        if not apt:
+            raise HTTPException(404, "No encontrado")
+        owners = {apt.get("dev_org_id"), apt.get("asesor_id"), apt.get("inmobiliaria_id"), apt.get("tenant_id")}
+        owners.discard(None)
+        if tenant_of(user) in owners or actor_id(user) in owners:
+            return
+        if apt.get("lead_id"):
+            await assert_lead_owner(db, user, apt["lead_id"])
+            return
+        if _demo_mode():
+            return
+        raise HTTPException(403, "Esta cita es de otra cuenta")
+    elif entity_type == "asesor":
+        if entity_id == actor_id(user):
+            return
+        other = await db.users.find_one(
+            {"user_id": entity_id}, {"_id": 0, "tenant_id": 1, "org_id": 1, "inmobiliaria_id": 1})
+        owners = {(other or {}).get("tenant_id"), (other or {}).get("org_id"), (other or {}).get("inmobiliaria_id")}
+        owners.discard(None)
+        if (other and tenant_of(user) in owners) or _demo_mode():
+            return
+        raise HTTPException(403, "Ese asesor es de otra cuenta")
+    # "unit": catálogo del desarrollo (no PII por-tenant) → sin gate.
+
+
 # ─── System prompts per entity_type ──────────────────────────────────────────
 _SYSTEM_BASE = (
     "Eres un asistente DMX para el ecosistema inmobiliario mexicano. Generas sugerencias "
@@ -496,6 +537,7 @@ async def get_suggestions(
     if entity_type not in VALID_ENTITY_TYPES:
         raise HTTPException(400, f"entity_type inválido: {entity_type}")
     db = _db(request)
+    await _authorize_entity(db, user, entity_type, entity_id)  # [AUD-034] dueño-o-403 antes de leer PII
     items = await _get_or_generate(db, entity_type, entity_id, _tenant(user), force=force)
     # Return only active ones
     return {

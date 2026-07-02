@@ -367,13 +367,13 @@ async def generate_visit_prep(payload: VisitPrepGenerateIn, request: Request):
         raise HTTPException(429, "Rate limit (30 calls/min). Intenta más tarde.")
 
     db = request.app.state.db
-    # Resolve org from lead
+    # [AUD-038] fail-CLOSED: antes el check inline se saltaba si lead.dev_org_id era None → un lead sin
+    # dueño (o ajeno sin dev_org_id) pasaba y su PII terminaba en el dossier. assert_lead_owner niega
+    # por defecto en prod (mismo patrón que nurture_sequence_dry_run).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, payload.lead_id)
     lead = await db.leads.find_one({"id": payload.lead_id}, {"_id": 0, "dev_org_id": 1})
-    if not lead:
-        raise HTTPException(404, f"Lead {payload.lead_id} no encontrado")
-    lead_org = lead.get("dev_org_id")
-    if role != "superadmin" and lead_org and getattr(user, "tenant_id", None) != lead_org:
-        raise HTTPException(403, "Lead pertenece a otra org")
+    lead_org = (lead or {}).get("dev_org_id")
     org_id = _resolve_org(user, payload.org_id or lead_org)
 
     # Asesor permission: asesor solo puede generar para sí mismo
@@ -1248,6 +1248,9 @@ async def casamentera(lead_id: str, request: Request):
     se activa al haber alianzas + leads; honesto-vacío si no."""
     user = await _require_authorized(request)
     db = request.app.state.db
+    # [AUD-038] el lead debe ser del tenant del caller (antes: compute_match leía el lead ajeno sin scope).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
     org = _resolve_org(user, None)
     from services.cross_org_partnerships import get_active_partner_org_ids
     partners = await get_active_partner_org_ids(db, "dev", org)  # org_type no filtra la consulta base

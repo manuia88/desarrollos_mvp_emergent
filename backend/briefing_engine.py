@@ -192,6 +192,7 @@ async def get_or_generate_briefing(
     lead_id: Optional[str] = None,
     contact_id: Optional[str] = None,
     force: bool = False,
+    user=None,  # [AUD-037] necesario para acotar por tenant las lecturas de contacto/búsqueda
 ) -> Dict[str, Any]:
     """Main entry point. Returns briefing doc ready for UI."""
     from data_developments import DEVELOPMENTS_BY_ID
@@ -236,14 +237,20 @@ async def get_or_generate_briefing(
     # Gather optional context
     lead = None
     contact = None
+    # [AUD-037] Acota las lecturas de PII al tenant del asesor (contact_id/lead_id vienen del body sin
+    # validar). Sin scope, un asesor del tenant A leía contactos/búsquedas del tenant B y su PII se
+    # horneaba en el briefing devuelto. Fail-closed en prod si no hay tenant (tenant_filter).
+    from tenant_scope import tenant_filter
+    _scope_busq = tenant_filter(user, "asesor_busquedas") if user is not None else {"_no_tenant_fail_closed": True}
+    _scope_cont = tenant_filter(user, "asesor_contactos") if user is not None else {"_no_tenant_fail_closed": True}
     if lead_id:
         # asesor_busquedas es la fuente real (tiene budget/beds/intent); se quitó el
         # primario muerto asesor_leads (nunca tuvo escritor → vacío).
-        lead_doc = await db.asesor_busquedas.find_one({"id": lead_id}, {"_id": 0})
+        lead_doc = await db.asesor_busquedas.find_one({"id": lead_id, **_scope_busq}, {"_id": 0})
         if lead_doc:
             lead = {k: lead_doc.get(k) for k in ("budget_min", "budget_max", "beds", "intent_tags", "lookalike_score", "colonias_target") if lead_doc.get(k) is not None}
     if not lead and contact_id:
-        contact_doc = await db.asesor_contactos.find_one({"id": contact_id}, {"_id": 0})
+        contact_doc = await db.asesor_contactos.find_one({"id": contact_id, **_scope_cont}, {"_id": 0})
         if contact_doc:
             contact = {k: contact_doc.get(k) for k in ("first_name", "last_name", "temperatura", "tipo", "tags", "notas") if contact_doc.get(k) is not None}
 
@@ -416,6 +423,7 @@ async def create_briefing(payload: BriefingRequest, request: Request):
     doc = await get_or_generate_briefing(
         db, user.user_id, user.name or user.email or "Asesor",
         payload.development_id, payload.lead_id, payload.contact_id, payload.force,
+        user=user,
     )
     return _serialize(doc)
 

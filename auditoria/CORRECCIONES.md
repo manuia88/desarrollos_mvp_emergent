@@ -46,4 +46,17 @@
 
 **Batch 5 (barrido inyección/SSRF · workflow 10 finders + verif adversarial 3-lentes):** 31 objetivos (SSRF/traversal/upload/cmd/NoSQL) → **1 confirmado** (AUD-032 SSRF crítico, corregido) · **1 refutado** (voice-download traversal). El resto (upload, subprocess parallax con lista, NoSQL) salió limpio. Test: `test_aud032_ssrf.py` (3 verdes).
 
+| AUD-033 | N3 | (este commit) | `test_aud_batch6_tenant.py::test_aud033` | **[CRÍTICO]** Atlax público (RAG) exponía PII de leads de todos los tenants → `semantic_search` acotado a PUBLIC_SEARCH_SCOPES (no-PII) |
+| AUD-034 | N3 | (este commit) | `::test_aud034` | **[CRÍTICO]** ai_suggestions leía lead/appointment/project/asesor ajeno por id → gate `_authorize_entity` (assert_lead_owner/assert_db_project_owner + tenant) |
+| AUD-035 | N3 | (este commit) | `::test_aud035` | tracking_links list_links fail-open → `tenant_filter` fail-closed |
+| AUD-036 | N3 | (este commit) | `::test_aud036` | team-aggregated saltaba scope sin tenant → sentinel cero-match |
+| AUD-037 | N3 | (este commit) | `::test_aud037` | briefing-ie leía contacto/búsqueda ajenos → `tenant_filter` en ambas lecturas |
+| AUD-038 | N3 | (este commit) | `::test_aud038` | visit-prep + casamentera + visit-briefing leían lead/cita ajenos → `assert_lead_owner`/`_assert_appointment_owner` |
+| AUD-039 | N3 | (este commit) | `::test_aud039` | Cerebro enrich leía lead ajeno → `assert_lead_owner` (degrada seguro) |
+| AUD-040 | N3 | (este commit) | `::test_aud040` | `_comportamiento` god-view con dev_ids=[] → chequeo `is None` |
+| AUD-041 | N3 | (este commit) | `::test_aud041` | disputes oráculo 404/409 → check de dueño antes del status |
+| AUD-042 | N3 | (este commit) | `::test_aud042` | workflow test filtraba atributos del lead ajeno → `assert_lead_owner` |
+
+**Batch 6 (aislamiento multi-tenant · workflow 36 finders + verif adversarial 3-lentes):** 143 archivos / 451 lecturas sensibles → **21 fugas confirmadas / 3 refutadas**. **15 corregidas** aquí (AUD-033..042 + 2 cubiertas de paso: ai_suggestions project/asesor por 034, casamentera→lead_to_asesor_match por 038); **6 diferidas** (PENDIENTES). Test: `test_aud_batch6_tenant.py` (10 verdes). Patrón dominante: fail-open cuando `tenant_id` es None/vacío + lecturas de PII con id del cliente sin `assert_lead_owner` (misma clase que AUD-023).
+
 **Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.

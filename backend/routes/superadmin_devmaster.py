@@ -952,7 +952,10 @@ async def _comportamiento(db, zona=None, segmento=None, dev_ids=None):
     LOST = ("perdido", "lost", "descartado")
 
     leads = []
-    q = {"development_id": {"$in": list(dev_ids)}} if dev_ids else {}
+    # [AUD-040] antes `if dev_ids else {}`: un dev cuyo scope resuelve a [] (fail-closed intencional)
+    # colapsaba a {} = god-view sobre TODOS los leads. Chequeo explícito de None (como _stock_soldout):
+    # solo el caller superadmin pasa None (god-view); dev_ids=[] → {"$in": []} = cero leads.
+    q = {} if dev_ids is None else {"development_id": {"$in": list(dev_ids)}}
     try:
         async for l in db.leads.find(q, {"_id": 0}):
             dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))

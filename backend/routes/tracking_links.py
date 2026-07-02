@@ -140,8 +140,12 @@ async def list_links(request: Request, project_id: Optional[str] = None,
     q: Dict[str, Any] = {}
     if user.role in ASESOR_ROLES:
         q["asesor_id"] = user.user_id
-    elif getattr(user, "tenant_id", None) and user.role != "superadmin":
-        q["tenant_id"] = user.tenant_id
+    elif user.role != "superadmin":
+        # [AUD-035] fail-CLOSED: antes un admin con tenant_id falsy no caía en ninguna rama → q={} →
+        # find() devolvía tracking_links de TODOS los tenants. tenant_filter compone los owner-fields
+        # y en prod sin tenant real devuelve {"_tenant_no_match": True} (cero resultados). superadmin=god-view.
+        from tenant_scope import tenant_filter
+        q.update(tenant_filter(user, "tracking_links"))
     if project_id:
         q["project_id"] = project_id
     if utm_source:

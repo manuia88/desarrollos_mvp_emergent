@@ -30,3 +30,29 @@
 - **Riesgo de aplicar:** links viejos dejan de funcionar sin la ventana de gracia.
 - **Riesgo de NO aplicar:** un tercero puede desuscribir a un usuario puntual (molestia, no fuga).
 - **Rollback:** trivial (revertir el handler a `user_id` crudo).
+
+## Batch 6 — diferidos (aislamiento multi-tenant · necesitan decisión de PRODUCTO)
+
+Los 4 primeros son conteos/métricas que CRUZAN tenants a propósito o no — hay que decidir si es una **señal de mercado deliberada** (dejar, documentar y agregar/anonimizar) o una fuga (acotar por tenant). Los 2 últimos son higiene BAJA.
+
+### AUD-043 (MEDIUM) · cross_project_count cuenta leads del mismo comprador en TODA la plataforma
+- `routes/dev_batch4_2.py:367` (Kanban): por cada lead con `client_global_id`, cuenta cuántos otros leads activos del MISMO comprador existen en todos los tenants. Expone a un dev cuántos competidores trabajan al mismo comprador.
+- **Decisión:** ¿es señal intencional ("este comprador está caliente en el mercado")? Si sí → agregarlo/anonimizarlo. Si no → `tenant_filter(user,'leads')` en el count.
+
+### AUD-044 (MEDIUM) · red-comercial expone el volumen TOTAL de negocio del socio
+- `services/directory_aggregator.py:138`: KPI de una inmobiliaria socia cuenta TODOS sus deals cerrados/leads, no solo los compartidos por la alianza.
+- **Decisión:** acotar a los leads/proyectos de la alianza aprobada, o mostrar solo conteos compartidos.
+
+### AUD-045 (MEDIUM) · índice de demanda lee todas las colecciones sensibles sin tenant
+- `services/demand_engine.py:36` (GET /demanda, developer_admin): funnel + top-queries + by-colonia sobre leads/búsquedas/citas/clicks de TODOS los tenants.
+- **Decisión:** ¿es un índice de MERCADO (global, ok) o debe ser por-tenant? Si mercado → restringir el endpoint a superadmin o marcarlo como agregado público. Si por-tenant → `tenant_filter` en cada lectura.
+
+### AUD-046 (LOW) · conteo público de leads por proyecto
+- `probability_engine.py:164` (GET /api/probability/{type}, T0 público): `value_used` embebe el conteo exacto de leads de cualquier project_id.
+- **Decisión:** bucketizar/ocultar el conteo exacto, o exigir auth+propiedad para `sells_complete`.
+
+### AUD-047 (LOW · higiene) · timestamp de weekly_briefs cross-tenant en un probe
+- `probes/health_score.py:74`: el probe devuelve el timestamp del brief más reciente de cualquier tenant. Fix: acotar por tenant o volverlo booleano agnóstico.
+
+### AUD-048 (LOW · higiene) · _build_pdf con org='default' no filtra
+- `routes/dev_batch5.py:559`: un dev sin tenant real + template con `dev_org_id='default'` genera PDF con leads de todos los tenants. Solo alcanzable por usuario mal-provisionado; en prod `_demo_mode` off lo mitiga. Fix: filtrar por el tenant del CALLER, no del template.

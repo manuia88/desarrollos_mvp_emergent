@@ -249,6 +249,11 @@ async def test_workflow(wf_id: str, body: WorkflowTestIn, request: Request):
         raise HTTPException(404, "Workflow no encontrado")
     if doc.get("owner_user_id") != owner and getattr(user, "role", None) != "superadmin":
         raise HTTPException(403, "Acceso denegado")
+    # [AUD-042] validaba el workflow propio pero NO el lead_id del body → los nodos condition se evalúan
+    # contra el lead ajeno y su outcome vuelve en steps[] (oráculo de atributos). Exigir dueño del lead.
+    if body.lead_id:
+        from tenant_scope import assert_lead_owner
+        await assert_lead_owner(db, user, body.lead_id)
     ok, err = validate_workflow(doc)
     if not ok:
         raise HTTPException(400, f"Workflow inválido: {err}")
