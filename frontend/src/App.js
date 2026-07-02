@@ -207,6 +207,7 @@ const SuperadminSocialCards = lazy(() => import('./pages/superadmin/SuperadminSo
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
 const DesarrolladorDemanda           = lazy(() => import('./pages/developer/DesarrolladorDemanda'));
+const DesarrolladorFeedback          = lazy(() => import('./pages/developer/DesarrolladorFeedback'));
 const DesarrolladorEstudioMercado    = lazy(() => import('./pages/developer/DesarrolladorEstudioMercado'));
 const DesarrolladorMercado           = lazy(() => import('./pages/developer/DesarrolladorMercado'));
 const DesarrolladorReportes          = lazy(() => import('./pages/developer/DesarrolladorReportes'));
@@ -912,6 +913,7 @@ function AppRouter() {
       <Route path="/comprador/wrapped" element={<CompradorWrapped />} />
       <Route path="/comprador/wrapped/:yearMonth" element={<CompradorWrapped />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
+      <Route path="/desarrollador/feedback" element={<AdvisorRoute Page={DesarrolladorFeedback} />} />
       <Route path="/desarrollador/estudio-mercado" element={<AdvisorRoute Page={DesarrolladorEstudioMercado} />} />
       <Route path="/desarrollador/mercado" element={<AdvisorRoute Page={DesarrolladorMercado} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />

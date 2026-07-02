@@ -46,7 +46,12 @@ qué" sin leer el chat ni los otros desarrollos que el cliente evalúa.
 Alimenta el "Modelo del Mundo de la Demanda" existente (`demand_intelligence.py` agrega por colonia desde
 `buyer_signals`); estas señales añaden el eje "resultado de interacción" que faltaba. Auto-tag reusa `llm_client`.
 
-## Estado
-Construido + probado (`tests/test_feedback_signals.py`, 4 tests · validador cierra taxonomía + k-anonimato +
-auto_extract determinista). Pendiente (UI/escala): menús de captura en el front del asesor + wiring del
-auto-tag al cerrar cada cita (hoy expuesto por endpoint `auto:true`).
+## Estado — COMPLETO (backend + frontend + wiring)
+- **Backend:** `feedback_signals.py` + `routes/feedback_signals.py` · `tests/test_feedback_signals.py` (4 verdes).
+- **Auto-tag automático:** al registrar el followup post-visita (`POST /api/leads/{id}/post-realizada-followup`)
+  se dispara `auto_extract` best-effort → captura señales sin trabajo extra del asesor.
+- **Frontend:** `api/feedbackSignals.js` (cliente + taxonomía es-MX) · `components/feedback/FeedbackCapture.js`
+  (menús de captura del asesor + botón "Auto-etiquetar con IA") · `pages/developer/DesarrolladorFeedback.js`
+  (dashboard "Retro de mercado" del dev, ruta `/desarrollador/feedback`). Todos parsean (babel-preset-react-app).
+- Pendiente menor (a gusto del founder): montar `<FeedbackCapture>` en la ficha del lead del asesor donde
+  prefiera, y agregar el link "Retro de mercado" al menú del portal dev.

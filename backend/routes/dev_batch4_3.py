@@ -765,6 +765,19 @@ async def lead_followup(lead_id: str, payload: FollowupBody, request: Request):
         update["notes"] = new_notes
     await db.leads.update_one({"id": lead_id}, {"$set": update})
 
+    # [Batch 7 feedback] Auto-captura de señales estructuradas tras el followup post-visita: la IA lee las
+    # notas (contexto del asesor) y emite SOLO etiquetas de taxonomía cerrada → el dev/mercado ven las
+    # etiquetas, nunca la conversación. Best-effort: nunca rompe el followup.
+    try:
+        import feedback_signals as _fbs
+        _fresh = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        if _fresh:
+            _sig = await _fbs.auto_extract(db, _fresh)
+            if _sig:
+                await _fbs.record_feedback(db, lead_id, _sig, actor_id=user.user_id)
+    except Exception as _fbe:  # noqa: BLE001
+        log.info(f"[batch4.3] feedback auto-capture best-effort skip lead={lead_id}: {_fbe}")
+
     await _safe_audit_ml(
         db, user, action="update", entity_type="lead_followup", entity_id=lead_id,
         before={"status": lead.get("status")},
