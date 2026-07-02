@@ -470,12 +470,12 @@ export default function FichaCockpit({ user, onLogin }) {
   const [lens, setLens] = useState('invertir');
   const [invMode, setInvMode] = useState('individual');
   const [fundIds, setFundIds] = useState([]);
-  const [tab, setTab] = useState('unidad');
+  const [tab, setTab] = useState('proyecto');   // la ficha abre en "El proyecto" (1er tab)
   const [hk, setHk] = useState({});
   const [savedUnits, setSavedUnits] = useState(() => new Set());
   const [leadModal, setLeadModal] = useState(null);
   const HK_API = process.env.REACT_APP_BACKEND_URL;
-  const secTimeRef = useRef({ tab: 'unidad', t: Date.now() });   // tiempo en cada sección (granularidad de interés)
+  const secTimeRef = useRef({ tab: 'proyecto', t: Date.now() });   // tiempo en cada sección (granularidad de interés)
   const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);

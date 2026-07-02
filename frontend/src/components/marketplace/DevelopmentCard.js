@@ -160,7 +160,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
 
   return (
     <Link
-      to={`/desarrollo/${dev.id}${rank?.badge_tier ? '#ie-scores' : ''}`}
+      to={`/desarrollo/${dev.id}`}
       className="dmx-card"
       data-testid={`dev-card-${dev.id}`}
       style={{
