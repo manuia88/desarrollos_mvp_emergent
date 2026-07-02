@@ -91,6 +91,35 @@ async def ensure_invitation_indexes(db) -> None:
 
 # ─── Invite ───────────────────────────────────────────────────────────────────
 
+REREGISTER_COOLDOWN_DAYS = 90  # [AUD-058] 3 meses
+
+
+async def _assert_asesor_reregister_allowed(db, email: str, target_org_id: str) -> None:
+    """[AUD-058] Un asesor que sigue en el roster (active/suspended) de OTRA inmobiliaria no puede
+    registrarse aquí hasta que esa inmobiliaria lo dé de BAJA (elimine su fila) o pasen 3 meses desde
+    su alta/última actividad. Fail-safe: fila en otra org sin fecha databable → bloquea."""
+    from datetime import datetime, timezone, timedelta
+    row = await db.inmobiliaria_internal_users.find_one(
+        {"email": email, "inmobiliaria_id": {"$ne": target_org_id},
+         "status": {"$in": ["active", "suspended"]}},
+        {"_id": 0, "status": 1, "created_at": 1, "updated_at": 1},
+    )
+    if not row:
+        return  # sin vínculo activo en otra inmobiliaria (o dado de baja = fila eliminada) → permitido
+    ref = row.get("created_at") or row.get("updated_at")
+    try:
+        d = datetime.fromisoformat(str(ref).replace("Z", "+00:00")) if ref else None
+        if d and d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        if d and (datetime.now(timezone.utc) - d) >= timedelta(days=REREGISTER_COOLDOWN_DAYS):
+            return  # cooldown de 3 meses cumplido → permitido
+    except Exception:
+        pass  # fecha no databable → conservador: bloquea
+    raise ValueError(
+        "Este asesor sigue registrado en otra inmobiliaria. Debe ser dado de baja de su roster actual, "
+        "o esperar 3 meses desde su alta, para registrarse aquí.")
+
+
 async def invite_internal_user(
     db,
     *,
@@ -126,6 +155,13 @@ async def invite_internal_user(
     )
     if dup:
         raise ValueError("Ya existe una invitación activa o aceptada para ese email en esta organización")
+
+    # [AUD-058] Candado de re-registro de asesor (regla founder): un asesor NO puede registrarse en OTRA
+    # inmobiliaria si sigue en el roster de una (status active/suspended) hasta que esa inmobiliaria lo dé
+    # de BAJA (elimine su fila) o pasen 3 meses desde su alta/última actividad. Evita doble-registro y que
+    # se lo "roben" mientras representa a otra. (Solo aplica al eje inmobiliaria.)
+    if org_type == "inmobiliaria":
+        await _assert_asesor_reregister_allowed(db, email, org_id)
 
     now = _now()
     token = secrets.token_urlsafe(32)

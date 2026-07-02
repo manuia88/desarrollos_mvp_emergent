@@ -3035,6 +3035,14 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.4] cma engine init failed: {e}")
 
+    # Batch 7 — Señales de feedback estructuradas (retro dev sin conversación + índice de demanda)
+    try:
+        from routes.feedback_signals import router as feedback_signals_router
+        app.include_router(feedback_signals_router)
+        logging.info("[batch7] feedback_signals router init")
+    except Exception as e:
+        logging.warning(f"[batch7] feedback_signals router init failed: {e}")
+
     # W5.ASR.3 Parte 1 — Smart Lists Engine (asesor)
     try:
         from routes.smart_lists import router as smart_lists_router

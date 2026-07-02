@@ -98,3 +98,32 @@ def test_aud057_send_message_gate_staff():
     pm = re.search(r"async def post_message\(.*?engine\.send_message", src, re.S).group(0)
     assert '(body.role or "user") != "user"' in pm and "conversación ajena" in pm, \
         "post_message debe gatear los mensajes de staff por dueño del hilo (AUD-057)"
+
+
+# ─── AUD-058 · candado de re-registro de asesor (COMPORTAMIENTO) ─────────────────
+class _Coll1:
+    def __init__(self, row):
+        self.row = row
+
+    async def find_one(self, q, proj=None):
+        return self.row
+
+
+class _DB1:
+    def __init__(self, row):
+        self.inmobiliaria_internal_users = _Coll1(row)
+
+
+def test_aud058_reregister_cooldown():
+    import datetime as dt
+    from services.internal_users import _assert_asesor_reregister_allowed as chk
+    # 1) sin vínculo en otra inmobiliaria → permitido
+    asyncio.run(chk(_DB1(None), "a@x.com", "INM_B"))
+    # 2) activo en otra inmobiliaria, alta reciente → BLOQUEA (ValueError)
+    recent = {"status": "active", "created_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    with pytest.raises(ValueError):
+        asyncio.run(chk(_DB1(recent), "a@x.com", "INM_B"))
+    # 3) alta hace > 3 meses → permitido (cooldown cumplido)
+    old = {"status": "active",
+           "created_at": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=100)).isoformat()}
+    asyncio.run(chk(_DB1(old), "a@x.com", "INM_B"))

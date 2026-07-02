@@ -77,6 +77,10 @@
 | AUD-056 | N3 | (este commit) | `test_aud056` | resumen IA (v1+v2) SOLO de pipeline estructurado, nunca texto de notas → el dev conserva retro sin conversación |
 | AUD-057 | N3 | (este commit) | `test_aud057` | `send_message` gatea mensajes de staff por dueño del hilo (no inyección cross-org/anon) |
 
-**Batch 7 (modelo de autorización · workflow 7 chunks + verif adversarial):** 12 violaciones confirmadas → **12 corregidas** (con OK del founder que fijó el modelo canónico en `AUTHZ_MODEL.md`). Patrón raíz = `assert_lead_owner` daba alcance por-tenant sin distinguir rol. Test `test_aud_batch7_authz.py` (8 tests, incl. comportamiento del candado). El dev conserva su retro vía señales estructuradas (etapa/visit_outcome/lost_reason), sin conversación.
+**Batch 7 (modelo de autorización · workflow 7 chunks + verif adversarial):** 12 violaciones confirmadas → **12 corregidas** (con OK del founder que fijó el modelo canónico en `AUTHZ_MODEL.md`). Patrón raíz = `assert_lead_owner` daba alcance por-tenant sin distinguir rol. Test `test_aud_batch7_authz.py` (9 tests, incl. comportamiento del candado + re-registro). El dev conserva su retro vía señales estructuradas (etapa/visit_outcome/lost_reason), sin conversación.
+
+| AUD-058 | N2 | (este commit) | `test_aud058` | candado de re-registro de asesor: bloquea alta en otra inmobiliaria si sigue en un roster activo/suspendido hasta baja o 3 meses (`invite_internal_user`) |
+
+**Feature · Señales de feedback estructuradas (Batch 7 · founder):** taxonomía cerrada de 7 ejes (desenlace/objeción/atractores/perfil/gap-producto/competencia/calidad) → `backend/feedback_signals.py` + `routes/feedback_signals.py` (POST captura owner-scoped/auto-tag IA · GET índice de mercado por dev con k-anonimato). La IA convierte la conversación en etiquetas; el dev/mercado ven solo etiquetas, nunca la conversación. Doc `FEEDBACK_SIGNALS_SPEC.md`. Test `test_feedback_signals.py` (4). AUD-044 resuelto vía AUD-050.
 
 **Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.

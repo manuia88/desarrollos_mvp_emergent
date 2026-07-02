@@ -35,6 +35,8 @@
 
 **5 de 6 RESUELTOS por decisión del founder (2026-07-02 · ver CORRECCIONES.md):** AUD-043 (Kanban→señal anonimizada), AUD-045 (demanda→solo superadmin), AUD-046 (conteo público→login+rango), AUD-047 y AUD-048 (higiene, corregidos). Queda 1 pendiente de aclaración:
 
+### AUD-044 ✅ RESUELTO (2026-07-02) — el founder confirmó: compartir compradores entre inmobiliarias está PROHIBIDO. Corregido como AUD-050 (red-comercial ya NO expone KPIs derivados de leads del socio, solo branding de la alianza). Ver CORRECCIONES.md. [Contexto original abajo.]
+
 ### AUD-044 (MEDIUM) · "Red comercial" muestra el negocio completo de una inmobiliaria aliada
 - `services/directory_aggregator.py:138`. CONTEXTO: en DMX una inmobiliaria puede formar una **alianza** con otra para compartir compradores/inventario. En la pantalla "Red comercial", cuando ves a una inmobiliaria **aliada**, hoy se le muestran sus números TOTALES (todos los cierres y leads que ha hecho, incluso con clientes que NADA tienen que ver contigo) — no solo lo que ustedes dos comparten por la alianza.
 - **Ejemplo:** te aliaste con "Inmobiliaria X" para pasarse compradores. En su tarjeta ves "X cerró 200 ventas este año" — pero esas 200 son TODO su negocio, no las que hicieron juntos. Eso revela el volumen real del socio.
