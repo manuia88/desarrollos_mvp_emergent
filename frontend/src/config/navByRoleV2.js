@@ -172,6 +172,7 @@ export const DEV_NAV_V2 = [
     // Centro de Inteligencia (/mercado). Battle Card/Reportes/Site Selection entran en A.2.
     children: [
       { key: 'int-mercado',      to: '/desarrollador/mercado',        label: 'Centro de Inteligencia', Icon: Activity },
+      { key: 'int-feedback',     to: '/desarrollador/feedback',       label: 'Retro de mercado', Icon: Activity },
       { key: 'int-battle',       to: '/desarrollador/battle-card',    label: 'Battle Card',    Icon: Swords },
       { key: 'int-agentes',      to: '/desarrollador/agentes',        label: 'Tus Asistentes IA', Icon: Bot },
     ],
