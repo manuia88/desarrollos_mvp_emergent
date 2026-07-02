@@ -40,7 +40,12 @@ def event_loop():
 
 @pytest_asyncio.fixture
 async def db():
-    client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+    # [AUD-011] antes: os.environ["MONGO_URL"] → KeyError en el SETUP del fixture (no skip) si la env
+    # no estaba → 4 tests en ERROR en la línea base. Un test de integración sin su DB debe SALTARSE.
+    mongo = os.environ.get("MONGO_URL")
+    if not mongo:
+        pytest.skip("integración: requiere MONGO_URL apuntando a un Mongo vivo")
+    client = AsyncIOMotorClient(mongo)
     database = client[os.environ.get("DB_NAME", "test_db")]
     yield database
     client.close()
