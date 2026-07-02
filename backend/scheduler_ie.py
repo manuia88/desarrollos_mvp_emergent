@@ -36,6 +36,12 @@ if not logger.handlers:
 
 
 CRON_AUTO_INGEST_MODES = {"api_key", "ckan_resource", "keyless_url", "wms_wfs"}
+# [AUD-026] Conectores que COBRAN por llamada → NUNCA los toca un cron automático (ni ingesta ni
+# health-check). AirROI (access_mode 'api_key') caía en CRON_AUTO_INGEST_MODES → run_hourly_status_check
+# lo pingueaba 24×/día (test_connection = GET /markets/search, PAGA) + run_daily_ingestion 1×/día
+# = ~25 llamadas pagadas/día sin autorizar. Solo se llama por vías explícitas cacheadas+capadas
+# (_airroi_zone: 1×/zona/mes + tope 400/mes · endpoint /api/inversion-v4/airroi: rate-limit + caché 30d).
+PAID_CONNECTORS = {"airroi"}
 TZ = "America/Mexico_City"
 
 
@@ -58,7 +64,8 @@ def _decrypt_creds(encrypted: Optional[str]) -> Dict[str, str]:
 # ─── Job: daily ingestion ────────────────────────────────────────────────────
 async def run_daily_ingestion(db):
     sources = await db.ie_data_sources.find(
-        {"status": "active", "access_mode": {"$in": list(CRON_AUTO_INGEST_MODES)}},
+        {"status": "active", "access_mode": {"$in": list(CRON_AUTO_INGEST_MODES)},
+         "id": {"$nin": list(PAID_CONNECTORS)}},  # [AUD-026] ningún cron toca un conector de PAGO
         {"_id": 0},
     ).to_list(length=200)
 
@@ -116,7 +123,8 @@ async def run_daily_ingestion(db):
 # ─── Job: hourly status check ────────────────────────────────────────────────
 async def run_hourly_status_check(db):
     sources = await db.ie_data_sources.find(
-        {"status": "active", "access_mode": {"$in": list(CRON_AUTO_INGEST_MODES)}},
+        {"status": "active", "access_mode": {"$in": list(CRON_AUTO_INGEST_MODES)},
+         "id": {"$nin": list(PAID_CONNECTORS)}},  # [AUD-026] ningún cron toca un conector de PAGO
         {"_id": 0},
     ).to_list(length=200)
 

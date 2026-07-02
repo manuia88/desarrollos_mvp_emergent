@@ -33,3 +33,5 @@
 | AUD-003 | N1 | (este commit) | 15 "huérfanos" → 0 (detector arreglado: imports con punto + carga por string) |
 
 **Línea base final Batch 2:** pytest **1191 passed · 473 skipped · 0 failed · 0 errors** · ruff 512 fixed · bandit 0 vulns reales · backend importa 100% sin /app.
+
+| AUD-026 | N2 | (este commit) | `test_aud026_airroi_cost_guard.py` (5 tests) | AirROI (API de pago) llamada ~25×/día por 2 crons → **3 capas de defensa**: (1) `PAID_CONNECTORS={'airroi'}` excluido de las 2 queries de cron; (2) kill-switch `AIRROI_ENABLED=false` corta fetch+test_connection; (3) `_fetch_source('airroi')` delega en el candado único `_airroi_zone` (1/zona/mes + cap 400/mes). **Incidente de costo cerrado.** |

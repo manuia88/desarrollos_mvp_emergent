@@ -36,9 +36,24 @@ def _first_num(payloads: List[Dict[str, Any]], *keys) -> Optional[float]:
     return None
 
 
-async def _fetch_source(source_id: str, zone_id: str) -> Dict[str, Any]:
-    """Llama un conector; nunca lanza. Devuelve {value..., is_stub}."""
+async def _fetch_source(source_id: str, zone_id: str, db=None) -> Dict[str, Any]:
+    """Llama un conector; nunca lanza. Devuelve {payloads..., is_stub}.
+
+    [AUD-026] airroi (API de PAGO) SIEMPRE pasa por el candado único `_airroi_zone`
+    (1 llamada/zona/mes + tope global 400/mes, caché compartida en db.airroi_cache) —
+    NUNCA llama al conector directo. Así esta ruta (enrich) comparte cache+cap con la de
+    demand_intelligence: un solo gate de costo para toda la app, imposible cobrar de más."""
     try:
+        if source_id == "airroi":
+            if db is None:
+                return {"payloads": [], "is_stub": True, "note": "airroi requiere db (gate de costo)"}
+            from demand_intelligence import _airroi_zone
+            data = await _airroi_zone(db, zone_id)
+            if not data:
+                return {"payloads": [], "is_stub": True, "count": 0}
+            payload = {"revenue": data.get("revenue_anual"), "adr": data.get("adr"),
+                       "occupancy": data.get("occupancy")}
+            return {"payloads": [payload], "is_stub": False, "count": 1}
         import connectors_ie as ci
         if source_id not in {**ci._REAL, **ci._NAMED_STUBS}:
             return {"is_stub": True, "dormant": True, "note": "sin conector aún"}
@@ -56,8 +71,8 @@ async def enrich_zone(db, zone_id: str) -> Dict[str, Any]:
     ext: Dict[str, Any] = {"zone_id": zone_id, "updated_at": _iso()}
     stub_flags: Dict[str, bool] = {}
 
-    # AirROI — renta corta (ROI inversión)
-    air = await _fetch_source("airroi", zone_id)
+    # AirROI — renta corta (ROI inversión) · pasa por el candado cacheado+capado (db)
+    air = await _fetch_source("airroi", zone_id, db=db)
     ext["airroi"] = {
         "annual_revenue_mxn": _first_num(air.get("payloads", []), "annual_revenue", "revenue"),
         "adr_mxn": _first_num(air.get("payloads", []), "adr", "average_daily_rate"),

@@ -325,12 +325,22 @@ class INEGIConnector(BaseConnector):
 class AirRoiConnector(BaseConnector):
     source_id = "airroi"
     BASE = "https://api.airroi.com"
-    # AirROI costs money per call. Cron never touches this; only explicit recompute.
+    # AirROI costs money per call. Cron never touches this (scheduler_ie excluye PAID_CONNECTORS);
+    # solo vías explícitas cacheadas+capadas (_airroi_zone / endpoint rate-limited).
+
+    @staticmethod
+    def _kill_switch_on() -> bool:
+        """[AUD-026] Freno de emergencia global. Con AIRROI_ENABLED=false NINGUNA llamada sale a la
+        red (fetch/test_connection devuelven stub). El founder lo prende cuando el billing esté OK.
+        Se lee en cada llamada → apagar/prender es solo cambiar el env, sin deploy de código."""
+        return os.environ.get("AIRROI_ENABLED", "true").strip().lower() in ("false", "0", "no", "off")
 
     def _key(self) -> Optional[str]:
         return self.credentials.get("api_key") or os.environ.get("IE_AIRROI_API_KEY")
 
     async def test_connection(self) -> Tuple[bool, str]:
+        if self._kill_switch_on():
+            return _ok("AirROI DESACTIVADO (AIRROI_ENABLED=false) — no se llama a la API de pago.")
         key = self._key()
         if not key:
             return _fail("Falta IE_AIRROI_API_KEY.")
@@ -353,6 +363,8 @@ class AirRoiConnector(BaseConnector):
         Zone-aware fetch: for CDMX colonies we call /markets/summary with the colonia as district.
         If no zone_id is given, degrades to a list of searched markets (cheap ping).
         """
+        if self._kill_switch_on():
+            return self._stub_obs(n=3, note="AIRROI_ENABLED=false")
         key = self._key()
         if not key:
             return self._stub_obs(n=4, note="sin key")
