@@ -135,10 +135,15 @@ async def register(payload: RegisterIn, response: Response, request: Request):
         log.warning(f"[auth] register rechazado: role '{payload.role}' no permitido para {payload.email}")
         raise HTTPException(400, "Rol no válido")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
+    # [AUD-023] BLOCKER IDOR cross-tenant: antes se registraba con tenant_id=None y tenant_of() cae a
+    # el sentinel COMPARTIDO "default" → todos los developer_admin auto-registrados quedaban en el MISMO
+    # tenant y veían/tocaban los datos de los demás. Se provisiona un tenant PROPIO por dev self-registrado
+    # (roles org-scoped) para aislarlos; buyer/advisor no poseen datos multi-tenant vía tenant_of → None ok.
+    _tenant = f"org_{user_id}" if payload.role == "developer_admin" else None
     await db.users.insert_one({
         "user_id": user_id, "email": payload.email,
         "name": payload.name, "password_hash": hash_password(payload.password),
-        "role": payload.role, "tenant_id": None,
+        "role": payload.role, "tenant_id": _tenant,
         "onboarded": True,
         "created_at": datetime.now(timezone.utc),
     })
@@ -307,10 +312,14 @@ def _ml_check_rate(ip: str, limit: int = 5) -> bool:
 
 
 def _ml_get_ip(request: Request) -> str:
-    fwd = request.headers.get("X-Forwarded-For")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    # [AUD-022] Antes tomaba X-Forwarded-For[0] (PRIMER hop, controlado por el cliente) → rotar el header
+    # evadía el rate-limit 5/min del magic-link (spam de correos / enumeración). Se usa el client_ip
+    # CANÓNICO anti-spoof (mismo helper que el pentest 2026-06-27 aplicó al resto de rate-limits).
+    try:
+        from ratelimit import client_ip
+        return client_ip(request) or "unknown"
+    except Exception:
+        return request.client.host if request.client else "unknown"
 
 
 def _ml_frontend_base() -> str:
