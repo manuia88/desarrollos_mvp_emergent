@@ -8,7 +8,6 @@ Scope:
 from __future__ import annotations
 
 from bisect import bisect_left
-from typing import Any, Dict, List, Optional
 
 from score_engine import register
 from recipes.unidad._helpers import UnitRecipe

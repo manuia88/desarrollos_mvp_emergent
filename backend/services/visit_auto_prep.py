@@ -141,7 +141,6 @@ async def _aggregate_lead_context(
 
         # Comparables top 3 (B22 ColoniaComparator)
         try:
-            from services.colonia_comparator import compare_colonias  # if exists
             colonia = (proj or {}).get("colonia", "")
             if colonia:
                 comps = await db.developments.find(

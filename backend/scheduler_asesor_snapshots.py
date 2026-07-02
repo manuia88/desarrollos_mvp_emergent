@@ -6,7 +6,7 @@ if activity_score_7d dropped >20pp vs the snapshot taken 7 days ago.
 """
 from __future__ import annotations
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from services.asesor_metrics import compute_asesor_metrics
 

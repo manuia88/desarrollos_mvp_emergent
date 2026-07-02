@@ -10,7 +10,7 @@ Funciones async/DB (heartbeat_start · heartbeat_end · reset_24h_counters · wr
 NO toca infra · NO modifica código · solo lectura.
 """
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 
 from cron_heartbeat import (
     is_stale,

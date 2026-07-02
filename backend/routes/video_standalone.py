@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator

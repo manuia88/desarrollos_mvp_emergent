@@ -15,7 +15,6 @@ import tempfile
 # que hace os.makedirs() a nivel de import.
 os.environ.setdefault("IE_UPLOAD_DIR", os.path.join(tempfile.gettempdir(), "ie_engine"))
 
-from datetime import datetime, timezone
 
 import pytest
 

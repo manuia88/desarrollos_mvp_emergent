@@ -67,7 +67,7 @@ async def get_top_recommendation(request: Request) -> Dict[str, Any]:
     if (_phasey.get("feature_tiers") or {}).get("recommendation_banner", "off") == "off":
         return {"has_recommendation": False}
 
-    from data_developments import DEVELOPMENTS_BY_ID, DEVELOPMENTS
+    from data_developments import DEVELOPMENTS
     if allowed_dev_ids is not None:
         tenant_devs = [d for d in DEVELOPMENTS if d.get("developer_id") in allowed_dev_ids]
     else:

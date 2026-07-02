@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse

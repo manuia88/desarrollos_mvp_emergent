@@ -9,7 +9,7 @@ import time
 import functools
 import inspect
 from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 log = logging.getLogger("dmx.cron_heartbeat")
 

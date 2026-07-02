@@ -18,7 +18,7 @@ import math
 import statistics
 from bisect import bisect_left
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from score_engine import register
 from recipes.proyecto._helpers import ProjectRecipe

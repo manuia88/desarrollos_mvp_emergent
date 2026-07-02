@@ -20,11 +20,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel
 
 from cron_heartbeat import (
     SCHEDULE_LABELS,
-    SCHEDULE_INTERVAL_SEC,
     is_stale,
 )
 

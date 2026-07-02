@@ -1,7 +1,7 @@
 """Phase 4 Batch 22 · services — Find comparable projects via similarity scoring."""
 from __future__ import annotations
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 def _now():

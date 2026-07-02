@@ -225,7 +225,6 @@ async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
 
 async def _maybe_email_past_due(db, cust_id: str) -> None:
     """Throttle 1/day per tenant."""
-    from datetime import timedelta
     last = await db.system_alerts.find_one(
         {"source": "stripe_past_due_email", "details.cust_id": cust_id},
         sort=[("ts", -1)],

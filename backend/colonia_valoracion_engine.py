@@ -66,7 +66,7 @@ async def _plusvalia_alcaldia(db, alcaldia: Optional[str]) -> Dict[str, Any]:
     """Serie anual de plusvalía de la ALCALDÍA (índice SHF trimestral → anual). REUSA shf_engine:
     resuelve la alcaldía propia (5 con índice) o hereda CDMX estatal, exactamente como get_series."""
     try:
-        from shf_engine import get_series, _norm_alc, _CDMX_ESTATAL
+        from shf_engine import get_series, _CDMX_ESTATAL
     except Exception as e:
         log.warning(f"[valoracion] shf import: {e}")
         return {"series": [], "fuente": "shf_alcaldia", "es_estimado": True, "es_propio": None}

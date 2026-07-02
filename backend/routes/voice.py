@@ -11,7 +11,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
-from voice_atlax_engine import VoiceAtlaxEngine, ensure_voice_indexes
+from voice_atlax_engine import VoiceAtlaxEngine
 
 log = logging.getLogger("dmx.routes_voice")
 

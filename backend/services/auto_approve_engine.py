@@ -186,7 +186,6 @@ async def _deals_in_zone_12m(
     """Cuenta deals cerrados en los últimos 12 meses en target_colonias.
     Si target_colonias vacío → cuenta en cualquier colonia.
     """
-    from datetime import timezone as tz
     since = (_now() - timedelta(days=365)).isoformat()
 
     # Leads cerrados del asesor en 12m

@@ -10,7 +10,7 @@ Run: python3 -m pytest tests/test_asesor_digest.py -v
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import pytest
 

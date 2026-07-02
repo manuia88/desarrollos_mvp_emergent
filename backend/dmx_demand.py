@@ -14,7 +14,6 @@ Dormant-aware: si no hay eventos de demanda, marca demand_source='proxy'.
 """
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional

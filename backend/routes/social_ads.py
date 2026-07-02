@@ -20,7 +20,7 @@ import os
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse

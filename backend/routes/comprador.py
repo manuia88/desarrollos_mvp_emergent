@@ -171,7 +171,6 @@ async def get_profile(request: Request, user=Depends(_require_buyer)):
     if not doc:
         raise HTTPException(404, "Usuario no encontrado")
     if isinstance(doc.get("created_at"), object):
-        from datetime import datetime
         if hasattr(doc.get("created_at"), "isoformat"):
             doc["created_at"] = doc["created_at"].isoformat()
     return doc

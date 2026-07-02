@@ -5,18 +5,15 @@ Prefix: /api/superadmin/newsletter · /api/users/{id}/newsletter-*
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 from newsletter_pulse_engine import (
     NewsletterPulseEngine,
     VALID_SEGMENTS,
-    ensure_newsletter_indexes,
 )
 
 log = logging.getLogger("dmx.routes_newsletter")
@@ -100,7 +97,7 @@ async def send_newsletter_manual(segment: str, request: Request):
     if getattr(user,"role",None) != "superadmin":
         raise HTTPException(403, "Solo superadmin")
     if segment not in VALID_SEGMENTS:
-        raise HTTPException(422, f"Segmento inválido")
+        raise HTTPException(422, "Segmento inválido")
 
     db = _db(request)
     # Buscar último run generado del segmento
@@ -155,7 +152,7 @@ async def newsletter_opt_in(user_id: str, segment: str, request: Request):
     if getattr(user,"user_id",None) != user_id and getattr(user,"role",None) != "superadmin":
         raise HTTPException(403, "Solo puedes gestionar tu propia suscripción")
     if segment not in VALID_SEGMENTS:
-        raise HTTPException(422, f"Segmento inválido")
+        raise HTTPException(422, "Segmento inválido")
 
     db = _db(request)
     # Upsert opt-in
@@ -180,7 +177,7 @@ async def newsletter_opt_in(user_id: str, segment: str, request: Request):
 async def newsletter_opt_out(user_id: str, segment: str, request: Request):
     """Opt-out público (link en email · no requiere auth)."""
     if segment not in VALID_SEGMENTS and segment != "all":
-        raise HTTPException(422, f"Segmento inválido")
+        raise HTTPException(422, "Segmento inválido")
 
     db = _db(request)
     query: Dict[str, Any] = {"user_id": user_id}

@@ -17,8 +17,6 @@ SLA: <60s end-to-end (LLM ~10-25s típico, fallbacks <2s)
 """
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import json
 import logging
 import os

@@ -9,9 +9,8 @@ import logging
 import os
 import random
 import string
-import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.private_beta_engine")
 

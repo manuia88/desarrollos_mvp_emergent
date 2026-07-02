@@ -1532,7 +1532,7 @@ async def macro_ciudad(request: Request, zona: Optional[str] = None, segmento: O
 # desde Mongo (no requiere Neo4j); reusa knowledge_graph_engine si está prendido. Built-for-endstate:
 # los compradores compartidos (edges INTERESTED_IN reales) se llenan con swipes/behavioral. Cero deuda.
 async def _competencia_red(db, zona=None, segmento=None):
-    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    from data_developments import DEVELOPMENTS
 
     devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
     leads_by_dev: Dict[str, int] = {}

@@ -20,7 +20,6 @@ Funciones públicas:
 """
 from __future__ import annotations
 
-import hashlib
 import logging
 import math
 from datetime import datetime, timezone, timedelta

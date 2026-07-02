@@ -21,7 +21,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 log = logging.getLogger("dmx.multiratio_renderer")
 

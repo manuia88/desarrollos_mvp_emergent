@@ -6,12 +6,9 @@ Sub-chunk C: Weekly Brief + APScheduler
 
 Run: cd /app/backend && python -m pytest tests/test_batch14.py -v
 """
-import asyncio
-import sys
 import os
 import pytest
 import httpx
-from datetime import datetime, timezone
 
 pytestmark = pytest.mark.integration
 

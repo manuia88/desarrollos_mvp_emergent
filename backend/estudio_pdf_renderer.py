@@ -14,7 +14,6 @@ from __future__ import annotations
 import io
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -22,9 +21,8 @@ from reportlab.pdfgen import canvas
 
 # Reuso directo del stack de marca/branding del CMA (cero duplicado).
 from cma_pdf_renderer import (
-    CREAM, CREAM_2, CREAM_3, BG_DARK, BG_DARK_2, INDIGO, GREEN, AMBER, RED, BORDER,
-    _register_fonts, _draw_gradient_bar, _draw_kpi_card, _draw_score_bar,
-    _wrap_text, _fmt_mxn_compact, _fetch_asesor_profile,
+    CREAM, CREAM_2, CREAM_3, BG_DARK, INDIGO, GREEN, AMBER, BORDER,
+    _register_fonts, _draw_gradient_bar, _draw_kpi_card, _wrap_text, _fmt_mxn_compact, _fetch_asesor_profile,
 )
 
 log = logging.getLogger("dmx.estudio_pdf")

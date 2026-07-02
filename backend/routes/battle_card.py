@@ -17,8 +17,8 @@ import io
 import logging
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response, JSONResponse
@@ -369,7 +369,7 @@ def _render_battle_card_pdf(
     """ReportLab 4-page A4 institutional PDF (Fitch-style W5.15 pattern)."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
-    from reportlab.lib.colors import HexColor, white
+    from reportlab.lib.colors import HexColor
     from reportlab.pdfgen import canvas as rl_canvas
 
     BG     = HexColor("#06080F")

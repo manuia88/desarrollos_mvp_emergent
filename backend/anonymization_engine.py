@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import math
 import random
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 log = logging.getLogger("dmx.anonymization_engine")
 

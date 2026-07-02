@@ -1360,7 +1360,6 @@ async def submit_landing_lead(
 
     # Mirror al pipeline central `leads` (fire-and-forget · sin romper si falla)
     try:
-        from datetime import datetime as _dt
         leads_doc = {
             "id": f"lead_{uuid.uuid4().hex[:12]}",
             "first_name": (payload.get("nombre") or payload.get("name") or "").split(" ")[0][:80],
@@ -1579,7 +1578,7 @@ async def ab_winner_by_lead_quality(db, group_id: str, user_id: str) -> Dict[str
 
     async def _quality_score(lid: str) -> Dict[str, float]:
         try:
-            leads = await db.leads.find({"assigned_to": {"$exists": True}, "source": {"$regex": f"^landing_"}}, {"_id": 0, "email": 1, "phone": 1, "notes": 1, "disc_inferred": 1, "source": 1}).to_list(1000)
+            leads = await db.leads.find({"assigned_to": {"$exists": True}, "source": {"$regex": "^landing_"}}, {"_id": 0, "email": 1, "phone": 1, "notes": 1, "disc_inferred": 1, "source": 1}).to_list(1000)
         except Exception:
             leads = []
         ll = [l for l in leads if l.get("source") == f"landing_{lid}" or l.get("source", "").endswith(lid)]

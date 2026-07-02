@@ -6,7 +6,6 @@ Built atop mocked developments in data_developments.py plus runtime state in Mon
 
 import os
 import uuid
-import hashlib
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
@@ -118,7 +117,7 @@ async def dev_elasticidad(request: Request):
 
 @router.get("/dashboard")
 async def dashboard(request: Request):
-    from data_developments import DEVELOPMENTS, ALL_UNITS
+    from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
@@ -179,7 +178,7 @@ def _slug(s):
 
 @router.get("/portfolio-reading")
 async def portfolio_reading(request: Request):
-    from data_developments import DEVELOPMENTS, ALL_UNITS
+    from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     db = get_db(request)
@@ -658,7 +657,7 @@ _MESES_ES = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
 
 @router.get("/reporte-ejecutivo")
 async def dev_reporte_ejecutivo(request: Request):
-    from data_developments import DEVELOPMENTS, ALL_UNITS
+    from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     db = get_db(request)
@@ -885,7 +884,7 @@ async def dev_indices(request: Request):
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
-    from data_developments import DEVELOPMENTS, ALL_UNITS
+    from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids and (not dev_id or d["id"] == dev_id)]
@@ -1200,7 +1199,7 @@ async def demand_heatmap(request: Request):
 # ─── D9: Monthly AI Report ────────────────────────────────────────────────────
 @router.post("/reportes/generar")
 async def generate_report(request: Request, month: Optional[str] = None):
-    from data_developments import DEVELOPMENTS, ALL_UNITS
+    from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
     db = get_db(request)
 
@@ -1475,7 +1474,6 @@ async def pricing_cross_check_warnings(request: Request):
 @router.get("/competidores")
 async def competitor_radar(request: Request, dev_id: Optional[str] = None, radius_km: float = 2.0):
     from data_developments import DEVELOPMENTS
-    from data_seed import COLONIAS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
 

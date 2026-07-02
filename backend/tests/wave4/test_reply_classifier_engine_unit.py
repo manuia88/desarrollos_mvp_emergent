@@ -13,7 +13,7 @@ ingest_webhook_reply / _action_* / mark_action_taken / ensure_reply_indexes
 (requieren AsyncIOMotor + LLM + Resend + Phase Y settings).
 """
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

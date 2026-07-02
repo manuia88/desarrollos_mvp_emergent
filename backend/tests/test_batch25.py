@@ -2,7 +2,6 @@
 Phase 4 Batch 25 — External Search + Saved Searches + Image Embeddings · pytest
 """
 import os
-import json
 import pytest
 import httpx
 
@@ -202,7 +201,9 @@ def test_save_search_rate_limit():
 
 def test_embeddings_disabled_by_default():
     """IMAGE_EMBEDDINGS_ENABLED=false — image search usa TF-IDF fallback."""
-    import io, struct, zlib
+    import io
+    import struct
+    import zlib
 
     def make_png():
         def chunk(name, data):

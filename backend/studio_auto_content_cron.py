@@ -19,7 +19,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -151,16 +150,16 @@ def _build_copy_preview(topic: str, label: str, value: str, lang: str) -> str:
         templates = {
             "banxico_rate_change": f"Interest rate update: {value}. This directly affects your clients' mortgage capacity.",
             "zone_hot": f"{label} — {value}. Now is the time to show your inventory in this zone.",
-            "demand_supply_gap": f"Demand exceeds supply in key zones. Your listing stands out now.",
-            "fsd_zone_top": f"Our predictive model identifies this zone as top performer. Share the data.",
+            "demand_supply_gap": "Demand exceeds supply in key zones. Your listing stands out now.",
+            "fsd_zone_top": "Our predictive model identifies this zone as top performer. Share the data.",
             "price_velocity_spike": f"{label} — {value}. Your clients need to know.",
         }
     else:
         templates = {
             "banxico_rate_change": f"Actualizacion de tasa: {value}. Esto impacta directamente la capacidad hipotecaria de tus clientes.",
             "zone_hot": f"{label} — {value}. Es momento de mostrar tu inventario en esta zona.",
-            "demand_supply_gap": f"La demanda supera a la oferta en zonas clave. Tu listing destaca ahora.",
-            "fsd_zone_top": f"Nuestro modelo predictivo identifica esta zona como top performer. Comparte el dato.",
+            "demand_supply_gap": "La demanda supera a la oferta en zonas clave. Tu listing destaca ahora.",
+            "fsd_zone_top": "Nuestro modelo predictivo identifica esta zona como top performer. Comparte el dato.",
             "price_velocity_spike": f"{label} — {value}. Tus clientes necesitan saberlo.",
         }
     return templates.get(topic, f"{label}: {value}")

@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -3511,7 +3511,7 @@ Escribe un mensaje de WhatsApp de 2-3 párrafos cortos, tono profesional-cercano
                        system_message="Eres un asesor inmobiliario mexicano experto.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
         text = await chat.send_message(UserMessage(text=prompt))
-    except Exception as e:
+    except Exception:
         text = (f"Hola {contact['first_name']}, qué tal. Te escribo porque tengo una oportunidad que encaja con lo "
                 f"que me comentaste: {dev['name']}, en {dev['colonia']}. Etapa {dev['stage']}, entrega {dev['delivery_estimate']}, "
                 f"desde ${dev['price_from']:,} MXN, con {dev['m2_range'][0]} m² en adelante. "

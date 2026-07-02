@@ -12,7 +12,7 @@ Inputs available in ctx via ProjectRecipe.compute → obs_by_source:
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from score_engine import register, ScoreResult
 from recipes.proyecto._helpers import ProjectRecipe

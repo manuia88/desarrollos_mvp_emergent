@@ -6,7 +6,7 @@ caller's role so Claude can answer questions grounded in real data.
 from __future__ import annotations
 import json
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Soft cap for the JSON-encoded context payload sent to Claude.
 MAX_CONTEXT_CHARS = 6000  # ≈ 1500-2000 tokens conservative

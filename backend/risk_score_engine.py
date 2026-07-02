@@ -345,7 +345,8 @@ async def detect_letter_change(
     # Email Resend on critical drop
     if severity == "critical":
         try:
-            import os, httpx
+            import os
+            import httpx
             resend_key = os.environ.get("RESEND_API_KEY")
             alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
             if resend_key:

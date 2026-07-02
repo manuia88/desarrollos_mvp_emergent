@@ -215,7 +215,6 @@ def _render_carrusel_pdf(car: Dict[str, Any]) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.lib.colors import HexColor, Color
     from reportlab.pdfgen import canvas as rl_canvas
-    import io
 
     buf = io.BytesIO()
     c = rl_canvas.Canvas(buf, pagesize=A4)

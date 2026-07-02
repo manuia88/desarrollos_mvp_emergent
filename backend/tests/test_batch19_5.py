@@ -102,7 +102,7 @@ def test_booking_page_branding_fallback_to_dmx_defaults(admin_cookies):
 
 def test_email_footer_html_contains_display_name():
     """Email footer HTML renders org display_name correctly."""
-    import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    import sys; import os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
     from branding_helpers import email_footer_html
     branding = {
         "display_name": "Constructora TestOrg B19.5",
@@ -118,7 +118,7 @@ def test_email_footer_html_contains_display_name():
 
 def test_email_footer_html_uses_dmx_defaults_when_none():
     """email_footer_html with None branding falls back to DesarrollosMX."""
-    import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    import sys; import os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
     from branding_helpers import email_footer_html
     footer = email_footer_html(None)
     assert "DesarrollosMX" in footer, f"DMX default name not in footer: {footer[:300]}"

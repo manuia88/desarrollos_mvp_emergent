@@ -1,6 +1,6 @@
 """Phase 4 Batch 15 — OAuth Calendar Health + Auto-assign Engine probes."""
 from diagnostic_engine import functional_probe
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 
 async def _oauth_calendar_health(db, project_id, user):
@@ -33,7 +33,7 @@ async def _oauth_calendar_health(db, project_id, user):
 async def _auto_assign_engine(db, project_id, user):
     """Verify appointment_policies have valid structure + assignment log functional."""
     try:
-        from availability import get_policy, _DEFAULT_POLICY
+        from availability import get_policy
 
         policy = await get_policy(db, project_id)
         policy_type = policy.get("policy_type")

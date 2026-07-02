@@ -13,7 +13,7 @@ import logging
 import math
 import zipfile
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import csv as _csv
 import httpx

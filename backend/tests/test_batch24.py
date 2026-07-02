@@ -4,7 +4,6 @@ Tests: heatmap endpoints, zoom levels, colonia intelligence, image search
 """
 import os
 import io
-import json
 import pytest
 import httpx
 
@@ -156,7 +155,8 @@ def test_all_16_colonias():
 
 def _make_minimal_png() -> bytes:
     """Genera un PNG mínimo válido (1x1 rojo)."""
-    import struct, zlib
+    import struct
+    import zlib
     def chunk(name, data):
         c = struct.pack(">I", len(data)) + name + data
         crc = zlib.crc32(name + data) & 0xFFFFFFFF

@@ -179,7 +179,7 @@ async def seed(db, count: int):
         await db.marketplace_templates.insert_one({
             "id": tpl_id,
             "title": title,
-            "description": f"Plantilla en revisión · DMX seed",
+            "description": "Plantilla en revisión · DMX seed",
             "category": "custom",
             "price_tier": "pro",
             "price_mxn": 149,

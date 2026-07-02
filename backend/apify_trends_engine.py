@@ -123,7 +123,7 @@ class ApifyTrendsError(Exception):
 
 
 # ─── Circuit breaker (evita burn de ACU si Apify rechaza repetidamente) ──────
-from sub_agents.resilience import CircuitBreaker, CircuitOpenError  # noqa: E402
+from sub_agents.resilience import CircuitBreaker  # noqa: E402
 
 _apify_cb = CircuitBreaker("apify_trends", failure_threshold=3, recovery_seconds=900)
 

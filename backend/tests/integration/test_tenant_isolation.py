@@ -30,10 +30,8 @@ Filosofía:
 """
 from __future__ import annotations
 
-import json
 import pytest
 from types import SimpleNamespace
-from unittest.mock import patch, MagicMock, AsyncMock
 
 import sys
 import os
@@ -47,7 +45,6 @@ from routes.dev_batch4_2 import (
     can_move_lead,
     can_view_full_client_data,
     can_view_conversation,
-    can_view_ai_summary,
 )
 # Role-level genéricos viven en permissions.py
 from permissions import (

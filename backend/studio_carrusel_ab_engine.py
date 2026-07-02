@@ -6,7 +6,6 @@ Criterio: chi2 >= 3.84 (p<0.05, 1 df) + min 30 events por arm.
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 

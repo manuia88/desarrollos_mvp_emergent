@@ -3,7 +3,7 @@ insatisfecha (whitespace) × el precio/absorción de la zona × el premium de lo
 ensambla lo que ya midió el cubo (explorador.oportunidades + grid_engine + facet). El salto de 'encontrar' a 'diseñar'.
 """
 import statistics
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 _ATTR_KEYS = ("terraza", "balcon", "roof_garden", "bodega", "pet_friendly")
 _ATTR_LBL = {"terraza": "terraza", "balcon": "balcón", "roof_garden": "roof garden", "bodega": "bodega", "pet_friendly": "pet friendly"}

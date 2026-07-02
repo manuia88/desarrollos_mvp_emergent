@@ -16,7 +16,7 @@ import os
 import re
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 log = logging.getLogger("dmx.insights_factcheck_engine")
 

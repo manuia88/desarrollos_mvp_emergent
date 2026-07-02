@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 
 import osm_engine as denue  # DENUE muerto → OSM (misma firma: compute_zone_density/get_zone_density)

@@ -7,9 +7,8 @@ IE_COL_CLIMA_* — Climate risk scores (lower_better logic: alto riesgo = rojo).
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
 
-from score_engine import Recipe, ScoreResult, register
+from score_engine import register
 from recipes.colonia._helpers import SimpleHeuristicRecipe, DataPendingRecipe
 
 
@@ -65,7 +64,7 @@ class IEColClimaIslaCalor(SimpleHeuristicRecipe):
         tmax = values_by_source.get("noaa") or []
         humid = values_by_source.get("conagua_smn") or []
         return [
-            f"Base riesgo = 50 (CDMX neutral)",
+            "Base riesgo = 50 (CDMX neutral)",
             f"TMAX media {sum(tmax)/len(tmax):.1f}°C · penalty {max(0.0,(sum(tmax)/len(tmax))-22.0)*5:.1f} pts" if tmax else "Sin TMAX",
             f"Humedad media {sum(humid)/len(humid):.1f}% · riesgo por aridez" if humid else "Sin humedad",
             f"Tier invertido (lower_better): value={value} → más bajo = mejor",

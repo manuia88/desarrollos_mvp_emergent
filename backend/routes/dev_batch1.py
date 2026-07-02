@@ -24,7 +24,6 @@ import io
 import csv
 import uuid
 import logging
-import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -1420,7 +1419,8 @@ async def receive_erp_event(provider: str, request: Request):
     """Stub webhook receiver — log incoming events, return 200 always."""
     # SEGURIDAD (pentest 2026-06-27): antes era un POST SIN AUTH → cualquiera inyectaba eventos (flood de DB) y
     # tocaba last_ping_ts. Ahora requiere un secreto compartido; fail-closed en prod si no está configurado.
-    import os as _os, hmac as _hmac
+    import os as _os
+    import hmac as _hmac
     _expected = _os.environ.get("ERP_WEBHOOK_SECRET") or _os.environ.get("LEAD_CAPTURE_SECRET") or ""
     _provided = request.headers.get("X-ERP-Secret") or request.headers.get("X-Capture-Secret") or ""
     if _expected:

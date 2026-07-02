@@ -250,7 +250,6 @@ REGISTRY_BY_ID = {m["id"]: m for m in REGISTRY}
 
 def registry_overview():
     """Resumen del registro: cuántas medidas por lado + celdas teóricas (producto cartesiano de dims aplicables)."""
-    import math
     por_lado = {}
     total_celdas = 0
     detalle = []

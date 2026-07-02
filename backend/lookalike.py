@@ -3,7 +3,7 @@ absorción, mix de tipología, atributos, riesgo aproximado) y devuelve las más
 PORQUÉ (en qué se parecen). Reusa facet_engine + grid_engine. Para pricing y forecast por comparables.
 """
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 _FEATS = [
     ("precio_m2", "of.precio_m2"), ("sell_through", "of.sell_through"), ("inventario", "of.inventario_activo"),

@@ -12,7 +12,6 @@ Tier: >5=green, 2-5=amber, <2=red.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
 
 from score_engine import register
 from recipes.predictive._helpers import PredictiveRecipe

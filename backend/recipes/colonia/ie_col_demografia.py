@@ -7,7 +7,7 @@ recipes que no tienen mapping zone_id directo permanecen como DataPending.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from score_engine import register
 from recipes.colonia._helpers import SimpleHeuristicRecipe, DataPendingRecipe
@@ -75,7 +75,7 @@ class IEColDemografiaIngreso(SimpleHeuristicRecipe):
         vals = values_by_source.get("inegi") or []
         mean = sum(vals) / len(vals) if vals else 0
         return [f"Media de valores: {mean:.0f}",
-                f"Escala logarítmica vs mediana MX",
+                "Escala logarítmica vs mediana MX",
                 f"Score {value}"]
 
 

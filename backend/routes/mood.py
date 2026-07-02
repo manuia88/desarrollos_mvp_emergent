@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, validator

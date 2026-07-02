@@ -593,7 +593,8 @@ async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], langu
         except Exception as _exc:
             log.warning(f"[track_ai_call] failed silent: {_exc}")
 
-        import json, re
+        import json
+        import re
         m = re.search(r'\{.*\}', raw, re.DOTALL)
         data = json.loads(m.group(0)) if m else {"hook": raw, "variants": []}
         # Build pages_data shape from LLM output when parseable · fallback to legacy fields

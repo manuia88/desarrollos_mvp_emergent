@@ -222,7 +222,6 @@ def test_bridge_mapea_movilidad_y_educacion():
 
 def test_osm_keys_compatibles_con_lifestyle():
     """Las categorías de vida de OSM deben matchear el detector de lifestyle (vida)."""
-    import osm_engine as osm
     from zone_subscores_compute import LIFESTYLE_CATEGORIES
     vida_keys = {"restaurante", "bar", "cafe", "ocio", "recreacion"}
     for k in vida_keys:

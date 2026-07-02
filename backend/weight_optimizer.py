@@ -179,7 +179,7 @@ async def predict_with_zone_weights(
 
 async def ensure_zone_weights_indexes(db) -> None:
     try:
-        from pymongo import ASCENDING, DESCENDING
+        from pymongo import DESCENDING
         await db.zone_weights.create_index(
             "zone_slug", unique=True, name="zw_zone_unique",
         )

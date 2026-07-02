@@ -16,12 +16,12 @@ import json
 import logging
 import random
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import Response as FastResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["dev-batch3"])
 

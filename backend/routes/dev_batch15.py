@@ -104,7 +104,7 @@ async def oauth_google_callback(
     if not code or not state:
         return RedirectResponse(f"{frontend_base}/asesor/configuracion?oauth_error=missing_params")
 
-    from oauth_calendar import consume_csrf_state, get_provider, store_oauth_token, PROVIDERS
+    from oauth_calendar import consume_csrf_state, get_provider, store_oauth_token
 
     # Validate CSRF state
     state_data = consume_csrf_state(state)

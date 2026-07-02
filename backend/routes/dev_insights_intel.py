@@ -15,7 +15,6 @@ los precios/m² salen del seed (no de Mongo). Lo que no tiene dato = honesto, no
 from __future__ import annotations
 
 import logging
-from collections import Counter
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request

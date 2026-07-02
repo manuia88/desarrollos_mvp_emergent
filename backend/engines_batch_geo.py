@@ -20,7 +20,6 @@ Saltados (y por qué):
 """
 from typing import Any, Dict, List, Optional
 
-import statistics
 
 
 # ─── helpers de contexto (centroide / colonia dict desde el seed) ─────────────

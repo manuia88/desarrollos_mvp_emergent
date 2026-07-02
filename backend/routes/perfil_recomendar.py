@@ -272,7 +272,8 @@ async def registrar_busqueda(b: GuardarBusquedaIn, request: Request):
     agrega (k-anon ≥3) para DEV (/api/dev/grafo-comprador) y SUPERADMIN (/api/superadmin/grafo-comprador) +
     demand-gap. Cierra el ciclo (no standalone). Las búsquedas SIN resultado (unmet) son el dato de hueco de
     mercado más valioso. Anónimo (ip_hash, sin PII); se vuelve lead solo cuando el cliente contacta (E3)."""
-    import hashlib as _h, uuid as _u
+    import hashlib as _h
+    import uuid as _u
     from datetime import datetime as _dt
     try:
         db = request.app.state.db

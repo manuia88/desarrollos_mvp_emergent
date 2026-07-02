@@ -16,14 +16,14 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Asegurar que el path del backend esté disponible cuando se corra standalone
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
-from pipeline_engine import LEAD_STATUS_MAP_V1_TO_V2, map_v1_to_v2
+from pipeline_engine import map_v1_to_v2
 
 log = logging.getLogger("dmx.pipeline_migration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

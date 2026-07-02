@@ -28,7 +28,7 @@ import json
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from document_intelligence import decrypt_text
 

@@ -14,7 +14,7 @@ resolve_alert / dismiss_alert / ensure_indexes / _train_model / _maybe_send_summ
 → require AsyncIOMotor + sklearn fit + httpx.
 """
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

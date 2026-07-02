@@ -15,7 +15,7 @@ import logging
 import time
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.smart_lists")
 

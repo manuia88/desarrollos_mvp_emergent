@@ -8,7 +8,7 @@ Sub-chunks:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
@@ -35,7 +35,6 @@ LEAD_STATUSES = [
 # W5.ASR.2 — Statuses V2 aceptados en move endpoints
 from pipeline_engine import (
     LEAD_STATUSES_V2 as _LEAD_STATUSES_V2,
-    LINEAR_STAGES_ORDER as _LINEAR_STAGES_V2,
     validate_transition_v2 as _validate_transition_v2,
     get_lead_pipeline_state as _get_pipeline_state,
     set_parallel_state as _set_parallel_state,

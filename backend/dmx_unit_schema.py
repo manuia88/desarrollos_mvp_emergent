@@ -21,7 +21,7 @@ Compatible Pydantic v1/v2 (Optional + Field(None, ...), enums str).
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from datetime import datetime
 
 from pydantic import BaseModel, Field

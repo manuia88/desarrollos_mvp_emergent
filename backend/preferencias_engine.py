@@ -17,7 +17,7 @@ FAIL-OPEN, bandas honestas. Construido para el estado final (funciona sin datos 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.preferencias")
 

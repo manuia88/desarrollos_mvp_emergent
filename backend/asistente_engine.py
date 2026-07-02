@@ -1186,7 +1186,7 @@ class AsistenteEngine:
             }
 
         # ── Real LLM call ───────────────────────────────────────────────────
-        from llm_client import LlmChat, UserMessage as LlmUserMsg
+        from llm_client import LlmChat
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("EMERGENT_LLM_KEY no configurado")

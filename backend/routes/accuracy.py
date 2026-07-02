@@ -386,7 +386,7 @@ def _render_accuracy_pdf(
     import io as _io
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
-    from reportlab.lib.colors import HexColor, white
+    from reportlab.lib.colors import HexColor
     from reportlab.pdfgen import canvas
 
     BG = HexColor("#06080F")

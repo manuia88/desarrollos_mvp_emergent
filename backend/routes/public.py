@@ -4,7 +4,6 @@ Endpoints: /api/colonias/*, /api/properties/*, /api/developments/*, /api/develop
 Backward-compat: same URLs, same response shape.
 """
 import os
-import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
@@ -12,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 
 from data_seed import COLONIAS as SEED_COLONIAS, COLONIAS_BY_ID, PROPERTIES as SEED_PROPERTIES
-from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID, DEVELOPERS, DEVELOPERS_BY_ID
+from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID, DEVELOPERS_BY_ID
 
 router = APIRouter(tags=["public"])
 
@@ -2003,7 +2002,8 @@ async def casi_cumple(
             if not allow("demanda_insatisf", client_ip(request), 30):
                 return {"casi": out}   # rate-limit: no dejes que un bot (rotando visitor_id) envenene el cubo
             from collections import Counter as _C
-            import json as _json, hashlib as _hl
+            import json as _json
+            import hashlib as _hl
             _falta = _C()
             for s in scored[:limit]:
                 for fl in (s.get("falta") or []):

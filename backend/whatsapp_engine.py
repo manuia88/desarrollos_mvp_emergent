@@ -7,12 +7,9 @@ Phase Y: master_switch + feature_tier whatsapp_business >= T1
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import logging
 import os
 import uuid
-from base64 import b64decode
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -69,7 +66,6 @@ def _meta_send(to_number: str, body: str) -> Dict[str, Any]:
     """Envía mensaje vía Meta Business Cloud API."""
     try:
         import httpx
-        import asyncio
         resp = httpx.post(
             f"https://graph.facebook.com/v19.0/{META_PHONE_ID}/messages",
             headers={"Authorization": f"Bearer {META_TOKEN}", "Content-Type": "application/json"},

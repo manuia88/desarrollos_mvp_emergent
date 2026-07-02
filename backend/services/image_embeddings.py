@@ -13,7 +13,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import logging
-import math
 import os
 import uuid
 from datetime import datetime, timezone
@@ -183,7 +182,6 @@ async def update_all_embeddings_batch(
     Batch nocturno: procesa hasta `limit` assets sin embedding.
     Respeta cost gating de ai_budget.
     """
-    from ai_budget import check_budget_ok
 
     processed = 0
     errors = 0

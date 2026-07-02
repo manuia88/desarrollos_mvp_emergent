@@ -48,7 +48,6 @@ async def _check_voice_phase_y(db) -> bool:
 
 # ─── Utilidades ───────────────────────────────────────────────────────────────
 
-import asyncio
 import os as _os
 
 def _ensure_voice_dir():
@@ -126,7 +125,7 @@ class VoiceAtlaxEngine:
                 "direction": "input_voice",
                 "audio_duration_seconds": duration_est,
                 "transcript_text": transcript,
-                "language": f"es-MX",
+                "language": "es-MX",
                 "latency_ms": latency_ms,
                 "cost_usd": cost_usd,
                 "model_stt": "whisper-1",

@@ -2,7 +2,7 @@
 comparables y recomendación, en lenguaje simple y CON FUENTES. No es un motor nuevo: ENSAMBLA lo que ya existe
 (entity_atlas, explorador.oportunidades, lookalike) en una historia lista para comité. No inventa: cada sección cita su origen.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 
 def _num(v, suf=""):

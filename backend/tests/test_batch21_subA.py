@@ -8,7 +8,6 @@ Batch 21 Sub-A Tests — Tour Completion Analytics
 import pytest
 import requests
 import os
-from datetime import datetime, timezone, timedelta
 
 pytestmark = pytest.mark.integration
 

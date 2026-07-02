@@ -22,7 +22,7 @@ import os
 import sys
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Dict
 
 # Allow running as module from /app/backend
 if __name__ == "__main__" and __package__ is None:

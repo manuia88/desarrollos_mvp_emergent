@@ -169,7 +169,6 @@ class TestAutoAssign:
 
     def test_round_robin_distributes(self):
         """Unit test: round_robin selects different asesores over 5 calls."""
-        import asyncio
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))  # [AUD-013] path portable (no /app)
         from motor.motor_asyncio import AsyncIOMotorClient
         from availability import _select_asesor_round_robin
@@ -198,7 +197,6 @@ class TestAutoAssign:
 
     def test_load_balance_picks_least_loaded(self):
         """Unit test: load_balance picks asesor with fewer appointments."""
-        import asyncio
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))  # [AUD-013] path portable (no /app)
         from motor.motor_asyncio import AsyncIOMotorClient
         from availability import _select_asesor_load_balance

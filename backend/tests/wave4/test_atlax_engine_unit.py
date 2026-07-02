@@ -10,7 +10,7 @@ Funciones async/router (atlax_query, _resolve_asistente_token, _resolve_thread,
 ensure_atlax_indexes, atlax_history, atlax_list_threads, atlax_thread_messages)
 → diferidas (require AsyncIOMotor + AsistenteEngine + RAG semantic_search).
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

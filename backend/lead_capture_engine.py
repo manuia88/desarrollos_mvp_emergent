@@ -11,14 +11,12 @@ Funciones principales:
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import logging
 import os
 import re
 import secrets
 import unicodedata
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.lead_capture_engine")
@@ -498,7 +496,7 @@ def extract_utm_from_request(request) -> Dict[str, str]:
 # ─── Índices Mongo ─────────────────────────────────────────────────────────────
 
 async def ensure_indexes(db) -> None:
-    from pymongo import ASCENDING, DESCENDING
+    from pymongo import ASCENDING
 
     # lead_capture_aliases: unique alias_email + index por asesor
     await db.lead_capture_aliases.create_index(

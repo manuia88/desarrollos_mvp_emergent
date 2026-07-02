@@ -17,7 +17,6 @@ Superadmin endpoints (V1; opens to subscribers in W3.5+).
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Query, Request
 

@@ -755,7 +755,8 @@ def slugify(text) -> str:
     """Slug canónico: minúsculas, SIN acentos, símbolos/espacios → guiones."""
     if not text:
         return ""
-    import unicodedata as _ud, re as _re
+    import unicodedata as _ud
+    import re as _re
     s = str(text).strip().lower()
     s = "".join(ch for ch in _ud.normalize("NFD", s) if _ud.category(ch) != "Mn")
     return _re.sub(r"[^a-z0-9]+", "-", s).strip("-")

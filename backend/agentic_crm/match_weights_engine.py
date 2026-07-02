@@ -21,8 +21,6 @@ Caps:
 from __future__ import annotations
 
 import logging
-import math
-import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -579,7 +577,6 @@ async def run_match_weights_auto_tune_all_orgs(db) -> Dict[str, Any]:
     Itera orgs con tier match_weights_adaptive ≥ T1 y ejecuta apply_tuning().
     Solo aplica si confidence > 50 y sin manual override reciente.
     """
-    from routes.phase_y_controls import get_phase_y_settings
 
     # Find orgs with Phase Y enabled (sample from agentic settings)
     try:

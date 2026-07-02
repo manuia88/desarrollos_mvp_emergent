@@ -14,7 +14,7 @@ import tempfile
 # Redirige upload dir a tmp ANTES del import (módulo deriva VOICE_DIR a import-time)
 os.environ.setdefault("DI_UPLOAD_DIR", os.path.join(tempfile.gettempdir(), "voice_atlax_test"))
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

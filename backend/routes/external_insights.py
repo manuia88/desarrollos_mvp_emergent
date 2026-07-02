@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -165,7 +165,7 @@ async def refresh_source(source_id: str, request: Request):
     db = request.app.state.db
     sid = (source_id or "").strip().lower()
     if sid not in ALL_SOURCES:
-        raise HTTPException(404, f"source_id desconocido")
+        raise HTTPException(404, "source_id desconocido")
 
     # Force-expire the cache entry so next fetch refreshes from origin
     try:

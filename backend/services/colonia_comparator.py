@@ -333,7 +333,7 @@ async def generate_comparison_pdf(matrix: Dict[str, Any], buyer_tier: str = "pub
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.enums import TA_CENTER
 
@@ -358,7 +358,7 @@ async def generate_comparison_pdf(matrix: Dict[str, Any], buyer_tier: str = "pub
 
     # Header
     banner = Table(
-        [[Paragraph(f"<b>COMPARACIÓN · DESARROLLOSMX</b>",
+        [[Paragraph("<b>COMPARACIÓN · DESARROLLOSMX</b>",
                     _sty("b", fontName="Helvetica-Bold", fontSize=11,
                          textColor=C_CREAM, alignment=TA_CENTER))]],
         colWidths=[PAGE_W - inch],

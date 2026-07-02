@@ -24,7 +24,6 @@ import hashlib
 import io
 import logging
 import secrets
-import statistics
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 

@@ -15,7 +15,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel

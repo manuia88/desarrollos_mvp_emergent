@@ -500,7 +500,6 @@ async def ingest_catalog_from_fgj(db, city: str = "CDMX", period_years: int = 3,
     rid = os.environ.get("IE_FGJ_CDMX_RESOURCE_ID")
     if not rid:
         return {"ok": False, "reason": "Falta IE_FGJ_CDMX_RESOURCE_ID.", "cargadas": 0, "cobertura": await coverage(db)}
-    import re as _re
     from datetime import datetime as _dt, timezone as _tz
     year_from = _dt.now(_tz.utc).year - period_years
     base = _ckan_base()

@@ -16,10 +16,9 @@ Endpoints (todos superadmin only excepto donde se indica):
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.entity_resolution_routes")
 router = APIRouter(tags=["entity-resolution"])

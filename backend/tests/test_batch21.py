@@ -3,7 +3,6 @@
 Run: DB_NAME=desarrollosmx python3 -m pytest tests/test_batch21.py -v
 """
 import os
-import uuid
 from datetime import datetime, timezone, timedelta
 
 import httpx

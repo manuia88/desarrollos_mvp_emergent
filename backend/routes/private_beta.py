@@ -16,9 +16,8 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime, timezone
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request, Response, Query
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import private_beta_engine as eng

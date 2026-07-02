@@ -689,7 +689,6 @@ async def materialize(db, measure_id: str, ejes: List[str]) -> Dict[str, Any]:
     if not meta:
         return {"error": "medida desconocida"}
     from data_developments import DEVELOPMENTS
-    import demand_intelligence as di
     # valores por eje
     val_por_eje = {}
     for eje in ejes:

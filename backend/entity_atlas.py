@@ -108,7 +108,6 @@ async def _behavioral(db, tipo, eid, dims, ventana):
     out = {}
     cut = ge._window_cutoff(ventana)
     cols = ge._geo_colonias(dims)
-    from data_developments import DEVELOPMENTS_BY_ID
     base_q = {}
     if cut:
         base_q["created_at_dt"] = {"$gte": cut}

@@ -24,12 +24,12 @@ import uuid
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from document_intelligence import (
-    encrypt_text, decrypt_text, decrypt_bytes,
+    encrypt_text, decrypt_text,
 )
-from recipes.extraction import TEMPLATES, get_template, validate_extraction_keys
+from recipes.extraction import get_template, validate_extraction_keys
 
 log = logging.getLogger("dmx.di.extraction")
 

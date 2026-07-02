@@ -20,7 +20,7 @@ import os
 import secrets
 import statistics
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 log = logging.getLogger("dmx.anomaly_detection_engine")
 

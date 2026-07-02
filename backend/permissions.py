@@ -17,7 +17,6 @@ se usaron en producción (solo tests Wave 1 las importaban). Eliminadas para evi
 confusión · ver `docs/PERMISSIONS_ARCHITECTURE.md` para detalles.
 """
 from __future__ import annotations
-from typing import Dict
 
 
 # ─── Canonical permission levels ──────────────────────────────────────────────

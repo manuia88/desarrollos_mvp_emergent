@@ -33,10 +33,10 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.routes_internal_users")
 

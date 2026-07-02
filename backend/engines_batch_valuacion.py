@@ -23,7 +23,7 @@ MOTORES (11):
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 # ── helpers de contexto: sacar m2/rec/ban/precio del _dev/_unit o defaults razonables ──

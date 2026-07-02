@@ -13,7 +13,6 @@ y unidades-estancadas se acotan a los desarrollos del usuario (tenant_scope).
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from dmx_unit_schema import COLLECTIONS

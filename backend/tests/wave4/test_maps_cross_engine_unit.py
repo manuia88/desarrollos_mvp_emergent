@@ -13,7 +13,6 @@ auxiliares testeadas en isolation).
 NO testea funnel_inverso/match_catastro/battle_card directamente (todas async +
 Mongo). NO testea cron_evaluate_saved_zones (async + cron).
 """
-import math
 from datetime import datetime, timezone
 
 import pytest

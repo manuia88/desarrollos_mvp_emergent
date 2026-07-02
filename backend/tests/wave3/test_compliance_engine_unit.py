@@ -11,7 +11,7 @@ NO testea async DB helpers (ensure_compliance_indexes / log_compliance_event /
 create_dsr / verify_dsr_token / process_dsr_deletion / cron_compliance_audit_retention_check
 / send_dsr_confirmation_email) → require AsyncIOMotor + httpx + Resend.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

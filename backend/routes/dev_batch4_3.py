@@ -8,9 +8,7 @@ Sub-chunks:
 from __future__ import annotations
 
 from rate_limit import check_rate   # módulo-level (usado por los endpoints públicos por token)
-import asyncio
 import base64
-import json
 import logging
 import os
 import re
@@ -18,7 +16,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 

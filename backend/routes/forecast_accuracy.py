@@ -15,7 +15,7 @@ import asyncio
 import logging
 import secrets
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from fastapi.responses import JSONResponse

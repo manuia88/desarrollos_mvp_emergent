@@ -17,7 +17,7 @@ import logging
 import secrets as _secrets
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 log = logging.getLogger("dmx.kg.anomaly")
 

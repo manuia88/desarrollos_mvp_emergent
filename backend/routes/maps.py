@@ -6,14 +6,13 @@ Prefix implícito via router, todos bajo /api/maps/ o /api/superadmin/maps/
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from maps_engine import MapsEngine, ensure_maps_indexes
+from maps_engine import MapsEngine
 
 log = logging.getLogger("dmx.routes_maps")
 

@@ -20,7 +20,7 @@ Cero deuda: nada inventado, todo se autollena al llegar el dato.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # ── Qué muestra cada receta en el producto (lenguaje de persona normal) ──
 # Solo las de cara al usuario / conectables. El resto cae al description de la receta.

@@ -20,8 +20,8 @@ import logging
 import os
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone
+from typing import Dict
 
 from fastapi import HTTPException, Request
 

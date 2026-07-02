@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 log = logging.getLogger("dmx.colonia_report_pdf")
 
@@ -19,7 +19,7 @@ from reportlab.platypus import (
     PageBreak,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER
 
 C_BG      = colors.HexColor("#06080F")
 C_CREAM   = colors.HexColor("#F0EBE0")
@@ -111,7 +111,7 @@ def generate_colonia_report_pdf(
     # ── Página 1: Hero ────────────────────────────────────────────────────────
     # Banner gradient (table row)
     banner = Table(
-        [[Paragraph(f"<b>REPORTE DE COLONIA</b>", _style("banner",
+        [[Paragraph("<b>REPORTE DE COLONIA</b>", _style("banner",
             fontName="Helvetica-Bold", fontSize=10,
             textColor=C_CREAM, alignment=TA_CENTER))]],
         colWidths=[PAGE_W - 1.2 * inch],

@@ -4,7 +4,7 @@ Compute 4-level Sankey: source → asesor → stage → outcome.
 """
 from __future__ import annotations
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 def _now() -> datetime:

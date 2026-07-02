@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from score_engine import Recipe, ScoreResult, register
+from score_engine import register
 from recipes.colonia._helpers import SimpleHeuristicRecipe
 
 

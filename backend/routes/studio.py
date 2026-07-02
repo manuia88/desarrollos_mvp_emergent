@@ -9,7 +9,7 @@ import uuid
 import base64
 import asyncio
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -138,7 +138,8 @@ Genera exactamente {scenes_count} scenes que cubran toda la duración {req.durat
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
         raw = await chat.send_message(UserMessage(text=prompt))
         # Try parse
-        import json, re
+        import json
+        import re
         m = re.search(r"\{.*\}", raw, re.DOTALL)
         script = json.loads(m.group(0)) if m else {"title": "Sin título", "scenes": []}
     except Exception as e:
@@ -232,7 +233,6 @@ VIDEO_ENGINE = {
 async def _generate_ads_openai_stub(req: AdsRequest, user) -> dict:
     """openai-stub: 10 real copies + 7 hero images via gpt-image-1, 90 placeholder slots."""
     from llm_client import LlmChat, UserMessage
-    from llm_client import OpenAIImageGeneration
 
     # Resolve source data
     src_data = ""
@@ -283,7 +283,8 @@ Cada headline máximo 60 caracteres. Cada body máximo 110 caracteres. Cada cta 
                        system_message="Eres copywriter senior de ads inmobiliarios LATAM.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
         raw = await chat.send_message(UserMessage(text=copy_prompt))
-        import json, re
+        import json
+        import re
         m = re.search(r"\{.*\}", raw, re.DOTALL)
         if m:
             copies = json.loads(m.group(0)).get("ads", [])

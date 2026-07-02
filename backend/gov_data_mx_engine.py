@@ -20,7 +20,6 @@ Audit log en upload + manual refresh (audit_immutable_engine).
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
 import os
 import uuid

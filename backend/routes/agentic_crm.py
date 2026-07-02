@@ -42,10 +42,8 @@ from agentic_crm.visit_prep_engine import (
 )
 from agentic_crm.reply_classifier_engine import (
     ReplyClassifierEngine,
-    ReplyClassifierDisabledError,
     ReplyClassifierForbiddenError,
     ReplyClassifierNotFoundError,
-    ReplyClassifierRateLimitError,
     ingest_webhook_reply,
 )
 from agentic_crm.disc_inferencer_engine import (

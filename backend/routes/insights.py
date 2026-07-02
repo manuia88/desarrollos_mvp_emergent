@@ -4,7 +4,7 @@ import csv
 import io
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response

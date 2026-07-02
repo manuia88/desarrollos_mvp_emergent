@@ -91,7 +91,7 @@ async def _exec_pricing_tool(db, tool_name: str, params: Dict[str, Any], org_id:
 
 
 async def _pricing_tool_get_comparables(db, params: Dict[str, Any]) -> Dict[str, Any]:
-    from data_developments import DEVELOPMENTS_BY_ID, ALL_UNITS
+    from data_developments import DEVELOPMENTS_BY_ID
     project_id = params.get("project_id", "")
     dev = DEVELOPMENTS_BY_ID.get(project_id) or await db.developments.find_one({"id": project_id}, {"_id": 0})
     if not dev:

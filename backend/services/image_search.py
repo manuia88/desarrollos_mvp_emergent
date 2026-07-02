@@ -13,14 +13,13 @@ Batch 25 enhancement:
 from __future__ import annotations
 
 import base64
-import hashlib
 import logging
 import math
 import os
 import re
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 

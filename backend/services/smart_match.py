@@ -8,7 +8,6 @@ Cache 24h en db.smart_match_cache.
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -75,7 +74,7 @@ async def compute_buyer_match_score(db, user_id: str, force_refresh: bool = Fals
         return result
 
     # ── Match each favorite vs quiz answers ──────────────────────────────────
-    from services.colonia_quiz import match_colonias, COLONIAS_BY_ID
+    from services.colonia_quiz import match_colonias
 
     top_matches: List[Dict[str, Any]] = []
 

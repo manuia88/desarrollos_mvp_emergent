@@ -11,10 +11,9 @@ import hashlib
 import io
 import logging
 import os
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response
 
 log = logging.getLogger("dmx.share_meta")
 

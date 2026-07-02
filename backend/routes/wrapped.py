@@ -199,7 +199,7 @@ async def wrapped_og_image(wrapped_id: str, request: Request, user=Depends(_requ
         raise HTTPException(404, "Wrapped no encontrado")
 
     try:
-        from PIL import Image, ImageDraw, ImageFont
+        from PIL import Image, ImageDraw
         import io
 
         stats = doc.get("stats", {})

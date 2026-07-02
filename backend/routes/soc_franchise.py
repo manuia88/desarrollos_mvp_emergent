@@ -22,7 +22,6 @@ from soc_franchise_engine import (
     get_stats,
     certify,
     revoke,
-    VALID_LEVELS,
 )
 from permissions import require_superadmin
 

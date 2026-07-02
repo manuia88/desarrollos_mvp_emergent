@@ -4,7 +4,7 @@ del explorador, config del heatmap) con un nombre; vuelve a ella con un clic; y 
 """
 import datetime as dt
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 
 async def guardar(db, nombre: str, tipo: str, definicion: Dict[str, Any], alerta: Optional[Dict] = None) -> Dict[str, Any]:

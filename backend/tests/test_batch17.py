@@ -9,10 +9,9 @@ Covers:
 
 Run: pytest /app/backend/tests/test_batch17.py -v
 """
-import asyncio
 import os
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -96,7 +95,7 @@ def test_inline_invalid_entity_type(dev):
 
 
 def test_inline_non_whitelisted_field(dev):
-    r = dev.patch(f"/api/inline/lead/anything",
+    r = dev.patch("/api/inline/lead/anything",
                    json={"field": "password_hash", "value": "x"})
     assert r.status_code == 400
 
@@ -241,4 +240,4 @@ def test_probes_batch17_registered(dev):
     probes = r.json().get("probes", [])
     ids = [p.get("id", "") for p in probes]
     assert any("inline_edit_audit" in pid for pid in ids), f"Missing inline_edit_audit: {ids[:5]}"
-    assert any("undo_system_health" in pid for pid in ids), f"Missing undo_system_health"
+    assert any("undo_system_health" in pid for pid in ids), "Missing undo_system_health"

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse

@@ -17,10 +17,6 @@ import pytest
 import luma_client
 from luma_client import (
     _mock_scan,
-    create_scan,
-    download_assets,
-    get_scan_status,
-    is_stub_mode,
 )
 
 pytestmark = pytest.mark.unit

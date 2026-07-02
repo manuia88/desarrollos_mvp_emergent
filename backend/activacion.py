@@ -5,7 +5,7 @@ búsquedas que ya piden ese segmento (demanda potencial real). No inventa.
 """
 import datetime as dt
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 DESTINOS = ("dev", "asesor", "marketplace")
 

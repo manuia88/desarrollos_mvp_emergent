@@ -12,10 +12,9 @@ Confirmation channel: WhatsApp stub (logs message). Resend key is not required.
 from __future__ import annotations
 
 import logging
-import os
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr

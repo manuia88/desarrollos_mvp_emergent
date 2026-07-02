@@ -50,7 +50,7 @@ def test_suggestions_unauth():
 
 
 def test_suggestions_invalid_entity_type(dev_session):
-    r = dev_session.get(f"/api/ai/suggestions/invalid_type/abc")
+    r = dev_session.get("/api/ai/suggestions/invalid_type/abc")
     assert r.status_code == 400
 
 

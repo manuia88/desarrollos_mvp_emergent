@@ -3,7 +3,7 @@ los flujos de la misma persona (visitor_id) entre segmentos: qué tipología bus
 qué zona a qué zona. Define la competencia REAL (lo que sustituye a lo que). Reusa buyer_signals (visitor_id + entity/unit).
 """
 from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 async def sankey(db, por: str = "tipologia", geo=None, top: int = 20) -> Dict[str, Any]:

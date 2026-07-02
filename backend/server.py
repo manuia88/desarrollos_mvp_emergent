@@ -6,11 +6,10 @@ import logging
 import jwt as pyjwt
 import secrets
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List
+from typing import Optional
 
-import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Response, Depends, BackgroundTasks, Query
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, computed_field
@@ -474,7 +473,6 @@ from routes.studio_listing import router as studio_listing_router
 from routes.studio_assets import router as studio_assets_router
 from studio_brand_kit_engine import ensure_indexes as ensure_brand_kit_indexes
 from studio_listing_importer import ensure_indexes as ensure_listing_indexes
-from studio_asset_library import ensure_indexes as ensure_asset_indexes
 from studio_feature_registry_z1 import register_z1_features
 app.include_router(studio_brand_kit_router)
 app.include_router(studio_listing_router)
@@ -777,8 +775,7 @@ from routes.auth import router as auth_router
 app.include_router(auth_router)
 
 # Phase 4 Batch 0 — Public marketplace routes (extracted from server.py)
-from routes.public import (router as public_router, _dev_overlay_cache,
-                            invalidate_dev_overlay_cache)
+from routes.public import (router as public_router, _dev_overlay_cache)
 app.include_router(public_router)
 
 # Phase 4 Batch 0 — User Preferences + Universal Search

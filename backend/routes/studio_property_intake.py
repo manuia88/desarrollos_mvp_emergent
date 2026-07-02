@@ -19,9 +19,6 @@ from pydantic import BaseModel, Field, ValidationError
 from studio_property_intake_schema import (
     PropertyIntake,
     autofill_defaults,
-    HYBRID_TEMPLATES,
-    LIVE_ONLY_TEMPLATES,
-    INVEST_ONLY_TEMPLATES,
 )
 from studio_copy_generator.router import generate_copy as gen_copy
 from studio_copy_generator.schemas import CopyGenerationRequest, CopyGenerationResponse

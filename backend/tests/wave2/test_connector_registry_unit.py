@@ -15,7 +15,6 @@ Funciones SKIPED (necesitan Mongo o red):
 
 NO toca infra · NO modifica código · solo lectura.
 """
-import os
 import pytest
 
 from connector_registry import (

@@ -19,7 +19,6 @@ Phase Y guard: feature_tiers.observability_dashboard ≥ T1 (developer self) ·
 from __future__ import annotations
 
 import logging
-import math
 import statistics
 import uuid
 from datetime import datetime, timedelta, timezone

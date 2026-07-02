@@ -7,7 +7,7 @@ Endpoints (auth buyer requerido):
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import List
 
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, Field

@@ -16,14 +16,12 @@ Endpoints:
 Aliased under /api/desarrollador/* for developer_admin convenience (same handlers, same multi-tenant guard).
 """
 
-import os
 import uuid
 import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-import uuid
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
@@ -63,7 +61,7 @@ router = APIRouter(tags=["document_intelligence"])
 # (centralized · soporta DB lookup futuro · sync fallback para callers actuales).
 # Backward compat: importamos LEGACY_FALLBACK para mantener variable TENANT_DEV_MAP
 # que algunos imports externos pudieran estar usando.
-from tenant_dev_map import LEGACY_FALLBACK as TENANT_DEV_MAP, get_allowed_dev_ids_sync
+from tenant_dev_map import get_allowed_dev_ids_sync
 
 
 def _get_db(request: Request):

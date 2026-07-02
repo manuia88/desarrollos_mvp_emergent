@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
 
-from tenant_scope import dev_can_access_project, is_superadmin, tenant_of, user_dev_ids
+from tenant_scope import dev_can_access_project, tenant_of, user_dev_ids
 
 log = logging.getLogger("dmx.dev_guard")
 

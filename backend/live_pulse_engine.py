@@ -25,7 +25,6 @@ import re
 import secrets as _secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
-from uuid import uuid4
 
 log = logging.getLogger("dmx.live_pulse")
 

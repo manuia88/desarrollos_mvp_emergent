@@ -17,13 +17,11 @@ NOTE: Phase 7.2 / 7.3 will live in a separate module (di_extraction.py) consumin
 from __future__ import annotations
 
 import os
-import uuid
 import hashlib
 import logging
 import asyncio
-import shutil
 import tempfile
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 

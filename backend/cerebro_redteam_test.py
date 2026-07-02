@@ -17,7 +17,7 @@ os.environ.setdefault("CEREBRO_ENABLED", "true")
 
 from motor.motor_asyncio import AsyncIOMotorClient
 import cerebro
-from cerebro import coach, store, memory, config
+from cerebro import coach, store, memory
 from cerebro.config import effective_needs_approval
 
 DBN = "dmx_cerebro_test"

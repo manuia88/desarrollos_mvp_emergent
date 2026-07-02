@@ -9,7 +9,7 @@ Cubre constants + funciones puras:
 - _stub_segment_content (estructura JSON · all keys present)
 - _build_email_html (HTML válido · contiene user_name · CTA · unsubscribe)
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

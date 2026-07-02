@@ -20,7 +20,6 @@ Collection db.zone_scores:
 from __future__ import annotations
 
 import logging
-import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 

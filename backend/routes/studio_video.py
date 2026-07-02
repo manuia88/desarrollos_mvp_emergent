@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator

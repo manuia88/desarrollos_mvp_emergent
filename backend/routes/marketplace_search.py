@@ -11,7 +11,7 @@ import hashlib
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
@@ -175,7 +175,8 @@ async def search_developments(request: Request, q: str = "", limit: int = 8):
         # location_intel (count por colonia) y el Grafo del Comprador. Fire-and-forget, LFPDPPP.
         if q and q.strip():
             try:
-                import uuid as _u, hashlib as _h
+                import uuid as _u
+                import hashlib as _h
                 from datetime import datetime as _dt, timezone as _tz
                 from data_developments import colonia_slug as _cslug  # MOAT: id canónico (linaje cross-engine)
                 _now = _dt.now(_tz.utc)

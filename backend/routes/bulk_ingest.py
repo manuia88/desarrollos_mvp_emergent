@@ -8,7 +8,7 @@ import asyncio
 import logging
 import secrets
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Literal
+from typing import Any, Dict, Optional, Literal
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, Field
@@ -445,7 +445,6 @@ async def get_stats(request: Request):
     pending_review = await db.bulk_ingest_items.count_documents({"decision": "pending_review"})
 
     # AI cost current month
-    from datetime import timedelta
     start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     pipeline = [
         {"$match": {"created_at": {"$gte": start.isoformat()}}},

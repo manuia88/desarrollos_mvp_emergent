@@ -16,7 +16,6 @@ Cron DAILY 07:30 UTC (después de agentes 07:10 · antes de jornada). FAIL-OPEN.
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 

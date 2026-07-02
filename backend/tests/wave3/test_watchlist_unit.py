@@ -11,8 +11,7 @@ NO testea endpoints async (subscribe / confirm / manage_get / manage_update /
 manage_unsubscribe / ensure_indexes / _send_opt_in_email) → require AsyncIOMotor +
 FastAPI Request + Resend stubs.
 """
-import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

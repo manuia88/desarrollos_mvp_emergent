@@ -238,7 +238,6 @@ async def _r_payment(db, ctx):
 async def _r_price_ctx(db, ctx):
     import price_context_engine as e
     from data_developments import DEVELOPMENTS
-    import statistics
     cid = ctx.get("colonia_id")
     _, pm2, _ = _precio_colonia(cid)
     peers = []

@@ -30,7 +30,7 @@ import os
 import re
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.hook_predictor")
 

@@ -15,7 +15,6 @@ import hashlib
 import hmac
 import logging
 import os
-import secrets
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request

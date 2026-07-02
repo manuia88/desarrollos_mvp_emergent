@@ -16,7 +16,6 @@ shut down on shutdown. All DB access uses the same Motor client.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -691,7 +690,6 @@ def start_scheduler(db):
 
     # W4.1D — Comparable anomaly detection 03:00 MX (después de score recompute 02:00)
     try:
-        from comparable_anomaly_engine import detect_anomalies_for_dev
         _scheduler.add_job(
             wrap_apscheduler_job(run_comparable_anomaly_detection, "comparable_anomalies"),
             CronTrigger(hour=3, minute=0, timezone=TZ),

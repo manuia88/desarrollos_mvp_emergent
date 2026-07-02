@@ -18,7 +18,6 @@ Phase Y guards:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -374,7 +373,7 @@ class ReplyClassifierEngine:
 
         if not _check_concurrency(self.org_id):
             raise ReplyClassifierRateLimitError(
-                f"Cap 100/min/org excedido. Intenta en 60 seg."
+                "Cap 100/min/org excedido. Intenta en 60 seg."
             )
         _record_run(self.org_id)
 
@@ -737,7 +736,7 @@ async def ingest_webhook_reply(db, payload: Dict[str, Any], raw_body: bytes) -> 
 
     try:
         await db.email_replies.insert_one(doc)
-    except Exception as e:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         # DuplicateKeyError on resend_message_id index → reuse
         existing = await db.email_replies.find_one({"resend_message_id": message_id}, {"_id": 1, "org_id": 1})
         if existing:

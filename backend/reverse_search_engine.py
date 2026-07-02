@@ -384,7 +384,7 @@ async def _rerank_semantic(db, top: List[Tuple[float, Dict[str, Any]]], original
     if not original_text or not top or db is None:
         return top
     try:
-        from rag_context_helper import get_rag_context  # presence-check only
+        pass  # presence-check only
     except Exception:
         return top
     try:

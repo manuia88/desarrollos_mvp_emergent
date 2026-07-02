@@ -105,9 +105,9 @@ def _build_heuristic_argumentario(
 
     # ── Budget-sensitive pitch vars ──────────────────────────────────────────
     budget_pitch = {
-        "bajo":  f"con excelente relación precio-valor y acceso a financiamiento INFONAVIT/FOVISSSTE",
-        "medio": f"con plusvalía comprobada en la zona y condiciones de pago flexibles",
-        "alto":  f"con ROI proyectado del 12-15% anual y amenidades de nivel premium",
+        "bajo":  "con excelente relación precio-valor y acceso a financiamiento INFONAVIT/FOVISSSTE",
+        "medio": "con plusvalía comprobada en la zona y condiciones de pago flexibles",
+        "alto":  "con ROI proyectado del 12-15% anual y amenidades de nivel premium",
     }.get(budget, "con condiciones competitivas en el mercado actual")
 
     segment_pitch = {
@@ -202,39 +202,39 @@ def _build_heuristic_argumentario(
     # ── Per-DISC discovery questions ──────────────────────────────────────
     base_questions: Dict[str, List[str]] = {
         "D": [
-            f"¿Cuál es su plazo máximo para tomar la decisión?",
-            f"¿Qué ROI mínimo espera de esta inversión en los próximos 3 años?",
-            f"¿Qué factor haría que decidiera hoy mismo?",
-            f"¿Ya tiene identificadas las alternativas con las que nos compara?",
-            f"¿Quién más en su organización o familia tiene voz en esta decisión?",
+            "¿Cuál es su plazo máximo para tomar la decisión?",
+            "¿Qué ROI mínimo espera de esta inversión en los próximos 3 años?",
+            "¿Qué factor haría que decidiera hoy mismo?",
+            "¿Ya tiene identificadas las alternativas con las que nos compara?",
+            "¿Quién más en su organización o familia tiene voz en esta decisión?",
         ],
         "I": [
-            f"¿Cómo se imagina su vida cotidiana en este espacio?",
-            f"¿Qué comentaron sus conocidos sobre la zona?",
-            f"¿Qué es lo que más emocionalmente le conecta con este tipo de proyecto?",
-            f"¿Ha compartido esta búsqueda con alguien cercano cuya opinión le importe?",
-            f"¿Cómo se sentiría mostrando este espacio a sus amigos o familia?",
+            "¿Cómo se imagina su vida cotidiana en este espacio?",
+            "¿Qué comentaron sus conocidos sobre la zona?",
+            "¿Qué es lo que más emocionalmente le conecta con este tipo de proyecto?",
+            "¿Ha compartido esta búsqueda con alguien cercano cuya opinión le importe?",
+            "¿Cómo se sentiría mostrando este espacio a sus amigos o familia?",
         ],
         "S": [
-            f"¿Para cuántos miembros de su familia están buscando este espacio?",
-            f"¿Qué cambio en su vida cotidiana espera al mudarse?",
-            f"¿Cuáles son sus preocupaciones principales antes de tomar esta decisión?",
-            f"¿Qué servicios cercanos son indispensables para usted: escuelas, hospitales, transporte?",
-            f"¿Ha vivido en esta zona antes o sería una experiencia nueva?",
+            "¿Para cuántos miembros de su familia están buscando este espacio?",
+            "¿Qué cambio en su vida cotidiana espera al mudarse?",
+            "¿Cuáles son sus preocupaciones principales antes de tomar esta decisión?",
+            "¿Qué servicios cercanos son indispensables para usted: escuelas, hospitales, transporte?",
+            "¿Ha vivido en esta zona antes o sería una experiencia nueva?",
         ],
         "C": [
-            f"¿Ha revisado el historial de plusvalía de esta zona en los últimos 5 años?",
-            f"¿Qué métricas específicas utiliza para comparar propiedades?",
-            f"¿Cuántos proyectos similares está evaluando actualmente?",
-            f"¿Cuál es su criterio de decisión más importante: precio/m², ubicación o ROI?",
-            f"¿Le interesa ver los estados financieros del desarrollador y el avance de obra?",
+            "¿Ha revisado el historial de plusvalía de esta zona en los últimos 5 años?",
+            "¿Qué métricas específicas utiliza para comparar propiedades?",
+            "¿Cuántos proyectos similares está evaluando actualmente?",
+            "¿Cuál es su criterio de decisión más importante: precio/m², ubicación o ROI?",
+            "¿Le interesa ver los estados financieros del desarrollador y el avance de obra?",
         ],
         "MIX": [
-            f"¿Cuál es su prioridad principal: inversión o uso personal?",
-            f"¿Tiene un presupuesto definido o es flexible?",
-            f"¿Cuándo le gustaría mudarse o comenzar a rentar?",
-            f"¿Qué zona le parece más conveniente para su estilo de vida?",
-            f"¿Ha considerado el financiamiento o prefiere contado?",
+            "¿Cuál es su prioridad principal: inversión o uso personal?",
+            "¿Tiene un presupuesto definido o es flexible?",
+            "¿Cuándo le gustaría mudarse o comenzar a rentar?",
+            "¿Qué zona le parece más conveniente para su estilo de vida?",
+            "¿Ha considerado el financiamiento o prefiere contado?",
         ],
     }
 
@@ -522,7 +522,7 @@ class ArgumentarioEngine:
                 f"enfoque recomendado: {disc.get('recommended_approach_text','')[:300]}"
             )
         else:
-            disc_summary = f"DISC: no inferido aún. Asumir tipo MIX (balanced)."
+            disc_summary = "DISC: no inferido aún. Asumir tipo MIX (balanced)."
 
         persona_summary = ""
         if persona:

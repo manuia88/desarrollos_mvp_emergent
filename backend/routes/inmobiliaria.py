@@ -19,7 +19,7 @@ and existing /api/inmobiliaria/dashboard from routes_dev_batch4_1.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response, Query
 from pydantic import BaseModel, Field

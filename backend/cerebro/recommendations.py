@@ -13,7 +13,7 @@ Construido AHORA (build-for-end-state); las fuentes stub se prenden solas con lo
 """
 from .contract import ACTION_REGISTRY, CEREBRO_TASKS
 from .config import get_config, graduation_candidates
-from .guardrails import tenant_of, role_of
+from .guardrails import tenant_of
 
 
 def _rec(rid, title, detail, source, apply=None, live=True):

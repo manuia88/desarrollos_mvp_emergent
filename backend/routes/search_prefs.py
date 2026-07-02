@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel

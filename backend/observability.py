@@ -136,7 +136,8 @@ def identify_user(user: Dict[str, Any]) -> None:
     try:
         # P1.12 · LFPDPPP: NUNCA mandar PII cruda (email/nombre) a PostHog. distinct_id = hash
         # con salt de servidor; solo propiedades no-identificables (rol/tenant).
-        import os as _os, hashlib as _hl
+        import os as _os
+        import hashlib as _hl
         salt = _os.environ.get("LFPDPPP_SALT") or "dmx_lfpdppp"
         uid = str(user.get("user_id") or "")
         did = user.get("analytics_id") or (

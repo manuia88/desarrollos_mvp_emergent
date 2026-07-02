@@ -13,11 +13,10 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 
 import crime_data_engine as crime_data
 import risk_score_engine as risk_engine
-import anonymization_engine as anon
 import compliance_engine as comp
 
 log = logging.getLogger("dmx.routes_risk_score")

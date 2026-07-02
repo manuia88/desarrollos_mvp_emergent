@@ -1,7 +1,6 @@
 """W4.13.A — Lead Journey Routes."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request, Query
 from fastapi.responses import JSONResponse

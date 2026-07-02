@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from narrative_engine import (
     PRICE_IN_PER_1K, PRICE_OUT_PER_1K, SESSION_BUDGET_CAP_USD,

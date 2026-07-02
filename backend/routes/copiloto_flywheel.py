@@ -17,7 +17,7 @@ Alimenta: AVM (precio real → DRPI) · recomendador ("parecidos a los que CERRA
 compromiso/ciclo) · lookalike. Reusa on_deal_closed del Cerebro. Colección db.copiloto_closings (el atom).
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
@@ -176,7 +176,8 @@ async def cierre(b: CierreIn, request: Request):
     """Registra un cierre (demo/cron · en prod lo dispara on_deal_closed del asesor al marcar GANADO)."""
     # SEGURIDAD (pentest 3ª ola): antes SIN AUTH → cualquiera escribía market_comps_closings (alimenta el AVM) con
     # price_closed arbitrario = ENVENENAMIENTO del moat. Ahora exige sesión asesor/dev/superadmin o CRON_SECRET.
-    import os as _os, hmac as _hmac
+    import os as _os
+    import hmac as _hmac
     from fastapi import HTTPException as _HTTPException
     _cron = _os.environ.get("CRON_SECRET", "")
     _hdr = request.headers.get("X-Cron-Secret", "")

@@ -278,7 +278,6 @@ async def regenerate_plano_thumbnails(db, dev_id: str) -> Dict[str, Any]:
     """For each plano_arquitectonico doc, render page 1 as thumbnail and store as dev_asset."""
     try:
         import pdfplumber  # type: ignore
-        from PIL import Image  # type: ignore
     except Exception as e:
         return {"ok": False, "error": f"pdfplumber/PIL missing: {e}"}
     from document_intelligence import read_encrypted_file

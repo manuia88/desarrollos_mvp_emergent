@@ -2,7 +2,7 @@
 mayor tensión (oportunidad = demanda>oferta) y la mayor sobreoferta. La 'foto' de dónde el mercado está alineado vs
 desbalanceado, en todas las dimensiones a la vez. Reusa facet_engine (cada lado, cada valor independiente).
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 _DIMS = [("recamaras", "Tipología"), ("tier_precio", "Rango de precio"), ("vista", "Vista"),
          ("piso", "Piso"), ("terraza", "Terraza"), ("balcon", "Balcón"), ("roof_garden", "Roof garden"),

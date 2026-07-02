@@ -64,12 +64,12 @@ def _build_email_body(domains: List[Dict[str, Any]]) -> str:
             f"</tr>"
         )
     return (
-        f"<table style='border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px'>"
-        f"<thead><tr>"
-        f"<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>Hostname</th>"
-        f"<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>Widget</th>"
-        f"<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>First seen</th>"
-        f"</tr></thead><tbody>" + "".join(rows_html) + "</tbody></table>"
+        "<table style='border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px'>"
+        "<thead><tr>"
+        "<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>Hostname</th>"
+        "<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>Widget</th>"
+        "<th style='text-align:left;padding:6px 10px;border-bottom:2px solid rgba(0,0,0,0.18)'>First seen</th>"
+        "</tr></thead><tbody>" + "".join(rows_html) + "</tbody></table>"
     )
 
 

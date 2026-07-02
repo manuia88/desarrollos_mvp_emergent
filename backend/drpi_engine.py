@@ -18,7 +18,6 @@ delta_pct between consecutive periods is computed cleanly.
 from __future__ import annotations
 
 import logging
-import math
 import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional

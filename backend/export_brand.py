@@ -27,7 +27,7 @@ def add_watermark(image_path_or_bytes: Union[str, bytes], output_format: str = "
     Returns:
         Image bytes with watermark applied.
     """
-    from PIL import Image, ImageDraw, ImageFont  # lazy import to avoid startup cost
+    from PIL import Image, ImageDraw  # lazy import to avoid startup cost
 
     if isinstance(image_path_or_bytes, (bytes, bytearray)):
         img = Image.open(BytesIO(image_path_or_bytes)).convert("RGBA")

@@ -7,7 +7,7 @@ Cubre helpers y constantes de los 4 productos verticales B2B:
 - Constants integrity: METHODOLOGY_VERSION, TIER_RANK, PERIL_WEIGHTS
 - Lógica determinista de risk adjusters / peril breakdown / monte carlo growth bands
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

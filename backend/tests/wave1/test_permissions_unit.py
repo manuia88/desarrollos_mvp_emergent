@@ -22,7 +22,6 @@ from permissions import (
     can_view_commercialization,
     can_manage_inmobiliaria,
     can_view_dev_inventory_exclusive,
-    can_invite_internal_user,
     is_superadmin,
     is_dev_or_superadmin,
     safe_path_param,

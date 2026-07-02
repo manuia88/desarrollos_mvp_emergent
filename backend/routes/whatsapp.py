@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from whatsapp_engine import WAEngine, ensure_whatsapp_indexes
+from whatsapp_engine import WAEngine
 
 log = logging.getLogger("dmx.routes_whatsapp")
 

@@ -1,7 +1,9 @@
 """Batería de pruebas del parser de búsqueda natural (fallback DETERMINISTA, sin LLM).
 Cubre las MUCHAS formas de expresar valores: dígitos, palabras, mixto, compuesto, rangos, operadores, tiempos.
 Correr: ./scripts/.venv/bin/python backend/tests/test_search_parser.py  (con el backend en localhost:8000)."""
-import json, sys, urllib.request
+import json
+import sys
+import urllib.request
 
 def parse(q):
     req = urllib.request.Request("http://localhost:8000/api/properties/search-ai",

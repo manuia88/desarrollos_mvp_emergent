@@ -15,8 +15,6 @@ from pydantic import BaseModel
 
 from director_memory_engine import (
     DirectorMemoryEngine,
-    VALID_SOURCE_TYPES,
-    expire_all_orgs,
 )
 
 log = logging.getLogger("dmx.routes_director_memory")

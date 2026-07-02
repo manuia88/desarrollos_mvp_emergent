@@ -12,12 +12,11 @@ import io
 import json
 import logging
 import os
-import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request, Query, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.batch5")
@@ -484,7 +483,7 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
     from reportlab.lib.colors import HexColor
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak,
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     )
     from reportlab.lib.units import inch
     from reportlab.lib import colors

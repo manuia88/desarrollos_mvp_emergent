@@ -11,13 +11,11 @@ import json
 import logging
 import os
 import re
-import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel
 
 log = logging.getLogger("dmx.batch4_4")
 router = APIRouter(tags=["batch4.4"])

@@ -15,7 +15,6 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel
 
 import studio_auto_content_cron as ac
 

@@ -4,7 +4,6 @@ Bulk registry of the 20 remaining recipes — most DataPending until B2 iteratio
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
 
 from score_engine import register
 from recipes.colonia._helpers import SimpleHeuristicRecipe, DataPendingRecipe
@@ -44,7 +43,7 @@ class IEColPlusvaliaHist(SimpleHeuristicRecipe):
     def explanation(self, values_by_source, value):
         n = len(values_by_source.get("banxico") or [])
         return [f"Series Banxico observadas: {n}",
-                f"Variación % últimas 3 obs como proxy estabilidad",
+                "Variación % últimas 3 obs como proxy estabilidad",
                 f"Score {value}"]
 
 
@@ -112,7 +111,7 @@ class IEColRoiAirbnb(SimpleHeuristicRecipe):
     def explanation(self, values_by_source, value):
         rev = values_by_source.get("airroi") or []
         return [f"AirROI revenue muestras: {len(rev)}",
-                f"Revenue anual × 10 vs comp 80m² @ $3500/m² USD",
+                "Revenue anual × 10 vs comp 80m² @ $3500/m² USD",
                 f"Score {value}"]
 
 

@@ -4,7 +4,7 @@ Apply to GET endpoints that return lead/project/unit/client/asesor data.
 Phase 13 Batch 36 — Added scope_dev_inventory_for_asesor for whitelist multi-tenant guard.
 """
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 
 def scope_data(data: Dict, user, entity_type: str) -> Dict:

@@ -8,7 +8,7 @@ Computes visible project lists for in-house users based on:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 log = logging.getLogger("dmx.mini_market_engine")
 

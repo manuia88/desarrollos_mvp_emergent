@@ -12,7 +12,7 @@ import hashlib
 import os
 import time
 from collections import defaultdict, deque
-from typing import Any, Deque, Dict, Optional
+from typing import Deque, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
