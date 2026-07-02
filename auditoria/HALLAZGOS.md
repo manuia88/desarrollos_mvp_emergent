@@ -51,7 +51,9 @@
 | AUD-021 | HIGH | auth | `account_blocked` solo se checaba en login-password; `get_current_user` (gate por-request) lo ignoraba → suspender NO cortaba sesiones vivas (JWT 8h/cookie 7d) + re-login por OAuth/magic-link | `server.py:1598-1646` | **corregido** `c5a37e74` |
 | AUD-022 | HIGH | auth | rate-limit magic-link usaba `X-Forwarded-For[0]` (spoofeable) → rotar header evade 5/min (spam correo/enum) | `routes/auth.py:309` | **corregido** `b31c635c` |
 | AUD-023 | BLOCKER | idor/tenant | register `developer_admin` con `tenant_id=None` → `tenant_of()` cae a sentinel COMPARTIDO `'default'` → todos los devs auto-registrados en el MISMO tenant = IDOR cross-tenant. Explotable HOY | `tenant_scope.py:42` + `routes/auth.py:141` | **corregido** `b31c635c` (tenant propio `org_{user_id}`) |
-| AUD-024 | HIGH | auth/gate | `derive_user_tier` toma el tier MÁS permisivo de CUALQUIER flag activo → escala a 'enterprise' global. Solo activo con `FEATURE_GATING_ENFORCED=true` (hoy false) | `feature_gate_engine.py:145-153` | **propuesto N3** (gating/billing · inactivo hoy) |
+| AUD-024 | HIGH | auth/gate | escalación cross-feature: feature catalogada-inactiva se otorgaba por el tier global-max de otro flag | `feature_gate_engine.py:242` | **corregido** `b07a97bb` (deniega; enforcement off → 0 cambio hoy) |
+| AUD-021b | HIGH | jwt | DMX_ENV typo ('prodd') arrancaba con JWT_SECRET efímero (guard usaba _is_explicit_prod) | `server.py:74` | **corregido** `33df0b93` (typo→prod fail-closed; unset=dev intacto) |
+| AUD-023b | BLOCKER-residual | idor | devs pre-fix con tenant None/'default' seguían co-mezclados | `scripts/migrate_aud023_dev_tenants.py` | **migración lista** (correr en prod: founder) |
 | AUD-025 | MEDIUM | tests | Fragilidad de aislamiento: `test_conversation_ml`/`feature_flags`/`pipeline_v2` asumen entorno sin LLM y fallan si un test previo importa `server` (init de cliente LLM). Pasan aislados. Pre-existente (mis fixes de auth NO lo causan) | `test_conversation_ml.py:216` | abierto (batch test-hardening) |
 
 ### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
