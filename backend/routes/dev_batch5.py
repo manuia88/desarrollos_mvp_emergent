@@ -494,7 +494,10 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
     # Load org branding from DB (B19.5 — override template branding with live org branding)
     try:
         from branding_helpers import get_org_branding, logo_url_to_local_path
-        org_branding = await get_org_branding(db, org_id if org_id != "default" else "dmx")
+        # [AUD-005] 'org_id' NO existía en este scope → NameError tragado por el except de abajo
+        # → el branding del org (logo/colores/tagline) NUNCA se aplicó a ningún PDF. El org vive en el template.
+        _org = template.get("dev_org_id") or "dmx"
+        org_branding = await get_org_branding(db, _org if _org != "default" else "dmx")
         if org_branding.get("primary_color"):
             branding["primary_color"] = org_branding["primary_color"]
         if org_branding.get("accent_color"):
