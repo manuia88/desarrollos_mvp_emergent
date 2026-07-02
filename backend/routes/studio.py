@@ -689,8 +689,11 @@ class BudgetPatch(_BM):
 @router.get("/admin/budgets")
 async def list_all_budgets(request: Request):
     user = await require_studio(request)
-    if user.role not in ("asesor_admin", "superadmin"):
-        raise HTTPException(403, "Solo admin")
+    # [AUD-029] antes: asesor_admin (rol TENANT-SCOPED) veía presupuestos de TODOS los tenants
+    # (user_id + gasto IA ajeno). La query no filtra por org → solo superadmin (god-view) puede
+    # listar el global. La gestión de presupuesto por-org para asesor_admin sería feature aparte.
+    if user.role != "superadmin":
+        raise HTTPException(403, "Solo superadmin")
     db = get_db(request)
     month = datetime.now(timezone.utc).strftime("%Y-%m")
     docs = await db.studio_user_budget.find({"month_iso": month}, {"_id": 0}).to_list(500)
@@ -700,8 +703,10 @@ async def list_all_budgets(request: Request):
 @router.patch("/admin/budgets/{user_id}")
 async def update_budget_cap(user_id: str, payload: BudgetPatch, request: Request):
     user = await require_studio(request)
-    if user.role not in ("asesor_admin", "superadmin"):
-        raise HTTPException(403, "Solo admin")
+    # [AUD-029] antes: asesor_admin (tenant-scoped) mutaba el cap de gasto IA de CUALQUIER user_id
+    # de otro tenant (DoS con cap=0 o inflarlo). El upsert no valida org → solo superadmin.
+    if user.role != "superadmin":
+        raise HTTPException(403, "Solo superadmin")
     if payload.cap_usd < 0:
         raise HTTPException(400, "cap_usd debe ser ≥ 0")
     db = get_db(request)

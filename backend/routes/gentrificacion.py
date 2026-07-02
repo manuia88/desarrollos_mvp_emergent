@@ -15,6 +15,7 @@ Registro en server.py (NO lo hace este archivo):
 from fastapi import APIRouter, HTTPException, Request
 
 import gentrification_engine as ge
+from permissions import require_superadmin  # [AUD-028] cierra los /api/superadmin/* abiertos
 
 router = APIRouter(tags=["gentrificacion"])
 
@@ -38,6 +39,7 @@ async def zona_gentrificacion(colonia_id: str, request: Request):
 @router.post("/api/superadmin/gentrificacion/{colonia_id}/persist")
 async def superadmin_persist_gentrificacion(colonia_id: str, request: Request):
     """Superadmin: computa y persiste el índice en colonia_valoracion.gentrification."""
+    await require_superadmin(request)  # [AUD-028] antes: abierto → anónimo escribía colonia_valoracion
     try:
         db = request.app.state.db
         return await ge.persist_score(db, colonia_id)
@@ -49,6 +51,7 @@ async def superadmin_persist_gentrificacion(colonia_id: str, request: Request):
 async def superadmin_backfill_gentrificacion(request: Request, limit: int = 0):
     """Superadmin: backfill del índice para todas las colonias con al menos una señal.
     `limit`=0 → sin límite. Idempotente."""
+    await require_superadmin(request)  # [AUD-028] antes: abierto → anónimo lanzaba backfill masivo (DoS + envenenamiento)
     try:
         db = request.app.state.db
         return await ge.persist_all(db, limit=(limit or None))

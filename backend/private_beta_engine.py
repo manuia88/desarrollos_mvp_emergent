@@ -7,7 +7,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-import random
+import secrets
 import string
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -45,7 +45,8 @@ def _expires_days_default() -> int:
 
 
 def _gen_code_str() -> str:
-    body = "".join(random.choices(CODE_ALPHABET, k=CODE_BODY_LEN))
+    # [AUD-030] secrets (CSPRNG) en vez de random.choices → invite-codes no predecibles.
+    body = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_BODY_LEN))
     return f"{CODE_PREFIX}{body}"
 
 

@@ -35,3 +35,9 @@
 **Línea base final Batch 2:** pytest **1191 passed · 473 skipped · 0 failed · 0 errors** · ruff 512 fixed · bandit 0 vulns reales · backend importa 100% sin /app.
 
 | AUD-026 | N2 | (este commit) | `test_aud026_airroi_cost_guard.py` (5 tests) | AirROI (API de pago) llamada ~25×/día por 2 crons → **3 capas de defensa**: (1) `PAID_CONNECTORS={'airroi'}` excluido de las 2 queries de cron; (2) kill-switch `AIRROI_ENABLED=false` corta fetch+test_connection; (3) `_fetch_source('airroi')` delega en el candado único `_airroi_zone` (1/zona/mes + cap 400/mes). **Incidente de costo cerrado.** |
+| AUD-027 | N3 | (este commit) | `test_aud_batch4_idor.py::test_aud027` | **[CRÍTICO]** property-intake público devolvía `leads[]` (PII de prospectos) → proyección excluye leads/leads_count/last_lead_at |
+| AUD-028 | N3 | (este commit) | `test_aud_batch4_idor.py::test_aud028` | gentrificación persist+backfill abiertos a anónimo → `await require_superadmin(request)` |
+| AUD-029 | N3 | (este commit) | `test_aud_batch4_idor.py::test_aud029` | studio budgets admin (list+patch) fuga/mutación cross-tenant (asesor_admin tenant-scoped) → superadmin-only |
+| AUD-030 | N3 | (este commit) | `test_aud_batch4_idor.py::test_aud030` | oráculo validate-code sin rate-limit + `random` → rate-limit por IP + `secrets` (CSPRNG) |
+
+**Batch 4 (barrido IDOR · workflow 26 finders + verif adversarial 3-lentes):** 380 endpoints públicos analizados → **11 candidatos → 7 confirmados** (1 CRITICAL + 4 MEDIUM/LOW corregidos aquí + AUD-031 LOW diferido en PENDIENTES) · **4 refutados** (casamentera/plusvalia-estado/landing-slug/voice-download). Test: `test_aud_batch4_idor.py` (4 tests, verdes).

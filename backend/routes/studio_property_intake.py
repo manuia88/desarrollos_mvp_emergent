@@ -167,7 +167,11 @@ async def get_public_intake(slug: str, request: Request) -> Dict[str, Any]:
     db = _db(request)
     doc = await db.studio_property_intakes.find_one(
         {"slug": slug, "published": True},
-        {"_id": 0, "tenant_id": 0, "created_by_user_id": 0, "_warnings": 0},
+        # [AUD-027] Endpoint SIN auth: excluir la PII de prospectos. El array `leads[]`
+        # (nombre/email/teléfono del formulario), `leads_count` y `last_lead_at` NUNCA
+        # deben salir por aquí — cualquier anónimo con el slug los exfiltraría (IDOR CRÍTICO).
+        {"_id": 0, "tenant_id": 0, "created_by_user_id": 0, "_warnings": 0,
+         "leads": 0, "leads_count": 0, "last_lead_at": 0},
     )
     if not doc:
         raise HTTPException(404, "Landing no encontrada o no publicada")

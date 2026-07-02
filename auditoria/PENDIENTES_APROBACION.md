@@ -20,3 +20,13 @@
 
 ### AUD-023b (defensa extra) · tenant_of() nunca colapsar a 'default' compartido
 - **Fix propuesto:** que `tenant_of()` caiga a `f"user:{user_id}"` en vez de `'default'` cuando no hay tenant/org. Requiere revisar los 244 callsites + si existe data legítima con tenant_id='default' (seed) → migración. Por eso N3.
+
+## Batch 4 — propuesta N3 (barrido IDOR)
+
+### AUD-031 (LOW) · newsletter opt-out sin token firmado
+- **Problema:** `GET /api/users/{user_id}/newsletter-opt-out/{segment}` (`routes/newsletter.py:176`) desuscribe sin auth con un `user_id` enumerable → un `<img src>`/prefetch (CSRF vía GET) puede desuscribir a un usuario específico. Impacto bajo (molestia reversible, sin fuga de datos).
+- **Por qué NO se corrigió ya:** el fix correcto = token de baja HMAC-firmado (no adivinable) embebido en el link del email, validado en el handler. Eso **toca la generación de correos** (plantillas + envío) y rompería los links de unsubscribe ya enviados; quitar el GET viola la UX/compliance de one-click-unsubscribe. Requiere cambio coordinado → N3.
+- **Fix propuesto:** generar `unsub_token = HMAC(user_id+segment, SERVER_SALT)` al enviar el email, cambiar el link a `?token=`, y validarlo en el handler (fallback: aceptar el link viejo por una ventana de gracia). Mantener GET (compat email).
+- **Riesgo de aplicar:** links viejos dejan de funcionar sin la ventana de gracia.
+- **Riesgo de NO aplicar:** un tercero puede desuscribir a un usuario puntual (molestia, no fuga).
+- **Rollback:** trivial (revertir el handler a `user_id` crudo).

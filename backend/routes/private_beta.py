@@ -118,6 +118,9 @@ async def revoke_invite(code: str, request: Request):
 # ─── Public · validate code (inline feedback) ─────────────────────────────────
 @router.get("/api/auth/validate-code/{code}")
 async def validate_code(code: str, request: Request):
+    # [AUD-030] oráculo de validez de código → rate-limit por IP para frenar la enumeración
+    # por fuerza bruta del espacio de invite-codes (antes sin límite).
+    _waitlist_rate_limit(_client_ip(request))
     db = _db(request)
     out = await eng.validate_code(db, code)
     return out
@@ -134,6 +137,7 @@ class SignupBrokerIn(BaseModel):
 
 @router.post("/api/auth/signup-broker", status_code=201)
 async def signup_broker(body: SignupBrokerIn, response: Response, request: Request):
+    _waitlist_rate_limit(_client_ip(request))  # [AUD-030] freno anti fuerza-bruta de invite-codes
     db = _db(request)
     code = (body.invite_code or "").strip().upper()
     val = await eng.validate_code(db, code)
