@@ -1609,7 +1609,12 @@ async def get_current_user(request: Request) -> Optional[UserOut]:
                     await db.user_sessions.delete_one({"session_token": session_token})
                     return None
             user_doc = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
-            if user_doc: 
+            if user_doc:
+                # [AUD-021] cuenta suspendida → sesión inválida. Antes account_blocked solo se
+                # checaba en el login-password; el gate por-request (este) lo ignoraba → suspender
+                # NO cortaba sesiones vivas y el usuario podía re-loguear por OAuth/magic-link.
+                if user_doc.get("account_blocked"):
+                    return None
                 u = UserOut(**user_doc)
                 try:
                     from observability import sentry_tag_user
@@ -1634,6 +1639,8 @@ async def get_current_user(request: Request) -> Optional[UserOut]:
                 return None
             user_doc = await db.users.find_one({"user_id": payload["sub"]}, {"_id": 0})
             if user_doc:
+                if user_doc.get("account_blocked"):  # [AUD-021] cuenta suspendida → sesión inválida (gate por-request)
+                    return None
                 user_doc.pop("password_hash", None)
                 u = UserOut(**user_doc)
                 try:
