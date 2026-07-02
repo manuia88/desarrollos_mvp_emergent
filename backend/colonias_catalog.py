@@ -503,6 +503,11 @@ async def ingest_catalog_from_fgj(db, city: str = "CDMX", period_years: int = 3,
     from datetime import datetime as _dt, timezone as _tz
     year_from = _dt.now(_tz.utc).year - period_years
     base = _ckan_base()
+    # [AUD-012] defensa-en-profundidad: coerción numérica antes de interpolar en el SQL del API CKAN
+    # (open-data externa datos.cdmx). year_from ya es int; min_incidents se fuerza a int para que no
+    # exista NINGUNA vía de inyección aunque el caller mande algo raro. rid viene de ENV (no user).
+    year_from = int(year_from)
+    min_incidents = int(min_incidents)
     sql = (f'SELECT "colonia_catalogo", "alcaldia_catalogo", AVG("latitud") AS lat, '
            f'AVG("longitud") AS lng, COUNT(*) AS n FROM "{rid}" '
            f'WHERE "anio_hecho" >= {year_from} AND "latitud" BETWEEN 19 AND 20 '

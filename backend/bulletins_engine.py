@@ -79,7 +79,7 @@ async def _generate_narrative(
     if not await is_within_budget(db, "dmx_bulletins"):
         return fallback
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")  # [AUD-019] antes: `or os.environ.get("ANTHROPIC_API_KEY")` (operandos idénticos, dead)
     if not api_key:
         return fallback
 
