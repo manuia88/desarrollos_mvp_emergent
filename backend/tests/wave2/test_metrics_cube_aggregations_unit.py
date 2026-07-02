@@ -164,12 +164,15 @@ def test_dev_days_on_market_invalid_returns_none():
 # ─── _empty_kpis ─────────────────────────────────────────────────────────────
 
 def test_empty_kpis_has_expected_schema():
-    """_empty_kpis incluye los 12 campos KPI canónicos."""
+    """_empty_kpis incluye los KPI canónicos + los de RENTABILIDAD (cap_rate/yield/noi/renta_m2)
+    añadidos en el build de métricas granulares 2026-07-01 (dmx_cube_feed)."""
     k = _empty_kpis()
     expected = {
         "projects_count", "units_total", "units_sold", "units_available",
         "units_reserved", "avg_price_mxn", "avg_price_per_m2", "leads_count",
         "conversion_rate", "days_on_market_avg", "ie_score_promedio", "ai_usage_mxn",
+        # [AUD-014] KPIs de rentabilidad del cubo — parte del contrato actual (shipped en main)
+        "cap_rate_pct", "yield_bruto", "yield_neto", "noi", "renta_m2",
     }
     assert set(k.keys()) == expected
     assert k["projects_count"] == 0

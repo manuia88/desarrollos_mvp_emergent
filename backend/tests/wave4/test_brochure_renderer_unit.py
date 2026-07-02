@@ -15,7 +15,6 @@ import pytest
 from brochure_renderer import (
     PDF_DIR,
     SOCIAL_DIR,
-    STORAGE_BASE,
     _SOCIAL_SPECS,
     _fmt_price,
     _font_path,
@@ -103,9 +102,11 @@ def test_font_path_known_variant_returns_string_or_none():
 
 
 def test_storage_paths_under_base():
-    """PDF_DIR y SOCIAL_DIR cuelgan de STORAGE_BASE."""
-    # PDF_DIR and SOCIAL_DIR son subdirs de STORAGE_BASE
-    assert str(PDF_DIR).startswith(str(STORAGE_BASE))
-    assert str(SOCIAL_DIR).startswith(str(STORAGE_BASE))
+    """PDF_DIR y SOCIAL_DIR son hermanos (mismo padre) con nombres pdf/social.
+
+    [AUD-014] Tras AUD-008 (fs_fallback), la base efectiva puede ser tmp si /app no es escribible
+    (local/CI) → ya no se asume que cuelguen del STORAGE_BASE hardcodeado. El invariante REAL es que
+    ambos compartan el mismo directorio base resuelto y tengan los leaf correctos."""
     assert PDF_DIR.name == "pdf"
     assert SOCIAL_DIR.name == "social"
+    assert PDF_DIR.parent == SOCIAL_DIR.parent, "pdf y social deben colgar del MISMO base resuelto"
