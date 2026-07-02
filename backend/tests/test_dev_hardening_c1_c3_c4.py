@@ -60,8 +60,12 @@ def test_ssrf_bloquea_destinos_peligrosos(url):
     assert ai_safety.is_public_url_safe(url) is False
 
 
+# [AUD-017] IPs públicas literales (deterministas, sin DNS). Los hosts placeholder anteriores
+# (cdn.example.com / imagenes.desarrollosmx.io) NO resuelven → el guard, endurecido para resolver
+# DNS y FAIL-CLOSED, los bloqueaba con razón. Para probar el allow-path de "destino público" sin
+# depender de DNS/red, se usan IPs públicas (no privadas/loopback/reservadas) que el guard permite.
 @pytest.mark.parametrize("url", [
-    "https://cdn.example.com/foto.jpg", "http://imagenes.desarrollosmx.io/p.png",
+    "https://1.1.1.1/foto.jpg", "http://8.8.8.8/p.png",
 ])
 def test_ssrf_permite_destinos_publicos(url):
     assert ai_safety.is_public_url_safe(url) is True
