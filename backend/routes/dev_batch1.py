@@ -1122,6 +1122,11 @@ async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
     from tenant_scope import assert_dev_project
     assert_dev_project(user, payload.dev_id)   # no apartar unidades de otra dev (el gemelo DELETE ya lo hace)
     db = _db(request)
+    # [AUD-059] assert_dev_project valida el dev_id del BODY (propio del atacante) pero NO que el {unit_id}
+    # del path sea de ese dev → un dev podía apartar/secuestrar la unidad de OTRO dev (sobrescribir su
+    # override). Reusa el guard unidad→dev del portal developer.
+    from routes.developer import _assert_unit_in_dev
+    await _assert_unit_in_dev(db, payload.dev_id, unit_id)
     await _ensure_hold_index(db)
 
     # Check existing active hold (mensaje claro · fast path). La GARANTÍA atómica real es el índice
@@ -1176,6 +1181,10 @@ async def release_hold(unit_id: str, dev_id: str, request: Request):
     from tenant_scope import assert_dev_project
     assert_dev_project(user, dev_id)   # no liberar apartados de otra dev
     db = _db(request)
+    # [AUD-060] igual que create_hold: validar que el {unit_id} del path sea de este dev (no solo el dev_id
+    # del query) → si no, un dev podía forzar status='disponible' en el override de la unidad de otro.
+    from routes.developer import _assert_unit_in_dev
+    await _assert_unit_in_dev(db, dev_id, unit_id)
     result = await db.unit_holds.update_one(
         {"unit_id": unit_id, "status": "active"},
         {"$set": {"status": "released", "released_at": _now().isoformat(), "released_by": user.user_id}},

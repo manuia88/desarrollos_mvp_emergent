@@ -3153,6 +3153,14 @@ async def create_operacion(payload: OperacionIn, request: Request):
     db = get_db(request)
     if payload.side not in ("ambos", "vendedor", "comprador"): raise HTTPException(400, "side inválido")
     if payload.currency not in ("MXN", "USD", "AED"): raise HTTPException(400, "currency inválido")
+    # [AUD-061] Un asesor plano no puede crear una operación sobre el contacto de OTRO asesor (defensa
+    # aguas-arriba del cierre → lead ajeno). Inmobiliaria/superadmin no se restringen aquí.
+    if getattr(payload, "contacto_id", None) and getattr(user, "role", "") not in (
+            "superadmin", "inmobiliaria_admin", "inmobiliaria_director"):
+        _owns_ct = await db.asesor_contactos.find_one(
+            {"id": payload.contacto_id, "owner_id": user.user_id}, {"_id": 1})
+        if not _owns_ct:
+            raise HTTPException(404, "Contacto no encontrado")
 
     # F2-MONEY · liquidación con Decimal (centavos exactos, no float). Cada monto se
     # cuantiza a 0.01; el split del asesor es residual (comision_base - platform_split)
@@ -3333,9 +3341,16 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
         try:
             _lid_op = op.get("lead_id")
             if not _lid_op and op.get("contacto_id"):
-                _ct = await db.asesor_contactos.find_one({"id": op["contacto_id"]}, {"_id": 0, "source_lead_id": 1})
+                # [AUD-061] acotar por owner: un asesor solo cierra a partir de SU propio contacto (igual
+                # que la rama 'cancelada' abajo) — antes leía el contacto ajeno sin filtro.
+                _ct = await db.asesor_contactos.find_one(
+                    {"id": op["contacto_id"], "owner_id": user.user_id}, {"_id": 0, "source_lead_id": 1})
                 _lid_op = (_ct or {}).get("source_lead_id")
             if _lid_op:
+                # No marcar 'cerrado_ganado' el lead de OTRO asesor (assert_lead_owner es role-aware;
+                # si no es suyo lanza y el except fail-soft omite el update cross-tenant).
+                from tenant_scope import assert_lead_owner
+                await assert_lead_owner(db, user, _lid_op)
                 await db.leads.update_one({"id": _lid_op}, {"$set": {
                     "status": "cerrado_ganado", "lead_stage": "cerrado_ganado",
                     "updated_at": _now(), "last_activity_at": _now()}})

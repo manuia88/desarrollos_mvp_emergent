@@ -112,6 +112,11 @@ CONFIRMADAS: 21 lecturas de colecciones sensibles alcanzables cross-tenant. **Co
 
 **REFUTADO (1):** `get_lead_detail` ai_summary "3er sink" (dev_batch4_2:649) — el ai_summary cacheado NO contiene texto crudo de notas (solo la abstracción LLM) y el dev ya lo obtiene por su endpoint dedicado; no es exploit incremental. La causa real (¿debe el dev recibir resúmenes derivados de notas?) queda cubierta por AUD-056.
 
+### BATCH 8 · ESCRITURAS cross-tenant (update/delete sobre colecciones sensibles) — workflow 10 chunks + verif adversarial · **3 confirmadas / 0 refutadas** · ✅ TODAS CORREGIDAS
+| AUD-059 | HIGH | write cross-tenant | `POST /units/{unit_id}/hold` (create_hold): `assert_dev_project` validaba el dev_id del BODY, no que el {unit_id} del path fuera del dev → un dev apartaba/SECUESTRABA la unidad de otro (sobrescribía su `developer_unit_overrides`, dev_id=atacante, status=apartado → desaparece del inventario de la víctima) | `routes/dev_batch1.py:1157` | **corregido** (`_assert_unit_in_dev`) |
+| AUD-060 | MEDIUM | write cross-tenant | `DELETE /units/{unit_id}/hold` (release_hold): mismo patrón → forzaba status='disponible' en el override de la unidad de otro (encadenable con AUD-059) | `routes/dev_batch1.py:1187` | **corregido** (`_assert_unit_in_dev`) |
+| AUD-061 | MEDIUM | write cross-tenant | `PATCH /api/asesor/operaciones/{oid}/status` (cerrada): create_operacion no validaba `contacto_id` + el cierre resolvía el contacto sin owner y marcaba `db.leads` cerrado_ganado por {id} → un asesor marcaba GANADO el lead de otro asesor (corrompe pipeline/analítica) | `routes/advisor.py:3339` | **corregido** (contacto owner-scoped + `assert_lead_owner`) |
+
 ### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
 - **JWT_SECRET efímero** (HIGH→REFUTADO): requiere mala-config del operador (DMX_ENV vacío/typo); atacante sin influencia. Guard fail-closed cubre cookies/HSTS. Mitigación defensiva → N3.
 - **prefijo heurístico user_dev_ids** (HIGH→REFUTADO): precondición inalcanzable (atacante no controla developer_id ajeno).

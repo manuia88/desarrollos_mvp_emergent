@@ -77,6 +77,12 @@
 | AUD-056 | N3 | (este commit) | `test_aud056` | resumen IA (v1+v2) SOLO de pipeline estructurado, nunca texto de notas → el dev conserva retro sin conversación |
 | AUD-057 | N3 | (este commit) | `test_aud057` | `send_message` gatea mensajes de staff por dueño del hilo (no inyección cross-org/anon) |
 
+| AUD-059 | N2 | (este commit) | `test_aud059` | create_hold apartaba unidad de otro dev → `_assert_unit_in_dev` (unidad debe ser del dev del caller) |
+| AUD-060 | N2 | (este commit) | `test_aud060` | release_hold liberaba unidad de otro dev → `_assert_unit_in_dev` |
+| AUD-061 | N2 | (este commit) | `test_aud061` | operación cerraba (cerrado_ganado) el lead de otro asesor → contacto owner-scoped + `assert_lead_owner` + validación en create_operacion |
+
+**Batch 8 (escrituras cross-tenant · workflow 10 chunks + verif adversarial):** 100 escrituras sin-scope-aparente sobre colecciones sensibles → **3 confirmadas / 0 refutadas · 3 corregidas** (AUD-059/060/061). Las 97 restantes ya estaban protegidas (candado role-aware AUD-051, owner-fields en el filtro, o crons de sistema). Test `test_aud_batch8_writes.py` (3 verdes). Suite 1238 passed.
+
 **Batch 7 (modelo de autorización · workflow 7 chunks + verif adversarial):** 12 violaciones confirmadas → **12 corregidas** (con OK del founder que fijó el modelo canónico en `AUTHZ_MODEL.md`). Patrón raíz = `assert_lead_owner` daba alcance por-tenant sin distinguir rol. Test `test_aud_batch7_authz.py` (9 tests, incl. comportamiento del candado + re-registro). El dev conserva su retro vía señales estructuradas (etapa/visit_outcome/lost_reason), sin conversación.
 
 | AUD-058 | N2 | (este commit) | `test_aud058` | candado de re-registro de asesor: bloquea alta en otra inmobiliaria si sigue en un roster activo/suspendido hasta baja o 3 meses (`invite_internal_user`) |
