@@ -229,7 +229,7 @@ def test_embeddings_disabled_by_default():
 def test_text_to_vector_deterministic():
     """_text_to_vector es determinista y produce vectores L2-normalizados."""
     import sys
-    sys.path.insert(0, "/app/backend/services")
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))  # [AUD-013] path portable (no /app)
     from image_embeddings import _text_to_vector
     import numpy as np
 
@@ -244,7 +244,7 @@ def test_text_to_vector_deterministic():
 def test_text_to_vector_different_texts():
     """Textos distintos producen vectores distintos."""
     import sys
-    sys.path.insert(0, "/app/backend/services")
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))  # [AUD-013] path portable (no /app)
     from image_embeddings import _text_to_vector
     import numpy as np
 

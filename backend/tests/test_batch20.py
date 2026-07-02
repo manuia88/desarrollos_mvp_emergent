@@ -255,7 +255,7 @@ async def test_run_daily_snapshots_dry_run(db_handle):
     """Run the snapshot computation directly + verify upsert."""
     import asyncio
     import sys
-    sys.path.insert(0, "/app/backend")
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))  # [AUD-013] path portable (no /app)
     import motor.motor_asyncio
     mclient = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
     mdb = mclient[DB_NAME]
