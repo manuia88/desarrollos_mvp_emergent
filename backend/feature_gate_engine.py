@@ -239,9 +239,11 @@ def requires_feature(feature_key: str, fallback_tier: Optional[str] = None):
                 if doc and ff._is_active(doc):
                     await _audit_check(db, actor, feature_key, True, "enabled", request)
                     return user
-                if fallback_tier and _tier_meets(user_tier, fallback_tier):
-                    await _audit_check(db, actor, feature_key, True, "legacy_tier", request)
-                    return user
+                # [AUD-024] feature EN catálogo con su flag INACTIVO para este tenant → DENEGAR.
+                # Antes caía a `_tier_meets(user_tier, fallback_tier)` donde user_tier = derive_user_tier
+                # (el plan_tier MÁS PERMISIVO de CUALQUIER flag activo del tenant) → tener UN flag enterprise
+                # desbloqueaba OTRAS features no otorgadas (escalación cross-feature, CONFIRMADA). El flag
+                # propio de la feature es la única fuente de verdad para features catalogadas.
                 return await _deny_or_soft(db, actor, feature_key, request, user,
                                            f"Tu plan no incluye '{feature_key}'. Mejora tu plan para usarla.")
 
