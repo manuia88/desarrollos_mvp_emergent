@@ -16,10 +16,9 @@ from investment_simulator_engine import (
     COLONIA_DEFAULTS,
     DEFAULT_RATES,
     DEFAULT_RENTAL_YIELD,
-    MORTGAGE_RATE_ANNUAL,
     RENTAL_YIELDS,
-    SPREAD,
-    TIIE_RATE,
+    _mortgage_rate,
+    _tiie,
     _cache_get,
     _cache_set,
     _compute_scenario,
@@ -174,9 +173,13 @@ def test_colonia_defaults_includes_top_cdmx():
         assert col in COLONIA_DEFAULTS
 
 
-def test_mortgage_rate_equals_tiie_plus_spread():
-    """MORTGAGE_RATE_ANNUAL = TIIE + SPREAD."""
-    assert MORTGAGE_RATE_ANNUAL == pytest.approx(TIIE_RATE + SPREAD)
+def test_mortgage_rate_desde_fuente_oficial():
+    """[AUD-010] El engine migró de constantes (TIIE_RATE+SPREAD) a banxico_rates (fuente oficial).
+    Contrato actual: hipoteca fija > TIIE 28d > 0, y en rangos plausibles MX (TIIE 3-20%, hipoteca 6-20%)."""
+    tiie, hipoteca = _tiie(), _mortgage_rate()
+    assert 0.03 <= tiie <= 0.20, f"TIIE fuera de rango plausible: {tiie}"
+    assert 0.06 <= hipoteca <= 0.20, f"hipoteca fuera de rango plausible: {hipoteca}"
+    assert hipoteca > tiie, "la hipoteca fija debe estar por arriba de la TIIE"
 
 
 def test_default_rental_yield_in_range():
