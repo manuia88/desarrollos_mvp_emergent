@@ -49,7 +49,10 @@ const C = {
   amber: '#C2410C',      // reservado/apartado
   red: '#DC2626',        // vendido/escasez
 };
-const R_BTN = 4, R_CARD = 5, MAXW = 1200;   // radios y contenedor (spec)
+const R_BTN = 8, R_CARD = 12, MAXW = 1200;   // radios suavizados (upgrade: menos cuadrado) + contenedor
+const PAGE_BG = '#f6f7f9';                    // tinte sutil para que las tarjetas blancas resalten
+const CARD_LINE = '#e6e7ec';                  // borde de tarjeta más suave que #cacaca
+const CARD_SHADOW = '0 1px 2px rgba(16,24,40,0.04), 0 4px 14px rgba(16,24,40,0.05)';
 const FONT = "-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const money = (n) => (n != null && n !== '' ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const STAGE = { preventa: 'Preventa', construccion: 'En construcción', entrega_inmediata: 'Entrega inmediata', terminado: 'Terminado' };
@@ -76,7 +79,7 @@ const NAV = [
 ];
 
 // ── átomos UI estilo apts ────────────────────────────────────────────────────
-const box = { background: C.bg, border: `1px solid ${C.line}`, borderRadius: R_CARD };
+const box = { background: C.bg, border: `1px solid ${CARD_LINE}`, borderRadius: R_CARD, boxShadow: CARD_SHADOW };
 // spec §1.2: títulos de sección 30px, peso Regular (400), line-height ~1.2, gris #4c4c4c
 function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 30, lineHeight: 1.2, color: C.ink2, margin: 0, letterSpacing: 0 }}>{children}</h2>; }
 function DmxChip() { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentSoft, border: `1px solid ${C.accent}33`, borderRadius: 9999, padding: '2px 9px', letterSpacing: '0.02em' }}>✦ Solo en DMX</span>; }
@@ -437,11 +440,16 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
   );
 }
 
-// ════════════════════ SERVICIOS/AMENIDADES (destacadas + viñetas) ════════════════════
-function AmenBullet({ icon, label }) {
-  return <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT, fontSize: 15, fontWeight: 300, color: C.ink }}><span style={{ fontSize: 16, width: 20, textAlign: 'center', flex: 'none' }}>{icon}</span>{label}</div>;
+// ════════════════════ SERVICIOS/AMENIDADES (tarjetas pequeñas uniformes) ════════════════════
+function AmenCard({ icon, label }) {
+  return (
+    <div className="dmx-card" style={{ ...box, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 9, textAlign: 'center', padding: '16px 10px', minHeight: 96 }}>
+      <div style={{ fontSize: 26, lineHeight: 1 }}>{icon}</div>
+      <div style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink, lineHeight: 1.3 }}>{label}</div>
+    </div>
+  );
 }
-// §6 Servicios — DOS grupos: "Comodidades de la comunidad" (amenidades) + "Características del apartamento" (datos de unidad)
+// §6 Servicios — DOS grupos, TODAS tarjetas pequeñas uniformes (sin viñetas duplicadas)
 function VentaServicios({ dev }) {
   const amen = Array.isArray(dev.amenities) ? dev.amenities : [];
   const info = amen.map((a) => amenInfo(a));
@@ -454,33 +462,28 @@ function VentaServicios({ dev }) {
   const aptFeat = [
     bedR && ['🛏️', `${bedR} recámaras`],
     bathR && ['🛁', `${bathR} baños`],
-    m2R && ['📐', `${m2R} m² de superficie`],
-    parkR && ['🚗', `${parkR} cajón(es) de estacionamiento`],
-    has('m2_balcony') && ['🌇', 'Balcón privado'],
+    m2R && ['📐', `${m2R} m²`],
+    parkR && ['🚗', `${parkR} estac.`],
+    has('m2_balcony') && ['🌇', 'Balcón'],
     has('m2_terrace') && ['🪴', 'Terraza'],
-    has('m2_roof_garden') && ['🌿', 'Roof garden privado'],
-    vistas.length > 0 && ['👁️', `Vista: ${vistas.map((v) => titleCase(v)).join(', ')}`],
+    has('m2_roof_garden') && ['🌿', 'Roof garden'],
+    vistas.length > 0 && ['👁️', `Vista ${vistas.map((v) => titleCase(v)).join(' / ')}`],
   ].filter(Boolean);
   if (!info.length && !aptFeat.length) return null;
+  const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(118px,1fr))', gap: 12 };
+  const gTitle = { fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 14 };
   return (
     <div>
       {info.length > 0 && (
         <>
-          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 14 }}>Comodidades de la comunidad</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 20 }}>
-            {info.slice(0, 4).map((a, i) => <div key={i} style={{ ...box, aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', padding: 12 }}><div style={{ fontSize: 36 }}>{a.icon}</div><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{titleCase(a.label)}</div></div>)}
-          </div>
-          <div className="dmx-amen-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px 24px' }}>
-            {info.map((a, i) => <AmenBullet key={i} icon={a.icon} label={titleCase(a.label)} />)}
-          </div>
+          <div style={gTitle}>Comodidades de la comunidad</div>
+          <div className="dmx-amen-grid" style={grid}>{info.map((a, i) => <AmenCard key={i} icon={a.icon} label={titleCase(a.label)} />)}</div>
         </>
       )}
       {aptFeat.length > 0 && (
         <>
-          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, margin: '26px 0 14px' }}>Características del apartamento</div>
-          <div className="dmx-amen-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px 24px' }}>
-            {aptFeat.map(([ic, l], i) => <AmenBullet key={i} icon={ic} label={l} />)}
-          </div>
+          <div style={{ ...gTitle, marginTop: 26 }}>Características del apartamento</div>
+          <div className="dmx-amen-grid" style={grid}>{aptFeat.map(([ic, l], i) => <AmenCard key={i} icon={ic} label={l} />)}</div>
         </>
       )}
     </div>
@@ -745,11 +748,9 @@ export default function FichaVenta() {
   const [avm, setAvm] = useState({});
   const [openModel, setOpenModel] = useState(null);
 
-  const refs = { destacados: useRef(null), precios: useRef(null), dinero: useRef(null), tarifas: useRef(null), tour: useRef(null), servicios: useRef(null), detalles: useRef(null), ubicacion: useRef(null), resenas: useRef(null), confianza: useRef(null) };
-  const scrollTo = useCallback((k) => { const el = refs[k] && refs[k].current; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [refs]);
 
   useEffect(() => { let alive = true; setLoadErr(false); setDev(null); fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setLoadErr(true); }); return () => { alive = false; }; }, [id]);
-  useEffect(() => { document.body.style.background = '#fff'; return () => { document.body.style.background = ''; }; }, []);
+  useEffect(() => { document.body.style.background = PAGE_BG; return () => { document.body.style.background = ''; }; }, []);
   useEffect(() => {
     if (!dev || !dev.id) return undefined;
     let alive = true;
@@ -758,21 +759,26 @@ export default function FichaVenta() {
     if (colid && us.length) fetch(`${API}/api/precio-posicion-batch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colonia: colid, nueva: true, unidades: us.map((u) => ({ id: u.id, precio: u.price, m2: u.m2_privative || u.m2_total, rec: u.bedrooms, ban: u.bathrooms })) }) }).then((r) => r.json()).then((d) => { if (!alive) return; const m = {}; (d.unidades || []).forEach((v) => { if (v.id && v.etiqueta) m[v.id] = v; }); setAvm(m); }).catch(() => {});
     fetchDevelopments({ colonia: colid, limit: 6 }).then((r) => { if (alive) setSimilars((Array.isArray(r) ? r : (r?.developments || [])).filter((x) => x.id !== dev.id).slice(0, 4)); }).catch(() => {});
     try { sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: colid, value: 'venta' }); } catch (e) { /* noop */ }
-    const onScroll = () => { let cur = 'destacados'; for (const [k] of NAV) { const el = refs[k] && refs[k].current; if (el && el.getBoundingClientRect().top <= 130) cur = k; } setActiveNav(cur); };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { alive = false; window.removeEventListener('scroll', onScroll); };
+    return () => { alive = false; };
   }, [dev && dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Tabs = paneles (cada tab su propio espacio, NO scroll infinito). Al cambiar, re-fija la barra bajo el nav.
+  const panelTopRef = useRef(null);
+  const goTab = useCallback((k) => {
+    setActiveNav(k);
+    requestAnimationFrame(() => { const el = panelTopRef.current; if (!el) return; const y = el.getBoundingClientRect().top + window.scrollY - 56; if (window.scrollY > y) window.scrollTo({ top: y, behavior: 'auto' }); });
+  }, []);
 
   const agendar = useCallback((reason) => setConv({ type: reason === 'mensaje' ? 'mensaje' : reason === 'compartir' ? 'compartir' : 'agendar' }), []);
   const toggleSaveUnit = useCallback(() => { if (!unit) return; setSavedUnits((s) => { const n = new Set(s); n.has(unit.unit_number) ? n.delete(unit.unit_number) : n.add(unit.unit_number); return n; }); try { sendBuyerSignal('save_unit', { entity_id: dev?.id, unit_number: unit.unit_number }); } catch (e) { /* noop */ } }, [unit, dev]);
-  const pickUnit = useCallback((u) => { setUnit(u); if (u) setTimeout(() => scrollTo('dinero'), 60); }, [scrollTo]);
+  const pickUnit = useCallback((u) => { setUnit(u); }, []);
 
   const navRef = useRef(null);
   useEffect(() => {
-    const onAction = (e) => { const nav = e && e.detail && e.detail.nav; const h = navRef.current; if (!nav || !h) return; if (nav === 'agendar') h.agendar(); else if (nav === 'guardar') h.toggleSaveUnit(); else if (nav === 'unidad' || nav === 'comparar') h.scrollTo('precios'); else if (nav === 'dinero') h.scrollTo('dinero'); else if (nav === 'confianza') h.scrollTo('confianza'); else if (nav === 'proyecto') h.scrollTo('destacados'); else if (nav === 'tour') h.scrollTo('tour'); };
+    const onAction = (e) => { const nav = e && e.detail && e.detail.nav; const h = navRef.current; if (!nav || !h) return; if (nav === 'agendar') h.agendar(); else if (nav === 'guardar') h.toggleSaveUnit(); else if (nav === 'unidad' || nav === 'comparar') h.goTab('precios'); else if (nav === 'dinero') h.goTab('precios'); else if (nav === 'confianza') h.goTab('detalles'); else if (nav === 'proyecto') h.goTab('destacados'); else if (nav === 'tour') h.goTab('tour'); };
     window.addEventListener('dmx:atlax-action', onAction); return () => window.removeEventListener('dmx:atlax-action', onAction);
   }, []);
-  navRef.current = { scrollTo, agendar, toggleSaveUnit };
+  navRef.current = { goTab, agendar, toggleSaveUnit };
   const atlaxContext = useMemo(() => { if (!dev) return ''; const p = [`Ficha de VENTA de "${dev.name}" en ${titleCase(dev.colonia || '')}. Sección: ${activeNav}.`]; if (unit) p.push(`Ve la unidad ${unit.unit_number} (${money(unit.price)}).`); p.push(`Lente: ${lens === 'invertir' ? 'inversión' : 'vivir'}.`); return p.join(' '); }, [dev, unit, lens, activeNav]);
   const atlaxQuick = useMemo(() => ([{ label: 'Ver modelos', nav: 'unidad' }, { label: 'Mis números', nav: 'dinero' }, { label: 'Agendar', nav: 'agendar' }, { label: '¿Es confiable?', nav: 'confianza' }]), []);
 
@@ -799,7 +805,7 @@ export default function FichaVenta() {
 
   return (
     <LightScope>
-    <div style={{ background: '#fff', minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+    <div style={{ background: PAGE_BG, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
       <DevStructuredData dev={dev} />
       <PublicNav />
       <main style={{ paddingTop: 60 }}>
@@ -815,7 +821,7 @@ export default function FichaVenta() {
               <h1 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(28px,4vw,40px)', lineHeight: 1.4, color: C.ink, margin: 0, letterSpacing: '0.16px' }}>{dev.name}</h1>
               <div style={{ fontFamily: FONT, fontSize: 16, color: C.ink2, marginTop: 6 }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
-                <DevRating developer={developer} onReviews={() => scrollTo('resenas')} />
+                <DevRating developer={developer} onReviews={() => goTab('resenas')} />
                 {dev.verified && <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>🛡️ Verificado</span>}
                 <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>↻ Actualizado hoy</span>
               </div>
@@ -829,11 +835,13 @@ export default function FichaVenta() {
           <ReadMore text={dev.description} />
         </div>
 
-        {/* SUB-NAV STICKY */}
-        <div style={{ position: 'sticky', top: 56, zIndex: 40, background: '#fff', borderBottom: `1px solid ${C.line}`, marginTop: 18 }}>
+        {/* marcador de anclaje para re-fijar la barra al cambiar de tab */}
+        <div ref={panelTopRef} style={{ height: 0 }} />
+        {/* SUB-NAV STICKY (tabs) */}
+        <div style={{ position: 'sticky', top: 56, zIndex: 40, background: '#fff', borderBottom: `1px solid ${CARD_LINE}`, marginTop: 18, boxShadow: '0 2px 8px rgba(16,24,40,0.04)' }}>
           <div style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', display: 'flex', gap: 2, overflowX: 'auto' }}>
             {NAV.filter(([k]) => (k !== 'tour' || scans.length > 0) && (k !== 'servicios' || amen.length > 0 || (dev.units || []).length > 0)).map(([k, l]) => (
-              <button key={k} onClick={() => scrollTo(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: activeNav === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
+              <button key={k} onClick={() => goTab(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: activeNav === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
             ))}
           </div>
         </div>
@@ -842,48 +850,59 @@ export default function FichaVenta() {
         <div className="dmx-venta-grid" style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', padding: '10px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 40, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
 
-            <Section id="destacados" refEl={refs.destacados} title="Puntos destacados">
-              <div style={{ ...box, padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '14px 22px' }}>
-                {destak.map((it, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, width: 26, textAlign: 'center', flex: 'none' }}>{it.i}</span><div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.25 }}>{it.l}</div>{it.s && <div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{it.s}</div>}</div></div>)}
-              </div>
-            </Section>
-
-            <Section id="precios" refEl={refs.precios} title="Precios y modelos">
-              <VentaPrecios dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onAgendar={() => agendar('agendar')} avm={avm} onOpenModel={setOpenModel} />
-            </Section>
-
-            {/* Tu dinero (calculadoras) → EN STANDBY hasta acabar el diseño puro. */}
-
-            <Section id="tarifas" refEl={refs.tarifas} title="Tarifas y políticas">
-              <VentaTarifas dev={dev} />
-            </Section>
-
-            {scans.length > 0 && activeScan && (
-              <Section id="tour" refEl={refs.tour} title="Recorrido 3D">
-                {scans.length > 1 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>{scans.map((s) => <button key={s.scan_id} onClick={() => setActiveScan(s.scan_id)} style={{ padding: '7px 13px', borderRadius: 9999, border: `1px solid ${activeScan === s.scan_id ? C.accent : C.line}`, background: activeScan === s.scan_id ? C.accent : '#fff', color: activeScan === s.scan_id ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>{s.unit_id || s.title || 'Modelo'}</button>)}</div>}
-                <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.line}`, height: 'clamp(360px,52vw,540px)' }}><Tour3DViewer scanId={activeScan} theme="cream" uiMode="full" /></div>
+            {/* PANEL POR TAB — cada tab tiene su propio espacio (no scroll infinito) */}
+            {activeNav === 'destacados' && (
+              <Section title="Puntos destacados">
+                <div style={{ ...box, padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '14px 22px' }}>
+                  {destak.map((it, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, width: 26, textAlign: 'center', flex: 'none' }}>{it.i}</span><div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.25 }}>{it.l}</div>{it.s && <div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{it.s}</div>}</div></div>)}
+                </div>
               </Section>
             )}
 
-            {(amen.length > 0 || (dev.units || []).length > 0) && <Section id="servicios" refEl={refs.servicios} title="Servicios y comodidades"><VentaServicios dev={dev} /></Section>}
+            {activeNav === 'precios' && (
+              <Section title="Precios y modelos">
+                <VentaPrecios dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onAgendar={() => agendar('agendar')} avm={avm} onOpenModel={setOpenModel} />
+              </Section>
+            )}
 
-            <Section id="detalles" refEl={refs.detalles} title="Detalles"><VentaDetalles dev={dev} /></Section>
+            {activeNav === 'tarifas' && (
+              <Section title="Tarifas y políticas">
+                <VentaTarifas dev={dev} />
+              </Section>
+            )}
 
-            <Section id="ubicacion" refEl={refs.ubicacion} title="Ubicación">
-              <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
-                <div style={{ height: 280, background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${C.line}` }}>
-                  <div style={{ textAlign: 'center', color: C.faint, fontFamily: FONT }}><div style={{ fontSize: 26 }}>📍</div><div style={{ fontSize: 13, marginTop: 6 }}>Mapa interactivo — próximamente</div></div>
+            {activeNav === 'tour' && scans.length > 0 && activeScan && (
+              <Section title="Recorrido 3D">
+                {scans.length > 1 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>{scans.map((s) => <button key={s.scan_id} onClick={() => setActiveScan(s.scan_id)} style={{ padding: '7px 13px', borderRadius: 9999, border: `1px solid ${activeScan === s.scan_id ? C.accent : C.line}`, background: activeScan === s.scan_id ? C.accent : '#fff', color: activeScan === s.scan_id ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>{s.unit_id || s.title || 'Modelo'}</button>)}</div>}
+                <div style={{ borderRadius: R_CARD, overflow: 'hidden', border: `1px solid ${CARD_LINE}`, height: 'clamp(360px,52vw,540px)' }}><Tour3DViewer scanId={activeScan} theme="cream" uiMode="full" /></div>
+              </Section>
+            )}
+
+            {activeNav === 'servicios' && (
+              <Section title="Servicios y comodidades"><VentaServicios dev={dev} /></Section>
+            )}
+
+            {activeNav === 'detalles' && (
+              <Section title="Detalles"><VentaDetalles dev={dev} /></Section>
+            )}
+
+            {activeNav === 'ubicacion' && (
+              <Section title="Ubicación">
+                <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
+                  <div style={{ height: 280, background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${CARD_LINE}` }}>
+                    <div style={{ textAlign: 'center', color: C.faint, fontFamily: FONT }}><div style={{ fontSize: 26 }}>📍</div><div style={{ fontSize: 13, marginTop: 6 }}>Mapa interactivo — próximamente</div></div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto' }}>
+                    {['Escuelas', 'Restaurantes', 'Supermercados', 'Café', 'Transporte', 'Parques'].map((c) => <button key={c} style={{ padding: '8px 14px', borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontSize: 13, cursor: 'default', whiteSpace: 'nowrap' }}>{c}</button>)}
+                  </div>
+                  <div style={{ padding: '14px 16px', fontFamily: FONT, fontSize: 14, color: C.ink2, borderTop: `1px solid ${C.line2}` }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto' }}>
-                  {['Escuelas', 'Restaurantes', 'Supermercados', 'Café', 'Transporte', 'Parques'].map((c) => <button key={c} style={{ padding: '8px 14px', borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontSize: 13, cursor: 'default', whiteSpace: 'nowrap' }}>{c}</button>)}
-                </div>
-                <div style={{ padding: '14px 16px', fontFamily: FONT, fontSize: 14, color: C.ink2, borderTop: `1px solid ${C.line2}` }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
-              </div>
-            </Section>
+              </Section>
+            )}
 
-            <Section id="resenas" refEl={refs.resenas} title="Reseñas"><VentaResenas devId={dev.id} /></Section>
-
-            {/* Confianza (riesgo/sellos) → EN STANDBY hasta acabar el diseño puro. */}
+            {activeNav === 'resenas' && (
+              <Section title="Reseñas"><VentaResenas devId={dev.id} /></Section>
+            )}
 
             {similars.length > 0 && (
               <Section title="Desarrollos cercanos">
@@ -939,7 +958,7 @@ export default function FichaVenta() {
           : <button onClick={() => agendar('mensaje')} style={{ flex: 1, padding: '11px 8px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>Llamar</button>}
       </div>
 
-      <style>{`@media(max-width:940px){ .dmx-venta-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-venta-side{ position: static !important; } .dmx-venta-mobilebar{ display: flex !important; } } @media(max-width:600px){ .dmx-amen-3{ grid-template-columns: repeat(2,1fr) !important; } .dmx-amen-2{ grid-template-columns: 1fr !important; } } .dmx-sim{ transition: box-shadow .15s, transform .15s; } .dmx-sim:hover{ box-shadow: 0 8px 22px rgba(16,24,40,0.10); transform: translateY(-2px); }`}</style>
+      <style>{`@media(max-width:940px){ .dmx-venta-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-venta-side{ position: static !important; } .dmx-venta-mobilebar{ display: flex !important; } } @media(max-width:600px){ .dmx-amen-grid{ grid-template-columns: repeat(3,1fr) !important; } } .dmx-card{ transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; } .dmx-card:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; } .dmx-sim:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; }`}</style>
 
       {gallery && <GalleryModal dev={dev} scans={scans} startAt={gallery.i} startTab={gallery.tab} onClose={() => setGallery(null)} />}
       {openModel && <ModeloModal dev={dev} unit={openModel} avm={avm} scans={scans} onClose={() => setOpenModel(null)} onSelectUnit={pickUnit} onConv={(t) => { setOpenModel(null); agendar(t); }} />}
