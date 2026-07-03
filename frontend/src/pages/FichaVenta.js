@@ -33,21 +33,24 @@ import { tc as titleCase } from '../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// ── design tokens (apartments.com look) ─────────────────────────────────────
+// ── design tokens (spec del founder · valores exactos) ──────────────────────
 const C = {
-  ink: '#3E4256',        // texto principal (gris azulado oscuro, no negro)
-  ink2: '#5A5F6E',       // texto secundario
-  faint: '#8A8F9C',      // texto terciario
-  line: '#E4E5E9',       // bordes
-  line2: '#EEEFF2',      // divisores suaves
-  bg: '#FFFFFF',
-  bgSoft: '#F7F8FA',     // fondos de zona/hover
-  accent: '#6D4AFF',     // morado DMX (donde apts usa verde)
+  ink: '#000000',        // texto principal / precios (spec)
+  ink2: '#4c4c4c',       // títulos de sección / secundario (spec)
+  faint: '#6b6f7a',      // terciario
+  line: '#cacaca',       // bordes y divisores (spec)
+  line2: '#e0e0e0',      // divisor más suave
+  bg: '#ffffff',
+  bgSoft: '#fafafb',     // fondos sutiles
+  highlight: '#f2f9e9',  // verde pálido: barra calculadora, respuesta del admin (spec)
+  accent: '#6D4AFF',     // ACCIÓN = morado DMX (map del verde de la referencia)
   accentSoft: '#F1EEFF',
+  link: '#0576a7',       // enlaces de texto = azul (spec: enlaces nunca verde/acción)
   green: '#1E9E63',      // disponible
   amber: '#C2410C',      // reservado/apartado
   red: '#DC2626',        // vendido/escasez
 };
+const R_BTN = 4, R_CARD = 5, MAXW = 1200;   // radios y contenedor (spec)
 const FONT = "-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const money = (n) => (n != null && n !== '' ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const STAGE = { preventa: 'Preventa', construccion: 'En construcción', entrega_inmediata: 'Entrega inmediata', terminado: 'Terminado' };
@@ -74,13 +77,61 @@ const NAV = [
 ];
 
 // ── átomos UI estilo apts ────────────────────────────────────────────────────
-const box = { background: C.bg, border: `1px solid ${C.line}`, borderRadius: 12 };
-// apartments.com: títulos de sección grandes, PESO LIGERO, gris #4C4C4C (extraído del CSS real)
-function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 300, fontSize: 30, color: '#4C4C4C', margin: 0, letterSpacing: 0 }}>{children}</h2>; }
+const box = { background: C.bg, border: `1px solid ${C.line}`, borderRadius: R_CARD };
+// spec: títulos de sección 30px, peso ligero (300), gris #4c4c4c
+function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 300, fontSize: 30, color: C.ink2, margin: 0, letterSpacing: 0 }}>{children}</h2>; }
 function DmxChip() { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentSoft, border: `1px solid ${C.accent}33`, borderRadius: 9999, padding: '2px 9px', letterSpacing: '0.02em' }}>✦ Solo en DMX</span>; }
-function CtaGrad({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>{children}</button>; }
-function CtaGhost({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>{children}</button>; }
-const linkA = { background: 'none', border: 'none', padding: 0, color: C.accent, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' };
+function CtaGrad({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
+function CtaGhost({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
+const linkA = { background: 'none', border: 'none', padding: 0, color: C.link, fontFamily: FONT, fontWeight: 400, fontSize: 15, cursor: 'pointer' };
+const iconBtn = { width: 38, height: 38, borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontSize: 15, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
+
+// Widget de credibilidad del desarrollador (análogo de "Calificación del arrendatario" para venta)
+function DevRating({ developer, onReviews }) {
+  const n = developer.projects_delivered;
+  if (!n) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 18, borderRadius: R_BTN, padding: '5px 10px', lineHeight: 1 }}>✓</span>
+      <div>
+        <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink }}>Desarrollador con trayectoria</div>
+        <button onClick={onReviews} style={{ ...linkA }}>{n} proyectos entregados{developer.years_experience ? ` · ${developer.years_experience} años` : ''}</button>
+      </div>
+    </div>
+  );
+}
+
+// Barra resumen en recuadro de 4 columnas con divisores (spec §4)
+function SummaryBar({ price, bedR, bathR, m2R }) {
+  const cols = [
+    { k: 'Precio desde', v: price, verified: true },
+    bedR && { k: 'Recámaras', v: bedR },
+    bathR && { k: 'Baños', v: bathR },
+    m2R && { k: 'm²', v: m2R },
+  ].filter(Boolean);
+  return (
+    <div style={{ ...box, display: 'flex', marginTop: 14, overflowX: 'auto' }}>
+      {cols.map((c, i) => (
+        <div key={i} style={{ flex: 1, minWidth: 120, padding: '14px 18px', borderLeft: i ? `1px solid ${C.line}` : 'none' }}>
+          <div style={{ fontFamily: FONT, fontWeight: 400, fontSize: 18, color: c.verified ? C.accent : C.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.v}{c.verified && <span style={{ color: C.link, fontSize: 13 }}>✓</span>}</div>
+          <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint, marginTop: 2 }}>{c.k}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReadMore({ text, max = 320 }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  const long = text.length > max;
+  return (
+    <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: 16, color: C.ink, lineHeight: 1.7, marginTop: 16, maxWidth: '72ch' }}>
+      {open || !long ? text : text.slice(0, max) + '… '}
+      {long && <button onClick={() => setOpen((o) => !o)} style={{ ...linkA, fontWeight: 400 }}>{open ? 'Leer menos' : 'Leer más'}</button>}
+    </p>
+  );
+}
 
 function Section({ id, title, refEl, children, note }) {
   return (
@@ -174,13 +225,25 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
 
   return (
     <div>
-      {bedOpts.length > 1 && (
-        <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: 9, overflow: 'hidden', marginBottom: 18, width: 'fit-content' }}>
-          {[['all', 'Todas'], ...bedOpts.map((n) => [String(n), bedLabel(n)])].map(([k, l], idx) => (
-            <button key={k} onClick={() => setBed(k)} style={{ padding: '9px 18px', border: 'none', borderLeft: idx ? `1px solid ${C.line}` : 'none', background: bed === k ? C.accent : '#fff', color: bed === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
-          ))}
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+        {bedOpts.length > 1 ? (
+          <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: R_CARD, overflow: 'hidden', width: 'fit-content' }}>
+            {[['all', 'Todas'], ...bedOpts.map((n) => [String(n), bedLabel(n)])].map(([k, l], idx) => (
+              <button key={k} onClick={() => setBed(k)} style={{ padding: '9px 18px', border: 'none', borderLeft: idx ? `1px solid ${C.line}` : 'none', background: bed === k ? C.accent : '#fff', color: bed === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
+            ))}
+          </div>
+        ) : <span />}
+        <button onClick={onAgendar} style={{ padding: '9px 16px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: '#fff', color: C.link, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Ver mapa del sitio de la propiedad</button>
+      </div>
+      {/* Barra teaser · Calculadora de costos (motor en standby) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.accentSoft, border: `1px solid ${C.line2}`, borderRadius: R_CARD, padding: '12px 16px', marginBottom: 18 }}>
+        <span style={{ fontSize: 20, flex: 'none' }}>🧮</span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink }}>Calculadora de costos</div>
+          <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>Estima tu enganche, mensualidades y gastos de escrituración para cada modelo.</div>
         </div>
-      )}
+        <button onClick={onAgendar} style={{ ...linkA, fontWeight: 700, whiteSpace: 'nowrap' }}>Calcular →</button>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {models.map((m) => {
           const plano = planoOf(dev, m.us[0]) || (dev.photos || [])[0];
@@ -292,11 +355,12 @@ function VentaServicios({ dev }) {
   const info = amen.map((a) => amenInfo(a));
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 18 }}>
-        {info.slice(0, 4).map((a, i) => <div key={i} style={{ ...box, padding: '20px 12px', textAlign: 'center' }}><div style={{ fontSize: 26 }}>{a.icon}</div><div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: C.ink, marginTop: 9 }}>{titleCase(a.label)}</div></div>)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
+        {info.slice(0, 4).map((a, i) => <div key={i} style={{ ...box, aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', padding: 12 }}><div style={{ fontSize: 36 }}>{a.icon}</div><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{titleCase(a.label)}</div></div>)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '10px 20px' }}>
-        {info.map((a, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FONT, fontSize: 14, color: C.ink2 }}><span style={{ width: 5, height: 5, borderRadius: 9999, background: C.accent, flex: 'none' }} />{titleCase(a.label)}</div>)}
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 12 }}>Todas las comodidades</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px 24px' }}>
+        {info.map((a, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT, fontSize: 15, fontWeight: 300, color: C.ink }}><span style={{ fontSize: 16, width: 20, textAlign: 'center', flex: 'none' }}>{a.icon}</span>{titleCase(a.label)}</div>)}
       </div>
     </div>
   );
@@ -322,6 +386,8 @@ function VentaDetalles({ dev }) {
 // ════════════════════ RESEÑAS ════════════════════
 function VentaResenas({ devId }) {
   const [data, setData] = useState(undefined);
+  const [sort, setSort] = useState('recientes');
+  const [helpful, setHelpful] = useState({});
   useEffect(() => { let alive = true; fetch(`${API}/api/reviews/development/${encodeURIComponent(devId)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setData(d || null); }).catch(() => { if (alive) setData(null); }); return () => { alive = false; }; }, [devId]);
   const reviews = (data && (data.reviews || data.items)) || [];
   const avg = data && (data.avg_rating ?? data.average ?? data.rating);
@@ -331,19 +397,35 @@ function VentaResenas({ devId }) {
   if (!reviews.length && !avg) return <div style={{ ...box, padding: '26px 20px', textAlign: 'center' }}><div style={{ fontSize: 26, marginBottom: 8 }}>💬</div><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink }}>Aún no hay reseñas de residentes</div><div style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint, marginTop: 5 }}>Estamos recopilando opiniones verificadas de residentes y vecinos de la zona.</div></div>;
   const maxN = dist ? Math.max(...[5, 4, 3, 2, 1].map((s) => dist[s] || 0), 1) : 1;
   const stars = (n) => '★★★★★☆☆☆☆☆'.slice(5 - Math.round(n || 0), 10 - Math.round(n || 0));
+  const sorted = [...reviews].sort((a, b) => sort === 'calificacion' ? (b.rating || b.stars || 0) - (a.rating || a.stars || 0) : 0);
   return (
     <div>
       <div style={{ ...box, padding: '20px 22px', display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ textAlign: 'center', flex: 'none' }}><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 44, color: C.accent, lineHeight: 1 }}>{avg ? Number(avg).toFixed(1) : '—'}</div><div style={{ color: '#F5A623', fontSize: 16, letterSpacing: 2, marginTop: 4 }}>{stars(avg)}</div><div style={{ fontFamily: FONT, fontSize: 12, color: C.faint, marginTop: 4 }}>{total} reseña{total === 1 ? '' : 's'}</div></div>
         {dist && <div style={{ flex: 1, minWidth: 220 }}>{[5, 4, 3, 2, 1].map((s) => <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '3px 0' }}><span style={{ fontFamily: FONT, fontSize: 12, color: C.faint, width: 60 }}>{s} estrella{s === 1 ? '' : 's'}</span><div style={{ flex: 1, height: 8, borderRadius: 9999, background: C.line2, overflow: 'hidden' }}><div style={{ width: `${((dist[s] || 0) / maxN) * 100}%`, height: '100%', background: C.accent }} /></div><span style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, width: 26, textAlign: 'right' }}>{dist[s] || 0}</span></div>)}</div>}
+        <div style={{ flex: 'none' }}><button onClick={() => window.dispatchEvent(new CustomEvent('dmx:atlax-action', { detail: { nav: 'agendar' } }))} style={{ padding: '10px 18px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Escribe una evaluación</button></div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <label style={{ fontFamily: FONT, fontSize: 13, color: C.faint, display: 'inline-flex', alignItems: 'center', gap: 8 }}>Ordenar por
+          <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ fontFamily: FONT, fontSize: 13, color: C.ink, border: `1px solid ${C.line}`, borderRadius: R_BTN, padding: '6px 10px', background: '#fff', cursor: 'pointer' }}>
+            <option value="recientes">Más recientes</option>
+            <option value="calificacion">Mejor calificadas</option>
+          </select>
+        </label>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {reviews.slice(0, 6).map((rv, i) => (
+        {sorted.slice(0, 6).map((rv, i) => (
           <div key={i} style={{ ...box, padding: '16px 18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><span style={{ color: '#F5A623', fontSize: 14, letterSpacing: 2 }}>{stars(rv.rating || rv.stars)}</span><span style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>{rv.date || rv.created_at || rv.source || ''}</span></div>
+            {(rv.verified || rv.verified_buyer) && <div style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.green, marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>✓ Comprador verificado</div>}
             {rv.title && <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink, marginTop: 8 }}>{rv.title}</div>}
             <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 6, lineHeight: 1.6 }}>{rv.text || rv.comment || rv.body}</div>
             {(rv.owner_reply || rv.reply) && <div style={{ marginTop: 10, padding: '10px 13px', borderRadius: 8, background: C.bgSoft, borderLeft: `3px solid ${C.accent}` }}><b style={{ fontFamily: FONT, fontSize: 12.5, color: C.accent }}>El desarrollador respondió:</b><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}> {rv.owner_reply || rv.reply}</span></div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, fontFamily: FONT, fontSize: 12.5, color: C.faint }}>
+              <span>¿Fue útil esto?</span>
+              <button onClick={() => setHelpful((h) => ({ ...h, [i]: h[i] === 'y' ? null : 'y' }))} style={{ ...linkA, color: helpful[i] === 'y' ? C.accent : C.faint, fontWeight: 600 }}>👍 Sí</button>
+              <button onClick={() => setHelpful((h) => ({ ...h, [i]: h[i] === 'n' ? null : 'n' }))} style={{ ...linkA, color: helpful[i] === 'n' ? C.accent : C.faint, fontWeight: 600 }}>👎 No</button>
+            </div>
           </div>
         ))}
       </div>
@@ -429,33 +511,34 @@ export default function FichaVenta() {
       <PublicNav />
       <main style={{ paddingTop: 60 }}>
         {/* HERO */}
-        <div style={{ maxWidth: 1280, width: '95%', margin: '0 auto', paddingTop: 16 }}>
+        <div style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', paddingTop: 16 }}>
           <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, marginBottom: 10 }}>
             <Link to="/marketplace" style={{ color: C.accent, textDecoration: 'none' }}>Marketplace</Link>{' / '}{[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).map((s) => titleCase(s)).join(' · ')}
           </div>
           <Gallery dev={dev} onOpen={(i) => setGallery(i)} />
-          {/* título + stats (patrón apts: nombre grande, dirección, fila de specs) */}
+          {/* ENCABEZADO DE PROPIEDAD (spec §4) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginTop: 18 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <h1 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(26px,4vw,38px)', color: C.ink, margin: 0, letterSpacing: '-0.02em' }}>{dev.name}</h1>
-                {dev.verified && <span style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.green, background: '#E9F7EF', border: '1px solid #B7E4C7', borderRadius: 9999, padding: '3px 10px' }}>✓ Verificado</span>}
-                <span style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.accent, background: C.accentSoft, borderRadius: 9999, padding: '3px 10px' }}>{STAGE[dev.stage] || dev.stage}</span>
-              </div>
-              <div style={{ fontFamily: FONT, fontSize: 15, color: C.ink2, marginTop: 5 }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
-              <div style={{ display: 'flex', gap: 22, marginTop: 12, flexWrap: 'wrap' }}>
-                <div><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.accent }}>{dev.price_from_display || money(dev.price_from)}</div><div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>Precio de lista</div></div>
-                {bedR && <Stat k="Recámaras" v={bedR} />}
-                {bathR && <Stat k="Baños" v={bathR} />}
-                {m2R && <Stat k="m²" v={`${m2R} m²`} />}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h1 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(28px,4vw,40px)', lineHeight: 1.15, color: C.ink, margin: 0, letterSpacing: '0.16px' }}>{dev.name}</h1>
+              <div style={{ fontFamily: FONT, fontSize: 16, color: C.ink2, marginTop: 6 }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
+                <DevRating developer={developer} onReviews={() => scrollTo('resenas')} />
+                {dev.verified && <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>🛡️ Verificado</span>}
+                <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>↻ Actualizado hoy</span>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <button aria-label="Compartir" style={iconBtn}>↗</button>
+              <button aria-label="Guardar en favoritos" style={iconBtn}>♡</button>
+            </div>
           </div>
+          <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
+          <ReadMore text={dev.description} />
         </div>
 
         {/* SUB-NAV STICKY */}
         <div style={{ position: 'sticky', top: 56, zIndex: 40, background: '#fff', borderBottom: `1px solid ${C.line}`, marginTop: 18 }}>
-          <div style={{ maxWidth: 1280, width: '95%', margin: '0 auto', display: 'flex', gap: 2, overflowX: 'auto' }}>
+          <div style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', display: 'flex', gap: 2, overflowX: 'auto' }}>
             {NAV.filter(([k]) => (k !== 'tour' || scans.length > 0) && (k !== 'servicios' || amen.length > 0)).map(([k, l]) => (
               <button key={k} onClick={() => scrollTo(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
             ))}
@@ -463,14 +546,13 @@ export default function FichaVenta() {
         </div>
 
         {/* BODY 2 COLUMNAS */}
-        <div className="dmx-venta-grid" style={{ maxWidth: 1280, width: '95%', margin: '0 auto', padding: '10px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 40, alignItems: 'start' }}>
+        <div className="dmx-venta-grid" style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', padding: '10px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 40, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
 
             <Section id="destacados" refEl={refs.destacados} title="Puntos destacados">
               <div style={{ ...box, padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '14px 22px' }}>
                 {destak.map((it, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, width: 26, textAlign: 'center', flex: 'none' }}>{it.i}</span><div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.25 }}>{it.l}</div>{it.s && <div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{it.s}</div>}</div></div>)}
               </div>
-              {dev.description && <p style={{ fontFamily: FONT, fontSize: 15, color: C.ink2, lineHeight: 1.7, marginTop: 18, maxWidth: '70ch' }}>{dev.description}</p>}
             </Section>
 
             <Section id="precios" refEl={refs.precios} title="Precios y modelos">
@@ -528,18 +610,24 @@ export default function FichaVenta() {
           <aside className="dmx-venta-side" style={{ position: 'sticky', top: 122 }}>
             <div style={{ ...box, padding: 20, boxShadow: '0 4px 16px rgba(16,24,40,0.06)' }}>
               <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.ink }}>Comunícate con esta propiedad</div>
-              <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2, margin: '3px 0 14px' }}>Opciones de visita: <b>presencial o por video</b></div>
-              <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: C.faint, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
+              <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: C.faint, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: 12 }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
               <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.ink, margin: '2px 0' }}>{money(unit ? unit.price : dev.price_from)}</div>
               <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, marginBottom: 14 }}>{STAGE[dev.stage] || dev.stage}{dev.delivery_estimate ? ` · entrega ${dev.delivery_estimate}` : ''}</div>
+              {developer.phone && <a href={`tel:${developer.phone}`} onClick={() => { try { sendBuyerSignal('phone_click', { entity_id: dev.id }); } catch (e) { /* noop */ } }} style={{ display: 'block', fontFamily: FONT, fontWeight: 700, fontSize: 20, color: C.link, textDecoration: 'none', marginBottom: 12 }}>{developer.phone}</a>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <CtaGrad onClick={() => agendar('agendar')}>Agendar visita</CtaGrad>
                 <CtaGhost onClick={() => agendar('mensaje')}>Enviar mensaje</CtaGhost>
-                {unit && <button onClick={toggleSaveUnit} style={{ width: '100%', padding: 12, borderRadius: 10, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>{savedUnits.has(unit.unit_number) ? '♥ Guardada' : `Guardar la ${unit.unit_number}`}</button>}
+                {unit && <button onClick={toggleSaveUnit} style={{ width: '100%', padding: 12, borderRadius: R_BTN, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>{savedUnits.has(unit.unit_number) ? '♥ Guardada' : `Guardar la ${unit.unit_number}`}</button>}
               </div>
-              <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 16, paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Opciones de recorrido + idioma (patrón apts) */}
+              <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 16, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 96, flex: 'none' }}>Recorridos</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}>En persona · Por video</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 96, flex: 'none' }}>Idioma</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}>Español · Inglés</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 96, flex: 'none' }}>Atención</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.green, fontWeight: 700 }}>Responde el mismo día</span></div>
+              </div>
+              <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 36, height: 36, borderRadius: 9999, background: C.accent, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 14 }}>{(developer.name || dev.name || 'D')[0]}</span>
-                <div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>{developer.name || 'Tu asesor DMX'}</div><div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>Responde el mismo día · español</div></div>
+                <div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>{developer.name || 'Tu asesor DMX'}</div><div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>{developer.projects_delivered ? `${developer.projects_delivered} proyectos entregados` : 'Desarrollador verificado'}</div></div>
               </div>
               <div style={{ marginTop: 12, fontFamily: FONT, fontSize: 12, color: C.faint, textAlign: 'center' }}>✦ ¿Dudas? Pregúntale a <b style={{ color: C.accent }}>Atlax</b> — conoce esta unidad.</div>
             </div>
