@@ -7,6 +7,7 @@
  */
 import React, { useCallback, useRef, useState } from 'react';
 import { searchByImage } from '../../api/marketplace';
+import { sendBuyerSignal } from '../../lib/buyerSignal';   // demanda: buscar por foto revela gusto/estilo/precio
 import { X, Search } from '../icons';
 import { Z } from '../../styles/zIndex';
 
@@ -137,6 +138,14 @@ export default function ImageSearchModal({ open, onClose }) {
     try {
       const data = await searchByImage(file);
       setResults(data);
+      // Demanda revelada por gusto visual: qué estilo/features busca + cuántos matches (0 = demanda no satisfecha).
+      try {
+        const _m = data?.matches || [];
+        sendBuyerSignal('atlax_query', { value: 'busqueda_imagen', meta: {
+          source: 'imagen', n_resultados: _m.length, colonia: _m[0]?.colonia || null,
+          features: (data?.detected_features || data?.tags || data?.estilo || []).slice ? (data?.detected_features || data?.tags || data?.estilo || []).slice(0, 8) : undefined,
+        } });
+      } catch (_e) { /* fail-open */ }
     } catch (err) {
       setError(err?.message || 'Error al procesar la imagen. Intenta de nuevo.');
     } finally {

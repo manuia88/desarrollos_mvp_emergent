@@ -5,6 +5,7 @@
  */
 import React, { useRef, useState } from 'react';
 import { parseExternalUrl } from '../../api/marketplace';
+import { sendBuyerSignal } from '../../lib/buyerSignal';   // demanda: URL de competidor revela precio/features que le gustan
 import { X, ExternalLink, Search } from '../icons';
 import { Z } from '../../styles/zIndex';
 
@@ -181,6 +182,14 @@ export default function UrlSearchModal({ open, onClose }) {
         setError(data.error);
       } else {
         setResult(data);
+        // Demanda revelada por referencia externa: qué precio/zona/recámaras le gustan de la competencia.
+        try {
+          const _p = data?.parsed || data;
+          sendBuyerSignal('atlax_query', { value: 'busqueda_url', meta: {
+            source: 'url_externa', colonia: _p?.colonia || null, precio: _p?.price || _p?.precio || null,
+            recamaras: _p?.bedrooms || _p?.recamaras || null, n_resultados: (data?.matches || []).length,
+          } });
+        } catch (_e) { /* fail-open */ }
       }
     } catch (err) {
       setError(err?.message || 'Error al procesar la URL. Intenta de nuevo.');

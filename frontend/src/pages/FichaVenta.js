@@ -504,7 +504,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
           </div>
           );
         })()}
-        {tab === 'precio' && <StandbyPanel icon="🧮" title="Calculadora de costos" body="Estima enganche, mensualidades durante obra y gastos de escrituración para esta unidad. Estamos afinando la calculadora en vivo — mientras tanto, un asesor te arma los números al detalle." />}
+        {tab === 'precio' && <StandbyPanel icon="🧮" title="Tus números de esta unidad" body="El enganche, las mensualidades durante obra, el crédito, la escrituración (ISAI) y el retorno de inversión de esta unidad están en las pestañas «Planes de pago» e «Inversión» de la ficha (calculadoras en vivo). Un asesor también te los arma al detalle." />}
         {tab === 'mapa' && <StandbyPanel icon="🗺️" title="Mapa de la unidad" body={`Ubicación de la unidad ${u.unit_number}${u.level != null ? ` (piso ${u.level})` : ''} dentro del plano del edificio. El plano interactivo del nivel llega pronto.`} />}
         <style>{`@media(max-width:760px){ .dmx-modelo-grid{ grid-template-columns: 1fr !important; } }`}</style>
       </div>
@@ -1322,19 +1322,29 @@ export default function FichaVenta() {
 
 
 
-            {activeNav === 'ubicacion' && (
-              <Section title="Ubicación">
-                <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
-                  <div style={{ height: 280, background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${CARD_LINE}` }}>
-                    <div style={{ textAlign: 'center', color: C.faint, fontFamily: FONT }}><div style={{ fontSize: 26 }}>📍</div><div style={{ fontSize: 13, marginTop: 6 }}>Mapa interactivo — próximamente</div></div>
+            {activeNav === 'ubicacion' && (() => {
+              const addr = dev.address_full || dev.street || [dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).join(', ');
+              const ctr = dev.center;
+              const q = (Array.isArray(ctr) && ctr[1] != null && ctr[0] != null) ? `${ctr[1]},${ctr[0]}`
+                : (ctr && ctr.lat != null) ? `${ctr.lat},${ctr.lng}` : addr;
+              const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`;
+              const gmaps = (extra) => `https://www.google.com/maps/search/${encodeURIComponent((extra ? `${extra} cerca de ` : '') + addr)}`;
+              const pois = ['Escuelas', 'Restaurantes', 'Supermercados', 'Café', 'Transporte', 'Parques'];
+              return (
+                <Section title="Ubicación">
+                  <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
+                    <iframe title={`Mapa de ${dev.name}`} src={mapSrc} style={{ width: '100%', height: 280, border: 0, display: 'block' }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                    <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto', borderTop: `1px solid ${CARD_LINE}` }}>
+                      {pois.map((c) => <a key={c} href={gmaps(c)} target="_blank" rel="noreferrer" onClick={() => fvSignal('section_view', { entity_id: dev.id, colonia: dev.colonia, value: `poi:${c.toLowerCase()}` })} style={{ padding: '8px 14px', borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.link, fontFamily: FONT, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none' }}>{c}</a>)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 16px', fontFamily: FONT, fontSize: 14, color: C.ink2, borderTop: `1px solid ${C.line2}` }}>
+                      <span>📍 {addr}</span>
+                      <a href={gmaps('')} target="_blank" rel="noreferrer" style={{ color: C.link, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>Abrir en Google Maps →</a>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto' }}>
-                    {['Escuelas', 'Restaurantes', 'Supermercados', 'Café', 'Transporte', 'Parques'].map((c) => <button key={c} style={{ padding: '8px 14px', borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontSize: 13, cursor: 'default', whiteSpace: 'nowrap' }}>{c}</button>)}
-                  </div>
-                  <div style={{ padding: '14px 16px', fontFamily: FONT, fontSize: 14, color: C.ink2, borderTop: `1px solid ${C.line2}` }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
-                </div>
-              </Section>
-            )}
+                </Section>
+              );
+            })()}
 
             {activeNav === 'inversion' && (
               <Section title="Calculadora de inversión">
