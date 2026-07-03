@@ -66,12 +66,94 @@ const NAV = [
   ['confianza', 'Confianza'],
 ];
 
+// ════════════════════ MODAL DE MODELO (patrón apartments.com "Detalles del modelo") ════════════════════
+// Header con selector de modelo + CTAs + tabs · izquierda specs/características · derecha plano.
+// UPGRADE DMX (apts.com NO tiene): posición de precio vs mercado (AVM) por modelo.
+function VentaModeloModal({ dev, models, activeProto, avm, onClose, onSelectUnit, onAgendar }) {
+  const [proto, setProto] = useState(activeProto);
+  const [tab, setTab] = useState('detalles');
+  const m = models.find((x) => x.proto === proto) || models[0];
+  if (!m) return null;
+  const plano = planoOf(dev, m.us[0]);
+  const rep = m.us.find((u) => u.status === 'disponible') || m.us[0];
+  const range = m.min === m.max ? money(m.min) : `${money(m.min)} – ${money(m.max)}`;
+  const specs = [m.beds.length ? `${m.beds[0]}${m.beds[0] === m.beds[m.beds.length - 1] ? '' : '–' + m.beds[m.beds.length - 1]} rec` : null, m.baths.length ? `${m.baths[0]} baños` : null, m.m2min ? (m.m2min === m.m2max ? `${m.m2min} m²` : `${m.m2min}–${m.m2max} m²`) : null].filter(Boolean).join(' · ');
+  // AVM del modelo: toma el de una unidad representativa
+  const a = avm[rep && rep.id];
+  const interior = (Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 6).map((x) => amenInfo(x).label);
+  const planoRows = [rep && rep.m2_privative && `${rep.m2_privative} m² privativos`, rep && rep.m2_balcony && `${rep.m2_balcony} m² balcón`, rep && rep.m2_terrace && `${rep.m2_terrace} m² terraza`, rep && rep.m2_roof_garden && `${rep.m2_roof_garden} m² roof garden`, rep && rep.level != null && `Piso ${rep.level}`].filter(Boolean);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(250,249,247,0.98)', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1160, margin: '0 auto', padding: '22px 24px 60px' }}>
+        {/* header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <select value={proto} onChange={(e) => setProto(e.target.value)} aria-label="Elegir modelo" style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: 'var(--cream)', background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', borderRadius: 10, padding: '11px 14px', cursor: 'pointer' }}>
+            {models.map((x) => <option key={x.proto} value={x.proto}>{protoName(x.proto)} · {x.avail} disponible{x.avail === 1 ? '' : 's'}</option>)}
+          </select>
+          <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 24, color: 'var(--cream-2)', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ display: 'flex', gap: 12, margin: '14px 0 18px', flexWrap: 'wrap' }}>
+          <button onClick={() => { onSelectUnit(rep); onClose(); }} style={{ flex: 1, minWidth: 200, padding: '13px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Ver mis números con esta unidad</button>
+          <button onClick={() => { onAgendar(); onClose(); }} style={{ flex: 1, minWidth: 200, padding: '13px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Agendar visita</button>
+        </div>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--card-border, var(--border))', marginBottom: 22 }}>
+          {[['detalles', 'Detalles del modelo'], ['plano', 'Plano']].map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} style={{ padding: '10px 16px', border: 'none', borderBottom: tab === k ? '2.5px solid var(--theme)' : '2.5px solid transparent', background: 'transparent', color: tab === k ? 'var(--theme)' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>{l}</button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 34 }} className="dmx-modelo-grid">
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 30, color: 'var(--cream)', lineHeight: 1.05 }}>{protoName(m.proto)}</div>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 24, color: 'var(--cream)', marginTop: 3 }}>{range}</div>
+            <div style={{ fontFamily: SANS, fontSize: 14, color: 'var(--cream-2)', marginTop: 4 }}>{specs}</div>
+            {/* UPGRADE DMX: posición de precio vs mercado */}
+            {a && (
+              <div style={{ marginTop: 16, padding: '12px 15px', borderRadius: 12, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.22)' }}>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>✨ Solo en DMX · precio vs mercado</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: AVM_COLOR[a.color] || 'var(--cream)' }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || 'var(--cream-3)' }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}
+                </div>
+              </div>
+            )}
+            <div style={{ height: 1, background: 'var(--card-border, var(--border))', margin: '20px 0' }} />
+            {interior.length > 0 && (
+              <>
+                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 10 }}>Características</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '8px 16px' }}>
+                  {interior.map((x, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: SANS, fontSize: 14, color: 'var(--cream-2)' }}><span style={{ width: 6, height: 6, borderRadius: 9999, background: 'var(--theme)' }} />{titleCase(x)}</div>)}
+                </div>
+              </>
+            )}
+            {planoRows.length > 0 && (
+              <div style={{ marginTop: 22 }}>
+                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 10 }}>Detalles del plano</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {planoRows.map((x, i) => <div key={i} style={{ fontFamily: SANS, fontSize: 14, color: 'var(--cream-2)' }}>· {x}</div>)}
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--card-border, var(--border))', background: '#EDEEF1', aspectRatio: '4/3' }}>
+              {plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 40, color: 'var(--cream-3)' }}>{protoName(m.proto)}</div>}
+            </div>
+            <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)', marginTop: 8 }}>{protoName(m.proto)}</div>
+          </div>
+        </div>
+        <style>{`@media(max-width:760px){ .dmx-modelo-grid{ grid-template-columns: 1fr !important; } }`}</style>
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════ PRECIOS Y MODELOS (patrón apartments.com) ════════════════════
-function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
+function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar }) {
   const allUnits = dev.units || [];
   const [avm, setAvm] = useState({});
   const [expanded, setExpanded] = useState({});   // {proto: true} = mostrar todas las unidades del modelo
   const [bed, setBed] = useState('all');           // filtro por recámaras (Todas / 1 / 2 / 3…)
+  const [openModel, setOpenModel] = useState(null); // proto del modal de detalle de modelo
 
   // opciones de recámaras presentes (para las tabs estilo apartments.com)
   const bedOpts = [...new Set(allUnits.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b);
@@ -133,9 +215,11 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
                 <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, color: 'var(--cream)', lineHeight: 1.1 }}>{protoName(m.proto)}</div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginTop: 2 }}>{rangeTxt(m.min, m.max)}</div>
                 <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 3 }}>{specs}</div>
-                <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => onSelectUnit(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkBtn}>Ver este modelo →</button>
-                  <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: m.avail <= 3 && m.avail > 0 ? '#DC2626' : '#059669' }}>{m.avail === 0 ? 'Agotado' : `${m.avail} disponible${m.avail === 1 ? '' : 's'}`}</span>
+                <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button onClick={() => setOpenModel(m.proto)} style={linkBtn}>Detalles del modelo</button>
+                  <span style={{ color: 'var(--cream-3)' }}>·</span>
+                  <button onClick={() => onSelectUnit(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkBtn}>Ver mis números →</button>
+                  <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: m.avail <= 3 && m.avail > 0 ? '#DC2626' : '#059669', marginLeft: 'auto' }}>{m.avail === 0 ? 'Agotado' : `${m.avail} disponible${m.avail === 1 ? '' : 's'}`}</span>
                 </div>
               </div>
             </div>
@@ -182,6 +266,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
           </Card>
         );
       })}
+      {openModel && <VentaModeloModal dev={dev} models={models} activeProto={openModel} avm={avm} onClose={() => setOpenModel(null)} onSelectUnit={onSelectUnit} onAgendar={() => onAgendar && onAgendar()} />}
     </div>
   );
 }
@@ -538,7 +623,7 @@ export default function FichaVenta({ user, onLogin }) {
             </Section>
 
             <Section id="precios" refEl={refs.precios} title="Precios y modelos" sub="Cada modelo con su rango de precio y las unidades disponibles. Su posición vs el mercado (AVM) al lado. Elige una para ver tus números.">
-              <VentaPrecios dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} />
+              <VentaPrecios dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onAgendar={() => agendar('agendar')} />
             </Section>
 
             <Section id="dinero" refEl={refs.dinero} title="Tu dinero" sub="Cómo pagas al desarrollador y qué rendimiento esperar. Calculado con datos reales, por unidad.">
