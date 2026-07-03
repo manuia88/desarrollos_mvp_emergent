@@ -26,7 +26,6 @@ import FichaHipotecaComparador from '../components/ficha/FichaHipotecaComparador
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
 import FichaPlanDesarrollador from '../components/ficha/FichaPlanDesarrollador';
 import FichaResumenCierre from '../components/ficha/FichaResumenCierre';
-import FichaInversionCalc from '../components/ficha/FichaInversionCalc';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import DevStructuredData from '../components/seo/DevStructuredData';
@@ -1100,7 +1099,7 @@ function TabPlanesPago({ dev, unit, onLead }) {
 
 // ═══════════════ TAB · INVERSIÓN (personal + institucional) ═══════════════
 // Reusa SeccionCalcInversion (motor inversion-v4). Toggle 👤/🏛️ + multi-select de fondo.
-function TabInversion({ dev, unit, onGoTo, onLead }) {
+function TabInversion({ dev, unit, onGoTo }) {
   const [mode, setMode] = useState('individual');
   const [fundIds, setFundIds] = useState(() => new Set());
   const [pickedKey, setPickedKey] = useState(null);
@@ -1148,7 +1147,7 @@ function TabInversion({ dev, unit, onGoTo, onLead }) {
       ) : (mode === 'institucional' && fundUnits.length === 0) ? (
         <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Selecciona al menos una unidad para armar tu fondo.</div>
       ) : mode === 'individual' ? (
-        <FichaInversionCalc key={`ind-${defUnit.id || defUnit.unit_number}`} precio={defUnit.price} zoneId={dev.colonia_id || dev.colonia} devId={dev.id} devName={dev.name} unitLabel={`Unidad ${defUnit.unit_number} · ${money(defUnit.price)}`} onLead={() => { if (onLead) onLead(defUnit); }} />
+        <InversionV4Calculator key={`ind-${defUnit.id || defUnit.unit_number}`} mode="individual" prefilled={{ precio: defUnit.price }} lockPrice zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
       ) : (
         <InversionV4Calculator key={`inst-${fundUnits.map((u) => u.id || u.unit_number).join('_')}`} mode="institucional" portfolioUnits={fundUnits.map((u) => ({ label: u.unit_number, precio: u.price, renta: Math.round(u.price * 0.0045) }))} zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
       )}
@@ -1312,7 +1311,7 @@ export default function FichaVenta() {
 
             {activeNav === 'inversion' && (
               <Section title="Calculadora de inversión">
-                <TabInversion dev={dev} unit={unit} onGoTo={goTab} onLead={(u) => { if (u) pickUnit(u); agendar('agendar'); }} />
+                <TabInversion dev={dev} unit={unit} onGoTo={goTab} />
               </Section>
             )}
 
