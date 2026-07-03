@@ -277,7 +277,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
           return (
             <div key={m.proto} style={{ ...box, overflow: 'hidden' }}>
               <div style={{ display: 'flex', gap: 16, padding: 16, flexWrap: 'wrap' }}>
-                <button onClick={() => onOpenModel(m.proto)} style={{ width: 128, height: 96, borderRadius: 8, overflow: 'hidden', flex: 'none', background: C.bgSoft, border: `1px solid ${C.line}`, padding: 0, cursor: 'pointer' }}>
+                <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={{ width: 128, height: 96, borderRadius: 8, overflow: 'hidden', flex: 'none', background: C.bgSoft, border: `1px solid ${C.line}`, padding: 0, cursor: 'pointer' }}>
                   {plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</span>}
                 </button>
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -285,7 +285,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                   <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 19, color: C.ink, marginTop: 1 }}>{rng(m.min, m.max)}</div>
                   <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 3 }}>{specs}</div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={() => onOpenModel(m.proto)} style={linkA}>Detalles del modelo</button>
+                    <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkA}>Detalles del modelo</button>
                     <span style={{ color: C.line }}>·</span>
                     <button onClick={() => onSelectUnit(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkA}>Ver mis números →</button>
                     <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: m.avail > 0 && m.avail <= 3 ? C.red : m.avail === 0 ? C.faint : C.green, marginLeft: 'auto' }}>{m.avail === 0 ? 'Agotado' : `${m.avail} disponible${m.avail === 1 ? '' : 's'}`}</span>
@@ -307,7 +307,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                             <td style={{ padding: '11px 12px', fontSize: 13, color: C.ink2 }}>{m2of(u) ? `${m2of(u)} m²` : '—'}</td>
                             <td style={{ padding: '11px 12px', fontSize: 12.5, fontWeight: 700, color: est.c }}>{est.l}</td>
                             <td style={{ padding: '11px 12px' }}>{a ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</span> : <span style={{ color: C.faint }}>—</span>}</td>
-                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><button onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u.prototype); }} style={{ padding: '6px 14px', borderRadius: R_BTN, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Ver detalles</button></td>
+                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><button onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u); }} style={{ padding: '6px 14px', borderRadius: R_BTN, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Ver detalles</button></td>
                           </tr>
                         );
                       })}
@@ -324,53 +324,115 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
   );
 }
 
-// ════════════════════ MODAL DE MODELO ════════════════════
-function ModeloModal({ dev, models, activeProto, avm, onClose, onSelectUnit, onAgendar }) {
-  const [proto, setProto] = useState(activeProto);
+// ════════════════════ FICHA DE UNIDAD ("Ver detalles" · spec §7.1) ════════════════════
+// Shell casi pantalla completa · cabecera fija (selector de unidad agrupado por modelo + tel + X) ·
+// grupo de CTAs · 3 pestañas (Detalles de la unidad / Detalles del precio[standby] / Mapa[standby]).
+function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUnit, onConv }) {
+  const allUnits = dev.units || [];
+  const [uid, setUid] = useState((initUnit && (initUnit.id || initUnit.unit_number)) || (allUnits[0] && (allUnits[0].id || allUnits[0].unit_number)));
   const [tab, setTab] = useState('detalles');
+  const [expand, setExpand] = useState(false);
   useLockScroll();
-  useEffect(() => { const h = (e) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);
-  const m = models.find((x) => x.proto === proto) || models[0]; if (!m) return null;
-  const plano = planoOf(dev, m.us[0]) || (dev.photos || [])[0];
-  const rep = m.us.find((u) => u.status === 'disponible') || m.us[0];
-  const range = m.min === m.max ? money(m.min) : `${money(m.min)} – ${money(m.max)}`;
-  const a = avm[rep && rep.id];
-  const interior = (Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 6).map((x) => amenInfo(x).label);
-  const planoRows = [rep && rep.m2_privative && `${rep.m2_privative} m² privativos`, rep && rep.m2_balcony && `${rep.m2_balcony} m² balcón`, rep && rep.m2_terrace && `${rep.m2_terrace} m² terraza`, rep && rep.m2_roof_garden && `${rep.m2_roof_garden} m² roof garden`, rep && rep.level != null && `Piso ${rep.level}`].filter(Boolean);
+  useEffect(() => { const h = (e) => { if (e.key === 'Escape') { setExpand((ex) => { if (ex) return false; onClose(); return ex; }); } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);
+  const u = allUnits.find((x) => (x.id || x.unit_number) === uid) || initUnit || allUnits[0];
+  if (!u) return null;
+  const developer = dev.developer || {};
+  const plano = planoOf(dev, u) || (dev.photos || [])[0];
+  const a = avm[u.id];
+  const est = ESTADO[u.status] || ESTADO.disponible;
+  const specs = [u.bedrooms != null && `${u.bedrooms} rec`, u.bathrooms != null && `${u.bathrooms} baños`, m2of(u) && `${m2of(u)} m²`, u.parking_spots && `${u.parking_spots} estac.`].filter(Boolean).join(' · ');
+  const dispoDate = u.available_date || u.entrega || dev.delivery_estimate || null;
+  const feats = [
+    u.m2_privative && `${u.m2_privative} m² privativos`,
+    u.m2_balcony && `${u.m2_balcony} m² de balcón`,
+    u.m2_terrace && `${u.m2_terrace} m² de terraza`,
+    u.m2_roof_garden && `${u.m2_roof_garden} m² de roof garden`,
+    u.level != null && `Piso ${u.level}`,
+    u.vista && `Vista ${titleCase(u.vista)}`,
+    ...(Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 8).map((x) => titleCase(amenInfo(x).label)),
+  ].filter(Boolean);
+  const groups = {}; allUnits.forEach((x) => { const k = x.prototype || '?'; (groups[k] = groups[k] || []).push(x); });
+  const TABS = [['detalles', 'Detalles de la unidad'], ['precio', 'Detalles del precio'], ['mapa', 'Mapa de la unidad']];
+  const StandbyPanel = ({ icon, title, body }) => (
+    <div style={{ ...box, padding: '40px 24px', textAlign: 'center', maxWidth: 620, margin: '0 auto' }}>
+      <div style={{ fontSize: 34 }}>{icon}</div>
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.ink, marginTop: 10 }}>{title}</div>
+      <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 6, lineHeight: 1.6 }}>{body}</div>
+      <div style={{ marginTop: 16 }}><button onClick={() => { onSelectUnit(u); onConv('agendar'); }} style={{ padding: '11px 20px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Que un asesor me arme los números</button></div>
+    </div>
+  );
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(255,255,255,0.99)', overflowY: 'auto' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1120, margin: '0 auto', padding: '20px 24px 60px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <select value={proto} onChange={(e) => setProto(e.target.value)} aria-label="Elegir modelo" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink, background: '#fff', border: `1px solid ${C.line}`, borderRadius: 9, padding: '11px 14px', cursor: 'pointer' }}>
-            {models.map((x) => <option key={x.proto} value={x.proto}>{protoName(x.proto)} · {x.avail} disponible{x.avail === 1 ? '' : 's'}</option>)}
+        {/* CABECERA FIJA: selector de unidad agrupado por modelo + teléfono + X */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', position: 'sticky', top: 0, background: '#fff', paddingTop: 4, paddingBottom: 12, zIndex: 3 }}>
+          <select value={uid} onChange={(e) => setUid(e.target.value)} aria-label="Elegir unidad" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink, background: '#fff', border: `1px solid ${C.line}`, borderRadius: R_BTN, padding: '11px 14px', cursor: 'pointer', maxWidth: '70%' }}>
+            {Object.entries(groups).map(([p, us]) => (
+              <optgroup key={p} label={`${protoName(p)} · ${us.length} unidad${us.length === 1 ? '' : 'es'} · desde ${money(Math.min(...us.map((x) => x.price || Infinity)))}`}>
+                {us.map((x) => <option key={x.id || x.unit_number} value={x.id || x.unit_number}>{x.unit_number} · {money(x.price)} · {(ESTADO[x.status] || ESTADO.disponible).l}</option>)}
+              </optgroup>
+            ))}
           </select>
-          <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 24, color: C.ink2, cursor: 'pointer' }}>✕</button>
-        </div>
-        <div style={{ display: 'flex', gap: 12, margin: '14px 0 18px', flexWrap: 'wrap' }}>
-          <button onClick={() => { onSelectUnit(rep); onClose(); }} style={{ flex: 1, minWidth: 200, padding: 13, borderRadius: R_BTN, border: 'none', background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>Ver mis números con esta unidad</button>
-          <button onClick={() => { onAgendar(); onClose(); }} style={{ flex: 1, minWidth: 200, padding: 13, borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>Agendar visita</button>
-        </div>
-        <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line}`, marginBottom: 22 }}>
-          {[['detalles', 'Detalles del modelo'], ['plano', 'Plano']].map(([k, l]) => <button key={k} onClick={() => setTab(k)} style={{ padding: '10px 4px', marginRight: 20, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{l}</button>)}
-        </div>
-        <div className="dmx-modelo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 34 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 28, color: C.ink }}>{protoName(m.proto)}</div>
-            <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 22, color: C.ink, marginTop: 2 }}>{range}</div>
-            <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 4 }}>{[m.beds.length && `${m.beds[0]} rec`, m.baths.length && `${m.baths[0]} baños`, m.m2min && `${m.m2min} m²`].filter(Boolean).join(' · ')}</div>
-            {a && (
-              <div style={{ marginTop: 16, padding: '12px 15px', borderRadius: 10, background: C.accentSoft, border: `1px solid ${C.accent}33` }}>
-                <DmxChip /><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontFamily: FONT, fontWeight: 700, fontSize: 16, color: AVM_COLOR[a.color] || C.ink }}><span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}</div>
-              </div>
-            )}
-            <div style={{ height: 1, background: C.line, margin: '20px 0' }} />
-            {interior.length > 0 && <><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 10 }}>Características</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: '8px 16px' }}>{interior.map((x, i) => <div key={i} style={{ fontFamily: FONT, fontSize: 14, color: C.ink2 }}>· {titleCase(x)}</div>)}</div></>}
-            {planoRows.length > 0 && <div style={{ marginTop: 22 }}><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 10 }}>Detalles del plano</div>{planoRows.map((x, i) => <div key={i} style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginBottom: 5 }}>· {x}</div>)}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {developer.phone && <a href={`tel:${developer.phone}`} style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.link, textDecoration: 'none', whiteSpace: 'nowrap' }}>📱 {developer.phone}</a>}
+            <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 24, color: C.ink2, cursor: 'pointer', lineHeight: 1 }}>✕</button>
           </div>
-          <div><div style={{ border: `1px solid ${C.line}`, borderRadius: 12, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>{plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</div>}</div><div style={{ textAlign: 'center', fontFamily: FONT, fontSize: 13, color: C.faint, marginTop: 8 }}>{protoName(m.proto)}</div></div>
         </div>
+        {/* GRUPO DE CTAs */}
+        <div style={{ display: 'flex', gap: 12, margin: '4px 0 18px', flexWrap: 'wrap' }}>
+          <button onClick={() => { onSelectUnit(u); onConv('agendar'); }} style={{ flex: 1, minWidth: 180, padding: 13, borderRadius: R_BTN, border: 'none', background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>Agendar recorrido</button>
+          <button onClick={() => { onSelectUnit(u); onConv('mensaje'); }} style={{ flex: 1, minWidth: 160, padding: 13, borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>Enviar mensaje</button>
+          <button onClick={() => { onSelectUnit(u); onConv('agendar'); }} style={{ flex: 1, minWidth: 160, padding: 13, borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>Apartar unidad ↗</button>
+        </div>
+        {/* BARRA DE PESTAÑAS */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line}`, marginBottom: 22, overflowX: 'auto' }}>
+          {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} style={{ padding: '10px 4px', marginRight: 24, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: tab === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>)}
+        </div>
+
+        {tab === 'detalles' && (
+          <div className="dmx-modelo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 34 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 28, color: C.ink }}>Unidad {u.unit_number}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 22, color: C.ink }}>{money(u.price)}</span>
+                <span style={{ color: C.link, fontSize: 15 }}>✓</span>
+              </div>
+              <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 4 }}>{specs}</div>
+              <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: est.c, marginTop: 6 }}>{est.l}{dispoDate ? ` · disponible ${dispoDate}` : ''}</div>
+              {a && (
+                <div style={{ marginTop: 16, padding: '12px 15px', borderRadius: R_CARD, background: C.accentSoft, border: `1px solid ${C.accent}33` }}>
+                  <DmxChip /><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontFamily: FONT, fontWeight: 700, fontSize: 16, color: AVM_COLOR[a.color] || C.ink }}><span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}</div>
+                </div>
+              )}
+              <div style={{ height: 1, background: C.line, margin: '20px 0' }} />
+              {/* Bloque Precios con enlace Calculadora de costos (spec §7.1) */}
+              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 8 }}>Precios</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: FONT, fontSize: 14, color: C.ink2 }}><span>Precio de lista</span><b style={{ color: C.ink }}>{money(u.price)}</b></div>
+              <button onClick={() => setTab('precio')} style={{ ...linkA, marginTop: 8 }}>Calculadora de costos →</button>
+              <div style={{ height: 1, background: C.line, margin: '20px 0' }} />
+              {/* Características en 2 columnas */}
+              {feats.length > 0 && <><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 10 }}>Características</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px 18px' }}>{feats.map((x, i) => <div key={i} style={{ fontFamily: FONT, fontSize: 14, color: C.ink2 }}>· {x}</div>)}</div></>}
+            </div>
+            <div>
+              <div style={{ position: 'relative', border: `1px solid ${C.line}`, borderRadius: R_CARD, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>
+                {plano ? <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(u.prototype)}</div>}
+                {plano && <button onClick={() => setExpand(true)} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
+              </div>
+              <div style={{ textAlign: 'center', fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink2, marginTop: 8 }}>{protoName(u.prototype)}</div>
+              <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>Los planos e imágenes son ilustrativos. Medidas, acabados y áreas pueden variar según el contrato de compraventa.</div>
+            </div>
+          </div>
+        )}
+        {tab === 'precio' && <StandbyPanel icon="🧮" title="Calculadora de costos" body="Estima enganche, mensualidades durante obra y gastos de escrituración para esta unidad. Estamos afinando la calculadora en vivo — mientras tanto, un asesor te arma los números al detalle." />}
+        {tab === 'mapa' && <StandbyPanel icon="🗺️" title="Mapa de la unidad" body={`Ubicación de la unidad ${u.unit_number}${u.level != null ? ` (piso ${u.level})` : ''} dentro del plano del edificio. El plano interactivo del nivel llega pronto.`} />}
         <style>{`@media(max-width:760px){ .dmx-modelo-grid{ grid-template-columns: 1fr !important; } }`}</style>
       </div>
+      {expand && plano && (
+        <div onClick={() => setExpand(false)} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(16,18,28,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <button onClick={() => setExpand(false)} aria-label="Cerrar" style={{ position: 'absolute', top: 18, right: 22, background: 'none', border: 'none', color: '#fff', fontSize: 28, cursor: 'pointer' }}>✕</button>
+          <img src={plano} alt={`Plano unidad ${u.unit_number}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '95%', maxHeight: '92%', objectFit: 'contain', borderRadius: 8, background: '#fff' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -726,8 +788,6 @@ export default function FichaVenta() {
   const bedR = rangeOf(units.map((u) => u.bedrooms));
   const bathR = rangeOf(units.map((u) => u.bathrooms));
   const m2R = rangeOf(units.map(m2of));
-  const groups = {}; units.forEach((u) => { const k = u.prototype || '?'; (groups[k] = groups[k] || []).push(u); });
-  const models = Object.entries(groups).map(([proto, us]) => { const prices = us.map((u) => u.price).filter(Boolean); const m2s = us.map(m2of).filter(Boolean); return { proto, us, min: Math.min(...prices), max: Math.max(...prices), m2min: Math.min(...m2s), m2max: Math.max(...m2s), beds: [...new Set(us.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b), baths: [...new Set(us.map((u) => u.bathrooms).filter((x) => x != null))].sort((a, b) => a - b), avail: us.filter((u) => u.status === 'disponible').length }; }).sort((a, b) => a.min - b.min);
   const destak = [
     { i: '🏗️', l: STAGE[dev.stage] || dev.stage, s: dev.delivery_estimate ? `Entrega ${dev.delivery_estimate}` : 'Entrega por confirmar' },
     nUnits > 0 && { i: '🏢', l: `${nUnits} unidades`, s: `${units.filter((u) => u.status === 'disponible').length} disponibles` },
@@ -882,7 +942,7 @@ export default function FichaVenta() {
       <style>{`@media(max-width:940px){ .dmx-venta-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-venta-side{ position: static !important; } .dmx-venta-mobilebar{ display: flex !important; } } @media(max-width:600px){ .dmx-amen-3{ grid-template-columns: repeat(2,1fr) !important; } .dmx-amen-2{ grid-template-columns: 1fr !important; } } .dmx-sim{ transition: box-shadow .15s, transform .15s; } .dmx-sim:hover{ box-shadow: 0 8px 22px rgba(16,24,40,0.10); transform: translateY(-2px); }`}</style>
 
       {gallery && <GalleryModal dev={dev} scans={scans} startAt={gallery.i} startTab={gallery.tab} onClose={() => setGallery(null)} />}
-      {openModel && <ModeloModal dev={dev} models={models} activeProto={openModel} avm={avm} onClose={() => setOpenModel(null)} onSelectUnit={pickUnit} onAgendar={() => agendar('agendar')} />}
+      {openModel && <ModeloModal dev={dev} unit={openModel} avm={avm} scans={scans} onClose={() => setOpenModel(null)} onSelectUnit={pickUnit} onConv={(t) => { setOpenModel(null); agendar(t); }} />}
       <AtlaxBubble theme="light" context={atlaxContext} quickActions={atlaxQuick} dev={dev} unit={unit} lens={lens} />
       {conv?.type === 'agendar' && <AgendarModal dev={dev} unit={unit} onClose={() => setConv(null)} />}
       {conv?.type === 'mensaje' && <MensajeModal dev={dev} unit={unit} onClose={() => setConv(null)} />}
