@@ -15,16 +15,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PublicNav, LightScope } from '../components/ui';
-import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
+import { fetchDevelopment, fetchDevelopments, calculateMortgage } from '../api/marketplace';
+import { getIsaiComprador, getClosingCost } from '../api/tax_projector';
 import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
-// EN STANDBY (founder) hasta terminar el diseño puro — se re-cablean después:
-// import SeccionPanorama from '../components/ficha/SeccionPanorama';
-// import PlanDePago from '../components/ficha/PlanDePago';
-// import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
-// import SeccionDinero from '../components/ficha/SeccionDinero';
-// import SeccionConfianza from '../components/ficha/SeccionConfianza';
-// import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
+// Calculadora de inversión (personal + institucional) — reusa motor inversion-v4 (theme-adaptive dentro de LightScope)
+import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import DevStructuredData from '../components/seo/DevStructuredData';
@@ -68,14 +64,14 @@ const planoOf = (dev, u) => u.plano_url || u.render_url || ((dev.config || {}).p
 // Nota: Tu dinero (calculadoras), Confianza y el mapa/crédito quedan EN STANDBY (founder) para clonar
 // el diseño puro de apartments.com primero. Se re-cablearán después. Se conservan sus imports comentados.
 const NAV = [
-  ['destacados', 'Destacados'],
+  ['destacados', 'El proyecto'],
   ['precios', 'Precios y modelos'],
-  ['tarifas', 'Tarifas y políticas'],
+  ['tarifas', 'Planes de pago'],
   ['tour', 'Recorrido 3D'],
   ['servicios', 'Servicios'],
   ['detalles', 'Detalles'],
   ['ubicacion', 'Ubicación'],
-  ['resenas', 'Reseñas'],
+  ['inversion', 'Inversión'],
 ];
 
 // ── átomos UI estilo apts ────────────────────────────────────────────────────
@@ -83,8 +79,8 @@ const box = { background: C.bg, border: `1px solid ${CARD_LINE}`, borderRadius: 
 // spec §1.2: títulos de sección 30px, peso Regular (400), line-height ~1.2, gris #4c4c4c
 function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 30, lineHeight: 1.2, color: C.ink2, margin: 0, letterSpacing: 0 }}>{children}</h2>; }
 function DmxChip() { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentSoft, border: `1px solid ${C.accent}33`, borderRadius: 9999, padding: '2px 9px', letterSpacing: '0.02em' }}>✦ Solo en DMX</span>; }
-function CtaGrad({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
-function CtaGhost({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
+function CtaGrad({ onClick, children }) { return <button className="dmx-press" onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
+function CtaGhost({ onClick, children }) { return <button className="dmx-press" onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
 const linkA = { background: 'none', border: 'none', padding: 0, color: C.link, fontFamily: FONT, fontWeight: 400, fontSize: 15, cursor: 'pointer' };
 const iconBtn = { width: 38, height: 38, borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontSize: 15, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
 
@@ -278,7 +274,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
           const show = expanded[m.proto] ? m.us : m.us.slice(0, 3);
           const specs = [m.beds.length ? (m.beds[0] === m.beds[m.beds.length - 1] ? bedLabel(m.beds[0]) : `${m.beds[0]}–${m.beds[m.beds.length - 1]} rec`) : null, m.baths.length ? `${m.baths[0]} baños` : null, m.m2min ? (m.m2min === m.m2max ? `${m.m2min} m²` : `${m.m2min}–${m.m2max} m²`) : null].filter(Boolean).join(' · ');
           return (
-            <div key={m.proto} style={{ ...box, overflow: 'hidden' }}>
+            <div key={m.proto} className="dmx-card" style={{ ...box, overflow: 'hidden' }}>
               <div style={{ display: 'flex', gap: 16, padding: 16, flexWrap: 'wrap' }}>
                 <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={{ width: 128, height: 96, borderRadius: 8, overflow: 'hidden', flex: 'none', background: C.bgSoft, border: `1px solid ${C.line}`, padding: 0, cursor: 'pointer' }}>
                   {plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</span>}
@@ -298,19 +294,24 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
               <div style={{ background: C.bgSoft, padding: '8px 10px 10px', borderTop: `1px solid ${C.line2}` }}>
                 <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink, padding: '6px 6px 10px' }}>{m.us.length} unidad{m.us.length === 1 ? '' : 'es'}</div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, minWidth: 560, background: '#fff', borderRadius: 8 }}>
-                    <thead><tr>{['Unidad', 'Precio', 'm²', 'Disponibilidad', <span key="a" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>Precio vs mercado <span style={{ fontSize: 9, color: C.accent }}>✦</span></span>, ''].map((h, i) => <th key={i} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: `1px solid ${C.line}` }}>{h}</th>)}</tr></thead>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, minWidth: 760, background: '#fff', borderRadius: 8 }}>
+                    <thead><tr>{['Unidad', 'Nivel', 'Rec', 'Baños', 'Estac.', 'm²', 'Precio', 'Disponibilidad', <span key="a" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>Precio vs mercado <span style={{ fontSize: 9, color: C.accent }}>✦</span></span>, ''].map((h, i) => <th key={i} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: `1px solid ${C.line}`, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                     <tbody>
                       {show.map((u) => {
                         const est = ESTADO[u.status] || ESTADO.disponible; const a = avm[u.id]; const sel = selectedUnit && selectedUnit.id === u.id;
+                        const td = { padding: '11px 12px', fontSize: 13, color: C.ink2, whiteSpace: 'nowrap' };
                         return (
-                          <tr key={u.id || u.unit_number} onClick={() => onSelectUnit(u)} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
-                            <td style={{ padding: '11px 12px', fontFamily: FONT, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{u.unit_number}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink }}>{money(u.price)}</td>
-                            <td style={{ padding: '11px 12px', fontSize: 13, color: C.ink2 }}>{m2of(u) ? `${m2of(u)} m²` : '—'}</td>
-                            <td style={{ padding: '11px 12px', fontSize: 12.5, fontWeight: 700, color: est.c }}>{est.l}</td>
-                            <td style={{ padding: '11px 12px' }}>{a ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</span> : <span style={{ color: C.faint }}>—</span>}</td>
-                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><button onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u); }} style={{ padding: '6px 14px', borderRadius: R_BTN, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Ver detalles</button></td>
+                          <tr key={u.id || u.unit_number} className="dmx-row" onClick={() => onSelectUnit(u)} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
+                            <td style={{ ...td, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{u.unit_number}</td>
+                            <td style={td}>{u.level != null ? `P${u.level}` : '—'}</td>
+                            <td style={td}>{u.bedrooms != null ? u.bedrooms : '—'}</td>
+                            <td style={td}>{u.bathrooms != null ? u.bathrooms : '—'}</td>
+                            <td style={td}>{u.parking_spots != null ? u.parking_spots : '—'}</td>
+                            <td style={td}>{m2of(u) ? `${m2of(u)} m²` : '—'}</td>
+                            <td style={{ ...td, fontWeight: 700, fontSize: 14, color: C.ink }}>{money(u.price)}</td>
+                            <td style={{ ...td, fontSize: 12.5, fontWeight: 700, color: est.c }}>{est.l}</td>
+                            <td style={{ padding: '11px 12px' }}>{a ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.ink2, whiteSpace: 'nowrap' }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</span> : <span style={{ color: C.faint }}>—</span>}</td>
+                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><button onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u); }} style={{ padding: '6px 14px', borderRadius: R_BTN, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ver detalles</button></td>
                           </tr>
                         );
                       })}
@@ -507,60 +508,6 @@ function VentaDetalles({ dev }) {
   return <div style={{ ...box, padding: '4px 18px' }}>{rows.map(([k, v], i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: i < rows.length - 1 ? `1px solid ${C.line2}` : 'none' }}><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 600, color: C.ink, textAlign: 'right' }}>{v}</span></div>)}</div>;
 }
 
-// ════════════════════ RESEÑAS ════════════════════
-function VentaResenas({ devId }) {
-  const [data, setData] = useState(undefined);
-  const [sort, setSort] = useState('recientes');
-  const [helpful, setHelpful] = useState({});
-  const [expandedRv, setExpandedRv] = useState({});
-  useEffect(() => { let alive = true; fetch(`${API}/api/reviews/development/${encodeURIComponent(devId)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setData(d || null); }).catch(() => { if (alive) setData(null); }); return () => { alive = false; }; }, [devId]);
-  const reviews = (data && (data.reviews || data.items)) || [];
-  const avg = data && (data.avg_rating ?? data.average ?? data.rating);
-  const total = (data && (data.total ?? data.count)) ?? reviews.length;
-  const dist = (data && (data.distribution || data.breakdown)) || null;
-  if (data === undefined) return <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Cargando reseñas…</div>;
-  if (!reviews.length && !avg) return <div style={{ ...box, padding: '26px 20px', textAlign: 'center' }}><div style={{ fontSize: 26, marginBottom: 8 }}>💬</div><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink }}>Aún no hay reseñas de residentes</div><div style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint, marginTop: 5 }}>Estamos recopilando opiniones verificadas de residentes y vecinos de la zona.</div></div>;
-  const maxN = dist ? Math.max(...[5, 4, 3, 2, 1].map((s) => dist[s] || 0), 1) : 1;
-  const stars = (n) => '★★★★★☆☆☆☆☆'.slice(5 - Math.round(n || 0), 10 - Math.round(n || 0));
-  const sorted = [...reviews].sort((a, b) => sort === 'calificacion' ? (b.rating || b.stars || 0) - (a.rating || a.stars || 0) : 0);
-  return (
-    <div>
-      <div style={{ ...box, padding: '20px 22px', display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ textAlign: 'center', flex: 'none' }}><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 44, color: C.accent, lineHeight: 1 }}>{avg ? Number(avg).toFixed(1) : '—'}</div><div style={{ color: '#F5A623', fontSize: 16, letterSpacing: 2, marginTop: 4 }}>{stars(avg)}</div><div style={{ fontFamily: FONT, fontSize: 12, color: C.faint, marginTop: 4 }}>{total} reseña{total === 1 ? '' : 's'}</div></div>
-        {dist && <div style={{ flex: 1, minWidth: 220 }}>{[5, 4, 3, 2, 1].map((s) => <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '3px 0' }}><span style={{ fontFamily: FONT, fontSize: 12, color: C.faint, width: 60 }}>{s} estrella{s === 1 ? '' : 's'}</span><div style={{ flex: 1, height: 8, borderRadius: 9999, background: C.line2, overflow: 'hidden' }}><div style={{ width: `${((dist[s] || 0) / maxN) * 100}%`, height: '100%', background: C.accent }} /></div><span style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, width: 26, textAlign: 'right' }}>{dist[s] || 0}</span></div>)}</div>}
-        <div style={{ flex: 'none' }}><button onClick={() => window.dispatchEvent(new CustomEvent('dmx:atlax-action', { detail: { nav: 'agendar' } }))} style={{ padding: '10px 18px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Escribe una evaluación</button></div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-        <label style={{ fontFamily: FONT, fontSize: 13, color: C.faint, display: 'inline-flex', alignItems: 'center', gap: 8 }}>Ordenar por
-          <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ fontFamily: FONT, fontSize: 13, color: C.ink, border: `1px solid ${C.line}`, borderRadius: R_BTN, padding: '6px 10px', background: '#fff', cursor: 'pointer' }}>
-            <option value="recientes">Más recientes</option>
-            <option value="calificacion">Mejor calificadas</option>
-          </select>
-        </label>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {sorted.slice(0, 6).map((rv, i) => (
-          <div key={i} style={{ ...box, padding: '16px 18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><span style={{ color: '#F5A623', fontSize: 14, letterSpacing: 2 }}>{stars(rv.rating || rv.stars)}</span><span style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>{rv.date || rv.created_at || rv.source || ''}</span></div>
-            {(rv.verified || rv.verified_buyer) && <div style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.green, marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>✓ Comprador verificado</div>}
-            {rv.title && <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink, marginTop: 8 }}>{rv.title}</div>}
-            {(() => { const txt = rv.text || rv.comment || rv.body || ''; const long = txt.length > 240; const shown = expandedRv[i] || !long; return (
-              <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 6, lineHeight: 1.6 }}>{shown ? txt : txt.slice(0, 240) + '… '}{long && <button onClick={() => setExpandedRv((e) => ({ ...e, [i]: !e[i] }))} style={{ ...linkA, fontSize: 13 }}>{expandedRv[i] ? 'Mostrar menos' : 'Mostrar reseña completa'}</button>}</div>
-            ); })()}
-            {(rv.owner_reply || rv.reply) && <div style={{ marginTop: 10, padding: '10px 13px', borderRadius: R_BTN, background: C.accentSoft, borderLeft: `3px solid ${C.accent}` }}><b style={{ fontFamily: FONT, fontSize: 12.5, color: C.accent }}>El desarrollador respondió:</b><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}> {rv.owner_reply || rv.reply}</span></div>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, fontFamily: FONT, fontSize: 12.5, color: C.faint }}>
-              <span>¿Fue útil esto?</span>
-              <button onClick={() => setHelpful((h) => ({ ...h, [i]: h[i] === 'y' ? null : 'y' }))} style={{ ...linkA, color: helpful[i] === 'y' ? C.accent : C.faint, fontWeight: 600 }}>👍 Sí</button>
-              <button onClick={() => setHelpful((h) => ({ ...h, [i]: h[i] === 'n' ? null : 'n' }))} style={{ ...linkA, color: helpful[i] === 'n' ? C.accent : C.faint, fontWeight: 600 }}>👎 No</button>
-              <button aria-label="Reportar" title="Reportar reseña" style={{ ...linkA, marginLeft: 'auto', fontSize: 13 }}>🚩</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ═══════════════ MODALES DE CONVERSIÓN (spec §8) ═══════════════
 // UI blanca coherente con la ficha. TODOS reusan el MISMO backend /api/buyer/registrar (no duplican motor).
 function useLockScroll() {
@@ -730,6 +677,277 @@ function CompartirModal({ dev, onClose }) {
   );
 }
 
+// ═══════════════ TAB 1 · EL PROYECTO (datos generales del desarrollo) ═══════════════
+function Fact({ icon, label, value }) {
+  if (value == null || value === '') return null;
+  return (
+    <div className="dmx-card" style={{ ...box, padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 12, color: C.faint }}><span style={{ fontSize: 14 }}>{icon}</span>{label}</div>
+      <div style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: C.ink }}>{value}</div>
+    </div>
+  );
+}
+function DataBlock({ title, children }) {
+  return <div style={{ marginTop: 28 }}><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 12 }}>{title}</div>{children}</div>;
+}
+function DataRow({ k, v, last }) {
+  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: last ? 'none' : `1px solid ${C.line2}` }}><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 600, color: C.ink, textAlign: 'right' }}>{v}</span></div>;
+}
+function TabGeneral({ dev }) {
+  const units = dev.units || [];
+  const rng = (arr, suf = '') => { const v = [...new Set(arr.filter((x) => x != null))].sort((a, b) => a - b); return v.length ? (v[0] === v[v.length - 1] ? `${v[0]}${suf}` : `${v[0]}–${v[v.length - 1]}${suf}`) : null; };
+  // rango real desde unidades (dev.*_range son sumas agregadas, no rangos — no usar)
+  const bedR = rng(units.map((u) => u.bedrooms)) || dev.bedrooms_range;
+  const bathR = rng(units.map((u) => u.bathrooms)) || dev.bathrooms_range;
+  const parkR = rng(units.map((u) => u.parking_spots)) || dev.parking_range;
+  const m2R = rng(units.map(m2of)) || dev.m2_range;
+  const nUnits = dev.units_total || dev.total_units || units.length || null;
+  const protos = [...new Set(units.map((u) => u.prototype).filter(Boolean))].length || null;
+  const tipo = dev.property_type ? titleCase(dev.property_type) : 'Departamentos';
+  const pm2s = units.map((u) => (u.price && m2of(u)) ? u.price / m2of(u) : null).filter(Boolean).sort((a, b) => a - b);
+  const pm2 = pm2s.length ? pm2s[Math.floor(pm2s.length / 2)] : null;
+  const ph = Array.isArray(dev.price_history) ? dev.price_history : [];
+  let plusv = null;
+  if (ph.length >= 2) { const a = ph[0].price, b = ph[ph.length - 1].price; if (a && b && b > a) plusv = `+${Math.round(((b - a) / a) * 100)}%`; }
+  const tec = dev.tecnica || (dev.config || {}).tecnica || {};
+  const memoria = Array.isArray(dev.memoria_acabados) ? dev.memoria_acabados : [];
+  const servicios = (dev.config || {}).servicios || dev.servicios || [];
+  const creds = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
+  const cp = dev.construction_progress || {};
+  const developer = dev.developer || {};
+  const total = dev.units_total || nUnits || 0;
+  const sold = dev.units_sold || 0; const res = dev.units_reserved || 0;
+  const avail = dev.units_available != null ? dev.units_available : units.filter((u) => u.status === 'disponible').length;
+  const chip = { fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink2, background: C.bgSoft, border: `1px solid ${CARD_LINE}`, borderRadius: 9999, padding: '6px 13px' };
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+        <Fact icon="🏢" label="Tipo de propiedad" value={tipo} />
+        <Fact icon="🛏️" label="Recámaras" value={bedR} />
+        <Fact icon="🛁" label="Baños" value={bathR} />
+        <Fact icon="🚗" label="Estacionamientos" value={parkR} />
+        <Fact icon="📐" label="Superficie" value={m2R ? `${m2R} m²` : null} />
+        <Fact icon="💵" label="Precio por m²" value={pm2 ? money(Math.round(pm2)) : null} />
+        <Fact icon="🏗️" label="Niveles" value={dev.max_level != null ? String(dev.max_level) : null} />
+        <Fact icon="🔢" label="Unidades" value={nUnits ? String(nUnits) : null} />
+        <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
+        <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
+        <Fact icon="🚀" label="Lanzamiento" value={dev.fecha_lanzamiento} />
+        <Fact icon="🔑" label="Entrega estimada" value={dev.delivery_estimate} />
+        <Fact icon="📈" label="Plusvalía desde lanzamiento" value={plusv} />
+      </div>
+
+      {total > 0 && (avail + sold + res) > 0 && (
+        <DataBlock title="Disponibilidad">
+          <div className="dmx-card" style={{ ...box, padding: 16 }}>
+            <div style={{ display: 'flex', height: 12, borderRadius: 9999, overflow: 'hidden', background: C.line2 }}>
+              {sold > 0 && <div style={{ width: `${(sold / total) * 100}%`, background: C.faint }} />}
+              {res > 0 && <div style={{ width: `${(res / total) * 100}%`, background: C.amber }} />}
+              {avail > 0 && <div style={{ width: `${(avail / total) * 100}%`, background: C.green }} />}
+            </div>
+            <div style={{ display: 'flex', gap: 18, marginTop: 12, flexWrap: 'wrap', fontFamily: FONT, fontSize: 13 }}>
+              <span style={{ color: C.green, fontWeight: 700 }}>● {avail} disponibles</span>
+              {res > 0 && <span style={{ color: C.amber, fontWeight: 700 }}>● {res} apartadas</span>}
+              {sold > 0 && <span style={{ color: C.faint, fontWeight: 700 }}>● {sold} vendidas</span>}
+            </div>
+          </div>
+        </DataBlock>
+      )}
+
+      {Object.keys(tec).length > 0 && (
+        <DataBlock title="Ficha técnica">
+          <div className="dmx-card" style={{ ...box, padding: '4px 18px' }}>
+            {Object.entries(tec).map(([k, v], i, a) => <DataRow key={i} k={titleCase(k)} v={String(v)} last={i === a.length - 1} />)}
+          </div>
+        </DataBlock>
+      )}
+
+      {servicios.length > 0 && (
+        <DataBlock title="Servicios">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{servicios.map((s, i) => <span key={i} style={chip}>{titleCase(typeof s === 'string' ? s : (s.label || s.nombre || ''))}</span>)}</div>
+        </DataBlock>
+      )}
+
+      {memoria.length > 0 && (
+        <DataBlock title="Memoria de acabados">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
+            {memoria.map((m, i) => <div key={i} className="dmx-card" style={{ ...box, padding: '14px 16px' }}><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink }}>{titleCase(m.area || '')}</div><div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 4, lineHeight: 1.5 }}>{m.detalle}</div></div>)}
+          </div>
+        </DataBlock>
+      )}
+
+      {creds.length > 0 && (
+        <DataBlock title="Créditos que aceptan">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{creds.map((c, i) => <span key={i} style={chip}>{titleCase(c)}</span>)}</div>
+        </DataBlock>
+      )}
+
+      {cp.percentage != null && (
+        <DataBlock title="Avance de obra">
+          <div className="dmx-card" style={{ ...box, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: 13, color: C.ink2, marginBottom: 8 }}><span>{cp.status || 'En proceso'}</span><b style={{ color: C.accent }}>{cp.percentage}%</b></div>
+            <div style={{ height: 10, borderRadius: 9999, background: C.line2, overflow: 'hidden' }}><div style={{ width: `${cp.percentage}%`, height: '100%', background: C.accent }} /></div>
+          </div>
+        </DataBlock>
+      )}
+
+      {developer.name && (
+        <DataBlock title="Desarrollador">
+          <div className="dmx-card" style={{ ...box, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ width: 46, height: 46, borderRadius: 9999, background: C.accent, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 18 }}>{developer.name[0]}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>{developer.name}</div>
+              <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint }}>{[developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`, developer.founded_year && `desde ${developer.founded_year}`].filter(Boolean).join(' · ')}</div>
+            </div>
+          </div>
+        </DataBlock>
+      )}
+
+      {dev.description && (
+        <DataBlock title="La historia">
+          <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: 16, color: C.ink, lineHeight: 1.7, maxWidth: '72ch', letterSpacing: '0.16px' }}>{dev.description}</p>
+        </DataBlock>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════ TAB · PLANES DE PAGO (esquema del dev + crédito hipotecario + ISAI) ═══════════════
+// Reusa motores backend: /api/public/payment-schemes, /api/public/mortgage/calculate, /api/tax/*
+function MortgageCalc({ basePrice }) {
+  const [precio, setPrecio] = useState(basePrice || 0);
+  const [enganche, setEnganche] = useState(20);
+  const [plazo, setPlazo] = useState(20);
+  const [ingreso, setIngreso] = useState('');
+  const [res, setRes] = useState(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(false);
+  const run = useCallback(async () => {
+    setBusy(true); setErr(false); setRes(null);
+    try { const r = await calculateMortgage({ precio: Number(precio), enganche_pct: enganche / 100, plazo_anos: Number(plazo), ingreso_mensual: Number(ingreso) || undefined, edad: 30 }); setRes(r); } catch (e) { setErr(true); }
+    setBusy(false);
+  }, [precio, enganche, plazo, ingreso]);
+  const opts = res ? [res.infonavit && { ...res.infonavit, fuente: 'Infonavit' }, res.fovissste && { ...res.fovissste, fuente: 'Fovissste' }, ...((res.banca || []).map((b) => ({ ...b, fuente: b.banco })))].filter(Boolean) : [];
+  return (
+    <div className="dmx-card" style={{ ...box, padding: 18 }}>
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 4 }}>🏦 Crédito hipotecario</div>
+      <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint, marginBottom: 14 }}>Compara Infonavit, Fovissste y bancos para esta propiedad.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 12 }}>
+        <div><label style={lblV}>Precio</label><input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inpV} /></div>
+        <div><label style={lblV}>Enganche %</label><input type="number" value={enganche} onChange={(e) => setEnganche(e.target.value)} style={inpV} /></div>
+        <div><label style={lblV}>Plazo (años)</label><input type="number" value={plazo} onChange={(e) => setPlazo(e.target.value)} style={inpV} /></div>
+        <div><label style={lblV}>Ingreso mensual</label><input type="number" value={ingreso} onChange={(e) => setIngreso(e.target.value)} placeholder="opcional" style={inpV} /></div>
+      </div>
+      <button onClick={run} disabled={busy || !precio} style={{ marginTop: 14, padding: '11px 20px', borderRadius: R_BTN, border: 'none', background: busy || !precio ? C.line : C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: busy || !precio ? 'default' : 'pointer' }}>{busy ? 'Calculando…' : 'Calcular mensualidad'}</button>
+      {err && <div style={{ marginTop: 12, fontFamily: FONT, fontSize: 13, color: C.red }}>No pudimos calcular. Inténtalo de nuevo.</div>}
+      {opts.length > 0 && (
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {opts.map((o, i) => (
+            <div key={i} className="dmx-card" style={{ ...box, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, opacity: o.viable === false ? 0.55 : 1 }}>
+              <div><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink }}>{o.fuente}</div>{o.cat_pct != null && <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>CAT {o.cat_pct}%{o.dti_ratio != null ? ` · DTI ${Math.round(o.dti_ratio * 100)}%` : ''}</div>}{o.viable === false && o.razon && <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.amber }}>{o.razon}</div>}</div>
+              <div style={{ textAlign: 'right' }}><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 16, color: C.accent }}>{money(Math.round(o.pago_mensual || o.pago || 0))}</div><div style={{ fontFamily: FONT, fontSize: 11, color: C.faint }}>al mes</div></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function IsaiCalc({ basePrice }) {
+  const [precio, setPrecio] = useState(basePrice || 0);
+  const [res, setRes] = useState(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(false);
+  const run = useCallback(async () => {
+    setBusy(true); setErr(false); setRes(null);
+    try { const r = await getClosingCost({ precio_venta: Number(precio), valor_catastral: Math.round(Number(precio) * 0.55), year: 2026, con_credito_hipotecario: false }); setRes(r); } catch (e) { setErr(true); }
+    setBusy(false);
+  }, [precio]);
+  const rows = res ? [['ISAI (impuesto de adquisición)', res.isai], ['Notario', res.notario_fees], ['Avalúo', res.avaluo], ['Gestorías', res.gestorias], ['Registro', res.registro], ['IVA', res.iva]].filter(([, v]) => v != null) : [];
+  return (
+    <div className="dmx-card" style={{ ...box, padding: 18 }}>
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 4 }}>🧾 Impuesto ISAI y gastos de escrituración</div>
+      <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint, marginBottom: 14 }}>Tarifa oficial CDMX 2026 (progresiva). Estimado; el notario emite el cálculo final.</div>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 160 }}><label style={lblV}>Precio de compra</label><input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inpV} /></div>
+        <button onClick={run} disabled={busy || !precio} style={{ padding: '11px 20px', borderRadius: R_BTN, border: 'none', background: busy || !precio ? C.line : C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: busy || !precio ? 'default' : 'pointer' }}>{busy ? 'Calculando…' : 'Calcular'}</button>
+      </div>
+      {err && <div style={{ marginTop: 12, fontFamily: FONT, fontSize: 13, color: C.red }}>No pudimos calcular. Inténtalo de nuevo.</div>}
+      {res && (
+        <div style={{ marginTop: 16 }}>
+          {rows.map(([k, v], i) => <DataRow key={i} k={k} v={money(Math.round(v))} last={false} />)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '14px 0 2px', marginTop: 4, borderTop: `2px solid ${C.line}` }}><span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>Total de cierre</span><span style={{ fontFamily: FONT, fontWeight: 800, fontSize: 18, color: C.accent }}>{money(Math.round(res.total || rows.reduce((s, [, v]) => s + v, 0)))}</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+function TabPlanesPago({ dev, unit }) {
+  const [schemes, setSchemes] = useState(undefined);
+  const basePrice = (unit && unit.price) || dev.price_from || 0;
+  useEffect(() => { let alive = true; fetch(`${API}/api/public/payment-schemes/${encodeURIComponent(dev.id)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setSchemes((d && (d.schemes || d.items)) || []); }).catch(() => { if (alive) setSchemes([]); }); return () => { alive = false; }; }, [dev.id]);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Esquema de pago del desarrollador */}
+      {Array.isArray(schemes) && schemes.length > 0 && (
+        <div>
+          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 12 }}>Formas de pago del desarrollador</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+            {schemes.map((s, i) => (
+              <div key={i} className="dmx-card" style={{ ...box, padding: 16 }}>
+                <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{s.nombre || `Plan ${i + 1}`}{s.descuento_pct ? <span style={{ color: C.green, fontSize: 12 }}> · −{s.descuento_pct}%</span> : ''}</div>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {s.apartado_mxn != null && <DataRow k="Apartado" v={money(s.apartado_mxn)} last />}
+                  {s.firma_pct != null && <DataRow k="Firma / enganche" v={`${s.firma_pct}%`} last />}
+                  {s.mensualidades_pct != null && <DataRow k="Mensualidades (obra)" v={`${s.mensualidades_pct}%`} last />}
+                  {s.escritura_pct != null && <DataRow k="Contra escritura" v={`${s.escritura_pct}%`} last />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <MortgageCalc basePrice={basePrice} />
+      <IsaiCalc basePrice={basePrice} />
+      <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, lineHeight: 1.5 }}>Cálculos estimados con motores DMX (tarifa ISAI oficial CDMX 2026 y amortización francesa). No constituyen una oferta de crédito ni el cálculo notarial definitivo.</div>
+    </div>
+  );
+}
+
+// ═══════════════ TAB · INVERSIÓN (personal + institucional) ═══════════════
+// Reusa SeccionCalcInversion (motor inversion-v4). Toggle 👤/🏛️ + multi-select de fondo.
+function TabInversion({ dev, unit, onGoTo }) {
+  const [mode, setMode] = useState('individual');
+  const [fundIds, setFundIds] = useState(() => new Set());
+  const units = (dev.units || []).filter((u) => u.price);
+  const dispo = units.filter((u) => u.status === 'disponible');
+  const defUnit = unit || dispo[0] || units[0];
+  const fundUnits = units.filter((u) => fundIds.has(u.id || u.unit_number)).map((u) => ({ id: u.id, unit_number: u.unit_number, price: u.price }));
+  const toggleFund = (u) => setFundIds((s) => { const n = new Set(s); const k = u.id || u.unit_number; n.has(k) ? n.delete(k) : n.add(k); return n; });
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: R_BTN, overflow: 'hidden', width: 'fit-content', marginBottom: 18 }}>
+        {[['individual', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([k, l], i) => (
+          <button key={k} onClick={() => setMode(k)} style={{ padding: '10px 20px', border: 'none', borderLeft: i ? `1px solid ${C.line}` : 'none', background: mode === k ? C.accent : '#fff', color: mode === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
+        ))}
+      </div>
+      {mode === 'institucional' && (
+        <div className="dmx-card" style={{ ...box, padding: 16, marginBottom: 18 }}>
+          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink, marginBottom: 10 }}>Arma tu fondo — elige unidades ({fundUnits.length} seleccionadas)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 8 }}>
+            {dispo.map((u) => { const on = fundIds.has(u.id || u.unit_number); return (
+              <button key={u.id || u.unit_number} onClick={() => toggleFund(u)} style={{ padding: '9px 12px', borderRadius: R_BTN, border: `1px solid ${on ? C.accent : C.line}`, background: on ? C.accentSoft : '#fff', color: C.ink, fontFamily: FONT, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>{on ? '☑' : '☐'} {u.unit_number} · {money(u.price)}</button>
+            ); })}
+          </div>
+        </div>
+      )}
+      {(mode === 'individual' && !defUnit) ? (
+        <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Elige una unidad en “Precios y modelos” para calcular tu inversión.</div>
+      ) : (mode === 'institucional' && fundUnits.length === 0) ? (
+        <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Selecciona al menos una unidad para armar tu fondo.</div>
+      ) : (
+        <SeccionCalcInversion dev={dev} unit={defUnit} mode={mode} units={fundUnits} onGoTo={() => onGoTo && onGoTo('precios')} />
+      )}
+    </div>
+  );
+}
+
 // ════════════════════ FICHA ════════════════════
 export default function FichaVenta() {
   const { id } = useParams();
@@ -794,14 +1012,6 @@ export default function FichaVenta() {
   const bedR = rangeOf(units.map((u) => u.bedrooms));
   const bathR = rangeOf(units.map((u) => u.bathrooms));
   const m2R = rangeOf(units.map(m2of));
-  const destak = [
-    { i: '🏗️', l: STAGE[dev.stage] || dev.stage, s: dev.delivery_estimate ? `Entrega ${dev.delivery_estimate}` : 'Entrega por confirmar' },
-    nUnits > 0 && { i: '🏢', l: `${nUnits} unidades`, s: `${units.filter((u) => u.status === 'disponible').length} disponibles` },
-    dev.bedrooms_range && { i: '🛏️', l: `${dev.bedrooms_range} recámaras`, s: 'Según el modelo' },
-    dev.m2_range && { i: '📐', l: `${dev.m2_range} m²`, s: 'Superficie' },
-    dev.parking_range && { i: '🚗', l: `${dev.parking_range} estac.`, s: null },
-    ...amen.slice(0, 3).map((x) => { const a = amenInfo(x); return { i: a.icon, l: titleCase(a.label), s: null }; }),
-  ].filter(Boolean);
 
   return (
     <LightScope>
@@ -841,7 +1051,7 @@ export default function FichaVenta() {
         <div style={{ position: 'sticky', top: 56, zIndex: 40, background: '#fff', borderBottom: `1px solid ${CARD_LINE}`, marginTop: 18, boxShadow: '0 2px 8px rgba(16,24,40,0.04)' }}>
           <div style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', display: 'flex', gap: 2, overflowX: 'auto' }}>
             {NAV.filter(([k]) => (k !== 'tour' || scans.length > 0) && (k !== 'servicios' || amen.length > 0 || (dev.units || []).length > 0)).map(([k, l]) => (
-              <button key={k} onClick={() => goTab(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: activeNav === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
+              <button key={k} className="dmx-navtab" onClick={() => goTab(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: activeNav === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
             ))}
           </div>
         </div>
@@ -852,10 +1062,8 @@ export default function FichaVenta() {
 
             {/* PANEL POR TAB — cada tab tiene su propio espacio (no scroll infinito) */}
             {activeNav === 'destacados' && (
-              <Section title="Puntos destacados">
-                <div style={{ ...box, padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '14px 22px' }}>
-                  {destak.map((it, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, width: 26, textAlign: 'center', flex: 'none' }}>{it.i}</span><div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.25 }}>{it.l}</div>{it.s && <div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{it.s}</div>}</div></div>)}
-                </div>
+              <Section title="El proyecto">
+                <TabGeneral dev={dev} />
               </Section>
             )}
 
@@ -866,8 +1074,8 @@ export default function FichaVenta() {
             )}
 
             {activeNav === 'tarifas' && (
-              <Section title="Tarifas y políticas">
-                <VentaTarifas dev={dev} />
+              <Section title="Planes de pago">
+                <TabPlanesPago dev={dev} unit={unit} />
               </Section>
             )}
 
@@ -900,8 +1108,10 @@ export default function FichaVenta() {
               </Section>
             )}
 
-            {activeNav === 'resenas' && (
-              <Section title="Reseñas"><VentaResenas devId={dev.id} /></Section>
+            {activeNav === 'inversion' && (
+              <Section title="Calculadora de inversión">
+                <TabInversion dev={dev} unit={unit} onGoTo={goTab} />
+              </Section>
             )}
 
             {similars.length > 0 && (
@@ -958,7 +1168,25 @@ export default function FichaVenta() {
           : <button onClick={() => agendar('mensaje')} style={{ flex: 1, padding: '11px 8px', borderRadius: R_BTN, border: `1px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>Llamar</button>}
       </div>
 
-      <style>{`@media(max-width:940px){ .dmx-venta-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-venta-side{ position: static !important; } .dmx-venta-mobilebar{ display: flex !important; } } @media(max-width:600px){ .dmx-amen-grid{ grid-template-columns: repeat(3,1fr) !important; } } .dmx-card{ transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; } .dmx-card:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; } .dmx-sim:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; }`}</style>
+      <style>{`
+        @media(max-width:940px){ .dmx-venta-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-venta-side{ position: static !important; } .dmx-venta-mobilebar{ display: flex !important; } }
+        @media(max-width:600px){ .dmx-amen-grid{ grid-template-columns: repeat(3,1fr) !important; } }
+        .dmx-card{ transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
+        .dmx-card:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; }
+        .dmx-sim{ transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
+        .dmx-sim:hover{ transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109,74,255,0.13), 0 2px 8px rgba(16,24,40,0.06); border-color: #d9d0ff; }
+        .dmx-row{ transition: background .13s ease; }
+        .dmx-row:hover{ background: ${C.accentSoft} !important; }
+        .dmx-navtab{ position: relative; transition: color .15s ease; }
+        .dmx-navtab:hover{ color: ${C.accent} !important; }
+        .dmx-linkh{ transition: opacity .15s ease; }
+        .dmx-linkh:hover{ opacity: .68; text-decoration: underline; }
+        .dmx-press{ transition: transform .08s ease, box-shadow .15s ease, filter .15s ease; }
+        .dmx-press:hover{ filter: brightness(1.04); }
+        .dmx-press:active{ transform: scale(.975); }
+        .dmx-chiph{ transition: border-color .15s ease, color .15s ease, background .15s ease; }
+        .dmx-chiph:hover{ border-color: ${C.accent} !important; color: ${C.accent} !important; }
+      `}</style>
 
       {gallery && <GalleryModal dev={dev} scans={scans} startAt={gallery.i} startTab={gallery.tab} onClose={() => setGallery(null)} />}
       {openModel && <ModeloModal dev={dev} unit={openModel} avm={avm} scans={scans} onClose={() => setOpenModel(null)} onSelectUnit={pickUnit} onConv={(t) => { setOpenModel(null); agendar(t); }} />}
@@ -971,27 +1199,4 @@ export default function FichaVenta() {
   );
 }
 
-function Stat({ k, v }) { return <div><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.ink }}>{v}</div><div style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{k}</div></div>; }
 
-// ════════════════════ TARIFAS Y POLÍTICAS (sub-tabs estilo apts) ════════════════════
-function VentaTarifas({ dev }) {
-  const [tab, setTab] = useState('pago');
-  const creds = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
-  const tabs = [['pago', 'Formas de pago'], ['gastos', 'Gastos de escrituración'], ['politicas', 'Políticas']];
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line}`, marginBottom: 18 }}>
-        {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} style={{ padding: '10px 4px', marginRight: 22, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{l}</button>)}
-      </div>
-      {tab === 'pago' && (
-        <div style={{ ...box, padding: '4px 18px' }}>
-          {[['Apartado', 'Reserva tu unidad · reembolsable según contrato'], ['Enganche', 'Se define por esquema de pago · ver "Tu dinero"'], ['Mensualidades', 'Durante la construcción, sin intereses'], ['Contra entrega / crédito', creds.length ? creds.map((c) => titleCase(c)).join(' · ') : 'Contado o crédito hipotecario'], ['Escrituración', 'Al finalizar la obra']].map(([k, v], i, arr) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.line2}` : 'none' }}><span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, textAlign: 'right', maxWidth: '60%' }}>{v}</span></div>
-          ))}
-        </div>
-      )}
-      {tab === 'gastos' && <div style={{ ...box, padding: '16px 18px', fontFamily: FONT, fontSize: 14, color: C.ink2, lineHeight: 1.7 }}>Los gastos de escrituración (notario, impuesto de adquisición ISAI, registro, avalúo) rondan el <b style={{ color: C.ink }}>4–7% del valor</b> y corren por cuenta del comprador. El desglose exacto lo calcula el simulador en <b style={{ color: C.accent }}>Tu dinero → esquema de pago</b>.</div>}
-      {tab === 'politicas' && <div style={{ ...box, padding: '4px 18px' }}>{[['Mascotas', amenInfo && (dev.amenities || []).some((a) => /pet|mascota/i.test(a)) ? 'Pet friendly' : 'Consultar con el desarrollador'], ['Entrega', dev.delivery_estimate || 'Por confirmar'], ['Preventa', 'Precio de lista sujeto a etapa de venta']].map(([k, v], i, arr) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.line2}` : 'none' }}><span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, textAlign: 'right' }}>{v}</span></div>)}</div>}
-    </div>
-  );
-}
