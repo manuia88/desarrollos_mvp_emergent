@@ -1003,12 +1003,13 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
               light={light}
               sessionToken={asistenteToken || sessionId}
               onTranscript={text => {
-                setInput(text);
-                // Auto-enviar transcript como mensaje
-                setTimeout(() => {
-                  const fakeEvent = { preventDefault: () => {} };
-                  // usamos ref de input para disparar send
-                }, 100);
+                // Auto-enviar el transcript como mensaje (antes: solo llenaba la caja y NO enviaba).
+                // Reusa sendRef.current(null, override) — el mismo patrón que el evento dmx:atlax-open.
+                const q = (text || '').trim();
+                if (!q) return;
+                setInput('');
+                if (sendRef.current) sendRef.current(null, q);
+                else setInput(q);
               }}
               disabled={busy}
               compact={true}

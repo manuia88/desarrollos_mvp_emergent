@@ -51,6 +51,7 @@ const Favoritos         = lazy(() => import('./pages/Favoritos'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const FichaDesarrollo = lazy(() => import('./pages/FichaDesarrollo'));   // ficha pública oficial (rebuild limpio)
 const FichaCockpit = lazy(() => import('./pages/FichaCockpit'));         // rediseño UX cockpit (prototipo · preview con ?v3=1)
+const FichaVenta = lazy(() => import('./pages/FichaVenta'));             // rediseño estructura apartments.com enfocado venta (preview ?venta=1)
 const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
@@ -1176,8 +1177,9 @@ function SimuladorRoute() {
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
   // La ficha COCKPIT (FichaCockpit / v3) es la DEFAULT. La v2 (FichaDesarrollo) queda tras ?v2=1 para comparar.
-  // La v1 legacy se retiró: ?v1 cae al default (v3).
+  // La v1 legacy se retiró: ?v1 cae al default (v3). ?venta=1 = rediseño estructura apartments.com (preview).
   const params = new URLSearchParams(window.location.search);
+  if (params.get('venta')) return <FichaVenta user={user} onLogin={openAuth} />;   // rediseño venta (preview) — estructura apartments.com
   if (params.get('v2')) return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;   // rebuild anterior (comparación)
   return <FichaCockpit user={user} onLogin={openAuth} />;   // v3 cockpit — default
 }
