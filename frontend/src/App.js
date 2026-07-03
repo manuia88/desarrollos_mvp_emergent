@@ -1176,12 +1176,12 @@ function SimuladorRoute() {
 
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
-  // La ficha COCKPIT (FichaCockpit / v3) es la DEFAULT. La v2 (FichaDesarrollo) queda tras ?v2=1 para comparar.
-  // La v1 legacy se retiró: ?v1 cae al default (v3). ?venta=1 = rediseño estructura apartments.com (preview).
+  // La ficha de VENTA (FichaVenta · estructura apartments.com, blanco/compacto) es ahora la DEFAULT pública.
+  // Escapes para comparar: ?v3=1 → cockpit anterior · ?v2=1 → rebuild FichaDesarrollo. (?venta=1 cae al default.)
   const params = new URLSearchParams(window.location.search);
-  if (params.get('venta')) return <FichaVenta user={user} onLogin={openAuth} />;   // rediseño venta (preview) — estructura apartments.com
+  if (params.get('v3')) return <FichaCockpit user={user} onLogin={openAuth} />;   // cockpit anterior (comparación)
   if (params.get('v2')) return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;   // rebuild anterior (comparación)
-  return <FichaCockpit user={user} onLogin={openAuth} />;   // v3 cockpit — default
+  return <FichaVenta user={user} onLogin={openAuth} />;   // DEFAULT — ficha de venta (apartments.com)
 }
 
 // AdvisorRoute es el guard COMPARTIDO de los portales profesionales: lo usan tanto las
