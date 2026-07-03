@@ -20,12 +20,30 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
   const [selectedRole, setSelectedRole] = useState('buyer');
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);   // ojito: ver/ocultar contraseña
 
   if (!open) return null;
 
   const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
 
   const inputStyle = { width: '100%', padding: '11px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13.5, transition: 'border-color 0.15s, outline 0.1s' };
+  // Campo de contraseña con botón ver/ocultar (ojito). FUNCIÓN (no componente) → el <input> conserva
+  // su identidad entre renders y NO pierde el foco al escribir. `onEnter` dispara el submit del modo.
+  const passwordField = (testid, onEnter) => (
+    <div style={{ position: 'relative' }}>
+      <input
+        type={showPw ? 'text' : 'password'} value={password}
+        onChange={e => setPassword(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && onEnter()}
+        style={{ ...inputStyle, paddingRight: 74 }} data-testid={testid}
+      />
+      <button type="button" onClick={() => setShowPw(v => !v)}
+        aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPw}
+        style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', padding: '5px 11px', borderRadius: 9999, border: 'none', background: 'transparent', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        {showPw ? '🙈 Ocultar' : '👁 Ver'}
+      </button>
+    </div>
+  );
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 };
 
   const handleGoogle = () => {
@@ -127,7 +145,7 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} data-testid="auth-email" />
               </label>
               <label><div style={lblStyle}>Contraseña</div>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} style={inputStyle} data-testid="auth-password" />
+                {passwordField("auth-password", handleLogin)}
               </label>
               {err && <div role="alert" style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#fca5a5' }}>{err}</div>}
               <button onClick={handleLogin} disabled={loading} data-testid="auth-submit" className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
@@ -171,7 +189,7 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} data-testid="reg-email" />
               </label>
               <label><div style={lblStyle}>Contraseña (mín. 8)</div>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRegister()} style={inputStyle} data-testid="reg-password" />
+                {passwordField("reg-password", handleRegister)}
               </label>
               {err && <div role="alert" style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#fca5a5' }}>{err}</div>}
               <button onClick={handleRegister} disabled={loading} data-testid="reg-submit" className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
