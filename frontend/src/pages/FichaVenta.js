@@ -24,6 +24,7 @@ import InversionV4Calculator from '../components/investment/InversionV4Calculato
 // Calculadoras standalone re-vestidas al look v4 (motores intactos): hipotecario (comparador) + ISAI/cierre
 import FichaHipotecaComparador from '../components/ficha/FichaHipotecaComparador';
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
+import FichaPlanDesarrollador from '../components/ficha/FichaPlanDesarrollador';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import DevStructuredData from '../components/seo/DevStructuredData';
@@ -987,36 +988,75 @@ function TabGeneral({ dev }) {
   );
 }
 
-// ═══════════════ TAB · PLANES DE PAGO (esquema del dev + crédito hipotecario + ISAI) ═══════════════
-// Reusa motores backend: /api/public/payment-schemes, /api/public/mortgage/calculate, /api/tax/*
+// ═══════════════ TAB · PLANES DE PAGO — 2 sub-tabs: plan del dev + crédito/escrituración ═══════════════
+// Reusa motores backend: /api/public/payment-schemes, /api/public/mortgage/*, /api/tax/*
+const INMEDIATA = new Set(['entrega_inmediata', 'terminado']);
 function TabPlanesPago({ dev, unit }) {
   const [schemes, setSchemes] = useState(undefined);
+  const [fechas, setFechas] = useState({ fecha_inicio: null, fecha_entrega: null });
+  const [subTab, setSubTab] = useState('plan');          // 'plan' | 'credito'
+  const [creditPrefill, setCreditPrefill] = useState(null);   // {price, enganchePct, unitLabel}
+  const [isaiPrefill, setIsaiPrefill] = useState(null);       // {price, montoCredito, unitLabel}
+  const isaiRef = useRef(null), creditoTopRef = useRef(null);
+  const inmediata = INMEDIATA.has(dev.stage);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/public/payment-schemes/${encodeURIComponent(dev.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive) { setSchemes((d && (d.schemes || d.items)) || []); setFechas({ fecha_inicio: d && d.fecha_inicio, fecha_entrega: d && d.fecha_entrega }); } })
+      .catch(() => { if (alive) setSchemes([]); });
+    return () => { alive = false; };
+  }, [dev.id]);
+
   const basePrice = (unit && unit.price) || dev.price_from || 0;
-  useEffect(() => { let alive = true; fetch(`${API}/api/public/payment-schemes/${encodeURIComponent(dev.id)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setSchemes((d && (d.schemes || d.items)) || []); }).catch(() => { if (alive) setSchemes([]); }); return () => { alive = false; }; }, [dev.id]);
-  // Solo UNA forma de pago: Precio de lista (sin descuento)
-  const lista = Array.isArray(schemes) ? (schemes.find((s) => /precio de lista/i.test(s.nombre || '') || !s.descuento_pct) || schemes[0]) : null;
+
+  const goCredito = ({ price, enganchePct, unit: u }) => {
+    setCreditPrefill({ price, enganchePct, unitLabel: u ? `Unidad ${u.unit_number} · ${money(price)}` : null });
+    setSubTab('credito');
+    setTimeout(() => creditoTopRef.current && creditoTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+  const goEscrituracion = ({ price, montoCredito, unit: u }) => {
+    setIsaiPrefill({ price, montoCredito, unitLabel: u ? `Unidad ${u.unit_number} · ${money(price)}` : null });
+    setSubTab('credito');
+    setTimeout(() => isaiRef.current && isaiRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {lista && (
-        <div>
-          <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 12, letterSpacing: '-0.01em' }}>Forma de pago · Precio de lista</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
-            {[
-              lista.apartado_mxn != null && { icon: '🔒', label: 'Apartado', v: money(lista.apartado_mxn) },
-              lista.firma_pct != null && { icon: '✍️', label: 'Enganche', v: `${lista.firma_pct}%` },
-              lista.mensualidades_pct != null && { icon: '📅', label: 'Mensualidades (obra)', v: `${lista.mensualidades_pct}%` },
-              lista.escritura_pct != null && { icon: '🔑', label: 'Contra escritura', v: `${lista.escritura_pct}%` },
-            ].filter(Boolean).map((c, i) => (
-              <div key={i} className="dmx-card" style={{ ...box, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 12, color: C.faint }}><span style={{ fontSize: 14 }}>{c.icon}</span>{c.label}</div>
-                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 20, color: C.ink, marginTop: 4, letterSpacing: '-0.01em' }}>{c.v}</div>
-              </div>
-            ))}
-          </div>
+    <div>
+      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line2}`, marginBottom: 18 }}>
+        {[['plan', 'Plan del desarrollador'], ['credito', 'Crédito y escrituración']].map(([k, l]) => (
+          <button key={k} onClick={() => setSubTab(k)} style={{ padding: '11px 4px', marginRight: 24, border: 'none', borderBottom: subTab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: subTab === k ? C.accent : C.ink2, fontFamily: HEAD, fontWeight: subTab === k ? 800 : 600, fontSize: 15, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Tab A siempre montado (display toggle) para no perder la config del plan al ir y volver */}
+      <div style={{ display: subTab === 'plan' ? 'block' : 'none' }}>
+        <FichaPlanDesarrollador key={schemes === undefined ? 'plan-load' : 'plan-ready'}
+          dev={dev} units={dev.units || []} unitInicial={unit}
+          schemes={schemes} fechaInicio={fechas.fecha_inicio} fechaEntrega={fechas.fecha_entrega}
+          onGoCredito={goCredito} onGoEscrituracion={goEscrituracion} />
+      </div>
+
+      {subTab === 'credito' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div ref={creditoTopRef} />
+          <FichaHipotecaComparador
+            key={`c-${creditPrefill ? `${creditPrefill.price}-${creditPrefill.enganchePct}` : basePrice}`}
+            basePrice={(creditPrefill && creditPrefill.price) || basePrice}
+            devName={dev.name}
+            enganchePctInicial={creditPrefill ? creditPrefill.enganchePct : undefined}
+            unitLabel={creditPrefill ? creditPrefill.unitLabel : undefined} />
+          <div ref={isaiRef} />
+          <FichaTaxISAI
+            key={`i-${isaiPrefill ? `${isaiPrefill.price}-${Math.round(isaiPrefill.montoCredito || 0)}` : basePrice}`}
+            basePrice={(isaiPrefill && isaiPrefill.price) || basePrice}
+            conCreditoInicial={!!isaiPrefill}
+            montoCreditoInicial={isaiPrefill ? isaiPrefill.montoCredito : undefined}
+            unitLabel={isaiPrefill ? isaiPrefill.unitLabel : undefined}
+            preventa={!inmediata} />
         </div>
       )}
-      <FichaHipotecaComparador basePrice={basePrice} devName={dev.name} />
-      <FichaTaxISAI basePrice={basePrice} />
     </div>
   );
 }

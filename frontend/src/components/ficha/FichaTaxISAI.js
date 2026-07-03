@@ -17,11 +17,11 @@ function BreakdownRow({ k, v, strong }) {
   );
 }
 
-export default function FichaTaxISAI({ basePrice = 0 }) {
+export default function FichaTaxISAI({ basePrice = 0, conCreditoInicial = false, montoCreditoInicial, unitLabel, preventa }) {
   const [precio, setPrecio] = useState(basePrice || '');
   const [catastral, setCatastral] = useState('');
-  const [conCredito, setConCredito] = useState(false);
-  const [monto, setMonto] = useState('');
+  const [conCredito, setConCredito] = useState(!!conCreditoInicial);
+  const [monto, setMonto] = useState(montoCreditoInicial != null ? String(Math.round(montoCreditoInicial)) : '');
   const [loading, setLoading] = useState(false); const [error, setError] = useState(null);
   const [isai, setIsai] = useState(null); const [closing, setClosing] = useState(null);
 
@@ -46,6 +46,11 @@ export default function FichaTaxISAI({ basePrice = 0 }) {
   return (
     <div style={{ ...cardV4, padding: 24 }}>
       <CalcHeader eyebrow="Proyector de impuestos" title="ISAI y costos de cierre" subtitle="Tarifa oficial CDMX 2026 (progresiva). El notario emite el cálculo definitivo." />
+      {unitLabel && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 14, borderRadius: 10, background: 'rgba(109,74,255,0.06)', border: '1px solid rgba(109,74,255,0.18)', fontFamily: SANS, fontSize: 12.5, color: V4.ink2 }}>
+          🔗 Vinculado a tu plan: <b style={{ color: V4.ink }}>{unitLabel}</b>.{preventa ? ' En preventa aún no hay valor catastral: dejándolo vacío usamos el precio de compra.' : ' Si conoces el valor catastral, el ISAI será más exacto.'}
+        </div>
+      )}
       <div className="isaiv4-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
         <Field label="Precio de compra (MXN)" required>
           <input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inpV4} />

@@ -127,9 +127,9 @@ const SORT_INFO = {
   total: { label: 'Pago total', long: 'Pago total', tip: 'La suma de todo lo que le pagas al banco por el crédito al final del plazo: mensualidades + enganche + comisión de apertura + avalúo. No incluye escrituración ni ISAI (esos van en el Proyector de impuestos).' },
 };
 
-export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
+export default function FichaHipotecaComparador({ basePrice = 0, devName, enganchePctInicial, unitLabel }) {
   const [precio, setPrecio] = useState(basePrice || '');
-  const [enganchePct, setEnganchePct] = useState(20);
+  const [enganchePct, setEnganchePct] = useState(enganchePctInicial != null ? enganchePctInicial : 20);
   const [plazo, setPlazo] = useState(20);
   const [ingreso, setIngreso] = useState('');
   const [sort, setSort] = useState('pago');
@@ -213,6 +213,11 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
   return (
     <div style={{ ...cardV4, padding: 24 }}>
       <CalcHeader eyebrow="Comparador de crédito hipotecario" title={`Encuentra tu mejor crédito${devName ? ` para ${devName}` : ''}`} subtitle="Compara los principales bancos de México con tasas y CAT publicados." />
+      {unitLabel && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 14, borderRadius: 10, background: 'rgba(109,74,255,0.06)', border: '1px solid rgba(109,74,255,0.18)', fontFamily: SANS, fontSize: 12.5, color: V4.ink2 }}>
+          🔗 Vinculado a tu plan: <b style={{ color: V4.ink }}>{unitLabel}</b> · enganche <b style={{ color: V4.ink }}>{enganchePct}%</b>. Ingresa tu ingreso mensual y compara.
+        </div>
+      )}
       <div className="comp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '14px 16px', marginBottom: 16 }}>
         <Field label="Valor de la vivienda" required><MoneyInput value={precio} onChange={setPrecio} placeholder="$5,800,000" /></Field>
         <Field label="Enganche %"><input type="number" value={enganchePct} onChange={(e) => setEnganchePct(e.target.value)} style={inpV4} /></Field>
