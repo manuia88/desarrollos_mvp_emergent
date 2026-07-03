@@ -36,6 +36,16 @@ const avaluoEstimado = (valor) => { if (valor <= 1500000) return 3000; if (valor
 
 const pagoFrances = (monto, tasaAnual, meses) => { const r = tasaAnual / 100 / 12; return r === 0 ? monto / meses : monto * (r / (1 - Math.pow(1 + r, -meses))); };
 
+// Input de dinero: muestra "$1,000,000" mientras se escribe; guarda el número puro (string de dígitos).
+function MoneyInput({ value, onChange, placeholder, style }) {
+  const display = (value === '' || value == null || isNaN(Number(value))) ? '' : `$${Number(value).toLocaleString('es-MX')}`;
+  return (
+    <input type="text" inputMode="numeric" value={display} placeholder={placeholder || '$0'}
+      onChange={(e) => { const digits = e.target.value.replace(/[^\d]/g, ''); onChange(digits); }}
+      style={style || inpV4} />
+  );
+}
+
 const SORTS = [['cat', 'CAT'], ['tasa', 'Tasa de interés'], ['pago', 'Pago mensual'], ['total', 'Pago total']];
 
 function DetalleGrid({ b }) {
@@ -204,10 +214,10 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
     <div style={{ ...cardV4, padding: 24 }}>
       <CalcHeader eyebrow="Comparador de crédito hipotecario" title={`Encuentra tu mejor crédito${devName ? ` para ${devName}` : ''}`} subtitle="Compara los principales bancos de México con tasas y CAT publicados." />
       <div className="comp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '14px 16px', marginBottom: 16 }}>
-        <Field label="Valor de la vivienda" required><input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inpV4} /></Field>
+        <Field label="Valor de la vivienda" required><MoneyInput value={precio} onChange={setPrecio} placeholder="$5,800,000" /></Field>
         <Field label="Enganche %"><input type="number" value={enganchePct} onChange={(e) => setEnganchePct(e.target.value)} style={inpV4} /></Field>
         <Field label="Plazo (años)"><input type="number" value={plazo} onChange={(e) => setPlazo(e.target.value)} style={inpV4} /></Field>
-        <Field label="Ingreso mensual" required><input type="number" value={ingreso} onChange={(e) => setIngreso(e.target.value)} style={inpV4} /></Field>
+        <Field label="Ingreso mensual" required><MoneyInput value={ingreso} onChange={setIngreso} placeholder="$60,000" /></Field>
       </div>
       {error && <div style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 12, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.22)', fontFamily: SANS, fontSize: 12.5, color: V4.red }}>{error}</div>}
       <BtnV4 full onClick={run}>Comparar bancos</BtnV4>
@@ -255,7 +265,7 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
               <div style={{ display: 'flex', gap: 20, marginLeft: 'auto', flexWrap: 'wrap' }}>
                 {[['Tasa prom.', `${mercado.tasa}%`], ['CAT prom.', `${mercado.cat}%`], ['Pago mensual', fmtMXN(mercado.pago)]].map(([k, v]) => (
                   <div key={k} style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.ink3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{k}</div>
+                    <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.ink2, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{k}</div>
                     <div style={{ fontFamily: HEAD, fontSize: 18, fontWeight: 800, color: V4.ink, lineHeight: 1.1 }}>{v}</div>
                   </div>
                 ))}
@@ -263,16 +273,23 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
             </div>
           )}
 
-          {/* ordenar por — segmentado grande + explicación dinámica */}
-          <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: V4.ink2, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>Ordenar del más conveniente al menos conveniente por: <Tip text={si.tip} /></div>
-          <div style={{ display: 'flex', gap: 6, background: '#f4f2fd', borderRadius: 12, padding: 4, marginBottom: 12, flexWrap: 'wrap' }}>
-            {SORTS.map(([k, l]) => <button key={k} onClick={() => setSort(k)} style={{ flex: '1 1 120px', padding: '10px 12px', borderRadius: 9, border: 'none', background: sort === k ? GRAD : 'transparent', color: sort === k ? '#fff' : V4.ink2, fontFamily: HEAD, fontWeight: sort === k ? 800 : 600, fontSize: 13, cursor: 'pointer', boxShadow: sort === k ? '0 4px 12px rgba(109,74,255,0.28)' : 'none' }}>{l}</button>)}
-          </div>
-          <div style={{ fontFamily: SANS, fontSize: 12, color: V4.ink3, marginBottom: 14 }}>Mostrando del <b style={{ color: V4.green }}>más barato</b> al <b style={{ color: V4.red }}>más caro</b> por <b style={{ color: V4.theme }}>{si.long}</b>. El <b>#1</b> es tu mejor opción por {si.label}.</div>
+          {/* ordenar por — segmentado grande + explicación dinámica (se ocultan en modo enfoque) */}
+          {!openBank && (<>
+            <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: V4.ink2, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>Ordenar del más conveniente al menos conveniente por: <Tip text={si.tip} /></div>
+            <div style={{ display: 'flex', gap: 6, background: '#f4f2fd', borderRadius: 12, padding: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+              {SORTS.map(([k, l]) => <button key={k} onClick={() => setSort(k)} style={{ flex: '1 1 120px', padding: '10px 12px', borderRadius: 9, border: 'none', background: sort === k ? GRAD : 'transparent', color: sort === k ? '#fff' : V4.ink2, fontFamily: HEAD, fontWeight: sort === k ? 800 : 600, fontSize: 13, cursor: 'pointer', boxShadow: sort === k ? '0 4px 12px rgba(109,74,255,0.28)' : 'none' }}>{l}</button>)}
+            </div>
+            <div style={{ fontFamily: SANS, fontSize: 12, color: V4.ink3, marginBottom: 14 }}>Mostrando del <b style={{ color: V4.green }}>más barato</b> al <b style={{ color: V4.red }}>más caro</b> por <b style={{ color: V4.theme }}>{si.long}</b>. El <b>#1</b> es tu mejor opción por {si.label}.</div>
+          </>)}
+
+          {/* barra "ver otras opciones" en modo enfoque */}
+          {openBank && (
+            <button className="dmx-press" onClick={() => setOpenBank(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', marginBottom: 12, borderRadius: 10, border: `1px solid ${V4.line}`, background: '#fff', color: V4.theme, fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← Ver las {sorted.length} opciones</button>
+          )}
 
           {/* result cards */}
           <div className="comp-res" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 14 }}>
-            {sorted.map((b, i) => { const open = openBank === b.banco; const best = i === 0; return (
+            {sorted.map((b, i) => { if (openBank && b.banco !== openBank) return null; const open = openBank === b.banco; const best = i === 0; return (
               <div key={b.banco} className="dmx-card" style={{ ...cardV4, padding: 0, overflow: 'hidden', border: best ? '1.5px solid transparent' : `1px solid ${V4.line}`, backgroundImage: best ? `linear-gradient(#fff,#fff), ${GRAD}` : undefined, backgroundOrigin: best ? 'border-box' : undefined, backgroundClip: best ? 'padding-box, border-box' : undefined, gridColumn: open ? '1 / -1' : 'auto' }}>
                 {best && <div style={{ background: GRAD, color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '5px 14px', textAlign: 'center' }}>★ Más conveniente por {si.label}</div>}
                 <div style={{ padding: '14px 16px' }}>
@@ -289,14 +306,14 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
                   <div style={{ fontFamily: SANS, fontSize: 11.5, color: V4.ink3, marginBottom: 12 }}>{b.producto}</div>
                   {/* HERO = la métrica que ordenas */}
                   <div style={{ padding: '12px 14px', borderRadius: 12, background: best ? 'rgba(109,74,255,0.06)' : V4.surface, border: `1px solid ${best ? 'rgba(109,74,255,0.2)' : V4.line}`, marginBottom: 12 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.ink3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{si.long}</div>
+                    <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.ink2, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{si.long}</div>
                     <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: V4.theme, letterSpacing: '-0.02em' }}>{heroOf(b)}</div>
                   </div>
                   {/* las 4 métricas — la ordenada resaltada */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
                     {metricRow(b).map(([lbl, val, key]) => { const act = key === sort; return (
                       <div key={key} style={{ padding: '7px 9px', borderRadius: 8, background: act ? 'rgba(109,74,255,0.09)' : '#fafafb', border: `1px solid ${act ? 'rgba(109,74,255,0.25)' : V4.line}` }}>
-                        <div style={{ fontFamily: SANS, fontSize: 9.5, color: V4.ink3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lbl}</div>
+                        <div style={{ fontFamily: SANS, fontSize: 9.5, color: V4.ink2, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lbl}</div>
                         <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 13, color: act ? V4.theme : V4.ink }}>{val}</div>
                       </div>
                     ); })}
