@@ -8,6 +8,8 @@ import { createPortal } from 'react-dom';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`);
+// Sentence case (para veredictos que llegan en MAYÚSCULAS del backend): "SÓLIDA" → "Sólida".
+const titleCase = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase() : s);
 
 const GLOSS = {
   tir: ['Rendimiento anual total', 'Tu ganancia anual real juntando renta + plusvalía, considerando el tiempo (TIR).'],
@@ -22,7 +24,7 @@ function Tip({ g }) {
   const [el, fr] = GLOSS[g] || ['', ''];
   return <span className="iv4-tip" tabIndex={0}>ⓘ<span className="iv4-tipbox"><b>{el}</b><br />{fr}</span></span>;
 }
-const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, color: '#6D4AFF', background: 'rgba(109,74,255,0.12)', borderRadius: 5, padding: '1px 5px', verticalAlign: 'middle' }}>AUTO · EDITABLE</span>;
+const Auto = () => <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: '#6D4AFF', background: 'rgba(109,74,255,0.12)', borderRadius: 5, padding: '1px 6px', verticalAlign: 'middle' }}>Estimado · edítalo</span>;
 // link directo al Proyector de Impuestos (abre en pestaña nueva para no perder la calculadora)
 const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="noreferrer" style={{ color: '#6D4AFF', fontWeight: 700, textDecoration: 'underline' }}>Proyector de Impuestos</a>;
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
@@ -185,7 +187,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   // estilos
   const inp = { background: '#fff', border: '1px solid #ECECEC', borderRadius: 11, color: '#1E2230', fontFamily: 'DM Sans', fontSize: 13, padding: '10px 12px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
-  const grpLabel = { fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 };
+  const grpLabel = { fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6B6F86', marginBottom: 9 };
   const Toggle = ({ k, opts }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {opts.map(([v, l]) => { const on = String(f[k]) === String(v); return <button key={String(v)} type="button" onClick={() => set(k, v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: on ? '1.5px solid #6D4AFF' : '1px solid rgba(99,102,241,0.2)', background: on ? 'rgba(109,74,255,0.1)' : '#fff', color: on ? '#6D4AFF' : '#4B4F66' }}>{l}</button>; })}
@@ -200,8 +202,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     <div style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 16, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: '17px 18px 16px', position: 'relative' }}>
       {/* SIN overflow:hidden — recortaba los globitos (?). La barra se redondea sola para no salirse. */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: color, borderRadius: '16px 16px 0 0' }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 10.5, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        <span>{label}</span>{info && <Info>{info}</Info>}{badge && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#6B6F86', background: 'rgba(16,18,28,0.06)', borderRadius: 5, padding: '1px 6px', letterSpacing: 0 }}>{badge}</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 12, color: '#5A5F6E', fontWeight: 700 }}>
+        <span>{label}</span>{info && <Info>{info}</Info>}{badge && <span style={{ fontSize: 9, fontWeight: 800, color: '#6B6F86', background: 'rgba(16,18,28,0.06)', borderRadius: 5, padding: '1px 6px' }}>{badge}</span>}
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color, letterSpacing: '-0.02em', marginTop: 6, lineHeight: 1.05 }}>{value}</div>
       {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#8A8FA6', marginTop: 7, lineHeight: 1.45 }}>{sub}</div>}
@@ -405,7 +407,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div style={{ borderRadius: 16, padding: '18px 20px', background: `${sem}0F`, border: `1px solid ${sem}44` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7, flexWrap: 'wrap' }}>
                 <span style={{ width: 11, height: 11, borderRadius: '50%', background: sem }} />
-                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem }}>{r.veredicto.nivel}</span>
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem }}>{titleCase(r.veredicto.nivel)}</span>
               </div>
               <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', lineHeight: 1.55, margin: 0 }}>{r.veredicto.parrafo}</p>
               {r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
@@ -435,19 +437,19 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             return (<>
               <SecTitle>📈 Si es para invertir (rentarla)</SecTitle>
               <div style={grid}>
-                <MetricCard label={`Si vendes al año ${H}`} badge="TIR" value={pct(r.tir_pct)} color={sem} sub="Renta + plusvalía si vendes ese año. Cambia el año en la tira de arriba." info={<><b>TIR (con venta).</b> Junta la renta de cada año <b>+</b> la plusvalía al vender al año {H}. Estándar Geltner & Miller / CFA. <b>Tu caso:</b> {pct(r.tir_pct)}.</>} />
-                <MetricCard label="Rinde al año" badge="CAP RATE" value={pct(r.cap_rate_pct)} color="#6D4AFF" sub="Lo que deja la renta sobre el precio — estable, no depende de cuándo vendas." info={<><b>Imagina</b> que prestas tu juguete y te dan monedas: el cap rate dice cuántas al año por cada 100 que vale. <b>Cómo:</b> renta neta ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>.</>} />
-                <MetricCard label="Rendimiento promedio (ROI)" badge="ANUAL" value={pct(r.roi_anualizado_pct)} color="#0E9F6E" sub="Tu ganancia contando TODO (renta + venta), repartida en los años." info={<>Junta TODO lo que ganas (renta + lo que sube de valor) y lo reparte entre los años. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año.</>} />
-                <MetricCard label="Flujo de la renta" badge="MENSUAL" value={m(r.flujo_mensual_1) + '/mes'} color={flujoColor} sub="Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito." info={<>Es tu domingo cada mes: renta menos gastos + mensualidad del banco. <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es rojo, tú pones esa diferencia.</>} />
-                <MetricCard label="Multiplicas tu dinero" badge="TOTAL" value={r.equity_multiple ? `${r.equity_multiple}x` : '—'} color="#6D4AFF" sub="Por cada peso que pones, cuántos recuperas al final." info={<>Por cada <b>$1</b> que pones, cuántos recuperas. <b>Tu caso: {r.equity_multiple}x</b>. Más de 1 = ganas; menos de 1 = pierdes.</>} />
-                <MetricCard label="Neto al vender" badge="AL VENDER" value={m(r.neto_al_vender)} color="#1E2230" sub="Lo que te llevas al vender, descontando crédito, comisión e impuestos." info={<>El dinero que de verdad te llevas al vender, quitando deuda, comisión e ISR. <b>Tu caso:</b> <b>{m(r.neto_al_vender)}</b> a los {H} años.</>} />
+                <MetricCard label={`Si vendes al año ${H}`} badge="TIR" value={pct(r.tir_pct)} color={sem} sub="Renta + plusvalía si vendes ese año. Cambia el año en la tira de arriba." info={<>Tu ganancia al año si rentas y al final lo vendes, juntando la renta de cada año y lo que subió de precio. Ejemplo: aquí sale {pct(r.tir_pct)} al año.</>} />
+                <MetricCard label="Rinde al año" badge="renta / precio" value={pct(r.cap_rate_pct)} color="#6D4AFF" sub="Lo que deja la renta sobre el precio — estable, no depende de cuándo vendas." info={<>Cuánto te deja la renta en un año comparado con lo que cuesta el depa, sin contar el crédito. Cómo se saca: la renta de un año ({m(r.noi)}) entre el precio ({m(f.valor_propiedad)}) = {pct(r.cap_rate_pct)}.</>} />
+                <MetricCard label="Rendimiento promedio (ROI)" badge="al año" value={pct(r.roi_anualizado_pct)} color="#0E9F6E" sub="Tu ganancia contando TODO (renta + venta), repartida en los años." info={<>Junta todo lo que ganas (la renta más lo que sube de valor) y lo reparte entre los años. Ejemplo: aquí sale como {pct(r.roi_anualizado_pct)} al año.</>} />
+                <MetricCard label="Flujo de la renta" badge="al mes" value={m(r.flujo_mensual_1) + '/mes'} color={flujoColor} sub="Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito." info={<>Lo que te queda cada mes: la renta menos los gastos y el pago del banco. Ejemplo: aquí {m(r.flujo_mensual_1)} al mes. Si sale en rojo, tú pones esa diferencia.</>} />
+                <MetricCard label="Multiplicas tu dinero" badge="en total" value={r.equity_multiple ? `${r.equity_multiple}x` : '—'} color="#6D4AFF" sub="Por cada peso que pones, cuántos recuperas al final." info={<>Por cada peso que pones, cuántos recuperas al final. Ejemplo: aquí {r.equity_multiple} veces. Más de 1 es ganar; menos de 1, perder.</>} />
+                <MetricCard label="Neto al vender" badge="al vender" value={m(r.neto_al_vender)} color="#1E2230" sub="Lo que te llevas al vender, descontando crédito, comisión e impuestos." info={<>El dinero que de verdad te llevas al vender, ya quitando la deuda, la comisión y el impuesto. Ejemplo: aquí {m(r.neto_al_vender)} a los {H} años.</>} />
               </div>
               <SecTitle>🏡 Si es para vivir (habitarla)</SecTitle>
               <div style={grid}>
-                {r.con_credito && r.credito && <MetricCard label="Mensualidad del crédito" badge="MENSUAL" value={m(r.credito.pmt_mensual) + '/mes'} color="#1E2230" sub="Lo que pagas al banco cada mes (capital + intereses)." info={<>Lo que le pagas al banco cada mes, fijo. <b>Tu caso:</b> <b>{m(r.credito.pmt_mensual)}/mes</b> por {r.credito.plazo_anios} años.</>} />}
-                <MetricCard label="Plusvalía (sube de valor)" badge="ANUAL" value={`${apre}%/año`} color="#0EA5E9" sub={`En ${H} años acumula ~${m((r.atribucion || {}).plusvalia)} (fuente SHF). Ganas aunque nunca lo rentes.`} info={<>Tu depa vale más cada año. ~<b>{apre}%</b> al año (fuente SHF). En 1 año ~{m(gananciaPlusv1)}; en {H} años ~{m((r.atribucion || {}).plusvalia)}.</>} />
-                <MetricCard label="Te cuesta vivir aquí" badge="MENSUAL" value={m(costoVivirMes) + '/mes'} color="#1E2230" sub={`${r.con_credito ? 'Mensualidad + ' : ''}predial + mantenimiento + seguro. Compáralo con tu renta de hoy.`} info={<>Todo lo que pagas al mes por tener y usar el depa: {r.con_credito ? <>mensualidad ({m(r.credito.pmt_mensual)}) + </> : ''}predial + mantenimiento + seguro = <b>{m(costoVivirMes)}/mes</b>.</>} />
-                <MetricCard label={r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado'} badge="TOTAL" value={m(deTuBolsa)} color="#1E2230" sub={r.con_credito ? `Enganche + escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Precio + escrituración + equipamiento (todo de contado).'} info={r.con_credito ? <>Lo que necesitas <b>hoy</b>: enganche + escritura = <b>{m(deTuBolsa)}</b>. El resto ({m((r.credito || {}).monto_credito)}) lo presta el banco.</> : <>De contado necesitas precio + escrituración + equipamiento = <b>{m(deTuBolsa)}</b>.</>} />
+                {r.con_credito && r.credito && <MetricCard label="Mensualidad del crédito" badge="al mes" value={m(r.credito.pmt_mensual) + '/mes'} color="#1E2230" sub="Lo que pagas al banco cada mes (capital + intereses)." info={<>Lo que le pagas al banco cada mes, fijo. <b>Tu caso:</b> <b>{m(r.credito.pmt_mensual)}/mes</b> por {r.credito.plazo_anios} años.</>} />}
+                <MetricCard label="Plusvalía (sube de valor)" badge="al año" value={`${apre}%/año`} color="#0EA5E9" sub={`En ${H} años acumula ~${m((r.atribucion || {}).plusvalia)} (fuente SHF). Ganas aunque nunca lo rentes.`} info={<>Tu depa vale más cada año. ~<b>{apre}%</b> al año (fuente SHF). En 1 año ~{m(gananciaPlusv1)}; en {H} años ~{m((r.atribucion || {}).plusvalia)}.</>} />
+                <MetricCard label="Te cuesta vivir aquí" badge="al mes" value={m(costoVivirMes) + '/mes'} color="#1E2230" sub={`${r.con_credito ? 'Mensualidad + ' : ''}predial + mantenimiento + seguro. Compáralo con tu renta de hoy.`} info={<>Todo lo que pagas al mes por tener y usar el depa: {r.con_credito ? <>mensualidad ({m(r.credito.pmt_mensual)}) + </> : ''}predial + mantenimiento + seguro = <b>{m(costoVivirMes)}/mes</b>.</>} />
+                <MetricCard label={r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado'} badge="en total" value={m(deTuBolsa)} color="#1E2230" sub={r.con_credito ? `Enganche + escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Precio + escrituración + equipamiento (todo de contado).'} info={r.con_credito ? <>Lo que necesitas <b>hoy</b>: enganche + escritura = <b>{m(deTuBolsa)}</b>. El resto ({m((r.credito || {}).monto_credito)}) lo presta el banco.</> : <>De contado necesitas precio + escrituración + equipamiento = <b>{m(deTuBolsa)}</b>.</>} />
               </div>
             </>);
           })()}
@@ -482,7 +484,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                         </div>
                       );
                     })}
-                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Aproximado (~8% del precio en CDMX). El <b>ISAI</b> exacto lo calcula el <ProyectorLink />.</div>
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Calculado con el mismo motor del <ProyectorLink /> (ISAI progresivo CDMX 2026 + notario + registro + avalúo). El notario emite el definitivo.</div>
                   </div>
                 </details>
               )}
@@ -522,7 +524,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const Tile = ({ l, v, c, exp }) => (
               <div style={{ position: 'relative', overflow: 'hidden', padding: '15px 15px 13px', borderRadius: 14, background: '#fff', border: '1px solid #ECECEC', boxShadow: '0 2px 8px rgba(16,18,28,0.03)' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: c || '#6D4AFF' }} />
-                <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', fontWeight: 700 }}>{l}</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: c || '#1E2230', marginTop: 4, letterSpacing: '-0.01em' }}>{v}</div>
                 {exp && <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#8A8FA6', lineHeight: 1.45, marginTop: 5 }}>{exp}</div>}
               </div>
@@ -544,7 +546,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
                   {[['Precio del depa', precio, '#1E2230'], ['=', null], ['Tu enganche', engPuro, '#6D4AFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
                     v === null ? <div key={i} style={{ alignSelf: 'center', fontSize: 20, fontWeight: 800, color: '#C9CCDB' }}>{l}</div>
-                      : <div key={i} style={{ flex: '1 1 120px', padding: '13px 14px', borderRadius: 12, background: '#fff', border: '1px solid #ECECEC' }}><div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: c, marginTop: 3 }}>{m(v)}</div></div>
+                      : <div key={i} style={{ flex: '1 1 120px', padding: '13px 14px', borderRadius: 12, background: '#fff', border: '1px solid #ECECEC' }}><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: c, marginTop: 3 }}>{m(v)}</div></div>
                   ))}
                 </div>
 
@@ -612,41 +614,60 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
       {/* ───── SECCIONES VISUALES · ancho completo apiladas (sin columnas angostas = sin huecos) ───── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
-          {/* LARGO PLAZO vs AIRBNB */}
+          {/* RENTA FIJA vs AIRBNB · rediseñado — ganador arriba, cifra grande + barra comparativa, lenguaje simple ───── */}
           {paso === 'renta' && r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
-            const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => (
-              <div style={{ flex: '1 1 270px', padding: '17px 18px', borderRadius: 16, background: '#fff', border: win ? '1.5px solid #6D4AFF' : '1px solid #ECECEC', boxShadow: win ? '0 8px 22px rgba(109,74,255,0.10)' : '0 2px 8px rgba(16,18,28,0.03)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <div style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 800, color: '#1E2230' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
-                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#fff', background: 'linear-gradient(120deg,#6D4AFF,#C63FAE)', borderRadius: 9999, padding: '3px 11px', letterSpacing: '0.05em' }}>GANA</span>}
+            const ganaCorto = cmp.gana === 'corto';
+            const nombreGana = ganaCorto ? 'Airbnb' : 'la renta fija';
+            const quedaLargo = cmp.largo.noi || 0, quedaCorto = cmp.corto.noi || 0;
+            const maxQueda = Math.max(Math.abs(quedaLargo), Math.abs(quedaCorto), 1);
+            const delta = Math.abs(quedaCorto - quedaLargo);
+            const infoRinde = <>Cuánto te deja la renta en un año comparado con lo que cuesta el depa. Ejemplo: si vale 100 y te deja 5 al año, rinde 5%.</>;
+            const infoVende = <>Tu ganancia al año si lo rentas y al final lo vendes, juntando la renta y lo que subió de precio.</>;
+            const infoMes = <>Lo que te queda cada mes después de gastos y del pago del banco. Si sale en rojo, tú pones esa diferencia.</>;
+            const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => {
+              const queda = x.noi || 0;
+              const barPct = Math.max(5, Math.min(100, Math.round(Math.abs(queda) / maxQueda * 100)));
+              return (
+                <div style={{ flex: '1 1 280px', borderRadius: 16, background: win ? '#faf9ff' : '#fff', border: win ? '1.5px solid #6D4AFF' : '1px solid #ECECEC', boxShadow: win ? '0 8px 22px rgba(109,74,255,0.10)' : '0 2px 8px rgba(16,18,28,0.03)' }}>
+                  <div style={{ padding: '16px 18px 4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <div style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 800, color: '#1E2230' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
+                      {win && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'linear-gradient(120deg,#6D4AFF,#C63FAE)', borderRadius: 9999, padding: '3px 12px' }}>Gana</span>}
+                    </div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#5A5F6E', fontWeight: 600 }}>Te queda al año</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 27, color: queda >= 0 ? '#0E9F6E' : '#DC2626', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{m(queda)}</div>
+                    <div style={{ height: 8, borderRadius: 6, background: '#F1F1F4', marginTop: 9, overflow: 'hidden' }}><div style={{ width: `${barPct}%`, height: '100%', background: win ? 'linear-gradient(90deg,#6D4AFF,#C63FAE)' : '#C7CAD6', borderRadius: 6 }} /></div>
+                  </div>
+                  <div style={{ padding: '10px 18px 4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>Lo que cobras al año</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#1E2230' }}>{m(x.ingreso_anual)}</span></div>
+                    <div style={{ fontSize: 10.5, color: '#A2A6BC', margin: '-3px 0 3px' }}>{comoIngreso}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderTop: '1px solid #F1F1F4', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>Menos gastos del año<Info>{gastosInfo}</Info></span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#DC2626' }}>−{m(x.egresos_anual)}</span></div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, padding: '10px 18px 16px' }}>
+                    {[['Rinde al año', pct(x.cap_rate_pct), '#6D4AFF', infoRinde], ['Si vendes', pct(x.tir_pct), (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626', infoVende], ['Al mes', m(x.flujo_mensual), (x.flujo_mensual || 0) >= 0 ? '#1E2230' : '#DC2626', infoMes]].map(([l, v, c, inf]) => (
+                      <div key={l} style={{ background: '#fafafb', border: '1px solid #ECECEC', borderRadius: 10, padding: '9px 10px' }}><div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', fontWeight: 700, lineHeight: 1.2 }}>{l}<Info>{inf}</Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 3 }}>{v}</div></div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#A2A6BC', padding: '0 18px 14px' }}>Números según: {fuente}</div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>Ingreso al año</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#1E2230' }}>{m(x.ingreso_anual)}</span></div>
-                <div style={{ fontSize: 10.5, color: '#A2A6BC', margin: '-3px 0 3px' }}>{comoIngreso}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderTop: '1px solid #F1F1F4', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>− Gastos del año<Info>{gastosInfo}</Info></span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#DC2626' }}>{m(x.egresos_anual)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0 3px', borderTop: '2px solid #ECECEC', fontFamily: 'DM Sans', fontSize: 13 }}><span style={{ color: '#1E2230', fontWeight: 800 }}>= Te queda al año</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#0E9F6E' }}>{m(x.noi)}</span></div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 13 }}>
-                  {[['Cap rate', pct(x.cap_rate_pct), '#6D4AFF'], ['Si vendes (TIR)', pct(x.tir_pct), (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'], ['Te queda al mes', m(x.flujo_mensual), (x.flujo_mensual || 0) >= 0 ? '#1E2230' : '#DC2626']].map(([l, v, c]) => (
-                    <div key={l} style={{ background: '#fafafb', border: '1px solid #ECECEC', borderRadius: 10, padding: '9px 10px' }}><div style={{ fontFamily: 'DM Sans', fontSize: 9, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.2 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 3 }}>{v}</div></div>
-                  ))}
-                </div>
-                <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 10 }}>Ingreso según: {fuente}</div>
-              </div>
-            );
+              );
+            };
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div className="iv4-sub" style={{ margin: 0 }}>🏨 ¿Rentar fijo o por Airbnb?</div>
-                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Cada número trae su <b>?</b> con el detalle. Ojo: <b>Airbnb gasta más</b> (limpieza, plataforma, gestión) — ya está considerado.</div>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <Opcion icon="🏠" titulo="Largo plazo" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)}/mes × 12 meses`} fuente="promedio de renta de la zona"
-                    headInfo={<><b>Rentas a UN inquilino todo el año</b> (contrato ~12 meses). Más <b>estable</b> y con <b>menos trabajo</b>: no limpias entre huéspedes ni dependes de la temporada. Suele dejar menos que Airbnb, pero sin broncas.</>}
-                    gastosInfo={<><b>Gastos de renta larga:</b> predial + mantenimiento + seguro + administración. <b>Tu caso:</b> {m(cmp.largo.egresos_anual)}/año. NO trae los costos extra de Airbnb.</>} />
-                  <Opcion icon="🏨" titulo="Airbnb / corto" x={cmp.corto} win={cmp.gana === 'corto'} comoIngreso={`${m(cmp.corto.tarifa_noche)}/noche × ~${cmp.corto.noches_mes} noches al mes (${cmp.corto.ocupacion_pct}% ocupación) × 12`} fuente="AirROI (datos reales de la zona)"
-                    headInfo={<><b>Rentas por NOCHES en Airbnb.</b> Suele <b>dejar más</b>, pero da <b>más trabajo</b> (limpieza entre huéspedes, atención, temporada baja) y <b>más gastos</b>. Ingreso = tarifa por noche × noches ocupadas × 12. Tarifa y ocupación reales de <b>AirROI</b>.</>}
-                    gastosInfo={<><b>Gastos de Airbnb:</b> los de renta larga (predial, mantenimiento…) <b>MÁS</b> los propios del corto plazo: <b>comisión de plataforma, limpieza, servicios</b> (luz/internet/agua), <b>gestión</b> y reposición — estimados en <b>~22% del ingreso</b>. Por eso Airbnb gasta más que renta larga. <b>Tu caso:</b> {m(cmp.corto.egresos_anual)}/año.</>} />
+                <div style={{ fontSize: 12, color: '#5B5F76', marginTop: 4, lineHeight: 1.5 }}>El mismo depa, dos maneras de rentarlo: a una persona todo el año (<b>renta fija</b>) o por noches como hotel (<b>Airbnb</b>). Ya restamos los gastos de cada una.</div>
+                <div style={{ marginTop: 12, marginBottom: 14, padding: '12px 15px', borderRadius: 12, background: 'linear-gradient(120deg, rgba(109,74,255,0.09), rgba(198,63,174,0.06))', border: '1px solid rgba(109,74,255,0.18)', display: 'flex', alignItems: 'center', gap: 11, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 20 }}>{ganaCorto ? '🏨' : '🏠'}</span>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5B5F76', lineHeight: 1.5, flex: '1 1 220px' }}>Con tus datos gana <b style={{ color: '#6D4AFF' }}>{nombreGana}</b>: te deja <b>{m(delta)} más al año</b>. Airbnb suele dejar más pero da más trabajo; la renta fija deja menos pero es tranquila y sin broncas.</div>
                 </div>
-                <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(109,74,255,0.06)', borderRadius: 10, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.55 }}>
-                  👉 Con tus datos <b style={{ color: '#6D4AFF' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año, <b>ya descontados</b> sus mayores gastos). <b>Airbnb</b> rinde más pero da más trabajo; <b>largo plazo</b> rinde menos pero es estable y sin broncas. Toca cada <b>?</b> para ver de dónde sale el número.
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <Opcion icon="🏠" titulo="Renta fija" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)} al mes × 12 meses`} fuente="renta promedio de la zona"
+                    headInfo={<>Le rentas a una persona todo el año, con contrato. Es lo más tranquilo: no limpias entre huéspedes ni dependes de la temporada. Ejemplo: la rentas en {m(cmp.largo.ingreso_mensual)} al mes, fijo.</>}
+                    gastosInfo={<>Lo que gastas al año teniendo el depa rentado: predial, mantenimiento, seguro y administración. Ejemplo para este depa: {m(cmp.largo.egresos_anual)} al año. No trae los gastos extra de Airbnb.</>} />
+                  <Opcion icon="🏨" titulo="Airbnb" x={cmp.corto} win={cmp.gana === 'corto'} comoIngreso={`${m(cmp.corto.tarifa_noche)} la noche × ~${cmp.corto.noches_mes} noches al mes (${cmp.corto.ocupacion_pct}% lleno) × 12`} fuente="AirROI · datos reales de la zona"
+                    headInfo={<>Lo rentas por noches, como hotel. Suele dejar más dinero, pero da más trabajo (limpieza, atención) y depende de la temporada. Ejemplo: {m(cmp.corto.tarifa_noche)} la noche, ocupado unas {cmp.corto.noches_mes} noches al mes.</>}
+                    gastosInfo={<>Los mismos gastos de la renta fija más los de Airbnb: limpieza, comisión de la plataforma, luz e internet. Por eso Airbnb gasta más. Ejemplo para este depa: {m(cmp.corto.egresos_anual)} al año (~22% de lo que cobras).</>} />
                 </div>
               </div>
             );
