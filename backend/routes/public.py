@@ -2147,6 +2147,25 @@ async def get_development(dev_id: str, request: Request):
                 out["delivery_estimate"] = ov["fecha_entrega"]  # la entrega que configuró el dev manda sobre el seed
     except Exception:
         pass
+    # Avance de obra REAL del dev (project_construction_progress) → la ficha (lee dev.construction_progress). Antes el
+    # overlay solo extraía sistema_constructivo y la ficha mostraba el avance del SEED → la edición del dev se perdía.
+    # Mapeo del doc del dev (overall_percent/stages[percent]/current_stage) al shape de la ficha. Fail-open.
+    try:
+        cp_doc = await db.project_construction_progress.find_one({"project_id": dev_id}, {"_id": 0})
+        if cp_doc and cp_doc.get("overall_percent") is not None:
+            _stages = sorted([s for s in (cp_doc.get("stages") or []) if isinstance(s, dict)], key=lambda s: s.get("order") or 0)
+            _cur = cp_doc.get("current_stage")
+            _cur_label = next((s.get("label") for s in _stages if s.get("key") == _cur), None)
+            out["construction_progress"] = {
+                "percentage": cp_doc.get("overall_percent"),
+                "status": _cur_label or (out.get("construction_progress") or {}).get("status"),
+                "last_update": (cp_doc.get("updated_at") or "")[:10] or None,
+                "phases": [{"label": s.get("label") or s.get("key"), "percentage": s.get("percent"),
+                            "status": ("completado" if (s.get("percent") or 0) >= 100 else None)} for s in _stages],
+                "source": "dev",
+            }
+    except Exception:
+        pass
     # Ubicación que el dev corrigió (pin del mapa / dirección / colonia) → el comprador ve el dato real, no el del seed. Fail-open.
     try:
         meta = await db.dev_project_meta.find_one({"project_id": dev_id}, {"_id": 0})
