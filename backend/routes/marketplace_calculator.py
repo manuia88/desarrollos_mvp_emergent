@@ -119,6 +119,62 @@ async def calculate_mortgage(body: MortgageCalcBody, request: Request):
     return result
 
 
+@router.get("/api/public/mortgage/market-rate")
+async def mortgage_market_rate(request: Request):
+    """Tasa hipotecaria promedio del sistema (Banxico, cuadro CF303) — VIVA con fail-open.
+
+    Orden: BanxicoEngine.lookup(CF303) live+cache → default oficial documentado
+    (banxico_rates). Nunca lanza; si todo falla regresa el default con modo='fallback'.
+    REUSA BanxicoEngine (cache 3-capas) y banxico_rates (fuente oficial). No duplica.
+    """
+    ip = _get_ip(request)
+    if not _check_rl(_calc_store, ip, 30):
+        raise HTTPException(status_code=429, detail="Demasiadas solicitudes. Intenta en 1 minuto.")
+
+    # CAT promedio: no hay serie SIE en el repo → default oficial documentado (CF303 CAT prom.)
+    try:
+        from banxico_rates import get_rate_meta
+        cat_meta = get_rate_meta("hipoteca_cat_prom")
+        cat_pct = round(float(cat_meta["valor"]) * 100, 2)
+    except Exception:
+        cat_meta, cat_pct = {}, 13.96
+
+    # 1) Tasa fija promedio VIVA (serie CF303)
+    try:
+        from data_sources.banxico_engine import BanxicoEngine
+        res = await BanxicoEngine(_get_db(request)).lookup("CF303")
+        if res.get("ok") and res.get("value_latest") is not None:
+            return {
+                "ok": True,
+                "serie": "CF303",
+                "tasa_pct": round(float(res["value_latest"]), 2),
+                "cat_pct": cat_pct,
+                "fecha": res.get("date_latest"),
+                "fuente": "Banxico SIE · CF303 (tasa fija promedio del sistema)",
+                "modo": "vivo",
+            }
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[market-rate] banxico live falló, uso default: {exc}")
+
+    # 2) Fail-open: default oficial documentado (banxico_rates)
+    try:
+        from banxico_rates import get_rate_meta
+        fija = get_rate_meta("hipoteca_fija_ref")
+        return {
+            "ok": True,
+            "serie": "CF303",
+            "tasa_pct": round(float(fija["valor"]) * 100, 2),
+            "cat_pct": cat_pct,
+            "fecha": fija.get("as_of"),
+            "fuente": fija.get("fuente", "Banxico CF303 (fija, prom.)"),
+            "modo": "default_oficial",
+        }
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[market-rate] default falló: {exc}")
+        return {"ok": True, "serie": "CF303", "tasa_pct": 11.46, "cat_pct": cat_pct,
+                "fecha": "2026-04", "fuente": "Banxico CF303 (fija, prom.)", "modo": "fallback"}
+
+
 @router.post("/api/public/mortgage/save")
 async def save_mortgage(body: MortgageSaveBody, request: Request):
     """Guarda el cálculo como lead capture + envía resumen por email."""
