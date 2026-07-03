@@ -186,6 +186,18 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
   const multifamily = Number(f.num_unidades) >= 5;
   const sem = (r && r.veredicto && SEM[r.veredicto.semaforo]) || '#8A8FA6';
+  // tarjeta de métrica limpia (look calcV4: barra de acento arriba, número grande, aire)
+  const MetricCard = ({ label, value, color = '#1E2230', sub, info, badge }) => (
+    <div style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 16, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: '17px 18px 16px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: color }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 10.5, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span>{label}</span>{info && <Info>{info}</Info>}{badge && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#6B6F86', background: 'rgba(16,18,28,0.06)', borderRadius: 5, padding: '1px 6px', letterSpacing: 0 }}>{badge}</span>}
+      </div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color, letterSpacing: '-0.02em', marginTop: 6, lineHeight: 1.05 }}>{value}</div>
+      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#8A8FA6', marginTop: 7, lineHeight: 1.45 }}>{sub}</div>}
+    </div>
+  );
+  const SecTitle = ({ children }) => <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#1E2230', marginTop: 4, marginBottom: 2 }}>{children}</div>;
   // barra de navegación entre pasos (Atrás / Siguiente) — look de marca
   const NavRow = ({ back, next, nextLabel }) => (
     <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -359,91 +371,56 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {/* ───── RESULTADOS · paso ④ (mismos resultados de siempre, ahora en su paso) ───── */}
       <div style={{ display: paso === 4 ? 'flex' : 'none', flexDirection: 'column', gap: 14 }}>
 
-          {/* Resultado grande + veredicto */}
-          {r && (
-            <div className="iv4-card" style={{ borderTop: `5px solid ${sem}`, background: `linear-gradient(180deg, ${sem}0D, #fff 60%)` }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>Rinde al año · solo renta<Info><><b>Cap rate.</b> Lo que te deja la renta sobre el precio <b>cada año</b>, sin contar el crédito ni la venta. Es el rendimiento <b>anual y estable</b> — no depende de cuándo vendas. <b>Tu caso:</b> {pct(r.cap_rate_pct)} (= renta neta {m(r.noi)} ÷ precio {m(f.valor_propiedad)}).</></Info></div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: '#6D4AFF', letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div>
-                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 3 }}>cap rate · cada año, sin importar cuándo vendas</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>Si vendes al año {f.horizonte_anios}<Info><><b>TIR (con venta).</b> Junta la renta de cada año <b>+</b> la plusvalía que realizas al vender al año {f.horizonte_anios}. Por eso necesita un año de salida. Estándar Geltner & Miller / CFA. <b>Tu caso:</b> {pct(r.tir_pct)}. Toca un año en la tira de abajo para cambiarlo.</></Info></div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: sem, letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.tir_pct)}</div>
-                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 3 }}>TIR · renta + venta</div>
-                  </div>
-                </div>
-                {r.veredicto && <div style={{ textAlign: 'right' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: sem, background: `${sem}18`, borderRadius: 9999, padding: '6px 14px' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: sem }} />{r.veredicto.nivel}</span>
-                </div>}
+          {/* ───── VEREDICTO (rediseñado · banner limpio) ───── */}
+          {r && r.veredicto && (
+            <div style={{ borderRadius: 16, padding: '18px 20px', background: `${sem}0F`, border: `1px solid ${sem}44` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7, flexWrap: 'wrap' }}>
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: sem }} />
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem }}>{r.veredicto.nivel}</span>
               </div>
-              {/* TIR por año de salida · clicable (responde "¿al año 1, 3, 5, 10...?") */}
+              <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', lineHeight: 1.55, margin: 0 }}>{r.veredicto.parrafo}</p>
               {r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10.5, color: '#6B6F86', fontWeight: 700 }}>TIR si vendes en:</span>
+                <div style={{ marginTop: 13, display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>TIR si vendes en:</span>
                   {r.proyeccion.rows.map((row) => { const on = row.anio === Number(f.horizonte_anios); return (
-                    <button key={row.anio} type="button" onClick={() => set('horizonte_anios', row.anio)} style={{ cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 8, border: 'none', background: on ? 'rgba(109,74,255,0.16)' : 'rgba(16,18,28,0.04)', color: (row.tir_si_vendes || 0) >= 0 ? (on ? '#6D4AFF' : '#5B5F76') : '#DC2626' }}>{row.anio}a · {pct(row.tir_si_vendes)}</button>
+                    <button key={row.anio} type="button" onClick={() => set('horizonte_anios', row.anio)} style={{ cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12, fontWeight: 800, padding: '6px 11px', borderRadius: 9, border: on ? '1.5px solid #6D4AFF' : '1px solid #ECECEC', background: on ? 'rgba(109,74,255,0.12)' : '#fff', color: (row.tir_si_vendes || 0) >= 0 ? (on ? '#6D4AFF' : '#1E2230') : '#DC2626' }}>{row.anio}a · {pct(row.tir_si_vendes)}</button>
                   ); })}
                 </div>
               )}
-              <p style={{ fontSize: 13, color: '#5B5F76', lineHeight: 1.55, marginTop: 12, marginBottom: 0 }}>{r.veredicto && r.veredicto.parrafo}</p>
               {r.renta_equilibrio_mensual && (r.flujo_mensual_1 || 0) < 0 && r.desglose && (
-                <div style={{ marginTop: 10, fontSize: 11.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.1)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>🎯 <b>Punto de equilibrio:</b> hoy pones ~{m(Math.abs(r.flujo_mensual_1))}/mes de tu bolsa. Para que la renta cubra TODO (no poner nada), tendría que ser ~<b>{m(r.renta_equilibrio_mensual)}/mes</b> (hoy ~{m(Math.round(r.desglose.ingreso_bruto_anual / 12))}). Alternativas: sube el enganche, alarga el plazo o negocia un mejor precio de entrada.<Info><>El <b>punto de equilibrio</b> es la renta a la que tu flujo mensual = $0 (dejas de poner de tu bolsa). Se calcula despejando: renta × (1 − vacancia − reserva − gastos%) = gastos fijos + pago del crédito. Útil para saber qué tan lejos estás de que "se pague solo".</></Info></div>
+                <div style={{ marginTop: 12, fontFamily: 'DM Sans', fontSize: 11.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.12)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>🎯 <b>Punto de equilibrio:</b> hoy pones ~{m(Math.abs(r.flujo_mensual_1))}/mes de tu bolsa. Para que la renta cubra TODO (no poner nada), tendría que ser ~<b>{m(r.renta_equilibrio_mensual)}/mes</b> (hoy ~{m(Math.round(r.desglose.ingreso_bruto_anual / 12))}). Alternativas: sube el enganche, alarga el plazo o negocia mejor precio.<Info><>El <b>punto de equilibrio</b> es la renta a la que tu flujo mensual = $0 (dejas de poner de tu bolsa). Útil para saber qué tan lejos estás de que "se pague solo".</></Info></div>
               )}
-              {vista === 'simple' && <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>📌 <b>Cap rate</b> = lo que deja la renta al año (estable). <b>TIR</b> = renta + plusvalía si vendes (depende del año). <b>ROI</b> = ganancia total ÷ años (parecido a la TIR pero sin contar el "valor del tiempo"); lo ves abajo en las métricas.</div>}
             </div>
           )}
 
-          {/* MÉTRICAS · separadas PARA VIVIR vs PARA INVERTIR (claridad) · con badge anual/mensual */}
+          {/* ───── MÉTRICAS · rediseñadas a tarjetas limpias (mismos datos + explicaciones) ───── */}
           {r && vista === 'simple' && (() => {
-            const BADGE = { anual: 'ANUAL', mensual: 'MENSUAL', total: 'TOTAL', venta: 'AL VENDER' };
-            const Badge = ({ p }) => p ? <span style={{ fontSize: 8.5, fontWeight: 800, color: '#6B6F86', background: 'rgba(16,18,28,0.06)', borderRadius: 5, padding: '1px 6px', marginLeft: 6, verticalAlign: 'middle' }}>{BADGE[p]}</span> : null;
-            const Grupo = ({ titulo, sub, items }) => (
-              <div className="iv4-card" style={{ padding: '4px 0' }}>
-                <div style={{ padding: '14px 20px 9px' }}>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{titulo}</div>
-                  <div style={{ fontSize: 11, color: '#8A8FA6', marginTop: 2 }}>{sub}</div>
-                </div>
-                {items.map(([ic, l, v, c, exp, p, info], i) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 20px', borderTop: '1px solid rgba(16,18,28,0.06)' }}>
-                    <span style={{ fontSize: 16, lineHeight: 1.2 }}>{ic}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>{l}{info && <Info>{info}</Info>}<Badge p={p} /></span>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, whiteSpace: 'nowrap' }}>{v}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#8A8FA6', lineHeight: 1.45, marginTop: 2 }}>{exp}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
+            const H = Number(f.horizonte_anios) || 5;
             const apre = (Number(f.apreciacion_anual) * 100).toFixed(1);
-            const horizonte = Number(f.horizonte_anios) || 5;
-            const mesesHz = horizonte * 12;
             const gananciaPlusv1 = Math.round((Number(f.valor_propiedad) || 0) * (Number(f.apreciacion_anual) || 0));
             const deTuBolsa = r.con_credito && r.credito ? r.credito.capital_propio : (r.desglose || {}).costo_total;
             const gastosMes = (Number(f.predial || 0) + Number(f.mantenimiento || 0) + Number(f.seguro || 0)) / 12;
             const costoVivirMes = Math.round((r.con_credito && r.credito ? r.credito.pmt_mensual : 0) + gastosMes);
-            return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
-                <Grupo titulo="📈 Si es para invertir (rentarla)" sub="Lo que importa si la vas a rentar." items={[
-                  ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#6D4AFF', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual', <><b>Imagina</b> que prestas tu juguete y te dan monedas. El cap rate dice cuántas monedas te dan al año por cada 100 que vale el juguete. <b>Cómo:</b> lo que deja la renta en un año ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>. <b>Fuente:</b> renta = promedio de la zona.</>],
-                  ['💰', 'Rendimiento promedio (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio contando TODO (renta + venta), repartida en los años.', 'anual', <>Junta TODO lo que ganas (la renta + lo que sube de valor al vender) y lo reparte entre los años que lo tienes. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año. Es como sacar el promedio de tus calificaciones de todo el año.</>],
-                  ['🏦', 'Flujo de la renta', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito.', 'mensual', <>Es tu domingo cada mes: lo que entra de renta menos lo que sale (gastos + mensualidad del banco). <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es negativo (rojo), tú pones esa diferencia.</>],
-                  ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#6D4AFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final. <b>Tu caso: {r.equity_multiple}x</b> → metes $1 y al final te llevas ${r.equity_multiple}. Más de 1 = ganas; menos de 1 = pierdes.</>],
-                  ['🏁', 'Neto al vender', m(r.neto_al_vender), '#16182A', 'Lo que te llevas al vender, descontando crédito, comisión e impuestos.', 'venta', <>El dinero que de verdad te llevas a la bolsa cuando vendes, ya quitando lo que debes al banco, la comisión y el impuesto (ISR). <b>Tu caso:</b> <b>{m(r.neto_al_vender)}</b> a los {horizonte} años.</>],
-                ]} />
-                <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
-                  ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual', <>Lo que le pagas al banco cada mes, fijo. <b>Tu caso:</b> <b>{m(r.credito.pmt_mensual)}/mes</b> por {r.credito.plazo_anios} años. Incluye una parte que baja tu deuda (capital) y otra que es el cobro del banco (interés).</>]] : []),
-                  ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Si vendieras en 1 año, tu ganancia por plusvalía sería ~${m(gananciaPlusv1)} (el ${apre}% del valor al año, fuente SHF). En ${horizonte} años acumula ~${m((r.atribucion || {}).plusvalia)}.`, 'anual', <>Tu depa vale más cada año, como un juguete que se vuelve de colección. <b>Cuánto:</b> ~<b>{apre}%</b> al año (fuente: SHF, Sociedad Hipotecaria Federal). <b>Tu caso:</b> en 1 año ganarías ~{m(gananciaPlusv1)}; en {horizonte} años ~{m((r.atribucion || {}).plusvalia)}. Ganas aunque nunca lo rentes.</>],
-                  ['🏠', 'Te cuesta vivir aquí (al mes)', m(costoVivirMes), '#16182A', `Lo que de verdad te cuesta el depa cada mes: ${r.con_credito ? 'mensualidad del crédito + ' : ''}predial + mantenimiento + seguro.`, 'mensual', <>Todo lo que pagas al mes por tener y usar el depa: {r.con_credito ? <>mensualidad ({m(r.credito.pmt_mensual)}) + </> : ''}predial + mantenimiento + seguro. <b>Tu caso:</b> <b>{m(costoVivirMes)}/mes</b>. Compáralo con lo que pagas hoy de renta para ver si te conviene.</>],
-                  ['🧾', r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado', m(deTuBolsa), '#16182A', r.con_credito ? `Lo que pones HOY de tu bolsa: enganche + gastos de escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total', r.con_credito ? <>El dinero que necesitas <b>ahorita</b> para comprar: el enganche + los gastos de la escritura. <b>Tu caso:</b> <b>{m(deTuBolsa)}</b>. El resto ({m((r.credito || {}).monto_credito)}) lo presta el banco y lo pagas en mensualidades.</> : <>Como pagas todo de contado, necesitas el precio completo + escrituración + equipamiento = <b>{m(deTuBolsa)}</b>.</>],
-                ]} />
+            const flujoColor = (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626';
+            const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: 14 };
+            return (<>
+              <SecTitle>📈 Si es para invertir (rentarla)</SecTitle>
+              <div style={grid}>
+                <MetricCard label={`Si vendes al año ${H}`} badge="TIR" value={pct(r.tir_pct)} color={sem} sub="Renta + plusvalía si vendes ese año. Cambia el año en la tira de arriba." info={<><b>TIR (con venta).</b> Junta la renta de cada año <b>+</b> la plusvalía al vender al año {H}. Estándar Geltner & Miller / CFA. <b>Tu caso:</b> {pct(r.tir_pct)}.</>} />
+                <MetricCard label="Rinde al año" badge="CAP RATE" value={pct(r.cap_rate_pct)} color="#6D4AFF" sub="Lo que deja la renta sobre el precio — estable, no depende de cuándo vendas." info={<><b>Imagina</b> que prestas tu juguete y te dan monedas: el cap rate dice cuántas al año por cada 100 que vale. <b>Cómo:</b> renta neta ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>.</>} />
+                <MetricCard label="Rendimiento promedio (ROI)" badge="ANUAL" value={pct(r.roi_anualizado_pct)} color="#0E9F6E" sub="Tu ganancia contando TODO (renta + venta), repartida en los años." info={<>Junta TODO lo que ganas (renta + lo que sube de valor) y lo reparte entre los años. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año.</>} />
+                <MetricCard label="Flujo de la renta" badge="MENSUAL" value={m(r.flujo_mensual_1) + '/mes'} color={flujoColor} sub="Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito." info={<>Es tu domingo cada mes: renta menos gastos + mensualidad del banco. <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es rojo, tú pones esa diferencia.</>} />
+                <MetricCard label="Multiplicas tu dinero" badge="TOTAL" value={r.equity_multiple ? `${r.equity_multiple}x` : '—'} color="#6D4AFF" sub="Por cada peso que pones, cuántos recuperas al final." info={<>Por cada <b>$1</b> que pones, cuántos recuperas. <b>Tu caso: {r.equity_multiple}x</b>. Más de 1 = ganas; menos de 1 = pierdes.</>} />
+                <MetricCard label="Neto al vender" badge="AL VENDER" value={m(r.neto_al_vender)} color="#1E2230" sub="Lo que te llevas al vender, descontando crédito, comisión e impuestos." info={<>El dinero que de verdad te llevas al vender, quitando deuda, comisión e ISR. <b>Tu caso:</b> <b>{m(r.neto_al_vender)}</b> a los {H} años.</>} />
               </div>
-            );
+              <SecTitle>🏡 Si es para vivir (habitarla)</SecTitle>
+              <div style={grid}>
+                {r.con_credito && r.credito && <MetricCard label="Mensualidad del crédito" badge="MENSUAL" value={m(r.credito.pmt_mensual) + '/mes'} color="#1E2230" sub="Lo que pagas al banco cada mes (capital + intereses)." info={<>Lo que le pagas al banco cada mes, fijo. <b>Tu caso:</b> <b>{m(r.credito.pmt_mensual)}/mes</b> por {r.credito.plazo_anios} años.</>} />}
+                <MetricCard label="Plusvalía (sube de valor)" badge="ANUAL" value={`${apre}%/año`} color="#0EA5E9" sub={`En ${H} años acumula ~${m((r.atribucion || {}).plusvalia)} (fuente SHF). Ganas aunque nunca lo rentes.`} info={<>Tu depa vale más cada año. ~<b>{apre}%</b> al año (fuente SHF). En 1 año ~{m(gananciaPlusv1)}; en {H} años ~{m((r.atribucion || {}).plusvalia)}.</>} />
+                <MetricCard label="Te cuesta vivir aquí" badge="MENSUAL" value={m(costoVivirMes) + '/mes'} color="#1E2230" sub={`${r.con_credito ? 'Mensualidad + ' : ''}predial + mantenimiento + seguro. Compáralo con tu renta de hoy.`} info={<>Todo lo que pagas al mes por tener y usar el depa: {r.con_credito ? <>mensualidad ({m(r.credito.pmt_mensual)}) + </> : ''}predial + mantenimiento + seguro = <b>{m(costoVivirMes)}/mes</b>.</>} />
+                <MetricCard label={r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado'} badge="TOTAL" value={m(deTuBolsa)} color="#1E2230" sub={r.con_credito ? `Enganche + escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Precio + escrituración + equipamiento (todo de contado).'} info={r.con_credito ? <>Lo que necesitas <b>hoy</b>: enganche + escritura = <b>{m(deTuBolsa)}</b>. El resto ({m((r.credito || {}).monto_credito)}) lo presta el banco.</> : <>De contado necesitas precio + escrituración + equipamiento = <b>{m(deTuBolsa)}</b>.</>} />
+              </div>
+            </>);
           })()}
 
           {/* DETALLE DEL DINERO · entrada (desglose) + salida (venta) en par · crédito a ancho completo */}
