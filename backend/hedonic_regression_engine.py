@@ -213,8 +213,12 @@ async def predict_price(
         log_pred += c.get("coef", 0.0) * v
         se_sum += (c.get("std_err", 0.0) * v) ** 2
 
+    # Intervalo de PREDICCIÓN (no solo de la media): además del error de estimación de los coeficientes
+    # (se_sum), suma la varianza residual del modelo (rmse², ya persistida en el fit). Antes se omitía →
+    # el rango salía irrealmente angosto (±2-4%) en vez del error real del hedónico (~±13-16%).
+    rmse = float(model_doc.get("rmse") or 0.0)
     pm2 = math.exp(log_pred)
-    se = math.sqrt(se_sum)
+    se = math.sqrt(se_sum + rmse ** 2)
     pm2_low = math.exp(log_pred - 1.96 * se)
     pm2_high = math.exp(log_pred + 1.96 * se)
 

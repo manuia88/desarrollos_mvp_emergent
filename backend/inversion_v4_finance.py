@@ -380,7 +380,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     dpi = (distrib_ops / pic) if pic else None                        # Distributions to Paid-In (realizado, sin la venta)
     rvpi = (venta_neta_exit / pic) if pic else None                   # Residual Value to Paid-In (valor al vender / PIC)
     tvpi = ((distrib_ops + venta_neta_exit) / pic) if pic else None   # Total Value to Paid-In = DPI + RVPI
-    twr_unlev = (1.0 + cap_rate) * (1.0 + aprec) - 1.0                # NCREIF total return SIN apalancar (income+appreciation)
+    twr_unlev = cap_rate + aprec                                      # NCREIF/NPI total return SIN apalancar = income + appreciation (ADITIVO, no producto; coincide con twr_horizontes['1'] y con los componentes reportados)
     tger = (egresos / valor) if valor else None                       # Total Global Expense Ratio (costos del vehículo / GAV)
 
     # REPORTE INTERNACIONAL (INREV/NCREIF para LPs extranjeros): TWR por horizontes 1/3/5/10 (time-weighted, geométrico,

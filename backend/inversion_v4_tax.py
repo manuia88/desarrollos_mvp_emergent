@@ -130,7 +130,10 @@ def isr_venta(ctx: Dict[str, Any]) -> Dict[str, Any]:
     multifamily = ctx.get("multifamily", False)
 
     if perfil == "moral":
-        depr_acum = costo_adq * (1 - terreno_pct) * 0.05 * anios
+        # Depreciación PM 5%/año topada al valor de la construcción (no puede depreciar el terreno
+        # ni pasar del 100% del edificio). Antes sin tope: >20 años depreciaba >100% → sobrestimaba ISR.
+        costo_constr_pm = costo_adq * (1 - terreno_pct)
+        depr_acum = min(costo_constr_pm * 0.05 * anios, costo_constr_pm)
         valor_libros = costo_adq - depr_acum
         isr = max(0.0, valor_venta - valor_libros) * 0.30
         return {"isr_venta": round(isr), "exento": False, "nota": "PM: (venta − valor en libros) × 30%"}
@@ -152,7 +155,9 @@ def isr_venta(ctx: Dict[str, Any]) -> Dict[str, Any]:
     costo_terreno_act = costo_terreno * inpc_factor
     costo_constr_act = (costo_constr - depr_fiscal) * inpc_factor
     costo_comprobado_act = costo_terreno_act + costo_constr_act
-    ganancia = valor_venta - costo_comprobado_act - gastos_venta * inpc_factor
+    # Los gastos de venta (comisión) se incurren AL vender → se deducen a valor nominal, NO se actualizan
+    # por INPC (solo el costo de adquisición se actualiza). Antes: gastos_venta*inpc_factor → sobre-deducía → subestimaba ISR.
+    ganancia = valor_venta - costo_comprobado_act - gastos_venta
     if ganancia <= 0:
         return {"isr_venta": 0, "exento": False, "nota": "Sin ganancia gravable tras actualización por INPC (revisar)"}
     # ganancia anualizada (art. 120/124): se divide entre años, se grava, se multiplica

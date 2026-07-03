@@ -94,11 +94,15 @@ async def _project_score(db, entity_id: str) -> Dict[str, Any]:
     total_u = max(1, len(units))
     sold_u = len([u for u in units if u.get("status") in ("vendido", "reservado")])
     target = max(1, total_u * 0.05)
+    # El audit_log de unidades guarda el estado nuevo en `after.status`, el proyecto en `after.dev_id`
+    # (= slug) y la marca de tiempo en `ts` (string ISO). Antes se filtraba por `to.status`/`created_at`
+    # (campos inexistentes → 0 siempre) y SIN scope de proyecto → velocity rota (heredaba ventas ajenas).
     recent_sales = await db.audit_log.count_documents({
         "entity_type": "unit",
         "action": "update",
-        "to.status": {"$in": ["vendido", "reservado"]},
-        "created_at": {"$gte": since_30d},
+        "after.dev_id": entity_id,
+        "after.status": {"$in": ["vendido", "reservado"]},
+        "ts": {"$gte": since_30d.isoformat()},
     })
     velocity = min(100, round((recent_sales / target) * 100))
     if sold_u / total_u > 0.6:

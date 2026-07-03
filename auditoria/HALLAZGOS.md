@@ -143,4 +143,20 @@ Por categoría: accesibilidad 18 · estado 9 · bug_render 8 · feedback_alert 6
 | FE-09 | P1 | comprador/CompradorFavoritos.js:43 | `handleDelete` sin try/catch → promesa rechazada, `load()` nunca corre |
 
 **Tanda 2 · P2 + P3 (24 + 13 = 37 · accesibilidad + pulido) → ✅ CORREGIDA** (ver CORRECCIONES.md).
+
+### BATCH 10 · CORRECTNESS de motores financieros/valuación/scoring (¿los números están bien?) — workflow 28 motores · **9 confirmados / 0 refutados** · ✅ TODOS CORREGIDOS
+Verificados a mano leyendo código real (varios contra el Mongo vivo). Bugs que producían números equivocados al usuario:
+| # | Sev | Archivo:línea | Bug de cálculo |
+|---|-----|---------------|----------------|
+| COR-01 | P1 | health_score.py:97 | Velocity (25% del score dev) usaba `to.status`/`created_at` (campos inexistentes → 0 SIEMPRE) y sin scope de proyecto → dimensión rota |
+| COR-02 | P1 | inversion_v4_tax.py:155 | Gastos de venta (comisión) actualizados por INPC → sobre-deducción → **subestima el ISR** de venta (PF) |
+| COR-03 | P2 | absorcion_engine.py:94 | `stage_key` sobrescrito con el último dev → meses/velocidad NO deterministas (dependían del orden de iteración) |
+| COR-04 | P2 | composite_metrics.py:390 | Compuesta #18 "Profundidad×calidad": denominador `score_zona and 1`=1 → ignoraba la calidad por completo |
+| COR-05 | P2 | composite_metrics.py:460 | Compuesta #50 "Velocidad×calidad": denominador literal `1` → mismo bug (score_zona no entraba) |
+| COR-06 | P2 | hedonic_regression_engine.py:217 | Intervalo de confianza del AVM omitía la varianza residual (rmse) → rango irrealmente angosto (±2-4% vs ±13-16% real) |
+| COR-07 | P2 | inversion_v4_finance.py:383 | `twr_unlev` producto geométrico en vez de aditivo (NCREIF/NPI es income+appreciation) → inconsistente con sus propios componentes |
+| COR-08 | P2 | inversion_v4_tax.py:133 | Depreciación PM sin tope → >20 años deprecia >100% de la construcción → **sobrestima el ISR** (PM) |
+| COR-09 | P2 | risk_score_engine.py:288 | Cambio-de-letra comparaba contra el registro `$ne` (saltaba todos los de misma letra) → alertas de cambio FALSAS |
+Nota: la corrección propuesta por el agente para COR-09 estaba mal (no sabía que el score nuevo ya está insertado); la real usa los 2-3 registros más recientes descartando el actual. Test `test_audit_correctness.py` (9 verdes · impuestos por ejecución real). Suite 1248 passed. Script workflow en scratchpad `audit-correctness-engines-*.js`.
+**Preexistente (ajeno):** `tests/test_search_parser.py::test_search_parser_casos` falla también sin estos cambios (no toca motores financieros) → N4, fuera de scope.
 Accesibilidad: aria-label/label en ~14 inputs/selects/icon-buttons huérfanos (ToolNav, Mapa, Inteligencia, FichaCockpit ✕, SalaDeControl modal, SuperadminTenants impersonar+estado, SuperadminMetricsCube, Favoritos) · aria-expanded/haspopup/controls en menús (ToolNav, PortalLayout id faltante) · `<div>`/`<span>` clickeables → button/role+teclado (FichaCockpit ubicación + track record) · role=status/aria-live en avisos (SalaDeControl, copiar). Estados: error-vs-vacío en bandeja (ConversationInbox), tours 3D (ProyectoDetail), filtro favoritos · loading con texto. Bug_render: guard `Piso undefined` (FichaDesarrollo) · stale-closure loadThreads (CompradorChat) · race copiloto (ConversationInbox). Feedback: 2 `alert()`/mensajes crudos → toast/inline (ProyectoDetail, SalaDeControl, DesarrolladorFeedback). UI-muerta: mapa navega SPA (useNavigate). Responsive: tabla 11-col con scroll contenedor. Consistencia: cursor nativo protegido (gate por clase) + color-scheme claro en superficies claras.

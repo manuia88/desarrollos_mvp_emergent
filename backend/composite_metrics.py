@@ -387,7 +387,7 @@ COMPOSITES: List = [
     (17, 2, "Migración de demanda", "de qué zona cara migran a cuál barata",
      lambda z, g: (g.get("sustitucion") or {}).get("visitantes_multi_colonia")),
     (18, 2, "Profundidad × calidad", "¿mejores zonas se exploran más?",
-     lambda z, g: _ratio(z.get("demanda"), z.get("score_zona") and 1) if z.get("score_zona") else None),
+     lambda z, g: _ratio(z.get("demanda"), z.get("score_zona")) if z.get("score_zona") else None),
     (19, 2, "Intent-mix por tier", "vivir vs invertir (agregado de 8 intenciones) según el tier",
      lambda z, g: next((f"{c.get('invertir', 0)}inv/{c.get('vivir', 0)}viv" for c in (g.get("intent", {}).get("por_colonia") or []) if c.get("colonia") == z.get("zona")), None)),
     (20, 2, "Concentración de demanda", "qué tan concentrada está la demanda",
@@ -457,7 +457,7 @@ COMPOSITES: List = [
     (49, 5, "Absorción estacional", "velocidad de venta por temporada",
      lambda z, g: _ab(z, "velocidad_mensual")),
     (50, 5, "Velocidad × calidad", "¿mejores zonas venden más rápido?",
-     lambda z, g: _ratio(_ab(z, "velocidad_mensual"), 1) if z.get("score_zona") else None),
+     lambda z, g: _ratio(_ab(z, "velocidad_mensual"), z.get("score_zona")) if z.get("score_zona") else None),
 
     # ── PACK 6 · UNDERWRITING ──
     (51, 6, "Qué construir (gap)", "feature pedido sin oferta",

@@ -285,12 +285,23 @@ async def detect_letter_change(
     if not new_letter:
         return None
 
-    prev = await db.risk_scores_zone.find_one(
-        {"zone_id": zone_id, "available": True,
-         "score_letter": {"$exists": True, "$ne": new_letter}},
+    # El score recién computado YA está insertado (compute_risk_score_v2 persiste antes de llamar aquí),
+    # así que es el registro más reciente. Tomamos los recientes y descartamos ESE registro actual
+    # (mismo letra+score) para comparar contra el previo REAL. Antes filtrábamos {score_letter $ne new}:
+    # eso saltaba TODOS los registros con la misma letra → disparaba cambios falsos contra un registro viejo.
+    recientes = await db.risk_scores_zone.find(
+        {"zone_id": zone_id, "available": True, "score_letter": {"$exists": True}},
         {"_id": 0, "score_letter": 1, "score_numeric": 1, "computed_at": 1},
         sort=[("computed_at_dt", -1)],
-    )
+    ).to_list(3)
+    prev = None
+    for r in recientes:
+        es_actual = (r.get("score_letter") == new_letter
+                     and abs(float(r.get("score_numeric") or 0) - float(new_score or 0)) < 1e-6)
+        if es_actual:
+            continue   # este es el registro recién insertado, no el previo
+        prev = r
+        break
     if not prev:
         return None
     prev_letter = prev.get("score_letter")

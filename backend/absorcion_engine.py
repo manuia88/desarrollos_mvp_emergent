@@ -58,7 +58,7 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
         except Exception:
             pass
 
-    cohortes: Dict[str, dict] = defaultdict(lambda: {"n": 0, "total": 0, "sold": 0, "avail": 0, "stage_key": None})
+    cohortes: Dict[str, dict] = defaultdict(lambda: {"n": 0, "total": 0, "sold": 0, "avail": 0, "stage_key": None, "meses_acc": 0.0})
     comparables: List[Dict[str, Any]] = []
     try:
         from data_developments import DEVELOPMENTS
@@ -72,9 +72,10 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
             if total <= 0:
                 continue
             b = cohortes[coh]
-            b["n"] += 1; b["total"] += total; b["sold"] += sold; b["avail"] += avail; b["stage_key"] = stage
-            absor = round(100 * sold / total) if total else 0
             meses = _MESES_STAGE.get(stage, 12)
+            b["n"] += 1; b["total"] += total; b["sold"] += sold; b["avail"] += avail; b["stage_key"] = stage
+            b["meses_acc"] += meses * total   # acumula meses ponderados por unidades (determinista, no depende del último stage escrito)
+            absor = round(100 * sold / total) if total else 0
             vel = round(sold / meses, 1) if meses else 0
             comparables.append({
                 "nombre": d.get("nombre") or d.get("name") or d.get("id"),
@@ -91,7 +92,7 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
         b = cohortes.get(coh)
         if not b or b["total"] == 0:
             continue
-        meses = _MESES_STAGE.get(b["stage_key"], 12)
+        meses = (b["meses_acc"] / b["total"]) if b["total"] else 12   # meses efectivos ponderados de la cohorte (determinista)
         vel = round(b["sold"] / meses, 1) if meses else 0
         meses_agotar = round(b["avail"] / vel) if vel > 0 else None
         curva.append({
