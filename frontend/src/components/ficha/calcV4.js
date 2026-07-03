@@ -22,6 +22,16 @@ export const cardV4 = { background: V4.card, border: `1px solid ${V4.line}`, bor
 export const inpV4 = { width: '100%', padding: '11px 13px', borderRadius: 11, border: `1px solid ${V4.line}`, fontFamily: SANS, fontSize: 14, color: V4.ink, background: '#fff', outline: 'none', boxSizing: 'border-box' };
 export const labV4 = { display: 'block', fontFamily: SANS, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: V4.ink2, fontWeight: 700, marginBottom: 6 };
 
+// Input de dinero: muestra "$1,999,999" mientras se escribe; guarda el número puro (string de dígitos).
+export function MoneyInput({ value, onChange, placeholder, style }) {
+  const display = (value === '' || value == null || isNaN(Number(value))) ? '' : `$${Number(value).toLocaleString('es-MX')}`;
+  return (
+    <input type="text" inputMode="numeric" value={display} placeholder={placeholder || '$0'}
+      onChange={(e) => onChange((e.target.value || '').replace(/[^\d]/g, ''))}
+      style={style || inpV4} />
+  );
+}
+
 // Borde con degradado (double-background trick, sin pseudo-elementos, respeta border-radius)
 export const gradBorder = (fill = '#FFFFFF', radius = 16) => ({ borderRadius: radius, border: '1.5px solid transparent', backgroundImage: `linear-gradient(${fill},${fill}), ${GRAD}`, backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', WebkitBackgroundClip: 'padding-box, border-box' });
 

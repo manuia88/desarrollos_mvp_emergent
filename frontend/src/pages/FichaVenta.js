@@ -25,6 +25,7 @@ import InversionV4Calculator from '../components/investment/InversionV4Calculato
 import FichaHipotecaComparador from '../components/ficha/FichaHipotecaComparador';
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
 import FichaPlanDesarrollador from '../components/ficha/FichaPlanDesarrollador';
+import FichaResumenCierre from '../components/ficha/FichaResumenCierre';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import DevStructuredData from '../components/seo/DevStructuredData';
@@ -988,16 +989,20 @@ function TabGeneral({ dev }) {
   );
 }
 
-// ═══════════════ TAB · PLANES DE PAGO — 2 sub-tabs: plan del dev + crédito/escrituración ═══════════════
-// Reusa motores backend: /api/public/payment-schemes, /api/public/mortgage/*, /api/tax/*
+// ═══════════════ TAB · PLANES DE PAGO — 3 sub-tabs numeradas: ① plan · ② crédito · ③ ISAI/cierre ═══════════════
+// Reusa motores backend: /api/public/payment-schemes, /api/public/mortgage/*, /api/tax/*.
+// Estado compartido: el plan (①) alimenta el prefill del crédito (②) y del cierre (③); el crédito
+// elegido (②) alimenta el cierre; el cierre calculado + todo lo anterior arma el RESUMEN final.
 const INMEDIATA = new Set(['entrega_inmediata', 'terminado']);
 function TabPlanesPago({ dev, unit }) {
   const [schemes, setSchemes] = useState(undefined);
   const [fechas, setFechas] = useState({ fecha_inicio: null, fecha_entrega: null });
-  const [subTab, setSubTab] = useState('plan');          // 'plan' | 'credito'
-  const [creditPrefill, setCreditPrefill] = useState(null);   // {price, enganchePct, unitLabel}
-  const [isaiPrefill, setIsaiPrefill] = useState(null);       // {price, montoCredito, unitLabel}
-  const isaiRef = useRef(null), creditoTopRef = useRef(null);
+  const [tab, setTab] = useState('plan');            // 'plan' | 'credito' | 'cierre'
+  const [plan, setPlan] = useState(null);            // resumen emitido por el Tab ①
+  const [credito, setCredito] = useState(null);      // banco elegido en ② | null (contado)
+  const [cierre, setCierre] = useState(null);        // resultado ISAI/cierre de ③
+  const [scrollTick, setScrollTick] = useState(0);   // dispara scroll-to-top al saltar por botón
+  const topRef = useRef(null);
   const inmediata = INMEDIATA.has(dev.stage);
 
   useEffect(() => {
@@ -1009,52 +1014,68 @@ function TabPlanesPago({ dev, unit }) {
     return () => { alive = false; };
   }, [dev.id]);
 
-  const basePrice = (unit && unit.price) || dev.price_from || 0;
+  // scroll al inicio del panel cuando saltamos de pestaña vía botón (rAF: sin race de setTimeout)
+  useEffect(() => {
+    if (!scrollTick) return;
+    const id = requestAnimationFrame(() => { if (topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    return () => cancelAnimationFrame(id);
+  }, [scrollTick]);
 
-  const goCredito = ({ price, enganchePct, unit: u }) => {
-    setCreditPrefill({ price, enganchePct, unitLabel: u ? `Unidad ${u.unit_number} · ${money(price)}` : null });
-    setSubTab('credito');
-    setTimeout(() => creditoTopRef.current && creditoTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  const onPlanChange = useCallback((p) => setPlan(p), []);
+  const onCierre = useCallback((r) => setCierre(r), []);
+
+  const goCredito = () => { setCredito(null); setTab('credito'); setScrollTick((t) => t + 1); };
+  const goEscrituracion = () => { setCredito(null); setTab('cierre'); setScrollTick((t) => t + 1); };
+  const onElegirCredito = (b) => {
+    setCredito({ banco: b.banco, producto: b.producto, tasa: b.tasa, cat: b.cat, pago: b.pago, monto: b.monto, meses: b.meses, enganchePct: plan ? plan.enganchePctCredito : null });
+    setTab('cierre'); setScrollTick((t) => t + 1);
   };
-  const goEscrituracion = ({ price, montoCredito, unit: u }) => {
-    setIsaiPrefill({ price, montoCredito, unitLabel: u ? `Unidad ${u.unit_number} · ${money(price)}` : null });
-    setSubTab('credito');
-    setTimeout(() => isaiRef.current && isaiRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  };
+
+  const basePrice = (plan && plan.price) || (unit && unit.price) || dev.price_from || 0;
+  const engCredito = plan ? plan.enganchePctCredito : undefined;
+  const escrituraMonto = plan ? plan.escrituracion : undefined;
+  const unitLabelPlan = plan && plan.unit ? `Unidad ${plan.unit.unit_number} · ${money(plan.price)}` : null;
+  const montoCierre = credito ? credito.monto : escrituraMonto;
+
+  const TABS = [['plan', '1', 'Plan del desarrollador'], ['credito', '2', 'Crédito hipotecario'], ['cierre', '3', 'ISAI y costos de cierre']];
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line2}`, marginBottom: 18 }}>
-        {[['plan', 'Plan del desarrollador'], ['credito', 'Crédito y escrituración']].map(([k, l]) => (
-          <button key={k} onClick={() => setSubTab(k)} style={{ padding: '11px 4px', marginRight: 24, border: 'none', borderBottom: subTab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: subTab === k ? C.accent : C.ink2, fontFamily: HEAD, fontWeight: subTab === k ? 800 : 600, fontSize: 15, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
+      <div ref={topRef} />
+      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.line2}`, marginBottom: 18, flexWrap: 'wrap' }}>
+        {TABS.map(([k, n, l]) => (
+          <button key={k} onClick={() => setTab(k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 4px', marginRight: 24, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: HEAD, fontWeight: tab === k ? 800 : 600, fontSize: 15, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 21, height: 21, borderRadius: 9999, fontFamily: HEAD, fontSize: 11, fontWeight: 800, background: tab === k ? C.accent : '#eae7f6', color: tab === k ? '#fff' : C.ink2 }}>{n}</span>{l}
+          </button>
         ))}
       </div>
 
-      {/* Tab A siempre montado (display toggle) para no perder la config del plan al ir y volver */}
-      <div style={{ display: subTab === 'plan' ? 'block' : 'none' }}>
-        <FichaPlanDesarrollador key={schemes === undefined ? 'plan-load' : 'plan-ready'}
+      {/* Tab ① siempre montado (display toggle) para no perder la config del plan al ir y volver */}
+      <div style={{ display: tab === 'plan' ? 'block' : 'none' }}>
+        <FichaPlanDesarrollador key={schemes === undefined ? 'plan-load' : `plan-ready-${unit ? unit.unit_number : ''}`}
           dev={dev} units={dev.units || []} unitInicial={unit}
           schemes={schemes} fechaInicio={fechas.fecha_inicio} fechaEntrega={fechas.fecha_entrega}
-          onGoCredito={goCredito} onGoEscrituracion={goEscrituracion} />
+          onPlanChange={onPlanChange} onGoCredito={goCredito} onGoEscrituracion={goEscrituracion} />
       </div>
 
-      {subTab === 'credito' && (
+      {tab === 'credito' && (
+        <FichaHipotecaComparador
+          key={`c-${basePrice}-${engCredito}`}
+          basePrice={basePrice} devName={dev.name}
+          enganchePctInicial={engCredito} unitLabel={unitLabelPlan}
+          onElegirCredito={onElegirCredito} />
+      )}
+
+      {tab === 'cierre' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div ref={creditoTopRef} />
-          <FichaHipotecaComparador
-            key={`c-${creditPrefill ? `${creditPrefill.price}-${creditPrefill.enganchePct}` : basePrice}`}
-            basePrice={(creditPrefill && creditPrefill.price) || basePrice}
-            devName={dev.name}
-            enganchePctInicial={creditPrefill ? creditPrefill.enganchePct : undefined}
-            unitLabel={creditPrefill ? creditPrefill.unitLabel : undefined} />
-          <div ref={isaiRef} />
           <FichaTaxISAI
-            key={`i-${isaiPrefill ? `${isaiPrefill.price}-${Math.round(isaiPrefill.montoCredito || 0)}` : basePrice}`}
-            basePrice={(isaiPrefill && isaiPrefill.price) || basePrice}
-            conCreditoInicial={!!isaiPrefill}
-            montoCreditoInicial={isaiPrefill ? isaiPrefill.montoCredito : undefined}
-            unitLabel={isaiPrefill ? isaiPrefill.unitLabel : undefined}
-            preventa={!inmediata} />
+            key={`i-${basePrice}-${credito ? Math.round(credito.monto || 0) : Math.round(escrituraMonto || 0)}-${credito ? 1 : 0}`}
+            basePrice={basePrice}
+            conCreditoInicial={!!credito}
+            montoCreditoInicial={montoCierre}
+            unitLabel={unitLabelPlan} preventa={!inmediata}
+            onCierre={onCierre} />
+          <FichaResumenCierre plan={plan} credito={credito} cierre={cierre} />
         </div>
       )}
     </div>

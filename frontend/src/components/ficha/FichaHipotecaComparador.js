@@ -127,7 +127,7 @@ const SORT_INFO = {
   total: { label: 'Pago total', long: 'Pago total', tip: 'La suma de todo lo que le pagas al banco por el crédito al final del plazo: mensualidades + enganche + comisión de apertura + avalúo. No incluye escrituración ni ISAI (esos van en el Proyector de impuestos).' },
 };
 
-export default function FichaHipotecaComparador({ basePrice = 0, devName, enganchePctInicial, unitLabel }) {
+export default function FichaHipotecaComparador({ basePrice = 0, devName, enganchePctInicial, unitLabel, onElegirCredito }) {
   const [precio, setPrecio] = useState(basePrice || '');
   const [enganchePct, setEnganchePct] = useState(enganchePctInicial != null ? enganchePctInicial : 20);
   const [plazo, setPlazo] = useState(20);
@@ -334,8 +334,13 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName, enganc
                     {b.nota && <div style={{ fontFamily: SANS, fontSize: 11.5, color: V4.theme, padding: '6px 0 2px', fontWeight: 600 }}>ℹ️ {b.nota}</div>}
                     <DetalleGrid b={b} />
                     <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 10, background: 'rgba(109,74,255,0.05)', border: `1px solid rgba(109,74,255,0.16)`, fontFamily: SANS, fontSize: 11.5, color: V4.ink2, lineHeight: 1.5 }}>
-                      Esto es solo el desembolso <b>al banco</b>. Los gastos de <b>escrituración, ISAI y registro</b> se calculan aparte en el <b>Proyector de impuestos</b>, aquí abajo. En preventa aún no hay valor catastral, así que el proyector usa el <b>precio de compra</b> como base.
+                      Esto es solo el desembolso <b>al banco</b>. Los gastos de <b>escrituración, ISAI y registro</b> se calculan en la pestaña ③. En preventa aún no hay valor catastral, así que se usa el <b>precio de compra</b> como base.
                     </div>
+                    {onElegirCredito && (
+                      <div style={{ marginTop: 12 }}>
+                        <BtnV4 onClick={() => onElegirCredito(b)}>Elegir {b.banco} y ver mi cierre →</BtnV4>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
