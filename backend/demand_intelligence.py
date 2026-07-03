@@ -865,10 +865,30 @@ async def _window_colonia_demand(db, start, end, colonias=None) -> Dict[str, int
 async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] = None, min_recent: int = 3) -> Dict[str, Any]:
     """TENDENCIA/ANOMALÍA — demanda por feature en la ventana reciente vs la anterior → qué SUBE rápido ('terraza 3x este
     mes'). El sensor de 'el mercado está cambiando, muévete'."""
+    from data_developments import DEVELOPMENTS_BY_ID
     now = dt.datetime.utcnow()
-    recent = await _window_feature_counts(db, now - dt.timedelta(days=window_days), now, colonias)
-    prior = await _window_feature_counts(db, now - dt.timedelta(days=2 * window_days), now - dt.timedelta(days=window_days), colonias)
-    older = await _window_feature_counts(db, now - dt.timedelta(days=3 * window_days), now - dt.timedelta(days=2 * window_days), colonias)
+    b1 = now - dt.timedelta(days=window_days)          # frontera reciente/anterior
+    b2 = now - dt.timedelta(days=2 * window_days)      # frontera anterior/anterior_2
+    b3 = now - dt.timedelta(days=3 * window_days)      # inicio del rango total
+    # UNA sola lectura del rango completo, particionando las 3 ventanas de feature y las 2 de colonia en Python
+    # (antes: 5 full-scans independientes). Mismas fronteras $gte/$lt y misma atribución → output idéntico.
+    q = {"created_at_dt": {"$gte": b3, "$lt": now}, "type": {"$in": _ENGAGE}}
+    if colonias:
+        q["colonia"] = {"$in": colonias}
+    fwin = [defaultdict(int), defaultdict(int), defaultdict(int)]   # feature: reciente / anterior / anterior_2
+    cwin = [defaultdict(int), defaultdict(int)]                     # colonia: reciente / anterior
+    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "colonia": 1, "unit_number": 1,
+                                             "meta": 1, "type": 1, "value": 1, "created_at_dt": 1}):
+        t = s["created_at_dt"]
+        w = 0 if t >= b1 else 1 if t >= b2 else 2
+        feats, col, _ = _attribute(s, DEVELOPMENTS_BY_ID.get(s.get("entity_id")))
+        if feats and col:
+            for f in feats:
+                fwin[w][f] += 1
+        c = s.get("colonia")
+        if w < 2 and c:   # demanda espacial solo usa reciente/anterior (mismo $nin [None, ""] de antes)
+            cwin[w][c] += 1
+    recent, prior, older = dict(fwin[0]), dict(fwin[1]), dict(fwin[2])
     alerts = []; subiendo = bajando = 0
     for f, rc in recent.items():
         if rc < min_recent:
@@ -892,9 +912,9 @@ async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] 
                            "nuevo": False, "x": round(rc / pc, 1), "acelerando": acelera,
                            "direccion": "sube" if growth > 0 else "baja" if growth < 0 else "plano"})
     alerts.sort(key=lambda x: -(x["crecimiento_pct"] if x["crecimiento_pct"] is not None else (10 ** 6 + x["reciente"])))
-    # tendencia ESPACIAL: qué colonias se calientan/enfrían
-    c_recent = await _window_colonia_demand(db, now - dt.timedelta(days=window_days), now, colonias)
-    c_prior = await _window_colonia_demand(db, now - dt.timedelta(days=2 * window_days), now - dt.timedelta(days=window_days), colonias)
+    # tendencia ESPACIAL: qué colonias se calientan/enfrían (ya particionado en la misma lectura)
+    c_recent = dict(cwin[0])
+    c_prior = dict(cwin[1])
     col_trends = []
     for c, rc in c_recent.items():
         if rc < min_recent:
@@ -921,7 +941,8 @@ async def conversation_intel(db, since_days: int = 365, top: int = 15) -> Dict[s
     """Analiza la conversación con Atlax TURNO POR TURNO (asistente_messages role=user) → qué FEATURES, COLONIAS y
     OBJECIONES aparecen en el ida-y-vuelta, más allá de la query inicial. Cierra el gap 'conversación no analizada'."""
     from data_developments import DEVELOPMENTS
-    cutoff = (dt.datetime.utcnow() - dt.timedelta(days=since_days)).isoformat()
+    cutoff_dt = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    cutoff = cutoff_dt.isoformat()
     known = {d.get("colonia_id"): (d.get("colonia") or "") for d in DEVELOPMENTS if d.get("colonia_id")}
     feats = defaultdict(int); concerns = defaultdict(int); cols = defaultdict(int)
     feat_x_concern = defaultdict(int)        # co-ocurrencia feature+objeción en un mismo turno
@@ -929,8 +950,11 @@ async def conversation_intel(db, since_days: int = 365, top: int = 15) -> Dict[s
     by_segment = defaultdict(int)            # vivir/invertir inferido del texto
     long_q = 0                               # mensajes "ricos" (>12 palabras) = más intención
     n = 0
-    async for m in db.asistente_messages.find({"role": "user"}, {"_id": 0, "content": 1, "created_at": 1}):
-        if str(m.get("created_at") or "") < cutoff:
+    # filtro de fecha EN la query (usa índice role+created_at); $or cubre datetime nativo e ISO-string legado
+    async for m in db.asistente_messages.find(
+            {"role": "user", "$or": [{"created_at": {"$gte": cutoff_dt}}, {"created_at": {"$gte": cutoff}}]},
+            {"_id": 0, "content": 1, "created_at": 1}):
+        if str(m.get("created_at") or "") < cutoff:   # cinturón: mismo guard de siempre
             continue
         txt = (m.get("content") or "").lower()
         if not txt:
@@ -1379,14 +1403,20 @@ async def temporal_demand(db, since_days: int = 90) -> Dict[str, Any]:
     def franja(h):
         return "madrugada (0-6)" if h < 6 else "mañana (6-12)" if h < 12 else "mediodía (12-15)" if h < 15 else "tarde (15-19)" if h < 19 else "noche (19-24)"
 
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "created_at_dt": 1, "type": 1}):
-        d = s.get("created_at_dt")
-        if not isinstance(d, dt.datetime):
-            continue
-        by_hour[d.hour] += 1; by_dow[d.weekday()] += 1
-        fr = franja(d.hour); by_franja[fr] += 1
-        semana["fin_de_semana" if d.weekday() >= 5 else "entre_semana"] += 1
-        (franja_alta if s.get("type") in ALTA else franja_browse)[fr] += 1
+    # agregado en Mongo: hora/día-de-semana/alta-intención por grupo (≤ 24×7×2 buckets) en vez de streamear la ventana
+    pipe = [
+        {"$match": {"created_at_dt": {"$gte": cutoff}}},
+        {"$group": {"_id": {"h": {"$hour": "$created_at_dt"}, "dow": {"$dayOfWeek": "$created_at_dt"},
+                            "alta": {"$in": [{"$ifNull": ["$type", ""]}, sorted(ALTA)]}},
+                    "n": {"$sum": 1}}},
+    ]
+    async for g in db.buyer_signals.aggregate(pipe):
+        h = g["_id"]["h"]; cnt = g["n"]
+        wd = (g["_id"]["dow"] + 5) % 7   # $dayOfWeek: 1=Dom..7=Sáb → weekday(): 0=Lun..6=Dom
+        by_hour[h] += cnt; by_dow[wd] += cnt
+        fr = franja(h); by_franja[fr] += cnt
+        semana["fin_de_semana" if wd >= 5 else "entre_semana"] += cnt
+        (franja_alta if g["_id"]["alta"] else franja_browse)[fr] += cnt
 
     dow = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
     fr_order = ["madrugada (0-6)", "mañana (6-12)", "mediodía (12-15)", "tarde (15-19)", "noche (19-24)"]

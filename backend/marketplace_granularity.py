@@ -232,13 +232,19 @@ async def rfm_segments(db, since_days: int = 365) -> Dict[str, Any]:
     import demand_intelligence as di
     now = dt.datetime.utcnow()
     agg = defaultdict(lambda: {"n": 0, "last": None, "val": 0.0})
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": _cut(since_days)}},
-                                         {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1}):
-        v = s.get("visitor_id")
+    # $group en Mongo por (visitante, tipo): count + max(created_at_dt) → el RFM se arma sobre el agregado
+    # (mismo resultado: val = peso×conteo, pesos exactos en binario; antes streameaba TODA la ventana)
+    pipe = [
+        {"$match": {"created_at_dt": {"$gte": _cut(since_days)}}},
+        {"$group": {"_id": {"v": "$visitor_id", "t": "$type"},
+                    "n": {"$sum": 1}, "last": {"$max": "$created_at_dt"}}},
+    ]
+    async for g in db.buyer_signals.aggregate(pipe):
+        v = g["_id"].get("v")
         if not v:
             continue
-        a = agg[v]; a["n"] += 1; a["val"] += di._PROP_WEIGHT.get(s.get("type"), 0.5)
-        t = s.get("created_at_dt")
+        a = agg[v]; a["n"] += g["n"]; a["val"] += di._PROP_WEIGHT.get(g["_id"].get("t"), 0.5) * g["n"]
+        t = g.get("last")
         if isinstance(t, dt.datetime) and (a["last"] is None or t > a["last"]):
             a["last"] = t
     seg = defaultdict(int)
@@ -414,13 +420,17 @@ async def competitor_mentions(db, since_days: int = 365, top: int = 12) -> Dict[
     contra ti). Heurística: nombres con mayúscula no-DMX + keywords de competencia.
     Universo: + share of voice (% de menciones por término), + serie mensual, + co-mención con zonas DMX,
     + share-of-conversation (% de mensajes que mencionan competencia), + competidor #1."""
-    cutoff = _cut(since_days).isoformat()
+    cutoff_dt = _cut(since_days)
+    cutoff = cutoff_dt.isoformat()
     kws = ("be grand", "artigas", "be tower", "reforma", "live", "park", "residencial", "torre", "be ")
     zonas = ("polanco", "roma", "condesa", "del valle", "narvarte", "juárez", "juarez", "nápoles", "napoles", "anzures")
     hits = defaultdict(int); n = 0; msgs_con_comp = 0
     by_month = defaultdict(int)
     co_zona = defaultdict(int)        # término competidor co-mencionado con zona DMX
-    async for m in db.asistente_messages.find({"role": "user"}, {"_id": 0, "content": 1, "created_at": 1}):
+    # filtro de fecha EN la query (índice role+created_at); $or cubre datetime nativo e ISO-string legado
+    async for m in db.asistente_messages.find(
+            {"role": "user", "$or": [{"created_at": {"$gte": cutoff_dt}}, {"created_at": {"$gte": cutoff}}]},
+            {"_id": 0, "content": 1, "created_at": 1}):
         ca = str(m.get("created_at") or "")
         if ca < cutoff:
             continue
@@ -465,7 +475,11 @@ async def locale_split(db, since_days: int = 365) -> Dict[str, Any]:
     async for c in db.buyer_coach_conversations.find({}, {"_id": 0, "locale": 1}):
         if c.get("locale"):
             locales[c["locale"]] += 1
-    async for s in db.asistente_sessions.find({}, {"_id": 0, "channel": 1, "referral_source": 1, "user_agent_hash": 1, "captured_lead_id": 1}):
+    # cutoff de since_days EN la query (antes leía TODAS las sesiones); $or cubre datetime nativo e ISO-string legado
+    _sc = _cut(since_days)
+    async for s in db.asistente_sessions.find(
+            {"$or": [{"created_at": {"$gte": _sc}}, {"created_at": {"$gte": _sc.isoformat()}}]},
+            {"_id": 0, "channel": 1, "referral_source": 1, "user_agent_hash": 1, "captured_lead_id": 1}):
         ch = s.get("channel")
         if ch:
             channels[ch] += 1
@@ -585,14 +599,18 @@ async def urgency_signals(db, since_days: int = 365) -> Dict[str, Any]:
     """12· URGENCIA — lenguaje de prisa en la conversación ('me mudo en', 'ya', 'urgente', 'este mes').
     Universo: + serie mensual de la tasa de urgencia, + nivel (alta/media/baja según frases acumuladas),
     + frase #1, + co-ocurrencia urgencia×competencia (compran rápido Y comparan = caliente), + termómetro derivado."""
-    cutoff = _cut(since_days).isoformat()
+    cutoff_dt = _cut(since_days)
+    cutoff = cutoff_dt.isoformat()
     kws = ("urgente", "ya", "rápido", "rapido", "este mes", "lo antes posible", "me mudo", "pronto", "inmediato", "esta semana")
     comp_kws = ("be grand", "artigas", "reforma", "torre", "residencial")
     n = hit = 0
     found = defaultdict(int)
     by_month = defaultdict(lambda: {"msgs": 0, "urg": 0})
     urg_y_comp = 0
-    async for m in db.asistente_messages.find({"role": "user"}, {"_id": 0, "content": 1, "created_at": 1}):
+    # filtro de fecha EN la query (índice role+created_at); $or cubre datetime nativo e ISO-string legado
+    async for m in db.asistente_messages.find(
+            {"role": "user", "$or": [{"created_at": {"$gte": cutoff_dt}}, {"created_at": {"$gte": cutoff}}]},
+            {"_id": 0, "content": 1, "created_at": 1}):
         ca = str(m.get("created_at") or "")
         if ca < cutoff:
             continue
@@ -895,7 +913,9 @@ async def substitution(db, since_days: int = 365, top: int = 10) -> Dict[str, An
     # visitantes y la SECUENCIA de colonias que vieron (para flujos A→B)
     seq_by_v = defaultdict(list)
     set_by_v = defaultdict(set)
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": _cut(since_days)}, "colonia": {"$nin": [None, ""]}},
+    # filtro de visitante EN la query (antes se descartaba en Python) + proyección mínima ya presente
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": _cut(since_days)}, "colonia": {"$nin": [None, ""]},
+                                          "visitor_id": {"$nin": [None, ""]}},
                                          {"_id": 0, "visitor_id": 1, "colonia": 1, "created_at_dt": 1}).sort("created_at_dt", 1):
         v = s.get("visitor_id")
         if not v:
@@ -937,8 +957,12 @@ async def attribution(db, since_days: int = 365) -> Dict[str, Any]:
     by_src = defaultdict(lambda: {"sesiones": 0, "leads": 0, "msgs": 0})
     by_month = defaultdict(lambda: {"sesiones": 0, "leads": 0})
     canal_locale = defaultdict(lambda: defaultdict(int))
-    async for s in db.asistente_sessions.find({}, {"_id": 0, "referral_source": 1, "channel": 1, "captured_lead_id": 1,
-                                                   "message_count": 1, "created_at": 1, "locale": 1}):
+    # cutoff de since_days EN la query (antes leía TODAS las sesiones); $or cubre datetime nativo e ISO-string legado
+    _sc = _cut(since_days)
+    async for s in db.asistente_sessions.find(
+            {"$or": [{"created_at": {"$gte": _sc}}, {"created_at": {"$gte": _sc.isoformat()}}]},
+            {"_id": 0, "referral_source": 1, "channel": 1, "captured_lead_id": 1,
+             "message_count": 1, "created_at": 1, "locale": 1}):
         k = s.get("referral_source") or s.get("channel") or "directo"
         d = by_src[k]
         d["sesiones"] += 1

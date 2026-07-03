@@ -570,7 +570,7 @@ async def _agg_demand(db, group_field: str, cutoff) -> Dict[str, Dict[str, Any]]
     async for r in db.buyer_signals.aggregate([
         {"$match": match},
         {"$group": {"_id": {"g": f"${group_field}", "t": "$type"}, "n": {"$sum": 1}}},
-    ]):
+    ], allowDiskUse=True):   # cron: el $group puede exceder los 100MB en ventanas grandes
         g = r["_id"].get("g"); t = r["_id"].get("t")
         if not g:
             continue
@@ -579,7 +579,7 @@ async def _agg_demand(db, group_field: str, cutoff) -> Dict[str, Dict[str, Any]]
     async for r in db.buyer_signals.aggregate([
         {"$match": match},
         {"$group": {"_id": f"${group_field}", "v": {"$addToSet": "$visitor_id"}}},
-    ]):
+    ], allowDiskUse=True):   # cron: el $addToSet de visitantes puede crecer
         g = r["_id"]
         if not g or g not in out:
             continue
