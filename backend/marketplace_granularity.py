@@ -900,11 +900,24 @@ async def willingness_to_pay(db, since_days: int = 365, top: int = 12) -> Dict[s
     }
 
 
+_SUB_CACHE: Dict[Any, Any] = {}   # PERF A8 · cache TTL del scan de secuencias (no agregable en Mongo sin $push global)
+_SUB_TTL = 300.0
+
+
 async def substitution(db, since_days: int = 365, top: int = 10) -> Dict[str, Any]:
     """19· SUSTITUCIÓN / CROSS-ZONE — cuando no hay match en la colonia pedida, a qué OTRAS colonias migran (de atlax_query
     meta.cross_zone + las colonias que terminan viendo). 'piden Roma, terminan en Condesa'.
     Universo: + flujos de migración A→B (de qué colonia a cuál), + colonias 'imán' (las más receptoras), + colonias
-    'fuga' (las que más pierden), + nº medio de colonias por visitante, + par de sustitución #1."""
+    'fuga' (las que más pierden), + nº medio de colonias por visitante, + par de sustitución #1.
+
+    PERF A8 (auditoría): la reconstrucción de secuencias por visitante requiere el orden temporal doc a doc
+    (no expresable con $group sin cargar todo en RAM del server) → cache TTL 5 min: el scan corre a lo más
+    1 vez por TTL para todos los callers. El dict cacheado se trata como read-only."""
+    import time as _time
+    _ck = (since_days, top)
+    _hit = _SUB_CACHE.get(_ck)
+    if _hit and (_time.monotonic() - _hit[0]) < _SUB_TTL:
+        return _hit[1]
     cross = 0; n = 0
     async for s in db.buyer_signals.find({"type": "atlax_query", "created_at_dt": {"$gte": _cut(since_days)}}, {"_id": 0, "meta": 1}):
         n += 1
@@ -936,7 +949,7 @@ async def substitution(db, since_days: int = 365, top: int = 10) -> Dict[str, An
                 iman[b] += 1
     sizes = [len(s) for s in set_by_v.values()]
     par1 = flujos.most_common(1)[0][0] if flujos else None
-    return {
+    _out = {
         "queries_con_cross_zone": cross, "queries": n, "visitantes_multi_colonia": multi_zone,
         "lectura": "muchos cruzan de zona = la oferta de su 1ª opción no alcanza (oportunidad en la vecina)",
         # ── universo ──
@@ -948,6 +961,10 @@ async def substitution(db, since_days: int = 365, top: int = 10) -> Dict[str, An
         "insight": (f"el flujo más fuerte es '{par1}' — pon oferta en la receptora" if par1
                     else "aún no hay migración entre colonias observable"),
     }
+    if len(_SUB_CACHE) > 32:
+        _SUB_CACHE.clear()
+    _SUB_CACHE[_ck] = (_time.monotonic(), _out)
+    return _out
 
 
 async def attribution(db, since_days: int = 365) -> Dict[str, Any]:

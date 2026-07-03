@@ -193,10 +193,23 @@ def _attribute(s: Dict[str, Any], dev: Optional[Dict[str, Any]]):
     return _dev_features(dev), col, False
 
 
+_DBF_CACHE: Dict[Any, Any] = {}   # PERF A2 · cache TTL del scan de ventana (llave = args)
+_DBF_TTL = 300.0                  # 5 min — la demanda por feature cambia por acumulación, no por segundo
+
+
 async def demand_by_feature(db, colonia: Optional[str] = None, colonias: Optional[List[str]] = None,
                             period: str = "month", since_days: int = 365, top: int = 25) -> Dict[str, Any]:
     """Demanda por FEATURE × colonia × tiempo (señales de engagement → features del dev/unidad).
-    colonias (lista) = scope del dev a SUS colonias; colonia (single) = filtro de una."""
+    colonias (lista) = scope del dev a SUS colonias; colonia (single) = filtro de una.
+
+    PERF A2 (auditoría): el scan no es agregable en Mongo sin romper _attribute() (usa meta/unit_number/
+    foto POR señal) → cache TTL 5 min por combinación de args: el full-scan corre a lo más 1 vez por TTL
+    aunque lo pidan dev_market/superadmin/granularity a la vez. El dict cacheado se trata como read-only."""
+    import time as _time
+    _ck = (colonia, tuple(sorted(colonias)) if colonias else None, period, since_days, top)
+    _hit = _DBF_CACHE.get(_ck)
+    if _hit and (_time.monotonic() - _hit[0]) < _DBF_TTL:
+        return _hit[1]
     from data_developments import DEVELOPMENTS_BY_ID
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     q = {"created_at_dt": {"$gte": cutoff}, "type": {"$in": _ENGAGE}}
@@ -252,7 +265,7 @@ async def demand_by_feature(db, colonia: Optional[str] = None, colonias: Optiona
             "frescura_pct": round(fresca / n * 100) if n else 0,
             "momentum": "calentando" if (rec.get("0-7d", 0) > rec.get("8-30d", 0)) else "estable",
         })
-    return {
+    _out = {
         "colonia": colonia or "todas", "period": period, "since_days": since_days, "senales_precisas_unidad": precise,
         "top_features": top_features,
         "total_senales": total,
@@ -260,6 +273,10 @@ async def demand_by_feature(db, colonia: Optional[str] = None, colonias: Optiona
         "colonias_activas": _topn(col_total, 12, "colonia", "demanda"),
         "lectura": "demanda por feature al universo: colonia, recencia, vivir/invertir, dispositivo y momentum por cada feature",
     }
+    if len(_DBF_CACHE) > 64:   # reset simple anti-crecimiento (llaves = combos de args, pocos en la práctica)
+        _DBF_CACHE.clear()
+    _DBF_CACHE[_ck] = (_time.monotonic(), _out)
+    return _out
 
 
 async def demand_by_colonia(db, period: str = "month", since_days: int = 365, top: int = 25) -> Dict[str, Any]:

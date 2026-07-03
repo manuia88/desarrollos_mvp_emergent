@@ -172,12 +172,26 @@ async def newsletter_opt_in(user_id: str, segment: str, request: Request):
     return JSONResponse({"ok": True, "segment": segment, "status": "active"})
 
 
+def unsub_token(user_id: str, segment: str) -> str:
+    """Token de baja firmado (AUD-031): HMAC-SHA256(user_id:segment) con el secreto del server.
+    Va embebido en el link del correo → un tercero no puede desuscribir adivinando el user_id.
+    Sin ventana de gracia: nunca se enviaron correos con el link viejo (no existe prod)."""
+    import os as _os
+    import hmac as _hmac
+    import hashlib as _hashlib
+    key = (_os.environ.get("JWT_SECRET") or _os.environ.get("LFPDPPP_SALT") or "dmx-dev-unsub").encode()
+    return _hmac.new(key, f"{user_id}:{segment}".encode(), _hashlib.sha256).hexdigest()[:32]
+
+
 @router.post("/api/users/{user_id}/newsletter-opt-out/{segment}")
 @router.get("/api/users/{user_id}/newsletter-opt-out/{segment}")
-async def newsletter_opt_out(user_id: str, segment: str, request: Request):
-    """Opt-out público (link en email · no requiere auth)."""
+async def newsletter_opt_out(user_id: str, segment: str, request: Request, token: str = ""):
+    """Opt-out público (link en email · no requiere auth · exige el token HMAC del link — AUD-031)."""
     if segment not in VALID_SEGMENTS and segment != "all":
         raise HTTPException(422, "Segmento inválido")
+    import hmac as _hmac
+    if not token or not _hmac.compare_digest(token, unsub_token(user_id, segment)):
+        raise HTTPException(403, "Link de baja inválido")
 
     db = _db(request)
     query: Dict[str, Any] = {"user_id": user_id}

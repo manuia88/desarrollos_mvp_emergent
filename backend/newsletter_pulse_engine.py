@@ -453,7 +453,9 @@ class NewsletterPulseEngine:
             try:
                 user_name = opt.get("name") or opt.get("email", "").split("@")[0]
                 user_id = opt.get("user_id")
-                unsubscribe_url = f"{app_url}/api/users/{user_id}/newsletter-opt-out/{segment}"
+                # AUD-031: link de baja con token HMAC firmado (sin token válido el endpoint responde 403)
+                from routes.newsletter import unsub_token as _unsub_token
+                unsubscribe_url = f"{app_url}/api/users/{user_id}/newsletter-opt-out/{segment}?token={_unsub_token(user_id, segment)}"
 
                 # Personalización por usuario
                 user_doc = {"user_id": user_id, "org_id": opt.get("org_id")}

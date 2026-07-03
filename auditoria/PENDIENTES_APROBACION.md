@@ -23,6 +23,8 @@
 
 ## Batch 4 — propuesta N3 (barrido IDOR)
 
+### AUD-031 ✅ RESUELTO (2026-07-03 · Batch 12, founder ordenó cero deuda): token HMAC-SHA256 embebido en el link + endpoint exige compare_digest (403). Sin gracia (nunca se enviaron correos). Test test_aud_backlog_cierre.py. [Contexto original abajo.]
+
 ### AUD-031 (LOW) · newsletter opt-out sin token firmado
 - **Problema:** `GET /api/users/{user_id}/newsletter-opt-out/{segment}` (`routes/newsletter.py:176`) desuscribe sin auth con un `user_id` enumerable → un `<img src>`/prefetch (CSRF vía GET) puede desuscribir a un usuario específico. Impacto bajo (molestia reversible, sin fuga de datos).
 - **Por qué NO se corrigió ya:** el fix correcto = token de baja HMAC-firmado (no adivinable) embebido en el link del email, validado en el handler. Eso **toca la generación de correos** (plantillas + envío) y rompería los links de unsubscribe ya enviados; quitar el GET viola la UX/compliance de one-click-unsubscribe. Requiere cambio coordinado → N3.

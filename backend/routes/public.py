@@ -2566,7 +2566,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     q = sanitize_user_input((payload.query or "").strip(), max_len=500)
     if not q:
         return {"filters": {}, "query": q, "cached": False}
-    cache_key = ("v2_" + q.lower())[:500]   # v2 = mensualidad por esquema real + cruce con fallback (invalida caché viejo)
+    cache_key = ("v3_" + q.lower())[:500]   # v3 = completado determinista de rangos m² sobre parse LLM parcial (invalida caché viejo)
     cached = await db.ai_search_cache.find_one({"cache_key": cache_key}, {"_id": 0})
     if cached:
         ts = cached.get("created_at")
@@ -2740,6 +2740,19 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             _work = _work.replace(span, " ")
     # Metraje (m²): RANGO "80 a 200 m2 / entre 80 y 200 metros" o tope "hasta 150 m2 / desde 80 m2 / 120 metros".
     _U = r"(?:m2|m²|mts|metros\b|m\.?c)"
+    # El LLM puede devolver el rango de m² A MEDIAS ("100m2 a 250" → min_sqm sin max) e incluso leer el tope
+    # como PRECIO (max_price=250000). Si la query trae un rango de m² inequívoco (el 2º número NO es dinero),
+    # el determinista manda: fija ambos extremos y descarta el precio fantasma derivado del mismo token.
+    if ("min_sqm" in filters) != ("max_sqm" in filters):
+        _rng = (_re.search(r"(\d{2,4})\s*(?:-|–|—|a|y)\s*(\d{2,4})\s*" + _U, _work)
+                or _re.search(r"(\d{2,4})\s*" + _U + r"\s*(?:-|–|—|a|y|hasta)\s*(\d{2,4})\b(?!\s*(?:mil\b|k\b|millones|mdp|pesos|\$))", _work))
+        if _rng:
+            _lo, _hi = int(_rng.group(1)), int(_rng.group(2))
+            for _pk in ("min_price", "max_price"):
+                if filters.get(_pk) in (_lo, _hi, _lo * 1000, _hi * 1000, _lo * 1_000_000, _hi * 1_000_000):
+                    filters.pop(_pk, None)
+            filters["min_sqm"], filters["max_sqm"] = min(_lo, _hi), max(_lo, _hi)
+            _work = _work.replace(_rng.group(0), " ")
     if "min_sqm" not in filters and "max_sqm" not in filters:
         mq = (_re.search(r"(\d{2,4})\s*(?:-|–|—|a|y)\s*(\d{2,4})\s*" + _U, _work)         # "100 a 250 m2"
               or _re.search(r"(\d{2,4})\s*" + _U + r"\s*(?:-|–|—|a|y|hasta)\s*(\d{2,4})", _work))  # "100m2 a 250"

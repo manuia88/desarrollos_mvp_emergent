@@ -142,6 +142,17 @@ async def compute_user_score(db, user_id: str) -> Dict[str, Any]:
     # ── 6. Visitas Agendadas (10%) ────────────────────────────────────────────
     try:
         visits_count = await db.appointments.count_documents({"user_id": user_id})
+        if not visits_count:
+            # FIX correctness (auditoría B8): las citas reales NO guardan user_id — guardan lead_id.
+            # Puente user → lead(s) por email normalizado (mismo lower().strip() que _normalize_email
+            # del alta de leads) → conteo de citas por lead_id. Sin esto, "visitas" daba SIEMPRE 0.
+            u = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 1})
+            _em = ((u or {}).get("email") or "").lower().strip()
+            if _em:
+                _lids = [l["id"] async for l in db.leads.find(
+                    {"contact.email_norm": _em}, {"_id": 0, "id": 1}).limit(100)]
+                if _lids:
+                    visits_count = await db.appointments.count_documents({"lead_id": {"$in": _lids}})
         comps["visitas_pct"] = min(visits_count / _VISITAS_CAP, 1.0) * 100
     except Exception as exc:
         log.warning(f"[buyer_score] visitas failed for {user_id}: {exc}")
