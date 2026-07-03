@@ -21,8 +21,8 @@ import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
 // Calculadora de inversión (personal + institucional) — reusa motor inversion-v4 (theme-adaptive dentro de LightScope)
 import InversionV4Calculator from '../components/investment/InversionV4Calculator';
-// Calculadoras standalone re-vestidas al look v4 (motores intactos): hipotecario + ISAI/cierre
-import FichaMortgageV4 from '../components/ficha/FichaMortgageV4';
+// Calculadoras standalone re-vestidas al look v4 (motores intactos): hipotecario (comparador) + ISAI/cierre
+import FichaHipotecaComparador from '../components/ficha/FichaHipotecaComparador';
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
@@ -305,11 +305,11 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, minWidth: 940, background: '#fff', borderRadius: 8 }}>
                     <thead>
                       <tr>
-                        {[['Unidad', 3, '#6b7280', '#f3f4f6'], ['M² desglosados', 5, C.accent, C.accentSoft], ['Características', 3, '#9333ea', '#f5ecff'], ['Precio', 3, BLUE, '#eaf1ff']].map(([l, span, col, bg], i) => (
+                        {[['Unidad', 1, '#6b7280', '#f3f4f6'], ['M² desglosados', 5, C.accent, C.accentSoft], ['Características', 3, '#9333ea', '#f5ecff'], ['Precio', 3, BLUE, '#eaf1ff']].map(([l, span, col, bg], i) => (
                           <th key={i} colSpan={span} style={{ padding: '6px 8px', fontSize: 10, fontWeight: 800, color: col, background: bg, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${C.line}` }}>{l}</th>
                         ))}
                       </tr>
-                      <tr>{['ID', 'Proto', 'Nivel', 'Priv', 'Balcón', 'Terraza', 'RG', 'Totales', 'Rec', 'Baños', 'Cajones', 'Precio', 'Estado', ''].map((h, i) => <th key={i} style={{ padding: '7px 8px', fontSize: 9.5, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: `1px solid ${C.line}`, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+                      <tr>{['Unidad', 'Priv', 'Balcón', 'Terraza', 'RG', 'Totales', 'Rec', 'Baños', 'Cajones', 'Precio', 'Estado', ''].map((h, i) => <th key={i} style={{ padding: '7px 8px', fontSize: 9.5, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: `1px solid ${C.line}`, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
                     </thead>
                     <tbody>
                       {show.map((u) => {
@@ -319,8 +319,6 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                         return (
                           <tr key={u.id || u.unit_number} className="dmx-row" onClick={() => onSelectUnit(u)} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
                             <td style={{ ...td, fontWeight: 700, fontSize: 12.5, color: C.ink }}>{u.unit_number}</td>
-                            <td style={td}>{u.prototype || '—'}</td>
-                            <td style={td}>{u.level != null ? `P${u.level}` : '—'}</td>
                             <td style={td}>{mm(u.m2_privative)}</td>
                             <td style={td}>{mm(u.m2_balcony)}</td>
                             <td style={td}>{mm(u.m2_terrace)}</td>
@@ -394,10 +392,10 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
     </div>
   );
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(255,255,255,0.99)', overflowY: 'auto' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1120, margin: '0 auto', padding: '20px 24px 60px' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(16,18,28,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 1040, background: '#fff', borderRadius: 16, boxShadow: '0 30px 80px rgba(16,24,40,0.35)', padding: '18px 22px 26px', maxHeight: '92vh', overflowY: 'auto' }}>
         {/* CABECERA FIJA: selector de unidad agrupado por modelo + teléfono + X */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', position: 'sticky', top: 0, background: '#fff', paddingTop: 4, paddingBottom: 12, zIndex: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', position: 'sticky', top: -18, background: '#fff', paddingTop: 4, paddingBottom: 12, zIndex: 3, marginBottom: 4 }}>
           <select value={uid} onChange={(e) => setUid(e.target.value)} aria-label="Elegir unidad" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink, background: '#fff', border: `1px solid ${C.line}`, borderRadius: R_BTN, padding: '11px 14px', cursor: 'pointer', maxWidth: '70%' }}>
             {Object.entries(groups).map(([p, us]) => (
               <optgroup key={p} label={`${protoName(p)} · ${us.length} unidad${us.length === 1 ? '' : 'es'} · desde ${money(Math.min(...us.map((x) => x.price || Infinity)))}`}>
@@ -421,40 +419,72 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
           {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} style={{ padding: '10px 4px', marginRight: 24, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: tab === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>)}
         </div>
 
-        {tab === 'detalles' && (
-          <div className="dmx-modelo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 34 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 28, color: C.ink }}>Unidad {u.unit_number}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 22, color: C.ink }}>{money(u.price)}</span>
-                <span style={{ color: C.link, fontSize: 15 }}>✓</span>
+        {tab === 'detalles' && (() => {
+          const fichaRows = [
+            ['Prototipo', protoName(u.prototype)],
+            ['Nivel', u.level != null ? `Piso ${u.level}` : null],
+            ['M² privativos', u.m2_privative ? `${u.m2_privative} m²` : null],
+            ['Balcón', u.m2_balcony ? `${u.m2_balcony} m²` : null],
+            ['Terraza', u.m2_terrace ? `${u.m2_terrace} m²` : null],
+            ['Roof garden', u.m2_roof_garden ? `${u.m2_roof_garden} m²` : null],
+            ['M² totales', m2of(u) ? `${m2of(u)} m²` : null],
+            ['Recámaras', u.bedrooms != null ? String(u.bedrooms) : null],
+            ['Baños', u.bathrooms != null ? String(u.bathrooms) : null],
+            ['Cajones de estacionamiento', u.parking_spots != null ? String(u.parking_spots) : null],
+            ['Tipo de cajón', u.parking_type ? titleCase(u.parking_type) : null],
+            ['Cajón independiente', u.estacionamiento_independiente ? 'Sí' : null],
+            ['Bodega', u.bodega ? (typeof u.bodega === 'string' ? titleCase(u.bodega) : 'Incluida') : null],
+            ['Vista', u.vista ? titleCase(u.vista) : null],
+            ['Orientación', u.orientation ? titleCase(u.orientation) : null],
+          ].filter(([, v]) => v != null && v !== '');
+          const amenChips = (Array.isArray(dev.amenities) ? dev.amenities : []);
+          return (
+          <div className="dmx-modelo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Resumen */}
+              <div className="dmx-card" style={{ ...box, padding: 18 }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: C.ink, letterSpacing: '-0.01em' }}>Unidad {u.unit_number}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 24, color: BLUE, marginTop: 2, letterSpacing: '-0.01em' }}>{money(u.price)}</div>
+                <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 4 }}>{specs}</div>
+                <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: est.c, marginTop: 6 }}>{est.l}{dispoDate ? ` · disponible ${dispoDate}` : ''}</div>
+                {a && (
+                  <div style={{ marginTop: 14, padding: '12px 15px', borderRadius: R_CARD, background: C.accentSoft, border: `1px solid ${C.accent}33` }}>
+                    <DmxChip /><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontFamily: FONT, fontWeight: 700, fontSize: 15, color: AVM_COLOR[a.color] || C.ink }}><span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}</div>
+                  </div>
+                )}
               </div>
-              <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 4 }}>{specs}</div>
-              <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: est.c, marginTop: 6 }}>{est.l}{dispoDate ? ` · disponible ${dispoDate}` : ''}</div>
-              {a && (
-                <div style={{ marginTop: 16, padding: '12px 15px', borderRadius: R_CARD, background: C.accentSoft, border: `1px solid ${C.accent}33` }}>
-                  <DmxChip /><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontFamily: FONT, fontWeight: 700, fontSize: 16, color: AVM_COLOR[a.color] || C.ink }}><span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}</div>
+              {/* Ficha de la unidad (todos los datos) */}
+              <div className="dmx-card" style={{ ...box, padding: '2px 18px 8px' }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, padding: '14px 0 6px' }}>Ficha de la unidad</div>
+                {fichaRows.map(([k, v], i) => <DataRow key={i} k={k} v={v} last={i === fichaRows.length - 1} />)}
+              </div>
+              {/* Precio */}
+              <div className="dmx-card" style={{ ...box, padding: 16 }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 8 }}>Precio</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: FONT, fontSize: 14, color: C.ink2 }}><span>Precio de lista</span><b style={{ color: BLUE, fontFamily: HEAD }}>{money(u.price)}</b></div>
+                <button onClick={() => setTab('precio')} style={{ ...linkA, marginTop: 8 }}>Calculadora de costos →</button>
+              </div>
+              {/* Amenidades */}
+              {amenChips.length > 0 && (
+                <div className="dmx-card" style={{ ...box, padding: 16 }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 10 }}>Amenidades del desarrollo</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{amenChips.map((x, i) => { const info = amenInfo(x); return <span key={i} style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink2, background: C.bgSoft, border: `1px solid ${CARD_LINE}`, borderRadius: 9999, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}><span>{info.icon}</span>{titleCase(info.label)}</span>; })}</div>
                 </div>
               )}
-              <div style={{ height: 1, background: C.line, margin: '20px 0' }} />
-              {/* Bloque Precios con enlace Calculadora de costos (spec §7.1) */}
-              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 8 }}>Precios</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: FONT, fontSize: 14, color: C.ink2 }}><span>Precio de lista</span><b style={{ color: C.ink }}>{money(u.price)}</b></div>
-              <button onClick={() => setTab('precio')} style={{ ...linkA, marginTop: 8 }}>Calculadora de costos →</button>
-              <div style={{ height: 1, background: C.line, margin: '20px 0' }} />
-              {/* Características en 2 columnas */}
-              {feats.length > 0 && <><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 10 }}>Características</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px 18px' }}>{feats.map((x, i) => <div key={i} style={{ fontFamily: FONT, fontSize: 14, color: C.ink2 }}>· {x}</div>)}</div></>}
             </div>
-            <div>
-              <div style={{ position: 'relative', border: `1px solid ${C.line}`, borderRadius: R_CARD, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>
-                {plano ? <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(u.prototype)}</div>}
-                {plano && <button onClick={() => setExpand(true)} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
+            <div style={{ position: 'sticky', top: 44 }}>
+              <div className="dmx-card" style={{ ...box, padding: 12 }}>
+                <div style={{ position: 'relative', borderRadius: R_CARD, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>
+                  {plano ? <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(u.prototype)}</div>}
+                  {plano && <button onClick={() => setExpand(true)} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
+                </div>
+                <div style={{ textAlign: 'center', fontFamily: HEAD, fontSize: 13, fontWeight: 700, color: C.ink2, marginTop: 10 }}>{protoName(u.prototype)}</div>
+                <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>Los planos e imágenes son ilustrativos. Medidas, acabados y áreas pueden variar según el contrato de compraventa.</div>
               </div>
-              <div style={{ textAlign: 'center', fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink2, marginTop: 8 }}>{protoName(u.prototype)}</div>
-              <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>Los planos e imágenes son ilustrativos. Medidas, acabados y áreas pueden variar según el contrato de compraventa.</div>
             </div>
           </div>
-        )}
+          );
+        })()}
         {tab === 'precio' && <StandbyPanel icon="🧮" title="Calculadora de costos" body="Estima enganche, mensualidades durante obra y gastos de escrituración para esta unidad. Estamos afinando la calculadora en vivo — mientras tanto, un asesor te arma los números al detalle." />}
         {tab === 'mapa' && <StandbyPanel icon="🗺️" title="Mapa de la unidad" body={`Ubicación de la unidad ${u.unit_number}${u.level != null ? ` (piso ${u.level})` : ''} dentro del plano del edificio. El plano interactivo del nivel llega pronto.`} />}
         <style>{`@media(max-width:760px){ .dmx-modelo-grid{ grid-template-columns: 1fr !important; } }`}</style>
@@ -665,7 +695,7 @@ function PriceHistoryChart({ history }) {
   const area = `M${x(0)},${H - padB} L${linePts.join(' L')} L${x(pts.length - 1)},${H - padB} Z`;
   const first = pts[0].price, last = pts[pts.length - 1].price;
   const pct = Math.round(((last - first) / first) * 100);
-  const mm = (v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`);
+  const mm = (v) => money(v);   // formato completo $5,800,000 (no abreviado)
   return (
     <div className="dmx-card" style={{ ...box, padding: '18px 16px 10px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6, padding: '0 4px' }}>
@@ -985,7 +1015,7 @@ function TabPlanesPago({ dev, unit }) {
           </div>
         </div>
       )}
-      <FichaMortgageV4 basePrice={basePrice} devId={dev.id} devName={dev.name} />
+      <FichaHipotecaComparador basePrice={basePrice} devName={dev.name} />
       <FichaTaxISAI basePrice={basePrice} />
     </div>
   );
