@@ -51,7 +51,17 @@ _DEV_SCALE_SPECS = {
     # asistente_messages se filtra por role (+ fecha, tras el fix de query del backlog) en conversation_intel /
     # competitor_mentions → índice (role, created_at) para cuando la query deje de traer todo.
     "asistente_messages": [[("role", 1), ("created_at", 1)]],
+    # ── Batch 11.2 (fixes de los 43) · índices reportados por los agentes ──
+    # asistente_sessions ahora se filtra por created_at (locale_split/attribution, fix A9).
+    "asistente_sessions": [[("created_at", 1)]],
+    # transactions: v1_comparables filtra bounding-box por lat/lng crudos (el 2dsphere existe pero
+    # los docs no traen geo poblado) → compuesto (lat, lng) para el rango.
+    "transactions": [[("lat", 1), ("lng", 1)]],
 }
+
+# appointments (la clave ya existe arriba): compute_user_score cuenta por user_id — hoy los docs
+# usan lead_id/asesor_id, así que el índice queda vacío (= gratis); ver nota de correctness en MEJORAS.md.
+_DEV_SCALE_SPECS["appointments"].append([("user_id", 1)])
 
 
 async def ensure_dev_scale_indexes(db) -> None:

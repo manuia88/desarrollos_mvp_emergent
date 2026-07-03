@@ -7,12 +7,29 @@
 
 ### Batch 11 · RENDIMIENTO (workflow 18 archivos calientes · 43 hallazgos)
 
-> **Estado honesto:** los finders leyeron el código real y marcaron anti-patrones específicos, pero la
-> **verificación adversarial se cayó por rate-limits del servidor** (casi todos los verify fallaron). Trátese
-> como hallazgos de ALTA confianza a **confirmar+corregir antes de escalar**, no como confirmados.
-> **No urge:** hoy no hay tráfico en producción (app solo local, DB chica) → estas optimizaciones no tienen
-> impacto actual; su valor es pre-lanzamiento/escala. Por eso NO se reescribieron los N+1 (riesgo en código
-> que funciona, sin beneficio inmediato). Sí se agregaron los **índices seguros** (ver abajo).
+> **✅ RESUELTO (2026-07-03, orden del founder "corrige los 43 por bloques"):** 4 agentes en paralelo
+> (bloques por archivo, sin traslapes) + verificación del orquestador. **37 corregidos · 1 mitigado ·
+> 3 no tocados con justificación** + 4 índices previos = los 43 atendidos. Varios fixes verificados 1:1
+> contra el Mongo vivo (output idéntico al legado). Suite 1,248 passed tras los cambios.
+>
+> **Los 4 que no quedaron 100%:**
+> - A2 `demand_by_feature` (no tocado): la proyección mínima YA estaba y el $group rompería `_attribute()`
+>   (necesita meta/unit_number/photo_tagger POR doc). El índice (type, created_at_dt) ya lo cubre. Rediseño
+>   real = materializar en cron (pendiente de escala).
+> - A8 `substitution` (mitigado): filtros empujados a la query; el rediseño por $push agruparía todo en RAM.
+> - B8/D12 (índice, sin cambio de código): `appointments.user_id` y `transactions (lat,lng)` agregados.
+> - **Hallazgo NUEVO de correctness (B8):** `compute_user_score` cuenta citas por `user_id` pero los docs de
+>   appointments usan `lead_id`/`asesor_id` → el componente "visitas" del buyer score **siempre da 0**.
+>   Corregir el join (¿lead_id del buyer?) — backlog correctness.
+> - **Bug latente ARREGLADO de paso:** `check_pending_whatsapp_replies` proyectaba `{"_id":0}` pero usaba
+>   `msg["_id"]` → KeyError al primer mensaje pendiente (el cron nunca completaba). Fix: proyección con _id.
+>
+> Riesgos aceptados (documentados por los agentes): orden de EMPATES puede variar en listas con conteos
+> idénticos (antes tampoco estaba garantizado) · caches TTL nuevos (donde_vivir 600s · para_ti 600s ·
+> dev_market 120s) = frescura eventual · A9 excluye sesiones más viejas que la ventana (hoy 0 casos).
+>
+> Contexto original: los finders leyeron código real; la verificación adversarial del workflow se cayó por
+> rate-limits → la verificación la hizo el orquestador (diffs + Mongo vivo + suite).
 
 **✅ Ya aplicado (índices seguros · `dev_scale_indexes.py`, idempotentes, background):**
 - `colonias.id` — confirmado FALTANTE (colección solo tenía `_id_`); usado por `_colonia_value`/`colonia_watch_list` (público) sobre 2,788 docs. **El win más claro.**
