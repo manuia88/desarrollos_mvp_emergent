@@ -240,14 +240,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', marginTop: 4 }}>Renta, plusvalía, impuestos y crédito — paso a paso, con datos vivos de mercado.</div>
       </div>
 
-      {/* ───── TABS POR SECCIÓN · sin scroll infinito · Siguiente lleva a la próxima ───── */}
-      <div className="iv4-noprint" style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ECECEC', marginBottom: 18, flexWrap: 'wrap', alignItems: 'center', rowGap: 4 }}>
-        {ALL_TABS.map((t, i) => { const on = paso === t.k; return (
-          <button key={t.k} type="button" onClick={() => goTab(t.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 3px', marginRight: 16, border: 'none', borderBottom: on ? '2.5px solid #6D4AFF' : '2.5px solid transparent', background: 'none', color: on ? '#6D4AFF' : '#5A5F6E', fontFamily: 'Outfit', fontWeight: on ? 800 : 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 19, height: 19, borderRadius: 9999, fontFamily: 'Outfit', fontSize: 10.5, fontWeight: 800, background: on ? '#6D4AFF' : '#eae7f6', color: on ? '#fff' : '#5A5F6E' }}>{i + 1}</span>{t.l}
-          </button>
-        ); })}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+      {/* ───── TABS POR SECCIÓN · control segmentado (mismo look que la calculadora hipotecaria) ───── */}
+      <div className="iv4-noprint" style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 auto', display: 'flex', gap: 5, background: '#f4f2fd', borderRadius: 12, padding: 4, flexWrap: 'wrap' }}>
+          {ALL_TABS.map((t, i) => { const on = paso === t.k; return (
+            <button key={t.k} type="button" onClick={() => goTab(t.k)} style={{ flex: '1 1 auto', padding: '9px 13px', borderRadius: 9, border: 'none', background: on ? 'linear-gradient(120deg, #6D4AFF, #C63FAE)' : 'transparent', color: on ? '#fff' : '#5A5F6E', fontFamily: 'Outfit', fontWeight: on ? 800 : 600, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: on ? '0 4px 12px rgba(109,74,255,0.28)' : 'none' }}>{i + 1}. {t.l}</button>
+          ); })}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
           <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
             {['MXN', 'USD'].map((mo) => (
@@ -510,9 +510,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const engPuro = precio - cr.monto_credito;
             const capPct = cr.pago_anual ? Math.max(0, Math.min(100, Math.round((cr.capital_anio1 / cr.pago_anual) * 100))) : 0;
             const Tile = ({ l, v, c, exp }) => (
-              <div style={{ padding: '11px 13px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.09)', boxShadow: '0 2px 8px rgba(99,102,241,0.04)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c || '#16182A', marginTop: 3 }}>{v}</div>{exp && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 3 }}>{exp}</div>}</div>
+              <div style={{ position: 'relative', overflow: 'hidden', padding: '15px 15px 13px', borderRadius: 14, background: '#fff', border: '1px solid #ECECEC', boxShadow: '0 2px 8px rgba(16,18,28,0.03)' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: c || '#6D4AFF' }} />
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: c || '#1E2230', marginTop: 4, letterSpacing: '-0.01em' }}>{v}</div>
+                {exp && <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#8A8FA6', lineHeight: 1.45, marginTop: 5 }}>{exp}</div>}
+              </div>
             );
-            const Sub = ({ children }) => <div style={{ fontSize: 10, fontWeight: 800, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 10px' }}>{children}</div>;
+            const Sub = ({ children }) => <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#1E2230', margin: '18px 0 10px' }}>{children}</div>;
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div className="iv4-sub" style={{ margin: 0 }}>💳 Tu crédito hipotecario <span style={{ fontFamily: 'DM Sans', fontWeight: 600, color: '#8A8FA6', fontSize: 12 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span> <Info><><b>Tu hipoteca, explicada.</b> El banco pone una parte (te presta) y tú el enganche. Cada mes pagas una mensualidad fija que se divide en <b>capital</b> (baja tu deuda) e <b>interés</b> (el cobro del banco). Al principio casi todo es interés. <b>Cómo se calcula:</b> amortización francesa con la tasa de Banxico. Tasa/mensualidad finales las define tu banco.</></Info></div>
@@ -527,9 +532,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
                 <Sub>Cómo se reparte el precio</Sub>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
-                  {[['Precio del depa', precio, '#16182A'], ['=', null], ['Tu enganche', engPuro, '#6D4AFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
+                  {[['Precio del depa', precio, '#1E2230'], ['=', null], ['Tu enganche', engPuro, '#6D4AFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
                     v === null ? <div key={i} style={{ alignSelf: 'center', fontSize: 20, fontWeight: 800, color: '#C9CCDB' }}>{l}</div>
-                      : <div key={i} style={{ flex: '1 1 110px', padding: '10px 12px', borderRadius: 10, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{m(v)}</div></div>
+                      : <div key={i} style={{ flex: '1 1 120px', padding: '13px 14px', borderRadius: 12, background: '#fff', border: '1px solid #ECECEC' }}><div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: c, marginTop: 3 }}>{m(v)}</div></div>
                   ))}
                 </div>
 
@@ -601,23 +606,21 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {paso === 'renta' && r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
             const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => (
-              <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(109,74,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #6D4AFF' : '1px solid rgba(16,18,28,0.06)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#16182A' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
-                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6D4AFF', background: 'rgba(109,74,255,0.14)', borderRadius: 6, padding: '2px 8px' }}>GANA</span>}
+              <div style={{ flex: '1 1 270px', padding: '17px 18px', borderRadius: 16, background: '#fff', border: win ? '1.5px solid #6D4AFF' : '1px solid #ECECEC', boxShadow: win ? '0 8px 22px rgba(109,74,255,0.10)' : '0 2px 8px rgba(16,18,28,0.03)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 800, color: '#1E2230' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
+                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#fff', background: 'linear-gradient(120deg,#6D4AFF,#C63FAE)', borderRadius: 9999, padding: '3px 11px', letterSpacing: '0.05em' }}>GANA</span>}
                 </div>
-                <div style={{ marginTop: 11, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.5 }}>
-                  <div>Ingreso: <b>{m(x.ingreso_anual)}/año</b><Info><>Todo lo que entra de renta en un año, <b>antes</b> de gastos. {comoIngreso}. <b>Tu caso:</b> {m(x.ingreso_anual)}/año.</></Info></div>
-                  <div style={{ fontSize: 10.5, color: '#A2A6BC' }}>{comoIngreso}</div>
-                  <div style={{ marginTop: 5 }}>− Gastos del año: <b style={{ color: '#DC2626' }}>{m(x.egresos_anual)}</b><Info>{gastosInfo}</Info></div>
-                  <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b><Info><>El <b>NOI</b>: ingreso − gastos. Lo que deja la propiedad antes del crédito y de impuestos. <b>Tu caso:</b> {m(x.ingreso_anual)} − {m(x.egresos_anual)} = {m(x.noi)}/año.</></Info></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>Ingreso al año</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#1E2230' }}>{m(x.ingreso_anual)}</span></div>
+                <div style={{ fontSize: 10.5, color: '#A2A6BC', margin: '-3px 0 3px' }}>{comoIngreso}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderTop: '1px solid #F1F1F4', fontFamily: 'DM Sans', fontSize: 12.5 }}><span style={{ color: '#5A5F6E' }}>− Gastos del año<Info>{gastosInfo}</Info></span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#DC2626' }}>{m(x.egresos_anual)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0 3px', borderTop: '2px solid #ECECEC', fontFamily: 'DM Sans', fontSize: 13 }}><span style={{ color: '#1E2230', fontWeight: 800 }}>= Te queda al año</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#0E9F6E' }}>{m(x.noi)}</span></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 13 }}>
+                  {[['Cap rate', pct(x.cap_rate_pct), '#6D4AFF'], ['Si vendes (TIR)', pct(x.tir_pct), (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'], ['Te queda al mes', m(x.flujo_mensual), (x.flujo_mensual || 0) >= 0 ? '#1E2230' : '#DC2626']].map(([l, v, c]) => (
+                    <div key={l} style={{ background: '#fafafb', border: '1px solid #ECECEC', borderRadius: 10, padding: '9px 10px' }}><div style={{ fontFamily: 'DM Sans', fontSize: 9, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.2 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 3 }}>{v}</div></div>
+                  ))}
                 </div>
-                <div style={{ marginTop: 11, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Renta al año (cap rate)<Info><>Lo que deja la renta sobre el precio cada año, sin contar venta ni crédito. Estable. <b>Tu caso:</b> {pct(x.cap_rate_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#6D4AFF' }}>{pct(x.cap_rate_pct)}</div></div>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Si vendes (TIR)<Info><>Rendimiento anual juntando renta + plusvalía si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(x.tir_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes<Info><>Lo que te sobra (o pones de tu bolsa) cada mes: ingreso − gastos − mensualidad del crédito, dividido entre 12. <b>Tu caso:</b> {m(x.flujo_mensual)}/mes.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
-                </div>
-                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Ingreso según: {fuente}</div>
+                <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 10 }}>Ingreso según: {fuente}</div>
               </div>
             );
             return (
@@ -781,14 +784,24 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
-          {/* Alertas */}
-          {r && r.alertas && Object.values(r.alertas).some(Boolean) && (
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-              {r.alertas.coc_negativo && <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', background: 'rgba(220,38,38,0.08)', borderRadius: 8, padding: '5px 10px' }}>⚠️ Sale de tu bolsa</span>}
-              {r.alertas.dscr_bajo_1 && <span style={{ fontSize: 11, fontWeight: 700, color: '#E0A33E', background: 'rgba(224,163,62,0.1)', borderRadius: 8, padding: '5px 10px' }}>⚠️ Renta no cubre el crédito</span>}
-              {r.alertas.cap_bajo_cetes && <span style={{ fontSize: 11, fontWeight: 700, color: '#E0A33E', background: 'rgba(224,163,62,0.1)', borderRadius: 8, padding: '5px 10px' }}>⚠️ Renta rinde menos que CETES</span>}
-            </div>
-          )}
+          {/* Alertas · tarjetas claras que explican y refieren a la métrica (en la tab Resultado) */}
+          {paso === 'resumen' && r && r.alertas && Object.values(r.alertas).some(Boolean) && (() => {
+            const items = [
+              r.alertas.coc_negativo && { c: '#DC2626', t: 'Sale de tu bolsa cada mes', d: `Tu flujo mensual es negativo (~${m(Math.abs(r.flujo_mensual_1 || 0))}/mes): la renta no alcanza para gastos + mensualidad y tú pones la diferencia. Lo ves en la métrica "Flujo de la renta", aquí arriba.` },
+              r.alertas.dscr_bajo_1 && { c: '#B4791F', t: 'La renta no cubre el crédito', d: `La renta paga solo ${pct((r.credito || {}).cobertura_renta_pct)} de tu mensualidad del banco. Sube el enganche o alarga el plazo. El detalle está en la pestaña "Tu crédito".` },
+              r.alertas.cap_bajo_cetes && { c: '#B4791F', t: 'Rinde menos que CETES', d: `Tu renta rinde ${pct(r.cap_rate_pct)} al año, menos que CETES (${(r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.1'}%), que es más seguro. Aquí ganas sobre todo por plusvalía. Compáralo en la pestaña "Comparar".` },
+            ].filter(Boolean);
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 10 }}>
+                {items.map((a, i) => (
+                  <div key={i} style={{ borderRadius: 14, padding: '13px 15px', background: `${a.c}0D`, border: `1px solid ${a.c}33`, borderLeft: `4px solid ${a.c}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}><span>⚠️</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: a.c }}>{a.t}</span></div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#5A5F6E', lineHeight: 1.5 }}>{a.d}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
       {vista === 'institucional' && r && (() => {
         const cr = r.credito || {};
