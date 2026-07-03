@@ -44,16 +44,16 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   useEffect(() => { if (r && onResult) onResult(r); }, [r]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const vista = mode === 'institucional' ? 'institucional' : 'simple';  // lo decide ZonePageV2 (paso 1 del flow), no un toggle aquí
-  const [paso, setPaso] = useState(1);   // secuencia guiada: ① inmueble · ② pago · ③ supuestos · ④ resultado
+  const [paso, setPaso] = useState('inmueble');   // una TAB por sección (sin scroll infinito)
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
   const [radarK, setRadarK] = useState('bolsa');    // instrumento a comparar en el radar del Pentágono
-  const [showAvanzado, setShowAvanzado] = useState(false);  // divulgación progresiva DENTRO del calc: bloques expertos colapsados
   const [leadOpen, setLeadOpen] = useState(false);  // modal de captura para descargar el PDF (reusa /api/lead-capture)
   const [leadData, setLeadData] = useState({ nombre: '', telefono: '', correo: '', presupuesto: '', tiempo: '', privacidad: false });
   const [leadState, setLeadState] = useState('');   // '' | 'enviando' | 'ok' | 'error'
   const setLead = (k, v) => setLeadData((s) => ({ ...s, [k]: v }));
+  const rootRef = useRef(null);                      // scroll al tope del calc al cambiar de tab
   const tusDatosRef = useRef(null);                  // barra sticky: aparece cuando "Tus datos" sale de vista
   const [showSticky, setShowSticky] = useState(false);
   const [port, setPort] = useState(null);            // resultado agregado del portafolio (lo arma ZonePageV2 multi-select)
@@ -211,8 +211,19 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     ? `US$${Math.round((Number(n) || 0) / fix).toLocaleString('en-US')}`
     : `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`);
 
+  // ─── TABS por sección (una tab = una sección · sin scroll infinito · botón Siguiente guía) ───
+  const IN_TABS = [{ k: 'inmueble', l: 'Tu inmueble' }, { k: 'pago', l: 'Cómo lo pagas' }, { k: 'supuestos', l: 'Supuestos' }];
+  const RES_TABS = [{ k: 'resumen', l: 'Resultado' }, { k: 'dinero', l: 'El dinero' }, { k: 'credito', l: 'Tu crédito' }, { k: 'renta', l: 'Renta vs Airbnb' }, { k: 'comparar', l: 'Comparar' }];
+  const ALL_TABS = [...IN_TABS, ...RES_TABS];
+  const isInput = IN_TABS.some((t) => t.k === paso);
+  const isResult = RES_TABS.some((t) => t.k === paso);
+  const tabIdx = ALL_TABS.findIndex((t) => t.k === paso);
+  const nextTab = tabIdx >= 0 && tabIdx < ALL_TABS.length - 1 ? ALL_TABS[tabIdx + 1] : null;
+  const prevTab = tabIdx > 0 ? ALL_TABS[tabIdx - 1] : null;
+  const goTab = (k) => { setPaso(k); try { if (rootRef.current) requestAnimationFrame(() => rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })); } catch { /* noop */ } };
+
   return (
-    <div style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 18, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: 24, fontFamily: 'DM Sans', color: '#1E2230' }}>
+    <div ref={rootRef} style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 18, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: 24, fontFamily: 'DM Sans', color: '#1E2230', scrollMarginTop: 80 }}>
       <style>{`
         .iv4-tip{position:relative;cursor:help;color:#A9ADC4;font-size:11px;margin-left:5px}
         .iv4-tipbox{position:absolute;bottom:135%;left:50%;transform:translateX(-50%);width:220px;background:#1E2230;color:#fff;font-weight:500;font-size:11px;line-height:1.45;padding:9px 11px;border-radius:9px;box-shadow:0 12px 30px rgba(16,18,28,.3);opacity:0;visibility:hidden;transition:opacity .14s;z-index:60;text-align:left;pointer-events:none}
@@ -229,11 +240,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', marginTop: 4 }}>Renta, plusvalía, impuestos y crédito — paso a paso, con datos vivos de mercado.</div>
       </div>
 
-      {/* ───── SECUENCIA GUIADA · pasos ① inmueble · ② pago · ③ supuestos · ④ resultado ───── */}
-      <div className="iv4-noprint" style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ECECEC', marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-        {[['1', 'Tu inmueble'], ['2', 'Cómo lo pagas'], ['3', 'Supuestos'], ['4', 'Resultado']].map(([n, l]) => { const on = paso === Number(n); return (
-          <button key={n} type="button" onClick={() => setPaso(Number(n))} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 4px', marginRight: 22, border: 'none', borderBottom: on ? '2.5px solid #6D4AFF' : '2.5px solid transparent', background: 'none', color: on ? '#6D4AFF' : '#5A5F6E', fontFamily: 'Outfit', fontWeight: on ? 800 : 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, fontFamily: 'Outfit', fontSize: 11, fontWeight: 800, background: on ? '#6D4AFF' : '#eae7f6', color: on ? '#fff' : '#5A5F6E' }}>{n}</span>{l}
+      {/* ───── TABS POR SECCIÓN · sin scroll infinito · Siguiente lleva a la próxima ───── */}
+      <div className="iv4-noprint" style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ECECEC', marginBottom: 18, flexWrap: 'wrap', alignItems: 'center', rowGap: 4 }}>
+        {ALL_TABS.map((t, i) => { const on = paso === t.k; return (
+          <button key={t.k} type="button" onClick={() => goTab(t.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 3px', marginRight: 16, border: 'none', borderBottom: on ? '2.5px solid #6D4AFF' : '2.5px solid transparent', background: 'none', color: on ? '#6D4AFF' : '#5A5F6E', fontFamily: 'Outfit', fontWeight: on ? 800 : 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 19, height: 19, borderRadius: 9999, fontFamily: 'Outfit', fontSize: 10.5, fontWeight: 800, background: on ? '#6D4AFF' : '#eae7f6', color: on ? '#fff' : '#5A5F6E' }}>{i + 1}</span>{t.l}
           </button>
         ); })}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -247,7 +258,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>
 
       {/* ───── INPUTS · pasos ①②③ (mismos campos de siempre, ahora guiados) ───── */}
-      <div ref={tusDatosRef} className="iv4-noprint" style={{ marginBottom: 4, display: paso <= 3 ? 'block' : 'none' }}>
+      <div ref={tusDatosRef} className="iv4-noprint" style={{ marginBottom: 4, display: isInput ? 'block' : 'none' }}>
         {moneda === 'USD' && r && r.mercado && r.mercado.fix_usd && (
           <div style={{ fontSize: 10.5, color: '#0B6E99', background: 'rgba(14,165,233,0.08)', borderRadius: 8, padding: '7px 11px', marginBottom: 12, display: 'inline-block' }}>
             💱 Tipo de cambio: <b>1 USD = ${r.mercado.fix_usd} MXN</b> · Banxico (FIX){(r.fuentes_fecha || {}).banxico ? `, consultado ${r.fuentes_fecha.banxico}` : ''}. Se actualiza solo cada día.
@@ -255,7 +266,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         )}
 
         {/* PASO ① TU INMUEBLE */}
-        {paso === 1 && (<>
+        {paso === 'inmueble' && (<>
           {/* INSTITUCIONAL · descuento por volumen + desglose por unidad */}
           {vista === 'institucional' && portfolioUnits.length >= 2 && (
             <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(16,18,28,0.08)' }}>
@@ -307,11 +318,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
           <div style={{ fontSize: 10.5, color: '#8A8FA6', marginTop: 12, lineHeight: 1.5 }}>La <b>renta</b> y otros supuestos los ajustas en el paso <b>③ Supuestos</b>. Solo el precio está fijo.{vista === 'simple' ? ' ¿Inviertes como fondo? Elige 🏛️ Institucional arriba.' : ''}</div>
-          <NavRow next={() => setPaso(2)} nextLabel="Siguiente · cómo lo pagas →" />
+          <NavRow next={() => goTab('pago')} nextLabel="Siguiente · cómo lo pagas →" />
         </>)}
 
         {/* PASO ② CÓMO LO PAGAS */}
-        {paso === 2 && (<>
+        {paso === 'pago' && (<>
           <div style={grpLabel}>💳 Cómo lo pagas</div>
           <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
@@ -329,11 +340,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div style={{ fontSize: 9.5, color: '#A2A6BC', marginLeft: 'auto' }}>↻ cambia plazo, enganche o tasa y mira aquí</div>
             </div>
           )}
-          <NavRow back={() => setPaso(1)} next={() => setPaso(3)} nextLabel="Siguiente · supuestos →" />
+          <NavRow back={() => goTab('inmueble')} next={() => goTab('supuestos')} nextLabel="Siguiente · supuestos →" />
         </>)}
 
         {/* PASO ③ SUPUESTOS (Configuración) */}
-        {paso === 3 && (<>
+        {paso === 'supuestos' && (<>
           <div style={grpLabel}>⚙️ Supuestos <span style={{ fontWeight: 600, color: '#8A8FA6', textTransform: 'none', letterSpacing: 0 }}>· predial, mantenimiento, horizonte, plusvalía, régimen fiscal · estimados editables</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 6 }}>
             {f.modo_renta === 'corto' ? (<>
@@ -350,15 +361,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div><span style={lab}>Perfil</span><select value={f.perfil} onChange={(e) => set('perfil', e.target.value)} style={inp}><option value="fisica">Persona física</option><option value="moral">Persona moral</option></select></div>
             {f.perfil === 'fisica' && <div><span style={lab}>Régimen fiscal</span><select value={f.regimen_fiscal} onChange={(e) => set('regimen_fiscal', e.target.value)} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
           </div>
-          <NavRow back={() => setPaso(2)} next={() => setPaso(4)} nextLabel="Ver mi resultado →" />
+          <NavRow back={() => goTab('pago')} next={() => goTab('resumen')} nextLabel="Ver mi resultado →" />
         </>)}
       </div>
 
       {/* ④ · aviso mientras calcula (motor reactivo) */}
-      {paso === 4 && !r && <div className="iv4-card" style={{ marginBottom: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6' }}>{loading ? 'Calculando tu inversión…' : 'Ajusta tus datos en los pasos anteriores para ver el resultado.'}</div>}
+      {isResult && !r && <div className="iv4-card" style={{ marginBottom: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6' }}>{loading ? 'Calculando tu inversión…' : 'Ajusta tus datos en los pasos anteriores para ver el resultado.'}</div>}
 
       {/* RESUMEN EJECUTIVO · institucional: tras elegir las unidades, lo clave del PORTAFOLIO de un vistazo */}
-      {paso === 4 && vista === 'institucional' && r && (
+      {paso === 'resumen' && vista === 'institucional' && r && (
         <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
           <div className="iv4-sub" style={{ marginTop: 0, marginBottom: 10 }}>🏛️ Resumen institucional <span style={{ fontFamily: 'DM Sans', fontWeight: 600, color: '#8A8FA6', fontSize: 12 }}>· {portfolioUnits.length >= 2 ? `${portfolioUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
@@ -377,10 +388,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       )}
 
       {/* ───── RESULTADOS · paso ④ (mismos resultados de siempre, ahora en su paso) ───── */}
-      <div style={{ display: paso === 4 ? 'flex' : 'none', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: isResult ? 'flex' : 'none', flexDirection: 'column', gap: 14 }}>
 
           {/* ───── VEREDICTO (rediseñado · banner limpio) ───── */}
-          {r && r.veredicto && (
+          {paso === 'resumen' && r && r.veredicto && (
             <div style={{ borderRadius: 16, padding: '18px 20px', background: `${sem}0F`, border: `1px solid ${sem}44` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7, flexWrap: 'wrap' }}>
                 <span style={{ width: 11, height: 11, borderRadius: '50%', background: sem }} />
@@ -402,7 +413,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           )}
 
           {/* ───── MÉTRICAS · rediseñadas a tarjetas limpias (mismos datos + explicaciones) ───── */}
-          {r && vista === 'simple' && (() => {
+          {paso === 'resumen' && r && vista === 'simple' && (() => {
             const H = Number(f.horizonte_anios) || 5;
             const apre = (Number(f.apreciacion_anual) * 100).toFixed(1);
             const gananciaPlusv1 = Math.round((Number(f.valor_propiedad) || 0) * (Number(f.apreciacion_anual) || 0));
@@ -434,7 +445,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* DETALLE DEL DINERO · entrada (desglose) + salida (venta) en par · crédito a ancho completo */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 14, alignItems: 'start' }}>
           {/* DESGLOSE DEL COSTO (cómo se arma la inversión · reading flow) */}
-          {r && r.desglose && (
+          {paso === 'dinero' && r && r.desglose && (
             <div className="iv4-card">
               <div className="iv4-sub" style={{ marginTop: 0, marginBottom: 10 }}>🧾 Cómo se arma la inversión <Info><><b>Todo lo que necesitas para comprar.</b> No es solo el precio: también los <b>gastos de escrituración</b> (ISAI + notario + registro, ~8% en CDMX) y el equipamiento. <b>Costo total = precio + escrituración.</b> Si vas con crédito, "de tu bolsa hoy" = enganche + gastos; el resto lo presta el banco.</></Info></div>
               {[['Precio del inmueble', r.desglose.valor_propiedad], ['Gastos de escrituración', r.desglose.gastos_escrituracion], ...(r.desglose.equipamiento ? [['Equipamiento', r.desglose.equipamiento]] : []), ['Costo total', r.desglose.costo_total, true]].map(([l, v, tot]) => (
@@ -470,7 +481,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           )}
 
           {/* CUANDO LO VENDAS (impuestos · reusa el ISR del Proyector de Impuestos) — par con el desglose: entrada vs salida */}
-          {r && r.venta && (
+          {paso === 'dinero' && r && r.venta && (
             <div className="iv4-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                 <div className="iv4-sub" style={{ margin: 0 }}>🏁 Cuando lo vendas</div>
@@ -490,9 +501,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
-          {/* CRÉDITO · ancho completo (3 secciones · es la tarjeta más detallada) */}
+          {/* CRÉDITO · nota si es de contado */}
+          {paso === 'credito' && r && !f.con_credito && <div className="iv4-card" style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', lineHeight: 1.55 }}>💵 Elegiste <b>pago de contado</b> — sin crédito hipotecario. Si quieres ver el desglose de una hipoteca (mensualidad, capital vs interés, año por año), cambia a <b>“Con crédito”</b> en el paso <b>Cómo lo pagas</b>.</div>}
           {/* CRÉDITO · UI en 3 secciones (reparto del precio · tu pago + split capital/interés · todo el plazo) */}
-          {r && r.con_credito && r.credito && r.credito.pmt_mensual && (() => {
+          {paso === 'credito' && r && r.con_credito && r.credito && r.credito.pmt_mensual && (() => {
             const cr = r.credito;
             const precio = (r.desglose || {}).valor_propiedad || Number(f.valor_propiedad) || 0;
             const engPuro = precio - cr.monto_credito;
@@ -586,7 +598,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {/* ───── SECCIONES VISUALES · ancho completo apiladas (sin columnas angostas = sin huecos) ───── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           {/* LARGO PLAZO vs AIRBNB */}
-          {r && r.comparar_renta && r.comparar_renta.largo && (() => {
+          {paso === 'renta' && r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
             const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => (
               <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(109,74,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #6D4AFF' : '1px solid rgba(16,18,28,0.06)' }}>
@@ -628,7 +640,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           })()}
 
           {/* Cascada visual · de dónde viene tu ganancia */}
-          {r && r.atribucion && (() => {
+          {paso === 'renta' && r && r.atribucion && (() => {
             const a = r.atribucion; const tot = (a.renta_neta_acum || 0) + (a.equity_buildup || 0) + (a.plusvalia || 0);
             const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#6D4AFF'], ['Plusvalía', a.plusvalia, '#6D4AFF']].filter(([, v]) => (v || 0) > 0);
             return (
@@ -644,12 +656,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
           })()}
 
-          {/* TOGGLE · análisis avanzado (divulgación progresiva dentro del calc, estilo ficha) */}
-          {r && r.instrumentos && r.instrumentos.length > 0 && (
-            <button type="button" onClick={() => setShowAvanzado((v) => !v)} style={{ alignSelf: 'flex-start', padding: '11px 18px', borderRadius: 12, border: '1px solid rgba(16,18,28,0.1)', background: '#fff', color: '#6D4AFF', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>{showAvanzado ? 'Ocultar análisis avanzado ▲' : '🔬 Ver análisis avanzado · comparar inversiones, pentágono, proyección año a año ▾'}</button>
-          )}
           {/* TABLA COMPARATIVA OBJETIVA · Pentágono de las Inversiones (rendimiento/riesgo/liquidez/plazo/dedicación) */}
-          {showAvanzado && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+          {paso === 'comparar' && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
             const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', respaldo: 'Escritura + RPP', ejemplos: 'tu depa', hero: true };
             const filas = [inmueble, ...r.instrumentos];
             const cols = [
@@ -694,7 +702,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           })()}
 
           {/* RADAR · Pentágono de las inversiones (perfil visual en 5 ejes) */}
-          {showAvanzado && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+          {paso === 'comparar' && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
             const RI = { 'Muy bajo': 1, 'Bajo': 2, 'Medio-bajo': 2.5, 'Medio': 3, 'Medio-alto': 4, 'Alto': 4.5, 'Muy alto': 5 };
             const LI = { 'Nula': 0.4, 'Nula (retiro)': 0.4, 'Baja': 1.5, 'Media': 3, 'Alta': 5 };
             const DE = { 'Nulo': 0.4, 'Bajo': 1.5, 'Medio': 3, 'Media': 3, 'Alto': 5 };
@@ -734,7 +742,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>{/* fin grid visual */}
 
           {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica · ancho completo) */}
-          {showAvanzado && r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
+          {paso === 'comparar' && r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
             <div className="iv4-card">
               <div className="iv4-sub" style={{ marginTop: 0, marginBottom: 6 }}>📅 Tu inversión año con año <Info><><b>Cómo leerla:</b> cada renglón es un año. <b>Valor</b> = cuánto valdrá el depa. <b>Renta/mes</b> = lo que paga el inquilino. <b>Ganancia/año</b> = renta menos gastos. <b>Mensualidad</b> = lo que pagas al banco. <b>Diferencial</b> = lo que te queda o pones de tu bolsa al mes. <b>TIR si vendes</b> = cuánto te rindió si vendes ese año.</></Info></div>
               <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 6, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}<Info><><b>¿Cómo decidimos el mejor año para salir?</b> NO es "la TIR más alta" (eso siempre premia esperar, porque los costos de comprar/vender se reparten en más años). Usamos la regla de <b>retorno marginal de retención</b>: te conviene quedártelo mientras retenerlo un año más te rinda (renta sobre su valor actual + plusvalía) <b>más que tu tasa de oportunidad</b> (CETES + prima de riesgo ≈ {r.proyeccion.hurdle_pct}%). Cuando cae por debajo, conviene vender y reinvertir. <b>Depende de:</b> plusvalía esperada, qué tan rápido sube la renta, tasas, y si necesitas el dinero. <b>Fuente:</b> {r.proyeccion.bibliografia}</></Info></div>
@@ -962,7 +970,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       })()}
 
       {/* ───── CALL TO ACTION (al final · convierte el interés en lead) ───── */}
-      {r && (
+      {paso === 'comparar' && r && (
         <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #C63FAE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', boxShadow: '0 10px 28px rgba(109,74,255,0.28)' }}>
           <div style={{ flex: '1 1 280px' }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5 }}>¿Te late? Llévalo al siguiente paso.</div>
@@ -1004,7 +1012,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       )}
 
       {/* FUENTES (de dónde sale cada dato · visible) */}
-      {r && r.fuentes && (
+      {paso === 'comparar' && r && r.fuentes && (
         <details className="iv4-card" style={{ marginTop: 14, padding: '14px 18px' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>📚 Fuentes de los datos <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· con fecha de consulta</span></summary>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
@@ -1021,6 +1029,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
         para el detalle de <b>ISAI</b> (al comprar) e <b>ISR</b> (al vender) usa el <ProyectorLink />. El cálculo definitivo lo hace tu contador/notario.
       </div>
+
+      {/* ───── NAV DE TABS · Atrás / Siguiente (lleva al cliente por cada sección) ───── */}
+      {isResult && r && (
+        <div className="iv4-noprint" style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #ECECEC', paddingTop: 16 }}>
+          {prevTab && <button type="button" onClick={() => goTab(prevTab.k)} style={{ padding: '11px 16px', borderRadius: 11, border: '1px solid #ECECEC', background: '#fff', color: '#5A5F6E', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← {prevTab.l}</button>}
+          {nextTab && <button type="button" onClick={() => goTab(nextTab.k)} style={{ marginLeft: 'auto', padding: '12px 22px', borderRadius: 11, border: 'none', background: 'linear-gradient(120deg, #6D4AFF, #C63FAE)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.26)' }}>Siguiente · {nextTab.l} →</button>}
+        </div>
+      )}
 
       {/* ───── BARRA STICKY · portal a body (un ancestro .zv2-up tiene transform y rompe position:fixed) ───── */}
       {!noStickyBar && showSticky && r && createPortal(
