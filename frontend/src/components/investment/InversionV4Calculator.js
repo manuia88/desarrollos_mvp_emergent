@@ -22,9 +22,9 @@ function Tip({ g }) {
   const [el, fr] = GLOSS[g] || ['', ''];
   return <span className="iv4-tip" tabIndex={0}>ⓘ<span className="iv4-tipbox"><b>{el}</b><br />{fr}</span></span>;
 }
-const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.12)', borderRadius: 5, padding: '1px 5px', verticalAlign: 'middle' }}>AUTO · EDITABLE</span>;
+const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, color: '#6D4AFF', background: 'rgba(109,74,255,0.12)', borderRadius: 5, padding: '1px 5px', verticalAlign: 'middle' }}>AUTO · EDITABLE</span>;
 // link directo al Proyector de Impuestos (abre en pestaña nueva para no perder la calculadora)
-const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="noreferrer" style={{ color: '#6D28D9', fontWeight: 700, textDecoration: 'underline' }}>Proyector de Impuestos</a>;
+const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="noreferrer" style={{ color: '#6D4AFF', fontWeight: 700, textDecoration: 'underline' }}>Proyector de Impuestos</a>;
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 12, height: 12, borderRadius: '50%', background: 'rgba(16,18,28,0.05)', color: '#9499AE', fontSize: 8.5, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
@@ -171,13 +171,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   }, [vista, portfolioKey, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // estilos
-  const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
+  const inp = { background: '#fff', border: '1px solid #ECECEC', borderRadius: 11, color: '#1E2230', fontFamily: 'DM Sans', fontSize: 13, padding: '10px 12px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
-  const sectTitle = { fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 17, color: '#16182A', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' };
+  const sectTitle = { fontFamily: "'Outfit', system-ui, -apple-system, sans-serif", fontWeight: 800, fontSize: 18, color: '#1E2230', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' };
   const grpLabel = { fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 };
   const Toggle = ({ k, opts }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {opts.map(([v, l]) => { const on = String(f[k]) === String(v); return <button key={String(v)} type="button" onClick={() => set(k, v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: on ? 'rgba(124,92,255,0.1)' : '#fff', color: on ? '#6D28D9' : '#4B4F66' }}>{l}</button>; })}
+      {opts.map(([v, l]) => { const on = String(f[k]) === String(v); return <button key={String(v)} type="button" onClick={() => set(k, v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: on ? '1.5px solid #6D4AFF' : '1px solid rgba(99,102,241,0.2)', background: on ? 'rgba(109,74,255,0.1)' : '#fff', color: on ? '#6D4AFF' : '#4B4F66' }}>{l}</button>; })}
     </div>
   );
   const Field = ({ label, k, money, auto }) => (
@@ -199,7 +199,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         .iv4-tip{position:relative;cursor:help;color:#A9ADC4;font-size:11px;margin-left:5px}
         .iv4-tipbox{position:absolute;bottom:135%;left:50%;transform:translateX(-50%);width:220px;background:#1E2230;color:#fff;font-weight:500;font-size:11px;line-height:1.45;padding:9px 11px;border-radius:9px;box-shadow:0 12px 30px rgba(16,18,28,.3);opacity:0;visibility:hidden;transition:opacity .14s;z-index:60;text-align:left;pointer-events:none}
         .iv4-tip:hover .iv4-tipbox,.iv4-tip:focus .iv4-tipbox{opacity:1;visibility:visible}
-        .iv4-card{background:#fff;border:1px solid rgba(16,18,28,.08);border-radius:18px;box-shadow:0 6px 20px rgba(99,102,241,.06);padding:20px 22px}
+        .iv4-card{background:#fff;border:1px solid #ECECEC;border-radius:16px;box-shadow:0 6px 20px rgba(16,18,28,.05);padding:20px 22px}
         @media print{.iv4-noprint{display:none}}
       `}</style>
 
@@ -208,10 +208,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D28D9', background: 'rgba(124,92,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
+            {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
               {['MXN', 'USD'].map((mo) => (
-                <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D28D9' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
+                <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D4AFF' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
               ))}
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
         {/* TIRA DE CRÉDITO EN VIVO · ves el efecto de plazo/enganche/tasa sin bajar (quita fricción) */}
         {f.con_credito && r && r.credito && r.credito.pmt_mensual && (
-          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', padding: '11px 14px', background: 'rgba(124,92,255,0.06)', borderRadius: 10 }}>
+          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', padding: '11px 14px', background: 'rgba(109,74,255,0.06)', borderRadius: 10 }}>
             {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes'], ['Te prestan', m(r.credito.monto_credito)], ['Tu enganche', m(r.credito.capital_propio)], ['Interés total', m(r.credito.interes_total)], ['La renta cubre', pct(r.credito.cobertura_renta_pct)]].map(([l, v]) => (
               <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{v}</div></div>
             ))}
@@ -297,7 +297,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <button type="button" onClick={traerAirroi} disabled={airroiLoading} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', cursor: airroiLoading ? 'wait' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, background: '#0EA5E9', color: '#fff', whiteSpace: 'nowrap' }}>{airroiLoading ? 'Trayendo…' : (airroi && airroi.adr_mxn ? '↻ Actualizar' : '📡 Usar AirROI')}</button>
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 12, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados editables (en <b>Configuración</b>). Solo el precio está fijo.</div>
+        <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 12, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D4AFF' }}>AUTO</b> son estimados editables (en <b>Configuración</b>). Solo el precio está fijo.</div>
         {/* CONFIGURACIÓN (supuestos) · dentro de Tus datos */}
         <div style={{ borderTop: '1px solid rgba(16,18,28,0.07)', marginTop: 14, paddingTop: 12 }}>
           <button type="button" onClick={() => setOpenAdv((o) => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>
@@ -309,7 +309,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
                 <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
               </>) : <Field label="Renta mensual" k="renta_mensual" money auto />}
-              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
+              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D4AFF', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
               <Field label="Predial / año" k="predial" money auto />
               <Field label="Mantenim. / año" k="mantenimiento" money auto />
               <Field label="Seguro / año" k="seguro" money auto />
@@ -372,7 +372,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ marginTop: 12, display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontSize: 10.5, color: '#6B6F86', fontWeight: 700 }}>TIR si vendes en:</span>
                   {r.proyeccion.rows.map((row) => { const on = row.anio === Number(f.horizonte_anios); return (
-                    <button key={row.anio} type="button" onClick={() => set('horizonte_anios', row.anio)} style={{ cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 8, border: 'none', background: on ? 'rgba(124,92,255,0.16)' : 'rgba(16,18,28,0.04)', color: (row.tir_si_vendes || 0) >= 0 ? (on ? '#6D28D9' : '#5B5F76') : '#DC2626' }}>{row.anio}a · {pct(row.tir_si_vendes)}</button>
+                    <button key={row.anio} type="button" onClick={() => set('horizonte_anios', row.anio)} style={{ cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 8, border: 'none', background: on ? 'rgba(109,74,255,0.16)' : 'rgba(16,18,28,0.04)', color: (row.tir_si_vendes || 0) >= 0 ? (on ? '#6D4AFF' : '#5B5F76') : '#DC2626' }}>{row.anio}a · {pct(row.tir_si_vendes)}</button>
                   ); })}
                 </div>
               )}
@@ -421,7 +421,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#6D4AFF', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual', <><b>Imagina</b> que prestas tu juguete y te dan monedas. El cap rate dice cuántas monedas te dan al año por cada 100 que vale el juguete. <b>Cómo:</b> lo que deja la renta en un año ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>. <b>Fuente:</b> renta = promedio de la zona.</>],
                   ['💰', 'Rendimiento promedio (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio contando TODO (renta + venta), repartida en los años.', 'anual', <>Junta TODO lo que ganas (la renta + lo que sube de valor al vender) y lo reparte entre los años que lo tienes. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año. Es como sacar el promedio de tus calificaciones de todo el año.</>],
                   ['🏦', 'Flujo de la renta', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito.', 'mensual', <>Es tu domingo cada mes: lo que entra de renta menos lo que sale (gastos + mensualidad del banco). <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es negativo (rojo), tú pones esa diferencia.</>],
-                  ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final. <b>Tu caso: {r.equity_multiple}x</b> → metes $1 y al final te llevas ${r.equity_multiple}. Más de 1 = ganas; menos de 1 = pierdes.</>],
+                  ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#6D4AFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final. <b>Tu caso: {r.equity_multiple}x</b> → metes $1 y al final te llevas ${r.equity_multiple}. Más de 1 = ganas; menos de 1 = pierdes.</>],
                   ['🏁', 'Neto al vender', m(r.neto_al_vender), '#16182A', 'Lo que te llevas al vender, descontando crédito, comisión e impuestos.', 'venta', <>El dinero que de verdad te llevas a la bolsa cuando vendes, ya quitando lo que debes al banco, la comisión y el impuesto (ISR). <b>Tu caso:</b> <b>{m(r.neto_al_vender)}</b> a los {horizonte} años.</>],
                 ]} />
                 <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
@@ -468,7 +468,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   </div>
                 </details>
               )}
-              {r.con_credito && r.credito && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0 0', marginTop: 6, borderTop: '1px solid rgba(16,18,28,0.05)', fontSize: 12 }}><span style={{ color: '#6B6F86' }}>De tu bolsa hoy (enganche + gastos)</span><span style={{ fontWeight: 800, color: '#7C5CFF' }}>{m(r.credito.capital_propio)}</span></div>}
+              {r.con_credito && r.credito && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0 0', marginTop: 6, borderTop: '1px solid rgba(16,18,28,0.05)', fontSize: 12 }}><span style={{ color: '#6B6F86' }}>De tu bolsa hoy (enganche + gastos)</span><span style={{ fontWeight: 800, color: '#6D4AFF' }}>{m(r.credito.capital_propio)}</span></div>}
             </div>
           )}
 
@@ -477,7 +477,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div className="iv4-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                 <div style={{ fontWeight: 800, fontSize: 12.5 }}>🏁 Cuando Lo Vendas</div>
-                <select value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11, color: '#6D28D9', background: 'rgba(124,92,255,0.1)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer' }}>{[3, 5, 7, 10, 15, 20].map((y) => <option key={y} value={y}>si vendes a los {y} años</option>)}</select>
+                <select value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer' }}>{[3, 5, 7, 10, 15, 20].map((y) => <option key={y} value={y}>si vendes a los {y} años</option>)}</select>
               </div>
               {[['Precio de venta estimado', r.venta.valor_venta, '#16182A', false, <>Lo que valdría tu depa al vender: el precio de hoy crecido por la plusvalía cada año (fuente SHF). <b>Tu caso:</b> {m(r.venta.valor_venta)} a los {r.venta.horizonte_anios} años.</>],
               ['− Comisión de venta (~5%)', -r.venta.comision, '#DC2626', false, <>Lo que cobra el asesor o la inmobiliaria por venderlo: ~5% del precio de venta. <b>Tu caso:</b> {m(r.venta.comision)}.</>],
@@ -508,7 +508,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span> <Info><><b>Tu hipoteca, explicada.</b> El banco pone una parte (te presta) y tú el enganche. Cada mes pagas una mensualidad fija que se divide en <b>capital</b> (baja tu deuda) e <b>interés</b> (el cobro del banco). Al principio casi todo es interés. <b>Cómo se calcula:</b> amortización francesa con la tasa de Banxico. Tasa/mensualidad finales las define tu banco.</></Info></div>
                 {/* controles aquí mismo · cambia sin subir (quita fricción) */}
-                <div className="iv4-noprint" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 10, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10 }}>
+                <div className="iv4-noprint" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 10, padding: '10px 12px', background: 'rgba(109,74,255,0.05)', borderRadius: 10 }}>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Enganche</div><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={{ ...inp, padding: '6px 9px', width: 'auto', fontSize: 12 }}>{[10, 20, 30, 40, 50, 60, 70, 80, 90].map((e) => <option key={e} value={(100 - e) / 100}>{e}%</option>)}</select></div>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Plazo</div><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={{ ...inp, padding: '6px 9px', width: 'auto', fontSize: 12 }}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Tasa anual %</div><input type="text" inputMode="decimal" placeholder="11.45" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, padding: '6px 9px', width: 80, fontSize: 12 }} /></div>
@@ -518,7 +518,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
                 <Sub>Cómo se reparte el precio</Sub>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
-                  {[['Precio del depa', precio, '#16182A'], ['=', null], ['Tu enganche', engPuro, '#7C5CFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
+                  {[['Precio del depa', precio, '#16182A'], ['=', null], ['Tu enganche', engPuro, '#6D4AFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
                     v === null ? <div key={i} style={{ alignSelf: 'center', fontSize: 20, fontWeight: 800, color: '#C9CCDB' }}>{l}</div>
                       : <div key={i} style={{ flex: '1 1 110px', padding: '10px 12px', borderRadius: 10, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{m(v)}</div></div>
                   ))}
@@ -534,10 +534,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(16,18,28,0.03)', borderRadius: 10 }}>
                   <div style={{ fontSize: 11, color: '#5B5F76', marginBottom: 7 }}>De tu pago anual (<b>{m(cr.pago_anual)}</b>), en el <b>primer año</b>:</div>
                   <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 7 }}>
-                    <div style={{ width: `${capPct}%`, background: '#7C5CFF' }} /><div style={{ width: `${100 - capPct}%`, background: '#DC2626' }} />
+                    <div style={{ width: `${capPct}%`, background: '#6D4AFF' }} /><div style={{ width: `${100 - capPct}%`, background: '#DC2626' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, fontWeight: 700, flexWrap: 'wrap' }}>
-                    <span style={{ color: '#7C5CFF' }}>🟪 {m(cr.capital_anio1)} a capital ({capPct}%)</span>
+                    <span style={{ color: '#6D4AFF' }}>🟪 {m(cr.capital_anio1)} a capital ({capPct}%)</span>
                     <span style={{ color: '#DC2626' }}>🟥 {m(cr.interes_anio1)} a interés ({100 - capPct}%)</span>
                   </div>
                   <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Al principio casi todo es interés; con los años, cada vez más se va a capital (baja tu deuda).</div>
@@ -545,15 +545,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
                 {/* AÑO POR AÑO · justo debajo del primer año, visible (no escondido) */}
                 {cr.tabla_anual && cr.tabla_anual.length > 0 && (
-                  <details style={{ marginTop: 12, border: '1px solid rgba(124,92,255,0.25)', borderRadius: 10, background: 'rgba(124,92,255,0.04)', padding: '10px 13px' }}>
-                    <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 800, color: '#6D28D9' }}>📅 ¿Y el 2°, 3°… año? Velo año por año hasta liquidar</summary>
+                  <details style={{ marginTop: 12, border: '1px solid rgba(109,74,255,0.25)', borderRadius: 10, background: 'rgba(109,74,255,0.04)', padding: '10px 13px' }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 800, color: '#6D4AFF' }}>📅 ¿Y el 2°, 3°… año? Velo año por año hasta liquidar</summary>
                     <div style={{ overflowX: 'auto', marginTop: 10 }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                         <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'A capital', 'A interés', 'Te falta (saldo)'].map((h, i) => <th key={h} style={{ padding: '5px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                         <tbody>{cr.tabla_anual.map((row) => { const tot = row.capital + row.interes; const capPc = tot ? Math.round(row.capital / tot * 100) : 0; return (
                           <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
                             <td style={{ padding: '5px 8px', fontWeight: 700 }}>{row.anio}</td>
-                            <td style={{ padding: '5px 8px', textAlign: 'right', color: '#7C5CFF', fontWeight: 700 }}>{m(row.capital)} <span style={{ color: '#A2A6BC', fontWeight: 500 }}>({capPc}%)</span></td>
+                            <td style={{ padding: '5px 8px', textAlign: 'right', color: '#6D4AFF', fontWeight: 700 }}>{m(row.capital)} <span style={{ color: '#A2A6BC', fontWeight: 500 }}>({capPc}%)</span></td>
                             <td style={{ padding: '5px 8px', textAlign: 'right', color: '#DC2626' }}>{m(row.interes)}</td>
                             <td style={{ padding: '5px 8px', textAlign: 'right' }}>{m(row.saldo_fin)}</td>
                           </tr>); })}</tbody>
@@ -565,7 +565,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
                 <Sub>En todo el plazo ({cr.plazo_anios} años)</Sub>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
-                  <Tile l="Capital (préstamo)" v={m(cr.monto_credito)} c="#7C5CFF" exp="El préstamo que le regresas al banco." />
+                  <Tile l="Capital (préstamo)" v={m(cr.monto_credito)} c="#6D4AFF" exp="El préstamo que le regresas al banco." />
                   <Tile l="Interés total" v={m(cr.interes_total)} c="#DC2626" exp={`Solo intereses en ${cr.plazo_anios} años. Por eso conviene liquidar o vender antes.`} />
                   <Tile l="Monto total" v={m(cr.pago_total_plazo)} exp="Préstamo + todos los intereses = todo lo que le das al banco." />
                 </div>
@@ -592,10 +592,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
             const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => (
-              <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(124,92,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.06)' }}>
+              <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(109,74,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #6D4AFF' : '1px solid rgba(16,18,28,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: '#16182A' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
-                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.14)', borderRadius: 6, padding: '2px 8px' }}>GANA</span>}
+                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6D4AFF', background: 'rgba(109,74,255,0.14)', borderRadius: 6, padding: '2px 8px' }}>GANA</span>}
                 </div>
                 <div style={{ marginTop: 11, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.5 }}>
                   <div>Ingreso: <b>{m(x.ingreso_anual)}/año</b><Info><>Todo lo que entra de renta en un año, <b>antes</b> de gastos. {comoIngreso}. <b>Tu caso:</b> {m(x.ingreso_anual)}/año.</></Info></div>
@@ -623,8 +623,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     headInfo={<><b>Rentas por NOCHES en Airbnb.</b> Suele <b>dejar más</b>, pero da <b>más trabajo</b> (limpieza entre huéspedes, atención, temporada baja) y <b>más gastos</b>. Ingreso = tarifa por noche × noches ocupadas × 12. Tarifa y ocupación reales de <b>AirROI</b>.</>}
                     gastosInfo={<><b>Gastos de Airbnb:</b> los de renta larga (predial, mantenimiento…) <b>MÁS</b> los propios del corto plazo: <b>comisión de plataforma, limpieza, servicios</b> (luz/internet/agua), <b>gestión</b> y reposición — estimados en <b>~22% del ingreso</b>. Por eso Airbnb gasta más que renta larga. <b>Tu caso:</b> {m(cmp.corto.egresos_anual)}/año.</>} />
                 </div>
-                <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(124,92,255,0.06)', borderRadius: 10, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.55 }}>
-                  👉 Con tus datos <b style={{ color: '#6D28D9' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año, <b>ya descontados</b> sus mayores gastos). <b>Airbnb</b> rinde más pero da más trabajo; <b>largo plazo</b> rinde menos pero es estable y sin broncas. Toca cada <b>?</b> para ver de dónde sale el número.
+                <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(109,74,255,0.06)', borderRadius: 10, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.55 }}>
+                  👉 Con tus datos <b style={{ color: '#6D4AFF' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año, <b>ya descontados</b> sus mayores gastos). <b>Airbnb</b> rinde más pero da más trabajo; <b>largo plazo</b> rinde menos pero es estable y sin broncas. Toca cada <b>?</b> para ver de dónde sale el número.
                 </div>
               </div>
             );
@@ -633,7 +633,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* Cascada visual · de dónde viene tu ganancia */}
           {r && r.atribucion && (() => {
             const a = r.atribucion; const tot = (a.renta_neta_acum || 0) + (a.equity_buildup || 0) + (a.plusvalia || 0);
-            const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#7C5CFF'], ['Plusvalía', a.plusvalia, '#6D4AFF']].filter(([, v]) => (v || 0) > 0);
+            const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#6D4AFF'], ['Plusvalía', a.plusvalia, '#6D4AFF']].filter(([, v]) => (v || 0) > 0);
             return (
               <div className="iv4-card">
                 <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>De dónde viene tu ganancia <span style={{ fontWeight: 700, color: '#16182A' }}>· {m(tot)}</span><Info><>Tu ganancia total sale de 3 cosas: <b>Renta</b> (lo que junta de rentas, ya sin gastos), <b>Patrimonio</b> (lo que pagaste del crédito y ya es tuyo) y <b>Plusvalía</b> (lo que subió de valor el depa). La barra muestra cuánto pone cada una. <b>Tu caso:</b> total {m(tot)}.</></Info></div>
@@ -676,9 +676,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                       {cols.map(([l]) => <th key={l} style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>{l}</th>)}
                     </tr></thead>
                     <tbody>{filas.map((x, fi) => (
-                      <tr key={fi} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: x.hero ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
-                        <td style={{ padding: '8px', fontWeight: 800, color: x.hero ? '#6D28D9' : '#16182A', position: 'sticky', left: 0, background: x.hero ? '#F3EFFF' : '#fff', whiteSpace: 'nowrap' }}>{x.hero ? '🏠 ' : ''}{x.nombre}{x.ejemplos && !x.hero ? <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#A2A6BC' }}>ej. {x.ejemplos}</span> : null}</td>
-                        {cols.map(([l, get], ci) => <td key={l} style={{ padding: '8px', whiteSpace: 'nowrap', color: ci === 0 ? (x.hero ? '#6D28D9' : '#16182A') : '#5B5F76', fontWeight: ci === 0 ? 800 : 600 }}>{get(x)}</td>)}
+                      <tr key={fi} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: x.hero ? 'rgba(109,74,255,0.07)' : 'transparent' }}>
+                        <td style={{ padding: '8px', fontWeight: 800, color: x.hero ? '#6D4AFF' : '#16182A', position: 'sticky', left: 0, background: x.hero ? '#F3EFFF' : '#fff', whiteSpace: 'nowrap' }}>{x.hero ? '🏠 ' : ''}{x.nombre}{x.ejemplos && !x.hero ? <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#A2A6BC' }}>ej. {x.ejemplos}</span> : null}</td>
+                        {cols.map(([l, get], ci) => <td key={l} style={{ padding: '8px', whiteSpace: 'nowrap', color: ci === 0 ? (x.hero ? '#6D4AFF' : '#16182A') : '#5B5F76', fontWeight: ci === 0 ? 800 : 600 }}>{get(x)}</td>)}
                       </tr>
                     ))}</tbody>
                   </table>
@@ -687,10 +687,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(16,18,28,0.025)', borderRadius: 10 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: '#16182A', marginBottom: 8 }}>📖 Qué significa cada columna</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
-                    {cols.map(([l, , leg]) => <div key={l} style={{ fontSize: 10.5, color: '#5B5F76', lineHeight: 1.5 }}><b style={{ color: '#6D28D9' }}>{l}:</b> {leg}</div>)}
+                    {cols.map(([l, , leg]) => <div key={l} style={{ fontSize: 10.5, color: '#5B5F76', lineHeight: 1.5 }}><b style={{ color: '#6D4AFF' }}>{l}:</b> {leg}</div>)}
                   </div>
                 </div>
-                <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso se usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
+                <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(109,74,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso se usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
                 <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados.</div>
               </div>
             );
@@ -722,11 +722,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     {[1, 2, 3, 4, 5].map((l) => <polygon key={l} points={grid(l)} fill="none" stroke="#E7E9F1" strokeWidth="1" />)}
                     {axes.map((_, i) => { const [x, y] = pt(i, 5); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#E7E9F1" strokeWidth="1" />; })}
                     <polygon points={polyOf(sC)} fill="rgba(148,153,174,0.22)" stroke="#9499AE" strokeWidth="2" />
-                    <polygon points={polyOf(sI)} fill="rgba(124,92,255,0.20)" stroke="#7C5CFF" strokeWidth="2.5" />
+                    <polygon points={polyOf(sI)} fill="rgba(109,74,255,0.20)" stroke="#6D4AFF" strokeWidth="2.5" />
                     {axes.map((ax, i) => { const [x, y] = pt(i, 5.82); const anc = x < cx - 10 ? 'end' : x > cx + 10 ? 'start' : 'middle'; return <text key={ax} x={x} y={y} fontSize="10.5" fontWeight="700" fill="#5B5F76" textAnchor={anc} dominantBaseline="middle">{ax}</text>; })}
                   </svg>
                   <div style={{ fontSize: 11.5, lineHeight: 1.6, flex: '1 1 180px' }}>
-                    <div><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: '#7C5CFF', marginRight: 6 }} /><b>Tu inmueble</b> (TIR {pct(r.tir_pct)})</div>
+                    <div><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: '#6D4AFF', marginRight: 6 }} /><b>Tu inmueble</b> (TIR {pct(r.tir_pct)})</div>
                     <div style={{ marginTop: 4 }}><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: '#9499AE', marginRight: 6 }} />{comp.nombre} ({pct(comp.pct)})</div>
                     <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 10, lineHeight: 1.55 }}>Más hacia afuera = más de ese atributo. En <b>Rendimiento</b> y <b>Liquidez</b>, más es mejor. En <b>Riesgo</b>, <b>Plazo</b> y <b>Dedicación</b>, más = más riesgo / más tiempo comprometido / más trabajo (tú decides qué te conviene).</div>
                   </div>
@@ -746,7 +746,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 {r.proyeccion.rows.map((row) => { const mx = Math.max(...r.proyeccion.rows.map((x) => x.valor || 0)) || 1; const best = row.anio === r.proyeccion.mejor_anio; return (
                   <div key={row.anio} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <div style={{ width: '70%', height: `${Math.max(6, (row.valor / mx) * 44)}px`, background: best ? 'linear-gradient(180deg,#6D4AFF,#6D4AFF)' : '#C7CAD6', borderRadius: '4px 4px 0 0' }} title={m(row.valor)} />
-                    <div style={{ fontSize: 9, color: best ? '#6D28D9' : '#8A8FA6', fontWeight: best ? 800 : 600, marginTop: 4 }}>{row.anio}a</div>
+                    <div style={{ fontSize: 9, color: best ? '#6D4AFF' : '#8A8FA6', fontWeight: best ? 800 : 600, marginTop: 4 }}>{row.anio}a</div>
                   </div>
                 ); })}
               </div>
@@ -759,15 +759,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     <td colSpan={6} style={{ padding: '7px 5px', textAlign: 'right', color: '#A2A6BC', fontSize: 10.5 }}>lo que inviertes al entrar (precio + escrituración)</td>
                   </tr> : null}
                   {r.proyeccion.rows.map((row) => { const best = row.anio === r.proyeccion.mejor_anio; const dif = row.diferencial_mensual || 0; return (
-                    <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: best ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
-                      <td style={{ padding: '7px 5px', fontWeight: 800, color: best ? '#6D28D9' : '#16182A' }}>{row.anio}{best ? ' ⭐' : ''}</td>
+                    <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: best ? 'rgba(109,74,255,0.07)' : 'transparent' }}>
+                      <td style={{ padding: '7px 5px', fontWeight: 800, color: best ? '#6D4AFF' : '#16182A' }}>{row.anio}{best ? ' ⭐' : ''}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.valor)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#0E9F6E' }}>+{m(row.plusvalia_acum)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.renta_bruta_mensual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.noi_anual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#8A8FA6' }}>{row.mensualidad_credito ? m(row.mensualidad_credito) : '—'}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 700, color: dif >= 0 ? '#0E9F6E' : '#DC2626' }}>{m(dif)}/mes</td>
-                      <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 800, color: (row.tir_si_vendes || 0) >= 0 ? '#7C5CFF' : '#DC2626' }}>{pct(row.tir_si_vendes)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 800, color: (row.tir_si_vendes || 0) >= 0 ? '#6D4AFF' : '#DC2626' }}>{pct(row.tir_si_vendes)}</td>
                     </tr>
                   ); })}</tbody>
                 </table>
@@ -790,13 +790,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         const dif = (r.tir_pct || 0) - (r.tir_desapalancada_pct || 0);
         const mets = [
           ['Cap rate', pct(r.cap_rate_pct), '#6D4AFF', <>Renta neta ÷ precio. El rendimiento <b>anual</b> de la renta, sin contar el crédito. <b>Tu caso:</b> {pct(r.cap_rate_pct)}.</>],
-          ['TIR (con crédito)', pct(r.tir_pct), '#6D28D9', <>Rendimiento anual total <b>apalancado</b> (renta + plusvalía) si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(r.tir_pct)}.</>],
+          ['TIR (con crédito)', pct(r.tir_pct), '#6D4AFF', <>Rendimiento anual total <b>apalancado</b> (renta + plusvalía) si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(r.tir_pct)}.</>],
           ['TIR al contado', pct(r.tir_desapalancada_pct), '#16182A', <>La TIR si compraras <b>sin crédito</b>. Compárala con la de arriba: la diferencia es el efecto del apalancamiento.</>],
           ['MIRR', pct(r.mirr_pct), '#16182A', <><b>TIR modificada</b>, más realista: asume que reinviertes los flujos a una tasa normal, no a la propia TIR (que suele inflar el número). Por eso suele ser menor que la TIR.</>],
           ['VPN', m(r.vpn), (r.vpn || 0) >= 0 ? '#0E9F6E' : '#DC2626', <><b>Valor Presente Neto:</b> cuánto ganas (o pierdes) <b>hoy</b>, en pesos de hoy, por encima de tu tasa de oportunidad ({pct(r.tasa_descuento_pct)}). Positivo = crea valor. <b>Tu caso:</b> {m(r.vpn)}.</>],
           ['ROI real', pct(r.roi_real_pct), '#16182A', <>Rendimiento <b>ya quitando la inflación</b> — tu poder de compra real. El nominal se ve más alto pero compra menos.</>],
           ['Cash-on-cash', pct(r.cash_on_cash_pct), '#16182A', <>Flujo del <b>primer año</b> ÷ lo que pusiste de tu bolsa. El "efectivo sobre efectivo" — cuánto te regresa en cash el año 1.</>],
-          ['Multiplicas', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final (renta + venta). <b>Tu caso:</b> {r.equity_multiple}x.</>],
+          ['Multiplicas', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#6D4AFF', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final (renta + venta). <b>Tu caso:</b> {r.equity_multiple}x.</>],
           ...(cr.dscr != null ? [['DSCR', cr.dscr, (cr.dscr >= 1.2 ? '#0E9F6E' : cr.dscr >= 1 ? '#E0A33E' : '#DC2626'), <><b>Cobertura del crédito</b> (Debt Service Coverage Ratio): NOI ÷ pago anual al banco. Mayor a 1 = la renta cubre el crédito; los bancos suelen pedir <b>≥1.2</b>. <b>Tu caso:</b> {cr.dscr}.</>]] : []),
           ...(cr.debt_yield_pct != null ? [['Debt yield', pct(cr.debt_yield_pct), '#16182A', <>NOI ÷ monto del préstamo. Métrica de riesgo que mira el banco: arriba de <b>~10%</b> se considera sano. <b>Tu caso:</b> {pct(cr.debt_yield_pct)}.</>]] : []),
           ...((r.proyeccion || {}).payback_anio ? [['Recuperas tu inversión', `año ${r.proyeccion.payback_anio}`, '#0E9F6E', <>El año en que lo que te llevas al vender ya <b>recupera lo que pusiste</b> de tu bolsa. Antes de eso, todavía no "sales tablas". <b>Tu caso:</b> ~año {r.proyeccion.payback_anio}.</>]] : []),
@@ -822,7 +822,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   {d && <div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 4 }}>¿De dónde viene tu retorno? <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(NCREIF: income vs capital)</span></div>
                     <div style={{ display: 'flex', height: 14, borderRadius: 6, overflow: 'hidden', marginBottom: 5 }}>
-                      {[['#0E9F6E', Math.max(0, d.renta)], ['#7C5CFF', Math.max(0, d.patrimonio)], ['#6D4AFF', Math.max(0, d.plusvalia)]].map(([c, v], i) => <div key={i} style={{ width: `${Math.min(100, v)}%`, background: c }} />)}
+                      {[['#0E9F6E', Math.max(0, d.renta)], ['#6D4AFF', Math.max(0, d.patrimonio)], ['#6D4AFF', Math.max(0, d.plusvalia)]].map(([c, v], i) => <div key={i} style={{ width: `${Math.min(100, v)}%`, background: c }} />)}
                     </div>
                     <div style={{ fontSize: 10.5, color: '#5B5F76' }}>🟢 Renta {d.renta}% · 🟣 Patrimonio {d.patrimonio}% · 🟪 Plusvalía {d.plusvalia}% {d.renta < 0 ? <b style={{ color: '#DC2626' }}>· la renta resta (flujo negativo): el retorno es casi todo plusvalía/refugio</b> : null}</div>
                   </div>}
@@ -839,7 +839,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed rgba(16,18,28,0.1)' }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>📊 Reporte a nivel fondo <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(estándar INREV / NCREIF · para LPs)</span> <Info><>Las métricas con las que un fondo institucional reporta a sus inversionistas (incluso internacionales). <b>TWR</b> = rendimiento time-weighted sin apalancar (renta + plusvalía, método NCREIF NPI). <b>SI-IRR</b> = TIR desde el inicio (money-weighted, lo que vive el inversionista). <b>TVPI</b> = valor total ÷ capital aportado. <b>DPI</b> = repartido en efectivo ÷ aportado. <b>RVPI</b> = por realizar (la venta) ÷ aportado. <b>PIC</b> = capital aportado. <b>TGER</b> = costos del vehículo ÷ valor.</></Info></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(92px,1fr))', gap: 10 }}>
-                        {[['TWR (s/ apal.)', pct(mfo.twr_unlev_pct), '#0E7A53'], ...(mfo.si_irr_pct != null ? [['SI-IRR', pct(mfo.si_irr_pct), (mfo.si_irr_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626']] : []), ['TVPI', `${mfo.tvpi}×`, '#7C5CFF'], ['DPI', `${mfo.dpi}×`, '#16182A'], ['RVPI', `${mfo.rvpi}×`, '#6D4AFF'], ['PIC', m(mfo.pic), '#16182A'], ...(mfo.tger_pct != null ? [['TGER', pct(mfo.tger_pct), '#6B6F86']] : [])].map(([l, v, c]) => (
+                        {[['TWR (s/ apal.)', pct(mfo.twr_unlev_pct), '#0E7A53'], ...(mfo.si_irr_pct != null ? [['SI-IRR', pct(mfo.si_irr_pct), (mfo.si_irr_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626']] : []), ['TVPI', `${mfo.tvpi}×`, '#6D4AFF'], ['DPI', `${mfo.dpi}×`, '#16182A'], ['RVPI', `${mfo.rvpi}×`, '#6D4AFF'], ['PIC', m(mfo.pic), '#16182A'], ...(mfo.tger_pct != null ? [['TGER', pct(mfo.tger_pct), '#6B6F86']] : [])].map(([l, v, c]) => (
                           <div key={l} style={{ padding: '8px 10px', borderRadius: 9, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: c, marginTop: 1 }}>{v}</div></div>
                         ))}
                       </div>
@@ -887,7 +887,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Escenarios · base / optimista / pesimista <Info><>Lo que hace un comité de inversión: no confiar en un solo número, sino ver cómo te va si las cosas salen <b>mejor</b> o <b>peor</b> de lo esperado (cambia plusvalía, tasa y vacancia). Si aguanta el pesimista, es robusta.</></Info></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
                   {[['🟢 Optimista', 'optimista'], ['⚪ Base (tus datos)', 'base'], ['🔴 Pesimista', 'pesimista']].map(([titulo, k]) => { const s = r.escenarios[k] || {}; return (
-                    <div key={k} style={{ padding: '11px 13px', borderRadius: 10, background: k === 'base' ? 'rgba(124,92,255,0.07)' : 'rgba(16,18,28,0.03)', border: k === 'base' ? '1.5px solid #7C5CFF' : '1px solid transparent' }}>
+                    <div key={k} style={{ padding: '11px 13px', borderRadius: 10, background: k === 'base' ? 'rgba(109,74,255,0.07)' : 'rgba(16,18,28,0.03)', border: k === 'base' ? '1.5px solid #6D4AFF' : '1px solid transparent' }}>
                       <div style={{ fontWeight: 800, fontSize: 12, color: '#16182A' }}>{titulo}</div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (s.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626', marginTop: 4 }}>{pct(s.tir_pct)} <span style={{ fontSize: 10, color: '#8A8FA6', fontWeight: 600 }}>TIR</span></div>
                       <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 3 }}>flujo {m(s.flujo_mensual)}/mes</div>
@@ -901,7 +901,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             {r.sensibilidad && r.sensibilidad.por_exit_cap && (
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 6 }}>Sensibilidad: TIR según el precio de salida <Info><>Muestra cómo cambia tu TIR si al vender el mercado paga más caro o más barato (el "exit cap": menor % = precio de venta más alto). Sirve para ver qué tan frágil es tu rendimiento ante el mercado de salida. El recuadro morado es tu supuesto base.</></Info></div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{r.sensibilidad.por_exit_cap.map((s) => <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '6px 9px', borderRadius: 8, background: s.es_base ? 'rgba(124,92,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #7C5CFF' : '1px solid transparent' }}><div style={{ fontSize: 9.5, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: s.es_base ? '#6D28D9' : '#16182A' }}>{pct(s.tir_pct)}</div></div>)}</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{r.sensibilidad.por_exit_cap.map((s) => <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '6px 9px', borderRadius: 8, background: s.es_base ? 'rgba(109,74,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #6D4AFF' : '1px solid transparent' }}><div style={{ fontSize: 9.5, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: s.es_base ? '#6D4AFF' : '#16182A' }}>{pct(s.tir_pct)}</div></div>)}</div>
               </div>
             )}
             {r.sensibilidad && r.sensibilidad.por_tasa_aprec && (r.sensibilidad.por_tasa_aprec.filas || []).length > 0 && (
@@ -913,7 +913,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     <tbody>{r.sensibilidad.por_tasa_aprec.filas.map((f) => (
                       <tr key={f.tasa_pct}>
                         <td style={{ padding: '5px 8px', fontWeight: 800, color: '#6B6F86', whiteSpace: 'nowrap' }}>{f.tasa_pct}%</td>
-                        {f.celdas.map((c, ci) => { const t = c.tir_pct || 0; const bg = t < 0 ? '#FCE4E4' : t < 7 ? '#FCF1DD' : '#E3F5EC'; const col = t < 0 ? '#DC2626' : t < 7 ? '#8A6A1E' : '#0E7A53'; return <td key={ci} style={{ padding: '6px 9px', textAlign: 'center', fontWeight: 800, color: col, background: bg, border: c.es_base ? '2px solid #7C5CFF' : '1px solid #fff' }}>{pct(c.tir_pct)}</td>; })}
+                        {f.celdas.map((c, ci) => { const t = c.tir_pct || 0; const bg = t < 0 ? '#FCE4E4' : t < 7 ? '#FCF1DD' : '#E3F5EC'; const col = t < 0 ? '#DC2626' : t < 7 ? '#8A6A1E' : '#0E7A53'; return <td key={ci} style={{ padding: '6px 9px', textAlign: 'center', fontWeight: 800, color: col, background: bg, border: c.es_base ? '2px solid #6D4AFF' : '1px solid #fff' }}>{pct(c.tir_pct)}</td>; })}
                       </tr>
                     ))}</tbody>
                   </table>
@@ -926,7 +926,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Monte Carlo · {r.montecarlo.n} escenarios al azar <Info><>Simula {r.montecarlo.n} futuros distintos variando al azar la plusvalía, la renta y las tasas. En vez de un solo número, te da un <b>rango</b>: el peor caso (5%), el esperado y el mejor (95%). Así ves el riesgo real, no solo el "todo sale perfecto".</></Info></div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>{[['Peor (5%)', r.montecarlo.p5, '#DC2626'], ['Esperado', r.montecarlo.p50, '#16182A'], ['Mejor (95%)', r.montecarlo.p95, '#0E9F6E']].map(([l, v, c]) => <div key={l} style={{ flex: '1 1 80px', textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#8A8FA6' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c }}>{pct(v)}</div></div>)}</div>
                 <div style={{ fontSize: 12, color: r.montecarlo.prob_bajo_cetes_pct >= 50 ? '#DC2626' : '#5B5F76' }}>Probabilidad de rendir <b>menos que CETES</b>: <b>{r.montecarlo.prob_bajo_cetes_pct}%</b> <Info><>De los {r.montecarlo.n} escenarios, en cuántos tu inversión rinde por debajo de lo que da CETES sin riesgo. Más bajo = más seguro que valga la pena el riesgo.</></Info></div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#6D4AFF)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#6D4AFF,#6D4AFF)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
               </div>
             )}
             {r.proforma && r.proforma.length > 0 && (
@@ -966,13 +966,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
       {/* ───── CALL TO ACTION (al final · convierte el interés en lead) ───── */}
       {r && (
-        <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #6D4AFF)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #C63FAE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', boxShadow: '0 10px 28px rgba(109,74,255,0.28)' }}>
           <div style={{ flex: '1 1 280px' }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5 }}>¿Te late? Llévalo al siguiente paso.</div>
             <div style={{ fontSize: 12, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>Un asesor te arma el plan a tu medida —crédito, mejor año para vender, apartado— sin costo y sin compromiso.</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => { try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_inversion', zona: zoneId, precio: f.valor_propiedad, tir: r.tir_pct } })); } catch { /* noop */ } askAtlax(`Me interesa invertir en este depa de ${m(f.valor_propiedad)} (TIR ${pct(r.tir_pct)}). Ayúdame con el siguiente paso y conéctame con un asesor.`); }} style={{ padding: '12px 18px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: '#fff', color: '#6D28D9' }}>📩 Quiero que me asesoren</button>
+            <button type="button" onClick={() => { try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_inversion', zona: zoneId, precio: f.valor_propiedad, tir: r.tir_pct } })); } catch { /* noop */ } askAtlax(`Me interesa invertir en este depa de ${m(f.valor_propiedad)} (TIR ${pct(r.tir_pct)}). Ayúdame con el siguiente paso y conéctame con un asesor.`); }} style={{ padding: '12px 18px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: '#fff', color: '#6D4AFF' }}>📩 Quiero que me asesoren</button>
             <a href="#empezar" style={{ padding: '12px 16px', borderRadius: 11, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>📅 Agendar visita</a>
             <button type="button" onClick={() => { setLeadState(''); setLeadOpen(true); }} style={{ padding: '12px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff' }}>📄 Descargar análisis</button>
           </div>
@@ -995,7 +995,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div><span style={lab}>Presupuesto</span><select value={leadData.presupuesto} onChange={(e) => setLead('presupuesto', e.target.value)} style={inp}><option value="">Elige…</option>{['< $5M', '$5–10M', '$10–15M', '$15–25M', '> $25M'].map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
                 <div><span style={lab}>¿Cuándo comprarías?</span><select value={leadData.tiempo} onChange={(e) => setLead('tiempo', e.target.value)} style={inp}><option value="">Elige…</option>{['Ya / 1 mes', '1–3 meses', '3–6 meses', '6–12 meses', 'Solo explorando'].map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
               </div>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#5B5F76', cursor: 'pointer', lineHeight: 1.5 }}><input type="checkbox" checked={leadData.privacidad} onChange={(e) => setLead('privacidad', e.target.checked)} style={{ marginTop: 2 }} /><span>Acepto el <a href="/aviso-privacidad" target="_blank" rel="noreferrer" style={{ color: '#6D28D9' }}>aviso de privacidad</a> y que un asesor me contacte.</span></label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#5B5F76', cursor: 'pointer', lineHeight: 1.5 }}><input type="checkbox" checked={leadData.privacidad} onChange={(e) => setLead('privacidad', e.target.checked)} style={{ marginTop: 2 }} /><span>Acepto el <a href="/aviso-privacidad" target="_blank" rel="noreferrer" style={{ color: '#6D4AFF' }}>aviso de privacidad</a> y que un asesor me contacte.</span></label>
               {leadState === 'error' && <div style={{ fontSize: 11, color: '#DC2626' }}>Revisa nombre, WhatsApp (10 dígitos) y el aviso de privacidad.</div>}
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                 <button type="button" onClick={enviarLead} disabled={leadState === 'enviando'} style={{ flex: 1, padding: '12px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'linear-gradient(120deg,#6D4AFF,#6D4AFF)', color: '#fff' }}>{leadState === 'enviando' ? 'Enviando…' : leadState === 'ok' ? '✓ ¡Listo! Abriendo PDF…' : 'Descargar PDF'}</button>
@@ -1034,7 +1034,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Flujo/mes</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: (r.flujo_mensual_1 || 0) >= 0 ? '#16182A' : '#DC2626', lineHeight: 1 }}>{m(r.flujo_mensual_1)}</div></div>
             <div style={{ width: 1, height: 30, background: 'rgba(16,18,28,0.1)' }} />
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 2 }}>
-              {[[false, 'Contado'], [true, 'Crédito']].map(([v, l]) => { const on = f.con_credito === v; return <button key={l} type="button" onClick={() => set('con_credito', v)} style={{ padding: '5px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, background: on ? '#fff' : 'transparent', color: on ? '#6D28D9' : '#6B6F86', boxShadow: on ? '0 1px 5px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>; })}
+              {[[false, 'Contado'], [true, 'Crédito']].map(([v, l]) => { const on = f.con_credito === v; return <button key={l} type="button" onClick={() => set('con_credito', v)} style={{ padding: '5px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, background: on ? '#fff' : 'transparent', color: on ? '#6D4AFF' : '#6B6F86', boxShadow: on ? '0 1px 5px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>; })}
             </div>
             {f.con_credito && <select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: 11.5 }}>{[10, 20, 30, 40, 50, 60, 70, 80, 90].map((e) => <option key={e} value={(100 - e) / 100}>{e}% eng.</option>)}</select>}
             {f.con_credito && <select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: 11.5 }}>{[[36, '3a'], [60, '5a'], [84, '7a'], [120, '10a'], [180, '15a'], [240, '20a'], [300, '25a']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
