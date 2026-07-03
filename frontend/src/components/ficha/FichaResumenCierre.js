@@ -4,8 +4,9 @@
  * impuestos/gastos de cierre y el GRAN TOTAL (inversión en la propiedad). Look v4 (calcV4).
  * Lee estado ya calculado por los otros componentes; no recalcula motores.
  */
-import React from 'react';
-import { V4, HEAD, SANS, fmtMXN, cardV4, CalcHeader, gradBorder } from './calcV4';
+import React, { useRef } from 'react';
+import { toPng } from 'html-to-image';
+import { V4, HEAD, SANS, GRAD, fmtMXN, cardV4, CalcHeader, gradBorder, BtnV4 } from './calcV4';
 
 function Row({ k, v, strong }) {
   return (
@@ -27,7 +28,8 @@ function Section({ n, title, children }) {
   );
 }
 
-export default function FichaResumenCierre({ plan, credito, cierre }) {
+export default function FichaResumenCierre({ dev, plan, credito, cierre, onGoCierre, onApartar }) {
+  const shotRef = useRef(null);
   if (!plan || !plan.price) {
     return (
       <div style={{ ...cardV4, padding: 22, fontFamily: SANS, fontSize: 13, color: V4.ink3 }}>
@@ -40,9 +42,41 @@ export default function FichaResumenCierre({ plan, credito, cierre }) {
   const cierreTotal = closing ? closing.total : null;
   const isai = closing ? closing.isai : null;
   const inversionTotal = cierreTotal != null ? precio + cierreTotal : null;
+  const unidad = plan.unit ? plan.unit.unit_number : null;
+
+  // ── compartir / exportar / apartar (REUSA wa.me · html-to-image · lead_capture_trigger) ──
+  const waText = () => {
+    const L = [];
+    L.push(`*Mi plan de compra${unidad ? ` · Unidad ${unidad}` : ''}*`);
+    if (dev && dev.name) L.push(dev.name);
+    L.push(`Precio: ${fmtMXN(precio)}`);
+    L.push('', '*Plan de pagos*');
+    if (plan.apartado) L.push(`• Apartas hoy: ${fmtMXN(plan.apartado)}`);
+    L.push(`• Al firmar (${plan.eng}%): ${fmtMXN(plan.firma)}`);
+    if (plan.meses > 0 && plan.mensualidad > 0) L.push(`• Mensualidades: ${fmtMXN(plan.mensualidad)}/mes × ${plan.meses}`);
+    L.push(`• Al escriturar (${plan.esc}%): ${fmtMXN(plan.escrituracion)}`);
+    L.push('');
+    if (credito) { L.push('*Crédito*', `• ${credito.banco} · tasa ${credito.tasa}% · CAT ${credito.cat}%`, `• Financias ${fmtMXN(credito.monto)} a ${fmtMXN(credito.pago)}/mes`); }
+    else L.push('*Escritura de contado*');
+    if (closing) { L.push('', '*Impuestos y cierre*', `• ISAI: ${fmtMXN(isai)}`, `• Total escrituración: ${fmtMXN(cierreTotal)}`); }
+    if (inversionTotal != null) L.push('', `*Inversión total: ${fmtMXN(inversionTotal)}*`);
+    L.push('', 'Calculado en DesarrollosMX');
+    return L.join('\n');
+  };
+  const shareWA = () => { try { window.open(`https://wa.me/?text=${encodeURIComponent(waText())}`, '_blank', 'noopener'); } catch { /* noop */ } };
+  const downloadImg = async () => {
+    if (!shotRef.current) return;
+    try {
+      const dataUrl = await toPng(shotRef.current, { backgroundColor: '#ffffff', pixelRatio: 2 });
+      const a = document.createElement('a'); a.href = dataUrl; a.download = `plan-${unidad || 'unidad'}.png`; a.click();
+    } catch { /* noop */ }
+  };
+  // "Apartar / hablar con asesor" → abre el flujo de lead REAL de la ficha (AgendarModal, con la unidad).
+  const hablar = () => { if (onApartar) onApartar(plan.unit || null); };
 
   return (
     <div style={{ ...cardV4, padding: 24 }}>
+      <div ref={shotRef} style={{ background: V4.card }}>
       <CalcHeader eyebrow="Resumen" title="Tu compra, de principio a fin"
         subtitle="La unidad, tu plan, tu crédito y los impuestos — todo junto." />
 
@@ -79,8 +113,9 @@ export default function FichaResumenCierre({ plan, credito, cierre }) {
           {closing.hipoteca && closing.hipoteca.aplica && <Row k="Constitución de hipoteca" v={fmtMXN(closing.hipoteca.total)} />}
           <Row k="Total de escrituración y cierre" v={fmtMXN(cierreTotal)} strong />
         </>) : (
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: V4.ink3, padding: '9px 0', borderTop: `1px solid ${V4.line}` }}>
-            Presiona <b>“Calcular ISAI y cierre”</b> arriba para completar esta sección.
+          <div style={{ padding: '10px 0 2px', borderTop: `1px solid ${V4.line}` }}>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: V4.ink3, marginBottom: 10 }}>Aún no calculas tus impuestos y gastos de cierre.</div>
+            {onGoCierre && <BtnV4 onClick={onGoCierre}>Calcular ISAI y cierre (pestaña ③) →</BtnV4>}
           </div>
         )}
       </Section>
@@ -109,6 +144,20 @@ export default function FichaResumenCierre({ plan, credito, cierre }) {
 
       <div style={{ marginTop: 14, borderLeft: `3px solid ${V4.theme}`, paddingLeft: 11, fontFamily: SANS, fontSize: 11, color: V4.ink3, lineHeight: 1.5 }}>
         Estimación de referencia con los motores de DesarrollosMX. El notario emite el cálculo definitivo del ISAI y la escritura; el banco define tu tasa según tu estudio de crédito.
+      </div>
+      </div>{/* /shotRef */}
+
+      {/* acciones: apartar (lead) · compartir · descargar */}
+      <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="dmx-press" onClick={hablar} style={{ flex: '1 1 220px', background: GRAD, color: '#fff', border: 'none', borderRadius: 12, fontFamily: HEAD, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 13, padding: '14px 20px', cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.26)' }}>
+          Apartar {unidad ? unidad : 'esta unidad'} · hablar con un asesor →
+        </button>
+        <button className="dmx-press" onClick={shareWA} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', color: '#1FA855', border: '1.5px solid #1FA855', borderRadius: 12, fontFamily: HEAD, fontWeight: 800, fontSize: 13, padding: '13px 18px', cursor: 'pointer' }}>
+          <span aria-hidden>📲</span> Compartir por WhatsApp
+        </button>
+        <button className="dmx-press" onClick={downloadImg} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', color: V4.ink2, border: `1.5px solid ${V4.line}`, borderRadius: 12, fontFamily: HEAD, fontWeight: 800, fontSize: 13, padding: '13px 18px', cursor: 'pointer' }}>
+          <span aria-hidden>⬇️</span> Descargar imagen
+        </button>
       </div>
     </div>
   );

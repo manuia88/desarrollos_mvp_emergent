@@ -994,7 +994,7 @@ function TabGeneral({ dev }) {
 // Estado compartido: el plan (①) alimenta el prefill del crédito (②) y del cierre (③); el crédito
 // elegido (②) alimenta el cierre; el cierre calculado + todo lo anterior arma el RESUMEN final.
 const INMEDIATA = new Set(['entrega_inmediata', 'terminado']);
-function TabPlanesPago({ dev, unit }) {
+function TabPlanesPago({ dev, unit, onLead }) {
   const [schemes, setSchemes] = useState(undefined);
   const [fechas, setFechas] = useState({ fecha_inicio: null, fecha_entrega: null });
   const [tab, setTab] = useState('plan');            // 'plan' | 'credito' | 'cierre'
@@ -1021,14 +1021,19 @@ function TabPlanesPago({ dev, unit }) {
     return () => cancelAnimationFrame(id);
   }, [scrollTick]);
 
-  const onPlanChange = useCallback((p) => setPlan(p), []);
-  const onCierre = useCallback((r) => setCierre(r), []);
+  // señal de demanda (fail-open) — alimenta el Modelo de la Demanda. REUSA sendBuyerSignal.
+  const signal = (type, extra) => { try { sendBuyerSignal(type, { entity_id: dev.id, colonia: dev.colonia, ...extra }); } catch { /* noop */ } };
+  const planSig = (p) => (p ? { unit_number: p.unit ? p.unit.unit_number : null, precio: p.price, enganche_pct: p.eng, mensualidades_pct: p.mens, escritura_pct: p.esc, meses: p.meses } : {});
 
-  const goCredito = () => { setCredito(null); setTab('credito'); setScrollTick((t) => t + 1); };
-  const goEscrituracion = () => { setCredito(null); setTab('cierre'); setScrollTick((t) => t + 1); };
+  const onPlanChange = useCallback((p) => setPlan(p), []);
+  const onCierre = useCallback((r) => { setCierre(r); signal('cierre_computed', { precio: r.precio, con_credito: r.con_credito, cierre_total: r.closing && r.closing.total, isai: r.closing && r.closing.isai }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goCredito = () => { setCredito(null); setTab('credito'); setScrollTick((t) => t + 1); signal('plan_explore', { via: 'credito', ...planSig(plan) }); };
+  const goEscrituracion = () => { setCredito(null); setTab('cierre'); setScrollTick((t) => t + 1); signal('plan_explore', { via: 'contado', ...planSig(plan) }); };
   const onElegirCredito = (b) => {
     setCredito({ banco: b.banco, producto: b.producto, tasa: b.tasa, cat: b.cat, pago: b.pago, monto: b.monto, meses: b.meses, enganchePct: plan ? plan.enganchePctCredito : null });
     setTab('cierre'); setScrollTick((t) => t + 1);
+    signal('credit_selected', { banco: b.banco, tasa: b.tasa, cat: b.cat, monto: b.monto, pago: b.pago, ...planSig(plan) });
   };
 
   const basePrice = (plan && plan.price) || (unit && unit.price) || dev.price_from || 0;
@@ -1037,7 +1042,7 @@ function TabPlanesPago({ dev, unit }) {
   const unitLabelPlan = plan && plan.unit ? `Unidad ${plan.unit.unit_number} · ${money(plan.price)}` : null;
   const montoCierre = credito ? credito.monto : escrituraMonto;
 
-  const TABS = [['plan', '1', 'Plan del desarrollador'], ['credito', '2', 'Crédito hipotecario'], ['cierre', '3', 'ISAI y costos de cierre']];
+  const TABS = [['plan', '1', 'Plan del desarrollador'], ['credito', '2', 'Crédito hipotecario'], ['cierre', '3', 'ISAI y gastos de cierre'], ['resumen', '4', 'Resumen']];
 
   return (
     <div>
@@ -1067,7 +1072,7 @@ function TabPlanesPago({ dev, unit }) {
       )}
 
       {tab === 'cierre' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <FichaTaxISAI
             key={`i-${basePrice}-${credito ? Math.round(credito.monto || 0) : Math.round(escrituraMonto || 0)}-${credito ? 1 : 0}`}
             basePrice={basePrice}
@@ -1075,8 +1080,18 @@ function TabPlanesPago({ dev, unit }) {
             montoCreditoInicial={montoCierre}
             unitLabel={unitLabelPlan} preventa={!inmediata}
             onCierre={onCierre} />
-          <FichaResumenCierre plan={plan} credito={credito} cierre={cierre} />
+          <div>
+            <CtaGrad onClick={() => { setTab('resumen'); setScrollTick((t) => t + 1); }}>
+              {cierre ? 'Ver mi resumen completo →' : 'Ir al resumen →'}
+            </CtaGrad>
+          </div>
         </div>
+      )}
+
+      {tab === 'resumen' && (
+        <FichaResumenCierre dev={dev} plan={plan} credito={credito} cierre={cierre}
+          onGoCierre={() => { setTab('cierre'); setScrollTick((t) => t + 1); }}
+          onApartar={(u) => { signal('apartar_intent', { unit_number: u ? u.unit_number : null, con_credito: !!credito, ...planSig(plan) }); if (onLead) onLead(u); }} />
       )}
     </div>
   );
@@ -1267,7 +1282,7 @@ export default function FichaVenta() {
 
             {activeNav === 'tarifas' && (
               <Section title="Planes de pago">
-                <TabPlanesPago dev={dev} unit={unit} />
+                <TabPlanesPago dev={dev} unit={unit} onLead={(u) => { if (u) pickUnit(u); agendar('agendar'); }} />
               </Section>
             )}
 

@@ -325,7 +325,10 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName, enganc
                   </div>
                   {!b.viable && b.dti != null && b.dti > 0.35 && <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.amber, marginBottom: 8 }}>Tu pago sería el {Math.round(b.dti * 100)}% de tu ingreso (máx. recomendado 35%). Sube enganche o alarga el plazo.</div>}
                   {!b.viable && b.ingreso_min > 0 && Number(ingreso) < b.ingreso_min && <div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.amber, marginBottom: 8 }}>Este banco pide ingreso mínimo de {fmtMXN(b.ingreso_min)}.</div>}
-                  <button className="dmx-press" onClick={() => setOpenBank(open ? null : b.banco)} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${V4.theme}`, background: open ? V4.theme : '#fff', color: open ? '#fff' : V4.theme, fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{open ? '▲ Ocultar desglose' : '▼ Ver desglose completo'}</button>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="dmx-press" onClick={() => setOpenBank(open ? null : b.banco)} style={{ flex: '1 1 130px', padding: '10px', borderRadius: 10, border: `1px solid ${V4.theme}`, background: open ? 'rgba(109,74,255,0.08)' : '#fff', color: V4.theme, fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{open ? '▲ Ocultar desglose' : '▼ Ver desglose'}</button>
+                    {onElegirCredito && <button className="dmx-press" onClick={() => onElegirCredito(b)} style={{ flex: '1 1 150px', padding: '10px', borderRadius: 10, border: 'none', background: GRAD, color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 12px rgba(109,74,255,0.25)' }}>Elegir este banco →</button>}
+                  </div>
                 </div>
                 {open && (
                   <div style={{ padding: '4px 16px 18px', background: V4.surface, borderTop: `1px solid ${V4.line}` }}>
@@ -338,7 +341,7 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName, enganc
                     </div>
                     {onElegirCredito && (
                       <div style={{ marginTop: 12 }}>
-                        <BtnV4 onClick={() => onElegirCredito(b)}>Elegir {b.banco} y ver mi cierre →</BtnV4>
+                        <BtnV4 onClick={() => onElegirCredito(b)}>Elegir {b.banco} y continuar a ISAI y cierre →</BtnV4>
                       </div>
                     )}
                   </div>
