@@ -119,6 +119,18 @@ async def _get_user_email(db, user_id: str) -> Optional[str]:
         return None
 
 
+# Cliente httpx COMPARTIDO (lazy) — evita crear/cerrar un AsyncClient por email
+_HTTPX_CLIENT = None
+
+
+def _get_httpx_client():
+    global _HTTPX_CLIENT
+    if _HTTPX_CLIENT is None or getattr(_HTTPX_CLIENT, "is_closed", False):
+        import httpx
+        _HTTPX_CLIENT = httpx.AsyncClient(timeout=8)
+    return _HTTPX_CLIENT
+
+
 async def _send_email_notification(to_email: str, title: str, body: str, action_url: str, html_override: str = "") -> bool:
     api_key = os.environ.get("RESEND_API_KEY")
     if not api_key:
@@ -138,17 +150,14 @@ async def _send_email_notification(to_email: str, title: str, body: str, action_
 <p style="font-family:Arial;font-size:11px;color:#6b7280;margin:0">DesarrollosMX · Plataforma de inteligencia inmobiliaria · <a href="{FRONTEND_URL}/portal/settings/notifications" style="color:#6366F1;text-decoration:none">Gestionar notificaciones</a></p>
 </div></body></html>"""
     try:
-        import httpx
-        r = await httpx.AsyncClient(timeout=8).__aenter__()
-        try:
-            resp = await r.post(
-                "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={"from": RESEND_FROM, "to": [to_email], "subject": title, "html": html},
-            )
-            return resp.status_code in (200, 201, 202)
-        finally:
-            await r.__aexit__(None, None, None)
+        # Reusa el cliente compartido (NO cerrarlo por request — vive a nivel módulo)
+        r = _get_httpx_client()
+        resp = await r.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"from": RESEND_FROM, "to": [to_email], "subject": title, "html": html},
+        )
+        return resp.status_code in (200, 201, 202)
     except Exception as exc:
         log.warning(f"[notifications] email send failed: {exc}")
         return False
@@ -419,22 +428,31 @@ async def rule_forecast_trend_alert(
         ]},
         {"_id": 0, "user_id": 1, "id": 1, "email": 1, "tenant_id": 1},
     )
-    async for u in user_cursor:
-        uid = u.get("user_id") or u.get("id")
-        if not uid:
-            continue
-        # Idempotencia
-        try:
-            recent = await db.notification_dedupe.find_one({
-                "user_id": uid,
+    users = [u async for u in user_cursor]
+
+    # Idempotencia en BATCH: 1 sola query $in por todos los user_ids (antes: 1 find_one por usuario)
+    already_notified: set = set()
+    try:
+        uids_all = [u.get("user_id") or u.get("id") for u in users]
+        uids_all = [x for x in uids_all if x]
+        if uids_all:
+            async for d in db.notification_dedupe.find({
+                "user_id": {"$in": uids_all},
                 "rule_key": rule_key,
                 "zone_slug": zone_slug,
                 "sent_at_dt": {"$gte": cutoff},
-            })
-            if recent:
-                continue
-        except Exception:
-            pass
+            }, {"_id": 0, "user_id": 1}):
+                already_notified.add(d.get("user_id"))
+    except Exception:
+        pass
+
+    for u in users:
+        uid = u.get("user_id") or u.get("id")
+        if not uid:
+            continue
+        # Idempotencia (set precargado)
+        if uid in already_notified:
+            continue
 
         notif_id = await emit_notification(
             db,
@@ -687,7 +705,10 @@ async def check_pending_whatsapp_replies(db) -> Dict[str, Any]:
     Para cada uno, emite rule_message_pending al asesor.
     """
     cutoff = (_now() - timedelta(hours=2)).isoformat()
-    # Mensajes outbound sin respuesta recibida, más viejos de 2h
+    # Mensajes outbound sin respuesta recibida, más viejos de 2h.
+    # FIX bug latente: la proyección {"_id": 0} excluía _id pero el loop usa msg["_id"] en los
+    # update_one → KeyError al primer mensaje pendiente (el cron nunca completaba). Se proyectan
+    # los campos que usa el loop INCLUYENDO _id (default).
     cursor = db.whatsapp_messages.find(
         {
             "direction": "outbound",
@@ -695,28 +716,48 @@ async def check_pending_whatsapp_replies(db) -> Dict[str, Any]:
             "lead_id": {"$ne": None},
             "_pending_notif_sent": {"$ne": True},
         },
-        {"_id": 0},
+        {"lead_id": 1, "org_id": 1, "sent_at": 1},
     ).limit(200)
 
     triggered = 0
-    async for msg in cursor:
+    msgs = [m async for m in cursor]
+    lead_ids = list({m.get("lead_id") for m in msgs if m.get("lead_id")})
+
+    # BATCH (antes: 2 find_one por mensaje) — último inbound por lead + leads, en 2 queries $in
+    last_inbound: Dict[str, Any] = {}
+    leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if lead_ids:
+        try:
+            async for g in db.whatsapp_messages.aggregate([
+                {"$match": {"lead_id": {"$in": lead_ids}, "direction": "inbound"}},
+                {"$group": {"_id": "$lead_id", "last_created_at": {"$max": "$created_at"}}},
+            ]):
+                if g.get("last_created_at") is not None:
+                    last_inbound[g["_id"]] = g["last_created_at"]
+        except Exception:
+            last_inbound = {}
+        async for l in db.leads.find({"id": {"$in": lead_ids}}, {"_id": 0, "id": 1, "assigned_to": 1, "tenant_id": 1}):
+            if l.get("id"):
+                leads_by_id[l["id"]] = l
+
+    for msg in msgs:
         lead_id = msg.get("lead_id")
         org_id = msg.get("org_id")
         if not lead_id:
             continue
-        # Verificar si hay inbound después del outbound
-        reply = await db.whatsapp_messages.find_one({
-            "lead_id": lead_id,
-            "direction": "inbound",
-            "created_at": {"$gt": msg.get("sent_at", "")},
-        }, {"_id": 1})
+        # Verificar si hay inbound después del outbound (dict precargado)
+        li = last_inbound.get(lead_id)
+        try:
+            reply = li is not None and li > msg.get("sent_at", "")
+        except TypeError:
+            reply = False
         if reply:
             # Hay reply → marcar como procesado
             await db.whatsapp_messages.update_one({"_id": msg["_id"]}, {"$set": {"_pending_notif_sent": True}})
             continue
 
-        # Buscar asesor asignado al lead
-        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "assigned_to": 1, "tenant_id": 1})
+        # Buscar asesor asignado al lead (dict precargado)
+        lead = leads_by_id.get(lead_id)
         if not lead:
             await db.whatsapp_messages.update_one({"_id": msg["_id"]}, {"$set": {"_pending_notif_sent": True}})
             continue

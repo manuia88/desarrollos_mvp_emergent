@@ -5,7 +5,9 @@ al dev SIN dato crudo ajeno: benchmark (tú vs mercado), amenity ranker, demand-
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
@@ -77,6 +79,13 @@ async def _dev_colonias(db, user) -> list:
     return sorted(c for c in cols if c)
 
 
+# Cache TTL corto por (colonias, ventana) del payload COMPLETO de /demand-features —
+# el endpoint re-escanea la misma ventana en 10+ agregados; 120s de frescura es suficiente.
+_DEMAND_FEATURES_CACHE: dict = {}
+_DEMAND_FEATURES_TTL = 120  # segundos
+_DEMAND_FEATURES_CACHE_MAX = 128
+
+
 @router.get("/demand-features")
 async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365)):
     """QUÉ QUIERE EL MERCADO EN TUS ZONAS, A NIVEL FEATURE — cierra el loop demanda→dev. No solo recámaras/precio (eso es
@@ -87,23 +96,45 @@ async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365))
     cols = await _dev_colonias(db, user)
     if not cols:
         return {"ok": True, "vacio": True, "lectura": "Publica un desarrollo y verás la demanda real por feature de tu colonia."}
+    cache_key = (tuple(cols), dias)
+    hit = _DEMAND_FEATURES_CACHE.get(cache_key)
+    if hit and (time.time() - hit[0]) < _DEMAND_FEATURES_TTL:
+        return hit[1]
     import demand_intelligence as di
-    return {
-        "ok": True, "colonias": cols,
-        "alertas": await di.demand_alerts(db, colonias=cols, since_days=dias),   # jugadas proactivas: qué construir YA
-        "por_feature": await di.demand_by_feature(db, colonias=cols, since_days=dias),
-        "que_construir": await di.what_to_build(db, colonias=cols, since_days=dias),
-        "no_satisfecha": await di.unmet_demand(db, colonias=cols, since_days=dias),
-        "tendencias": await di.trend_alerts(db, colonias=cols),
-        "intencion_financiera": await di.financial_intent(db, colonias=cols, since_days=dias),
+    # Llamadas independientes en PARALELO (antes: 10 awaits en cadena sobre la misma ventana)
+    (alertas, por_feature, que_construir, no_satisfecha, tendencias,
+     intencion_financiera, avanzado, atributos, financiero, compuestas) = await asyncio.gather(
+        di.demand_alerts(db, colonias=cols, since_days=dias),      # jugadas proactivas: qué construir YA
+        di.demand_by_feature(db, colonias=cols, since_days=dias),
+        di.what_to_build(db, colonias=cols, since_days=dias),
+        di.unmet_demand(db, colonias=cols, since_days=dias),
+        di.trend_alerts(db, colonias=cols),
+        di.financial_intent(db, colonias=cols, since_days=dias),
         # Granularidad avanzada scopeada a TUS colonias (balance oferta-demanda, absorción, elasticidad de precio,
         # estacionalidad, co-ocurrencia de features, willingness-to-pay, sustitución, criterios de decisión):
-        "avanzado": await _mg_dev(db, cols, dias),
+        _mg_dev(db, cols, dias),
         # Ejes nuevos del cubo, scopeados a TUS colonias:
-        "atributos": await di.attribute_demand(db, since_days=dias, colonias=cols),         # balcón/vista/altura…
-        "financiero": await di.financial_demand(db, since_days=dias, colonias=cols),         # presupuesto/enganche/ROI
-        "compuestas": await _cm_dev(db, cols, dias),                                          # Pricing/Absorption/Underwriting/Competitive
+        di.attribute_demand(db, since_days=dias, colonias=cols),   # balcón/vista/altura…
+        di.financial_demand(db, since_days=dias, colonias=cols),   # presupuesto/enganche/ROI
+        _cm_dev(db, cols, dias),                                   # Pricing/Absorption/Underwriting/Competitive
+    )
+    payload = {
+        "ok": True, "colonias": cols,
+        "alertas": alertas,
+        "por_feature": por_feature,
+        "que_construir": que_construir,
+        "no_satisfecha": no_satisfecha,
+        "tendencias": tendencias,
+        "intencion_financiera": intencion_financiera,
+        "avanzado": avanzado,
+        "atributos": atributos,
+        "financiero": financiero,
+        "compuestas": compuestas,
     }
+    if len(_DEMAND_FEATURES_CACHE) >= _DEMAND_FEATURES_CACHE_MAX:
+        _DEMAND_FEATURES_CACHE.clear()  # cache chico: reset simple, sin LRU
+    _DEMAND_FEATURES_CACHE[cache_key] = (time.time(), payload)
+    return payload
 
 
 async def _mg_dev(db, cols, dias):

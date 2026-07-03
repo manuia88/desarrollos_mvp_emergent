@@ -1130,6 +1130,22 @@ async def _db_colonias_scored(db) -> Dict[str, Dict[str, Any]]:
     return cols
 
 
+# Cache TTL del pool scored (colonias cambian por cron, no por request) — evita 2 cursores full por request
+_COLONIAS_SCORED_CACHE: Dict[str, Any] = {"ts": 0.0, "pool": None}
+_COLONIAS_SCORED_TTL = 600  # segundos
+
+
+async def _db_colonias_scored_cached(db) -> Dict[str, Dict[str, Any]]:
+    import time as _time
+    now = _time.time()
+    if _COLONIAS_SCORED_CACHE["pool"] is not None and (now - _COLONIAS_SCORED_CACHE["ts"]) < _COLONIAS_SCORED_TTL:
+        return _COLONIAS_SCORED_CACHE["pool"]
+    pool = await _db_colonias_scored(db)
+    _COLONIAS_SCORED_CACHE["ts"] = now
+    _COLONIAS_SCORED_CACHE["pool"] = pool
+    return pool
+
+
 def _similar_to(target: Dict[str, Any], pool: Dict[str, Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
     """Colonias más parecidas por el vector de scores (distancia euclidiana)."""
     ts = target.get("scores") or {}
@@ -1166,6 +1182,25 @@ async def _colonia_value(db, colonia_id: str) -> Dict[str, Any]:
     return out
 
 
+async def _colonia_values_batch(db, colonia_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    """Versión BATCH de _colonia_value: 2 queries $in para N colonias (antes 2×N find_one).
+    Mismo shape por colonia: {name, calidad, valor_m2}."""
+    out: Dict[str, Dict[str, Any]] = {cid: {} for cid in colonia_ids}
+    if not colonia_ids:
+        return out
+    async for c in db.colonias.find(
+            {"id": {"$in": colonia_ids}}, {"_id": 0, "id": 1, "name": 1, "scores_reales": 1}):
+        o = out.setdefault(c["id"], {})
+        o["name"] = c.get("name")
+        sr = c.get("scores_reales") or {}
+        vals = [v for v in sr.values() if isinstance(v, (int, float))]
+        o["calidad"] = round(sum(vals) / len(vals)) if vals else None
+    async for v in db.colonia_catastro_byid.find(
+            {"colonia_id": {"$in": colonia_ids}}, {"_id": 0, "colonia_id": 1, "valor_suelo_m2": 1}):
+        out.setdefault(v["colonia_id"], {})["valor_m2"] = v.get("valor_suelo_m2")
+    return out
+
+
 @router.post("/api/colonia-watch")
 async def colonia_watch_add(payload: WatchIn, request: Request):
     db = request.app.state.db
@@ -1193,8 +1228,11 @@ async def colonia_watch_list(watcher: str, request: Request):
     el precio → aquí aparece el cambio → el front/Atlax avisa al comprador (cierra el ciclo)."""
     db = request.app.state.db
     out = []
-    async for w in db.colonia_watches.find({"watcher": watcher}, {"_id": 0}).sort("created_at", -1):
-        cv = await _colonia_value(db, w["colonia_id"])
+    watches = [w async for w in db.colonia_watches.find({"watcher": watcher}, {"_id": 0}).sort("created_at", -1)]
+    # BATCH: valores de TODAS las colonias vigiladas en 2 queries (antes 2 por colonia)
+    values = await _colonia_values_batch(db, [w["colonia_id"] for w in watches])
+    for w in watches:
+        cv = values.get(w["colonia_id"]) or {}
         cur = cv.get("valor_m2")
         base = (w.get("baseline") or {}).get("valor_m2")
         change = round((cur / base - 1) * 100, 1) if (cur and base and cur != base) else None
@@ -1394,7 +1432,7 @@ async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):
     """Recomendación viva para el comprador: parte de lo que VIGILA (comportamiento real) → colonias
     parecidas; si aún no hay señal, cae a 'tendencia' (mejor momentum). Reusa scores + watchlist."""
     db = request.app.state.db
-    pool = await _db_colonias_scored(db)
+    pool = await _db_colonias_scored_cached(db)   # cache 600s — el ranking por visitante sigue igual
     watched = []
     if watcher:
         try:
@@ -1721,7 +1759,11 @@ async def list_developments(
         try:
             from payment_schemes import compute_breakdown as _cbd_fn
             _cbd = _cbd_fn
-            async for _ps in request.app.state.db.dev_payment_schemes.find({}, {"_id": 0, "project_id": 1, "schemes": 1, "fecha_inicio": 1, "fecha_entrega": 1}):
+            # Solo los esquemas de los desarrollos que SOBREVIVIERON los filtros de proyecto (antes: find({}) completo)
+            _res_ids = [d.get("id") for d in results if d.get("id")]
+            async for _ps in request.app.state.db.dev_payment_schemes.find(
+                    {"project_id": {"$in": _res_ids}},
+                    {"_id": 0, "project_id": 1, "schemes": 1, "fecha_inicio": 1, "fecha_entrega": 1}):
                 _fin_by_dev[_ps.get("project_id")] = _ps
         except Exception:
             _cbd = None

@@ -110,42 +110,84 @@ async def recompute_scores(payload: RecomputeRequest, request: Request):
     )
 
 
+async def _moat_feeders_runner(db, task_id: str):
+    """Background task — misma lógica que corría síncrona en refresh_moat_feeders.
+    Progreso/resultado en ie_recompute_tasks (mismo patrón que /scores/recompute-all)."""
+    started = datetime.now(timezone.utc)
+    out: Dict[str, Any] = {"feeders": {}, "recompute": {}}
+    errors: List[str] = []
+    processed = 0
+    try:
+        # 1) Ingestas de dato real (cada una fail-soft)
+        try:
+            import sacmex_water_ingest as sw
+            out["feeders"]["sacmex_water"] = await sw.ingest_sacmex_water(db)
+        except Exception as e:  # noqa: BLE001
+            out["feeders"]["sacmex_water"] = {"ok": False, "error": str(e)[:160]}
+        try:
+            import fgj_trajectory_ingest as ft
+            out["feeders"]["fgj_trajectory"] = await ft.ingest_fgj_trajectory(db)
+        except Exception as e:  # noqa: BLE001
+            out["feeders"]["fgj_trajectory"] = {"ok": False, "error": str(e)[:160]}
+        try:
+            import seismic_zone_ingest as sz
+            out["feeders"]["seismic_zone"] = await sz.ingest_seismic_zones(db)
+        except Exception as e:  # noqa: BLE001
+            out["feeders"]["seismic_zone"] = {"ok": False, "error": str(e)[:160]}
+        # 2) Recompute de los 3 scores sobre las colonias con dato nuevo
+        eng = ScoreEngine(db)
+        targets: set = set()
+        for col, field in [("sacmex_zone_colonia", None), ("fgj_trajectory_zone", None), ("seismic_zone_colonia", None)]:
+            targets |= set(await db[col].distinct("zone_id"))
+        for code in ["IE_COL_N04_CRIME_TRAJECTORY", "IE_COL_N05_INFRASTRUCTURE_RESILIENCE", "IE_COL_N07_WATER_SECURITY"]:
+            real = 0
+            for z in targets:
+                r = await eng.compute_one(z, code)
+                if not r.is_stub:
+                    real += 1
+                processed += 1
+            out["recompute"][code] = {"zonas": len(targets), "reales": real}
+            await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+                "processed": processed, "last_zone": code, "updated_at": datetime.now(timezone.utc),
+            }})
+    except Exception as e:  # noqa: BLE001
+        errors.append(str(e)[:200])
+    finished = datetime.now(timezone.utc)
+    await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+        "status": "done" if not errors else "done_with_errors",
+        "finished_at": finished,
+        "duration_ms": int((finished - started).total_seconds() * 1000),
+        "errors": errors,
+        "processed": processed,
+        "result": out,
+    }})
+
+
 @sa_router.post("/scores/refresh-moat-feeders")
 async def refresh_moat_feeders(request: Request):
     """Re-ejecuta los 3 feeders del moat geoespacial (SACMEX agua · FGJ trayectoria · zona sísmica),
-    desde las fuentes oficiales VIVAS (CKAN datos.cdmx), y recomputa N04/N05/N07. Re-runnable. FAIL-SOFT."""
-    await _require_superadmin(request)
+    desde las fuentes oficiales VIVAS (CKAN datos.cdmx), y recomputa N04/N05/N07. Re-runnable. FAIL-SOFT.
+    Ahora ASÍNCRONO (mismo patrón que /scores/recompute-all): devuelve task_id y el progreso/resultado
+    se consulta en GET /scores/recompute-all/status?task_id=..."""
+    user = await _require_superadmin(request)
     db = request.app.state.db
-    out: Dict[str, Any] = {"feeders": {}, "recompute": {}}
-    # 1) Ingestas de dato real (cada una fail-soft)
-    try:
-        import sacmex_water_ingest as sw
-        out["feeders"]["sacmex_water"] = await sw.ingest_sacmex_water(db)
-    except Exception as e:  # noqa: BLE001
-        out["feeders"]["sacmex_water"] = {"ok": False, "error": str(e)[:160]}
-    try:
-        import fgj_trajectory_ingest as ft
-        out["feeders"]["fgj_trajectory"] = await ft.ingest_fgj_trajectory(db)
-    except Exception as e:  # noqa: BLE001
-        out["feeders"]["fgj_trajectory"] = {"ok": False, "error": str(e)[:160]}
-    try:
-        import seismic_zone_ingest as sz
-        out["feeders"]["seismic_zone"] = await sz.ingest_seismic_zones(db)
-    except Exception as e:  # noqa: BLE001
-        out["feeders"]["seismic_zone"] = {"ok": False, "error": str(e)[:160]}
-    # 2) Recompute de los 3 scores sobre las colonias con dato nuevo
-    eng = ScoreEngine(db)
-    targets: set = set()
-    for col, field in [("sacmex_zone_colonia", None), ("fgj_trajectory_zone", None), ("seismic_zone_colonia", None)]:
-        targets |= set(await db[col].distinct("zone_id"))
-    for code in ["IE_COL_N04_CRIME_TRAJECTORY", "IE_COL_N05_INFRASTRUCTURE_RESILIENCE", "IE_COL_N07_WATER_SECURITY"]:
-        real = 0
-        for z in targets:
-            r = await eng.compute_one(z, code)
-            if not r.is_stub:
-                real += 1
-        out["recompute"][code] = {"zonas": len(targets), "reales": real}
-    return out
+    task_id = f"task_{uuid.uuid4().hex[:16]}"
+    now = datetime.now(timezone.utc)
+    await db.ie_recompute_tasks.insert_one({
+        "id": task_id,
+        "kind": "moat_feeders",
+        "status": "running",
+        "total": None,
+        "processed": 0,
+        "errors": [],
+        "started_at": now,
+        "finished_at": None,
+        "updated_at": now,
+        "triggered_by": user.user_id,
+    })
+    # Fire-and-forget (patrón recompute-all)
+    asyncio.create_task(_moat_feeders_runner(db, task_id))
+    return {"task_id": task_id, "status": "running"}
 
 
 @sa_router.get("/scores", response_model=List[ScoreOut])
@@ -214,10 +256,12 @@ async def public_zone_scores(zone_id: str, request: Request):
     Option A (founder 2026-06-27): el TITULAR (code/value/tier/confianza) es público — vende y da SEO —
     pero los INTERNOS de cómputo (inputs_used/model_version/training_window) = moat → fuera del público."""
     db = request.app.state.db
+    # Proyección = solo los campos del response model público + .limit del lado del server
     docs = await db.ie_scores.find(
         {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
-        {"_id": 0},
-    ).to_list(length=200)
+        {"_id": 0, "zone_id": 1, "code": 1, "value": 1, "tier": 1, "confidence": 1,
+         "is_stub": 1, "formula_version": 1, "computed_at": 1, "confidence_interval": 1},
+    ).limit(200).to_list(length=200)
     return [ScoreOut(**d) for d in docs]
 
 

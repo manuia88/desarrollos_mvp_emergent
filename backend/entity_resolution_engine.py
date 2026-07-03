@@ -231,6 +231,20 @@ async def detect_duplicates(
     ).limit(500):  # Límite conservador para evitar O(n²) explosivo
         docs.append(doc)
 
+    # Precarga (1 sola vez, fuera del O(n²)): blacklist y pending existentes → sets en memoria
+    blacklist_pairs: set = set()
+    async for bl in db.dedup_blacklist.find({}, {"_id": 0, "entity_a_id": 1, "entity_b_id": 1}):
+        a_bl = bl.get("entity_a_id")
+        b_bl = bl.get("entity_b_id")
+        if a_bl and b_bl:
+            blacklist_pairs.add((a_bl, b_bl))
+            blacklist_pairs.add((b_bl, a_bl))
+    existing_pending: set = set()
+    async for ep in db.entity_duplicates_pending.find(
+        {"status": {"$in": ["pending"]}}, {"_id": 0, "canonical_id": 1, "candidate_id": 1}
+    ):
+        existing_pending.add((ep.get("canonical_id"), ep.get("candidate_id")))
+
     pending: List[Dict] = []
     evaluated = 0
     total_pairs = 0
@@ -252,8 +266,8 @@ async def detect_duplicates(
 
             evaluated += 1
 
-            # Capa 4: Blacklist
-            if await is_in_blacklist(db, a_id, b_id):
+            # Capa 4: Blacklist (set precargado — misma semántica que is_in_blacklist)
+            if (a_id, b_id) in blacklist_pairs:
                 continue
 
             # Score
@@ -285,13 +299,8 @@ async def detect_duplicates(
             # Canonical = el más antiguo
             canonical_id, candidate_id = _order_canonical(a, b)
 
-            # Verificar si ya existe pending para este par
-            existing = await db.entity_duplicates_pending.find_one({
-                "canonical_id": canonical_id,
-                "candidate_id": candidate_id,
-                "status": {"$in": ["pending"]},
-            })
-            if existing:
+            # Verificar si ya existe pending para este par (set precargado)
+            if (canonical_id, candidate_id) in existing_pending:
                 continue
 
             pending_doc = {
@@ -502,8 +511,31 @@ async def detect_broker_fraud_pattern(
     suspicious_attempts: List[Dict] = []
     seen_pairs: set = set()
 
-    for i in range(len(recent_leads)):
-        for j in range(i + 1, len(recent_leads)):
+    # Normalización 1 sola vez por lead (antes se repetía por par)
+    norm: List[Dict[str, str]] = []
+    for doc in recent_leads:
+        norm.append({
+            "name": normalize_name(_get_name(doc)),
+            "email": normalize_email(doc.get("email", "")),
+            "phone": normalize_phone(doc.get("phone", "")),
+        })
+
+    # Blocking por token del nombre: solo se comparan pares que comparten ≥1 token
+    # (name_sim≥85 requiere nombres casi iguales → comparten token). Mata el O(n²) ciego.
+    token_index: Dict[str, List[int]] = {}
+    for idx, nm in enumerate(norm):
+        for tok in set(nm["name"].split()):
+            if tok:
+                token_index.setdefault(tok, []).append(idx)
+    candidate_pairs: set = set()
+    for idxs in token_index.values():
+        for x in range(len(idxs)):
+            for y in range(x + 1, len(idxs)):
+                candidate_pairs.add((idxs[x], idxs[y]))
+
+    from rapidfuzz import fuzz
+    # Orden (i, j) igual que el doble loop original → mismo output
+    for i, j in sorted(candidate_pairs):
             a = recent_leads[i]
             b = recent_leads[j]
 
@@ -513,14 +545,13 @@ async def detect_broker_fraud_pattern(
             seen_pairs.add(pair_key)
 
             # Detectar: mismo nombre + phone/email con 1-2 caracteres de diferencia
-            name_a = normalize_name(_get_name(a))
-            name_b = normalize_name(_get_name(b))
-            email_a = normalize_email(a.get("email", ""))
-            email_b = normalize_email(b.get("email", ""))
-            phone_a = normalize_phone(a.get("phone", ""))
-            phone_b = normalize_phone(b.get("phone", ""))
+            name_a = norm[i]["name"]
+            name_b = norm[j]["name"]
+            email_a = norm[i]["email"]
+            email_b = norm[j]["email"]
+            phone_a = norm[i]["phone"]
+            phone_b = norm[j]["phone"]
 
-            from rapidfuzz import fuzz
             name_sim = fuzz.WRatio(name_a, name_b) if name_a and name_b else 0
 
             if name_sim < 85:
@@ -574,7 +605,7 @@ async def detect_broker_fraud_pattern(
         try:
             from notifications_engine import emit_notification
             # Buscar superadmins
-            async for su in db.users.find({"role": "superadmin"}, {"_id": 0, "user_id": 1, "id": 1}):
+            async for su in db.users.find({"role": "superadmin"}, {"_id": 0, "user_id": 1, "id": 1}).limit(50):
                 su_id = su.get("user_id") or su.get("id")
                 if su_id:
                     await emit_notification(

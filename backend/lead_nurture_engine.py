@@ -741,19 +741,30 @@ async def _nrt_layer_cached(db, org_id: str, lead: Dict[str, Any]) -> Optional[D
     if not sig.strip("|").replace("X", "").strip():
         return None
     since = _now() - timedelta(days=14)
-    cur = db.nurture_sequences.find(
-        {"org_id": org_id, "generated_at": {"$gte": since},
-         "lead_id": {"$ne": lead.get("id")}},
-        {"_id": 0, "lead_signature": 1, "sequence_type": 1, "touches": 1},
-    ).limit(80)
     best = None
     best_score = 0.0
-    async for doc in cur:
-        cand_sig = doc.get("lead_signature") or ""
-        s = SequenceMatcher(None, sig, cand_sig).ratio()
-        if s > best_score:
-            best_score = s
-            best = doc
+    # Fast-path: match EXACTO por lead_signature (1 find_one, ratio=1.0 = máximo posible)
+    exact = await db.nurture_sequences.find_one(
+        {"org_id": org_id, "generated_at": {"$gte": since},
+         "lead_id": {"$ne": lead.get("id")}, "lead_signature": sig},
+        {"_id": 0, "lead_signature": 1, "sequence_type": 1, "touches": 1},
+    )
+    if exact:
+        best = exact
+        best_score = 1.0
+    else:
+        # Fallback: fuzzy sobre ≤80 candidatos (comportamiento original)
+        cur = db.nurture_sequences.find(
+            {"org_id": org_id, "generated_at": {"$gte": since},
+             "lead_id": {"$ne": lead.get("id")}},
+            {"_id": 0, "lead_signature": 1, "sequence_type": 1, "touches": 1},
+        ).limit(80)
+        async for doc in cur:
+            cand_sig = doc.get("lead_signature") or ""
+            s = SequenceMatcher(None, sig, cand_sig).ratio()
+            if s > best_score:
+                best_score = s
+                best = doc
     if not best or best_score < SIMILARITY_THRESHOLD:
         return None
     norm = _normalize_sequence({
@@ -1370,6 +1381,11 @@ async def ensure_nurture_sequences_indexes(db) -> None:
         await db.nurture_sequences.create_index(
             "expires_at", expireAfterSeconds=0,
             name="idx_nrt_ttl", background=True,
+        )
+        # Fast-path del layer cached: match exacto por firma dentro de la ventana
+        await db.nurture_sequences.create_index(
+            [("org_id", 1), ("lead_signature", 1), ("generated_at", -1)],
+            name="idx_nrt_org_sig_gen", background=True,
         )
         log.info("[nurture_intelligent] indexes OK")
     except Exception as exc:
