@@ -55,8 +55,11 @@ const R_BTN = 8, R_CARD = 12, MAXW = 1200;   // radios suavizados (upgrade: meno
 const PAGE_BG = '#f6f7f9';                    // tinte sutil para que las tarjetas blancas resalten
 const CARD_LINE = '#e6e7ec';                  // borde de tarjeta más suave que #cacaca
 const CARD_SHADOW = '0 1px 2px rgba(16,24,40,0.04), 0 4px 14px rgba(16,24,40,0.05)';
-const FONT = "-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+const FONT = "'DM Sans', system-ui, -apple-system, sans-serif";   // cuerpo = igual que el nav
+const HEAD = "'Outfit', system-ui, -apple-system, sans-serif";    // títulos/números = igual que el logo del nav
 const money = (n) => (n != null && n !== '' ? `$${Number(n).toLocaleString('es-MX')}` : '—');
+// TitleCase inteligente: normaliza snake_case/kebab a palabras antes de capitalizar
+const tcNice = (s) => titleCase(String(s || '').replace(/[_-]+/g, ' ').trim());
 const STAGE = { preventa: 'Preventa', construccion: 'En construcción', entrega_inmediata: 'Entrega inmediata', terminado: 'Terminado' };
 const PROTO = { PH: 'Penthouse', ph: 'Penthouse' };
 const protoName = (p) => (p ? (PROTO[p] || `Modelo ${p}`) : 'Modelo');
@@ -74,7 +77,6 @@ const NAV = [
   ['precios', 'Precios y modelos'],
   ['tarifas', 'Planes de pago'],
   ['tour', 'Recorrido 3D'],
-  ['servicios', 'Servicios'],
   ['detalles', 'Detalles'],
   ['ubicacion', 'Ubicación'],
   ['inversion', 'Inversión'],
@@ -83,7 +85,7 @@ const NAV = [
 // ── átomos UI estilo apts ────────────────────────────────────────────────────
 const box = { background: C.bg, border: `1px solid ${CARD_LINE}`, borderRadius: R_CARD, boxShadow: CARD_SHADOW };
 // spec §1.2: títulos de sección 30px, peso Regular (400), line-height ~1.2, gris #4c4c4c
-function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 30, lineHeight: 1.2, color: C.ink2, margin: 0, letterSpacing: 0 }}>{children}</h2>; }
+function H2({ children }) { return <h2 style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 28, lineHeight: 1.2, color: C.ink, margin: 0, letterSpacing: '-0.01em' }}>{children}</h2>; }
 function DmxChip() { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentSoft, border: `1px solid ${C.accent}33`, borderRadius: 9999, padding: '2px 9px', letterSpacing: '0.02em' }}>✦ Solo en DMX</span>; }
 function CtaGrad({ onClick, children }) { return <button className="dmx-press" onClick={onClick} style={{ width: '100%', padding: '12px', borderRadius: R_BTN, border: 'none', background: GRAD, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.26)' }}>{children}</button>; }
 function CtaGhost({ onClick, children }) { return <button className="dmx-press" onClick={onClick} style={{ width: '100%', padding: '12px', ...gradBorder('#fff', R_BTN), color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>{children}</button>; }
@@ -117,7 +119,7 @@ function SummaryBar({ price, bedR, bathR, m2R }) {
     <div style={{ ...box, display: 'flex', marginTop: 14, overflowX: 'auto' }}>
       {cols.map((c, i) => (
         <div key={i} style={{ flex: 1, minWidth: 120, padding: '14px 18px', borderLeft: i ? `1px solid ${C.line}` : 'none' }}>
-          <div style={{ fontFamily: FONT, fontWeight: 400, fontSize: 18, color: c.verified ? C.accent : C.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.v}{c.verified && <span style={{ color: C.link, fontSize: 13 }}>✓</span>}</div>
+          <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 19, color: c.verified ? C.accent : C.ink, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.01em' }}>{c.v}{c.verified && <span style={{ color: C.accent, fontSize: 13 }}>✓</span>}</div>
           <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint, marginTop: 2 }}>{c.k}</div>
         </div>
       ))}
@@ -447,56 +449,6 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
   );
 }
 
-// ════════════════════ SERVICIOS/AMENIDADES (tarjetas pequeñas uniformes) ════════════════════
-function AmenCard({ icon, label }) {
-  return (
-    <div className="dmx-card" style={{ ...box, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 9, textAlign: 'center', padding: '16px 10px', minHeight: 96 }}>
-      <div style={{ fontSize: 26, lineHeight: 1 }}>{icon}</div>
-      <div style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink, lineHeight: 1.3 }}>{label}</div>
-    </div>
-  );
-}
-// §6 Servicios — DOS grupos, TODAS tarjetas pequeñas uniformes (sin viñetas duplicadas)
-function VentaServicios({ dev }) {
-  const amen = Array.isArray(dev.amenities) ? dev.amenities : [];
-  const info = amen.map((a) => amenInfo(a));
-  const units = dev.units || [];
-  const has = (f) => units.some((u) => Number(u[f]) > 0);
-  const rng = (arr, suf = '') => { const v = [...new Set(arr.filter((x) => x != null))].sort((a, b) => a - b); return v.length ? (v[0] === v[v.length - 1] ? `${v[0]}${suf}` : `${v[0]}–${v[v.length - 1]}${suf}`) : null; };
-  const bedR = rng(units.map((u) => u.bedrooms)); const bathR = rng(units.map((u) => u.bathrooms));
-  const m2R = rng(units.map(m2of)); const parkR = rng(units.map((u) => u.parking_spots));
-  const vistas = [...new Set(units.map((u) => u.vista).filter(Boolean))];
-  const aptFeat = [
-    bedR && ['🛏️', `${bedR} recámaras`],
-    bathR && ['🛁', `${bathR} baños`],
-    m2R && ['📐', `${m2R} m²`],
-    parkR && ['🚗', `${parkR} estac.`],
-    has('m2_balcony') && ['🌇', 'Balcón'],
-    has('m2_terrace') && ['🪴', 'Terraza'],
-    has('m2_roof_garden') && ['🌿', 'Roof garden'],
-    vistas.length > 0 && ['👁️', `Vista ${vistas.map((v) => titleCase(v)).join(' / ')}`],
-  ].filter(Boolean);
-  if (!info.length && !aptFeat.length) return null;
-  const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(118px,1fr))', gap: 12 };
-  const gTitle = { fontFamily: FONT, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 14 };
-  return (
-    <div>
-      {info.length > 0 && (
-        <>
-          <div style={gTitle}>Comodidades de la comunidad</div>
-          <div className="dmx-amen-grid" style={grid}>{info.map((a, i) => <AmenCard key={i} icon={a.icon} label={titleCase(a.label)} />)}</div>
-        </>
-      )}
-      {aptFeat.length > 0 && (
-        <>
-          <div style={{ ...gTitle, marginTop: 26 }}>Características del apartamento</div>
-          <div className="dmx-amen-grid" style={grid}>{aptFeat.map(([ic, l], i) => <AmenCard key={i} icon={ic} label={l} />)}</div>
-        </>
-      )}
-    </div>
-  );
-}
-
 // ════════════════════ DETALLES ════════════════════
 function VentaDetalles({ dev }) {
   const units = dev.units || [];
@@ -689,12 +641,12 @@ function Fact({ icon, label, value }) {
   return (
     <div className="dmx-card" style={{ ...box, padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: 3 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 12, color: C.faint }}><span style={{ fontSize: 14 }}>{icon}</span>{label}</div>
-      <div style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: C.ink }}>{value}</div>
+      <div style={{ fontFamily: HEAD, fontSize: 17, fontWeight: 700, color: C.ink, letterSpacing: '-0.01em' }}>{value}</div>
     </div>
   );
 }
-function DataBlock({ title, children }) {
-  return <div style={{ marginTop: 28 }}><div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 12 }}>{title}</div>{children}</div>;
+function DataBlock({ title, children, first }) {
+  return <div style={{ marginTop: first ? 0 : 30 }}><div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 12, letterSpacing: '-0.01em' }}>{title}</div>{children}</div>;
 }
 function DataRow({ k, v, last }) {
   return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: last ? 'none' : `1px solid ${C.line2}` }}><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 600, color: C.ink, textAlign: 'right' }}>{v}</span></div>;
@@ -731,30 +683,72 @@ function TabGeneral({ dev }) {
   const GREY = '#9aa0ae';   // vendidas (gris legible, no se confunde con vacío)
   const Leg = ({ color, label, n }) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 13, color: C.ink2 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: color, flex: 'none' }} /><b style={{ color: C.ink }}>{n}</b> {label}</span>;
   const seg = (n) => `${(n / total) * 100}%`;
+  const fg = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 };
+  const uFeatures = Array.isArray(dev.unit_features) ? dev.unit_features : [];
+  const sistema = tec.Estructura || tec.estructura || tec['Sistema constructivo'] || dev.sistema_constructivo || null;
+  const grouped = {}; units.forEach((u) => { const k = u.prototype || '?'; (grouped[k] = grouped[k] || []).push(u); });
+  const protoList = Object.entries(grouped).map(([p, us]) => { const prices = us.map((u) => u.price).filter(Boolean); const m2s = us.map(m2of).filter(Boolean); const bed = [...new Set(us.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b); const bath = [...new Set(us.map((u) => u.bathrooms).filter((x) => x != null))].sort((a, b) => a - b); return { proto: p, n: us.length, avail: us.filter((u) => u.status === 'disponible').length, minP: prices.length ? Math.min(...prices) : null, bed, bath, m2min: m2s.length ? Math.min(...m2s) : null, m2max: m2s.length ? Math.max(...m2s) : null }; }).sort((a, b) => (a.minP || 1e15) - (b.minP || 1e15));
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
-        <Fact icon="🏢" label="Tipo de propiedad" value={tipo} />
-        <Fact icon="🛏️" label="Recámaras" value={bedR} />
-        <Fact icon="🛁" label="Baños" value={bathR} />
-        <Fact icon="🚗" label="Estacionamientos" value={parkR} />
-        <Fact icon="📐" label="Superficie" value={m2R ? `${m2R} m²` : null} />
-        <Fact icon="💵" label="Precio por m²" value={pm2 ? money(Math.round(pm2)) : null} />
-        <Fact icon="🏗️" label="Niveles" value={dev.max_level != null ? String(dev.max_level) : (levels || null)} />
-        <Fact icon="🏬" label="Depas por piso" value={depasPiso} />
-        <Fact icon="🔢" label="Unidades" value={nUnits ? String(nUnits) : null} />
-        <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
-        <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
-        <Fact icon="🚀" label="Lanzamiento" value={dev.fecha_lanzamiento} />
-        <Fact icon="🔑" label="Entrega estimada" value={dev.delivery_estimate} />
-        <Fact icon="📈" label="Plusvalía desde lanzamiento" value={plusv} />
-      </div>
+      {/* ── CARACTERÍSTICAS DE LOS DEPARTAMENTOS ── */}
+      <DataBlock title="Características de los departamentos" first>
+        <div style={fg}>
+          <Fact icon="🛏️" label="Recámaras" value={bedR} />
+          <Fact icon="🛁" label="Baños" value={bathR} />
+          <Fact icon="🚗" label="Estacionamientos" value={parkR} />
+          <Fact icon="📐" label="Superficie" value={m2R ? `${m2R} m²` : null} />
+          <Fact icon="💵" label="Precio por m²" value={pm2 ? money(Math.round(pm2)) : null} />
+        </div>
+        {uFeatures.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>{uFeatures.map((f, i) => <span key={i} style={chip}>{tcNice(typeof f === 'string' ? f : (f.label || f.nombre || ''))}</span>)}</div>}
+      </DataBlock>
 
+      {/* ── EL DESARROLLO ── */}
+      <DataBlock title="El desarrollo">
+        <div style={fg}>
+          <Fact icon="🏢" label="Tipo de propiedad" value={tipo} />
+          <Fact icon="🏗️" label="Niveles" value={dev.max_level != null ? String(dev.max_level) : (levels || null)} />
+          <Fact icon="🏬" label="Depas por piso" value={depasPiso} />
+          <Fact icon="🔢" label="Unidades totales" value={nUnits ? String(nUnits) : null} />
+          <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
+          <Fact icon="🧱" label="Sistema constructivo" value={sistema ? titleCase(String(sistema)) : null} />
+          <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
+          <Fact icon="🚀" label="Lanzamiento" value={dev.fecha_lanzamiento} />
+          <Fact icon="🔑" label="Entrega estimada" value={dev.delivery_estimate} />
+          <Fact icon="📈" label="Plusvalía desde lanzamiento" value={plusv} />
+        </div>
+      </DataBlock>
+
+      {/* ── PROTOTIPOS ── */}
+      {protoList.length > 0 && (
+        <DataBlock title="Prototipos">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+            {protoList.map((m) => (
+              <div key={m.proto} className="dmx-card" style={{ ...box, padding: '14px 16px' }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{protoName(m.proto)}</div>
+                <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 4 }}>{[m.bed.length && `${m.bed[0]}${m.bed.length > 1 ? '–' + m.bed[m.bed.length - 1] : ''} rec`, m.bath.length && `${m.bath[0]} baño${m.bath[0] === 1 ? '' : 's'}`, m.m2min && `${m.m2min}${m.m2max !== m.m2min ? '–' + m.m2max : ''} m²`].filter(Boolean).join(' · ')}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                  <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.accent }}>{m.minP ? `Desde ${money(m.minP)}` : ''}</span>
+                  <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: m.avail > 0 ? C.green : C.faint }}>{m.avail > 0 ? `${m.avail} disp.` : 'Agotado'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DataBlock>
+      )}
+
+      {/* ── AMENIDADES ── */}
+      {amen.length > 0 && (
+        <DataBlock title="Amenidades">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{amen.map((a, i) => { const info = amenInfo(a); return <span key={i} className="dmx-chiph" style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 7 }}><span>{info.icon}</span>{titleCase(info.label)}</span>; })}</div>
+        </DataBlock>
+      )}
+
+      {/* ── DISPONIBILIDAD ── */}
       {total > 0 && (avail + sold + res) > 0 && (
         <DataBlock title="Disponibilidad">
           <div className="dmx-card" style={{ ...box, padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-              <span style={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.green }}>{avail}</span>
+              <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: C.green }}>{avail}</span>
               <span style={{ fontFamily: FONT, fontSize: 14, color: C.ink2 }}>de {total} unidades disponibles</span>
             </div>
             <div style={{ display: 'flex', height: 14, borderRadius: 9999, overflow: 'hidden', background: C.line2, gap: 2 }}>
@@ -771,23 +765,11 @@ function TabGeneral({ dev }) {
         </DataBlock>
       )}
 
-      {amen.length > 0 && (
-        <DataBlock title="Amenidades">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{amen.map((a, i) => { const info = amenInfo(a); return <span key={i} className="dmx-chiph" style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 7 }}><span>{info.icon}</span>{titleCase(info.label)}</span>; })}</div>
-        </DataBlock>
-      )}
-
-      {Object.keys(tec).length > 0 && (
-        <DataBlock title="Ficha técnica">
-          <div className="dmx-card" style={{ ...box, padding: '4px 18px' }}>
-            {Object.entries(tec).map(([k, v], i, a) => <DataRow key={i} k={titleCase(k)} v={String(v)} last={i === a.length - 1} />)}
-          </div>
-        </DataBlock>
-      )}
-
-      {servicios.length > 0 && (
-        <DataBlock title="Servicios">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{servicios.map((s, i) => <span key={i} style={chip}>{titleCase(typeof s === 'string' ? s : (s.label || s.nombre || ''))}</span>)}</div>
+      {/* ── CONSTRUCCIÓN Y SERVICIOS ── */}
+      {(Object.keys(tec).length > 0 || servicios.length > 0) && (
+        <DataBlock title="Construcción y servicios">
+          {Object.keys(tec).length > 0 && <div className="dmx-card" style={{ ...box, padding: '4px 18px', marginBottom: servicios.length ? 12 : 0 }}>{Object.entries(tec).map(([k, v], i, a) => <DataRow key={i} k={tcNice(k)} v={tcNice(v)} last={i === a.length - 1} />)}</div>}
+          {servicios.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{servicios.map((s, i) => <span key={i} style={chip}>{tcNice(typeof s === 'string' ? s : (s.label || s.nombre || ''))}</span>)}</div>}
         </DataBlock>
       )}
 
@@ -801,7 +783,7 @@ function TabGeneral({ dev }) {
 
       {creds.length > 0 && (
         <DataBlock title="Créditos que aceptan">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{creds.map((c, i) => <span key={i} style={chip}>{titleCase(c)}</span>)}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{creds.map((c, i) => <span key={i} style={chip}>{tcNice(c)}</span>)}</div>
         </DataBlock>
       )}
 
@@ -810,13 +792,13 @@ function TabGeneral({ dev }) {
           <div className="dmx-card" style={{ ...box, padding: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{cp.status || 'En tiempo según calendario'}</span>
-              <span style={{ fontFamily: FONT, fontWeight: 800, fontSize: 20, color: C.accent }}>{cp.percentage}%</span>
+              <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: C.accent }}>{cp.percentage}%</span>
             </div>
             <div style={{ height: 12, borderRadius: 9999, background: C.line2, overflow: 'hidden' }}><div style={{ width: `${cp.percentage}%`, height: '100%', background: GRAD }} /></div>
             {Array.isArray(cp.phases) && cp.phases.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'nowrap', overflowX: 'auto' }}>
                 {cp.phases.map((p, i) => { const done = p.status === 'completado' || p.status === 'completed' || (cp.percentage >= (p.threshold || 0)); return (
-                  <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: done ? C.ink : C.faint, background: done ? C.accentSoft : C.bgSoft, border: `1px solid ${done ? C.accent + '44' : CARD_LINE}`, borderRadius: 9999, padding: '5px 12px' }}><span>{done ? '✅' : '⏳'}</span>{p.label}</div>
+                  <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 11, fontWeight: 600, color: done ? C.ink : C.faint, background: done ? C.accentSoft : C.bgSoft, border: `1px solid ${done ? C.accent + '44' : CARD_LINE}`, borderRadius: 9999, padding: '4px 9px', whiteSpace: 'nowrap', flex: 'none' }}><span style={{ fontSize: 10 }}>{done ? '✅' : '⏳'}</span>{p.label}</div>
                 ); })}
               </div>
             )}
@@ -833,9 +815,9 @@ function TabGeneral({ dev }) {
       {developer.name && (
         <DataBlock title="Desarrollador">
           <div className="dmx-card" style={{ ...box, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ width: 46, height: 46, borderRadius: 9999, background: C.accent, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 18 }}>{developer.name[0]}</span>
+            <span style={{ width: 46, height: 46, borderRadius: 9999, background: GRAD, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 18 }}>{titleCase(developer.name)[0]}</span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>{developer.name}</div>
+              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>{titleCase(developer.name)}</div>
               <div style={{ fontFamily: FONT, fontSize: 13, color: C.faint }}>{[developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`, developer.founded_year && `desde ${developer.founded_year}`].filter(Boolean).join(' · ')}</div>
             </div>
           </div>
@@ -844,7 +826,7 @@ function TabGeneral({ dev }) {
 
       {dev.description && (
         <DataBlock title="La historia">
-          <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: 16, color: C.ink, lineHeight: 1.7, maxWidth: '72ch', letterSpacing: '0.16px' }}>{dev.description}</p>
+          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 16, color: C.ink, lineHeight: 1.7, maxWidth: '72ch' }}>{dev.description}</p>
         </DataBlock>
       )}
     </div>
@@ -862,16 +844,13 @@ function TabPlanesPago({ dev, unit }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {lista && (
-        <div>
-          <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 12 }}>Forma de pago</div>
-          <div className="dmx-card" style={{ ...box, padding: 18, maxWidth: 420 }}>
-            <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>Precio de lista</div>
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {lista.apartado_mxn != null && <DataRow k="Apartado" v={money(lista.apartado_mxn)} />}
-              {lista.firma_pct != null && <DataRow k="Firma / enganche" v={`${lista.firma_pct}%`} />}
-              {lista.mensualidades_pct != null && <DataRow k="Mensualidades (obra)" v={`${lista.mensualidades_pct}%`} />}
-              {lista.escritura_pct != null && <DataRow k="Contra escritura" v={`${lista.escritura_pct}%`} last />}
-            </div>
+        <div className="dmx-card" style={{ ...box, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14, color: C.ink, flex: 'none' }}>Precio de lista</span>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontFamily: FONT, fontSize: 13, color: C.ink2 }}>
+            {lista.apartado_mxn != null && <span>Apartado <b style={{ color: C.ink }}>{money(lista.apartado_mxn)}</b></span>}
+            {lista.firma_pct != null && <span>Enganche <b style={{ color: C.ink }}>{lista.firma_pct}%</b></span>}
+            {lista.mensualidades_pct != null && <span>Mensualidades <b style={{ color: C.ink }}>{lista.mensualidades_pct}%</b></span>}
+            {lista.escritura_pct != null && <span>Escritura <b style={{ color: C.ink }}>{lista.escritura_pct}%</b></span>}
           </div>
         </div>
       )}
@@ -901,13 +880,19 @@ function TabInversion({ dev, unit, onGoTo }) {
           <button key={k} className="dmx-press" onClick={() => setMode(k)} style={{ padding: '10px 20px', border: 'none', borderLeft: i ? `1px solid ${C.line}` : 'none', background: mode === k ? GRAD : '#fff', color: mode === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
         ))}
       </div>
-      {/* Selector de unidad (modo individual) — al cambiar recalcula solo */}
+      {/* Selector de unidad (modo individual) — tarjetas pequeñas, al elegir recalcula solo */}
       {mode === 'individual' && choices.length > 1 && (
         <div style={{ marginBottom: 18 }}>
-          <label style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: C.ink2, display: 'block', marginBottom: 6 }}>Elige la unidad a calcular</label>
-          <select value={defUnit ? (defUnit.id || defUnit.unit_number) : ''} onChange={(e) => setPickedKey(e.target.value)} style={{ padding: '11px 14px', borderRadius: R_BTN, border: `1px solid ${C.line}`, fontFamily: FONT, fontSize: 13.5, fontWeight: 600, color: C.ink, background: '#fff', minWidth: 300, cursor: 'pointer' }}>
-            {choices.map((u) => <option key={u.id || u.unit_number} value={u.id || u.unit_number}>{u.unit_number} · {money(u.price)}{u.prototype ? ` · ${protoName(u.prototype)}` : ''}{m2of(u) ? ` · ${m2of(u)} m²` : ''}</option>)}
-          </select>
+          <label style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: C.ink2, display: 'block', marginBottom: 8 }}>Elige la unidad a calcular</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))', gap: 8 }}>
+            {choices.map((u) => { const on = defUnit && (u.id || u.unit_number) === (defUnit.id || defUnit.unit_number); return (
+              <button key={u.id || u.unit_number} className="dmx-press" onClick={() => setPickedKey(u.id || u.unit_number)} style={{ padding: '10px 12px', borderRadius: R_BTN, textAlign: 'left', cursor: 'pointer', ...(on ? { border: 'none', background: C.accentSoft, boxShadow: `inset 0 0 0 1.5px ${C.accent}` } : { border: `1px solid ${C.line}`, background: '#fff' }) }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, color: on ? C.accent : C.ink }}>{u.unit_number}</div>
+                <div style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: C.ink, marginTop: 1 }}>{money(u.price)}</div>
+                <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 1 }}>{[u.prototype ? protoName(u.prototype) : null, m2of(u) ? `${m2of(u)} m²` : null].filter(Boolean).join(' · ')}</div>
+              </button>
+            ); })}
+          </div>
         </div>
       )}
       {mode === 'institucional' && (
@@ -1011,7 +996,7 @@ export default function FichaVenta() {
           {/* ENCABEZADO DE PROPIEDAD (spec §4) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginTop: 18 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <h1 style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(28px,4vw,40px)', lineHeight: 1.4, color: C.ink, margin: 0, letterSpacing: '0.16px' }}>{dev.name}</h1>
+              <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(28px,4vw,42px)', lineHeight: 1.15, color: C.ink, margin: 0, letterSpacing: '-0.02em' }}>{titleCase(dev.name)}</h1>
               <div style={{ fontFamily: FONT, fontSize: 16, color: C.ink2, marginTop: 6 }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
                 <DevRating developer={developer} onReviews={() => goTab('resenas')} />
@@ -1033,7 +1018,7 @@ export default function FichaVenta() {
         {/* SUB-NAV STICKY (tabs) */}
         <div style={{ position: 'sticky', top: 56, zIndex: 40, background: '#fff', borderBottom: `1px solid ${CARD_LINE}`, marginTop: 18, boxShadow: '0 2px 8px rgba(16,24,40,0.04)' }}>
           <div style={{ maxWidth: MAXW, width: '95%', margin: '0 auto', display: 'flex', gap: 2, overflowX: 'auto' }}>
-            {NAV.filter(([k]) => (k !== 'tour' || scans.length > 0) && (k !== 'servicios' || amen.length > 0 || (dev.units || []).length > 0)).map(([k, l]) => (
+            {NAV.filter(([k]) => (k !== 'tour' || scans.length > 0)).map(([k, l]) => (
               <button key={k} className="dmx-navtab" onClick={() => goTab(k)} style={{ padding: '13px 14px', border: 'none', borderBottom: activeNav === k ? `3px solid ${C.accent}` : '3px solid transparent', background: 'none', color: activeNav === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: activeNav === k ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{l}</button>
             ))}
           </div>
@@ -1069,9 +1054,6 @@ export default function FichaVenta() {
               </Section>
             )}
 
-            {activeNav === 'servicios' && (
-              <Section title="Servicios y comodidades"><VentaServicios dev={dev} /></Section>
-            )}
 
             {activeNav === 'detalles' && (
               <Section title="Detalles"><VentaDetalles dev={dev} /></Section>
@@ -1117,7 +1099,7 @@ export default function FichaVenta() {
               <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.ink, textAlign: 'center' }}>Comunícate con esta propiedad</div>
               <div style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, textAlign: 'center', marginTop: 4 }}>Opciones de recorrido: <b>En persona · Por video</b></div>
               <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: C.faint, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: 14 }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
-              <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.ink, margin: '2px 0' }}>{money(unit ? unit.price : dev.price_from)}</div>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: C.ink, margin: '2px 0', letterSpacing: '-0.01em' }}>{money(unit ? unit.price : dev.price_from)}</div>
               <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, marginBottom: 14 }}>{STAGE[dev.stage] || dev.stage}{dev.delivery_estimate ? ` · entrega ${dev.delivery_estimate}` : ''}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <CtaGrad onClick={() => agendar('agendar')}>Agendar recorrido</CtaGrad>
@@ -1134,7 +1116,7 @@ export default function FichaVenta() {
               </div>
               <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 36, height: 36, borderRadius: 9999, background: C.accent, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 14 }}>{(developer.name || dev.name || 'D')[0]}</span>
-                <div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>{developer.name || 'Tu asesor DMX'}</div><div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>{developer.projects_delivered ? `${developer.projects_delivered} proyectos entregados` : 'Desarrollador verificado'}</div></div>
+                <div style={{ minWidth: 0 }}><div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>{developer.name ? titleCase(developer.name) : 'Tu asesor DMX'}</div><div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>{developer.projects_delivered ? `${developer.projects_delivered} proyectos entregados` : 'Desarrollador verificado'}</div></div>
               </div>
               <div style={{ marginTop: 12, fontFamily: FONT, fontSize: 12, color: C.faint, textAlign: 'center' }}>✦ ¿Dudas? Pregúntale a <b style={{ color: C.accent }}>Atlax</b> — conoce esta unidad.</div>
             </div>

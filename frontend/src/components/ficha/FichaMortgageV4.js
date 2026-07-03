@@ -8,50 +8,13 @@ import React, { useState } from 'react';
 import { calculateMortgage, saveMortgage } from '../../api/marketplace';
 import { V4, HEAD, SANS, GRAD, fmtMXN, inpV4, cardV4, BtnV4, Field, CalcHeader, Disclaimer } from './calcV4';
 
+// Solo crédito BANCARIO (sin Infonavit/Fovissste)
 const FIELDS = [
   { k: 'precio', label: 'Precio del inmueble (MXN)', required: true },
   { k: 'enganche_pct', label: 'Enganche %', step: 1, min: 0, max: 95 },
   { k: 'plazo_anos', label: 'Plazo (años)', step: 1, min: 1, max: 30 },
   { k: 'ingreso_mensual', label: 'Ingreso mensual (MXN)' },
-  { k: 'edad', label: 'Edad', step: 1, min: 18, max: 80 },
-  { k: 'sbc', label: 'SBC Infonavit (mensual)' },
-  { k: 'sueldo_basico', label: 'Sueldo básico Fovissste' },
-  { k: 'ahorro_voluntario', label: 'Ahorro voluntario' },
 ];
-
-function Kpi({ label, value, big }) {
-  return (
-    <div>
-      <div style={{ fontFamily: SANS, fontSize: 9.5, fontWeight: 700, color: V4.ink3, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontFamily: HEAD, fontWeight: big ? 800 : 700, fontSize: big ? 20 : 14, color: big ? V4.theme : V4.ink }}>{value}</div>
-    </div>
-  );
-}
-
-function SourceCard({ entry }) {
-  if (!entry) return null;
-  const viable = !!entry.viable;
-  return (
-    <div className="dmx-card" style={{ ...cardV4, padding: '16px 18px', borderColor: viable ? 'rgba(109,74,255,0.28)' : 'rgba(220,38,38,0.22)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: V4.ink }}>{entry.banco}</div>
-        <span style={{ padding: '3px 10px', borderRadius: 9999, fontFamily: SANS, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: viable ? V4.green : V4.red, background: viable ? 'rgba(14,159,110,0.10)' : 'rgba(220,38,38,0.08)', border: `1px solid ${viable ? 'rgba(14,159,110,0.32)' : 'rgba(220,38,38,0.28)'}` }}>{viable ? 'Viable' : 'No viable'}</span>
-      </div>
-      {viable ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px' }}>
-          <Kpi label="Pago mensual" value={fmtMXN(entry.pago_mensual)} big />
-          <Kpi label="Monto crédito" value={fmtMXN(entry.monto_credito)} />
-          <Kpi label="Plazo" value={`${entry.plazo_anos} años`} />
-          <Kpi label="CAT" value={entry.cat_pct != null ? `${entry.cat_pct}%` : '—'} />
-          {entry.tasa_anual_pct != null && <Kpi label="Tasa anual" value={`${entry.tasa_anual_pct}%`} />}
-          {entry.dti_ratio != null && <Kpi label="DTI" value={`${(entry.dti_ratio * 100).toFixed(1)}%`} />}
-        </div>
-      ) : (
-        <div style={{ fontFamily: SANS, fontSize: 12.5, color: V4.ink2, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.18)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>{entry.razon || 'No viable con los datos proporcionados.'}</div>
-      )}
-    </div>
-  );
-}
 
 export default function FichaMortgageV4({ basePrice = 0, devId, devName }) {
   const [form, setForm] = useState({ precio: basePrice || '', enganche_pct: 20, plazo_anos: 20, ingreso_mensual: '', edad: 32, sbc: '', sueldo_basico: '', ahorro_voluntario: '' });
@@ -82,7 +45,7 @@ export default function FichaMortgageV4({ basePrice = 0, devId, devName }) {
 
   return (
     <div style={{ ...cardV4, padding: 24 }}>
-      <CalcHeader eyebrow="Calculadora hipotecaria" title={`Tu hipoteca${devName ? ` para ${devName}` : ''}`} subtitle="Compara Infonavit, Fovissste y bancos en una sola corrida." />
+      <CalcHeader eyebrow="Calculadora hipotecaria" title={`Tu crédito${devName ? ` para ${devName}` : ''}`} subtitle="Compara las mejores tasas de crédito bancario para esta propiedad." />
       <div className="mortv4-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', marginBottom: 16 }}>
         {FIELDS.map((f) => (
           <Field key={f.k} label={f.label} required={f.required}>
@@ -95,20 +58,23 @@ export default function FichaMortgageV4({ basePrice = 0, devId, devName }) {
 
       {result && (
         <div style={{ marginTop: 20 }}>
-          <div className="mortv4-res" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
-            <SourceCard entry={result.infonavit} />
-            <SourceCard entry={result.fovissste} />
-            <div className="dmx-card" style={{ ...cardV4, padding: '16px 18px' }}>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: V4.ink, marginBottom: 12 }}>Banca privada</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(result.banca || []).map((b) => (
-                  <div key={b.banco} style={{ padding: '9px 11px', borderRadius: 10, background: b.viable ? 'rgba(109,74,255,0.06)' : 'rgba(220,38,38,0.04)', border: `1px solid ${b.viable ? 'rgba(109,74,255,0.20)' : 'rgba(220,38,38,0.16)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                    <div><div style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: V4.ink }}>{b.banco}</div><div style={{ fontFamily: SANS, fontSize: 10.5, color: V4.ink3 }}>CAT {b.cat_pct}%{b.dti_ratio != null ? ` · DTI ${(b.dti_ratio * 100).toFixed(1)}%` : ''}</div></div>
-                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: b.viable ? V4.theme : V4.red }}>{fmtMXN(b.pago_mensual)}</div>
-                  </div>
-                ))}
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: V4.ink, marginBottom: 12 }}>Crédito bancario</div>
+          <div className="mortv4-res" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
+            {(result.banca || []).map((b) => (
+              <div key={b.banco} className="dmx-card" style={{ ...cardV4, padding: '14px 16px', borderColor: b.viable ? 'rgba(109,74,255,0.28)' : V4.line }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: V4.ink }}>{b.banco}</div>
+                  <span style={{ padding: '2px 9px', borderRadius: 9999, fontFamily: SANS, fontWeight: 700, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.05em', color: b.viable ? V4.green : V4.red, background: b.viable ? 'rgba(14,159,110,0.1)' : 'rgba(220,38,38,0.08)' }}>{b.viable ? 'Viable' : 'No viable'}</span>
+                </div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: V4.theme }}>{fmtMXN(b.pago_mensual)}</div>
+                <div style={{ fontFamily: SANS, fontSize: 11, color: V4.ink3, marginBottom: 8 }}>al mes</div>
+                <div style={{ display: 'flex', gap: 14, fontFamily: SANS, fontSize: 11.5, color: V4.ink2 }}>
+                  <span>CAT <b style={{ color: V4.ink }}>{b.cat_pct}%</b></span>
+                  {b.dti_ratio != null && <span>DTI <b style={{ color: V4.ink }}>{(b.dti_ratio * 100).toFixed(1)}%</b></span>}
+                </div>
+                {!b.viable && b.razon && <div style={{ fontFamily: SANS, fontSize: 11, color: V4.amber, marginTop: 8, lineHeight: 1.4 }}>{b.razon}</div>}
               </div>
-            </div>
+            ))}
           </div>
 
           {!saved && !saveOpen && <button className="dmx-press" onClick={() => setSaveOpen(true)} style={{ padding: '11px 18px', borderRadius: 9999, background: '#fff', border: `1px solid ${V4.line}`, color: V4.ink, fontFamily: SANS, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Enviarme este cálculo por email</button>}

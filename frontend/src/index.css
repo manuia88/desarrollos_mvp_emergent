@@ -490,20 +490,20 @@ textarea:focus-visible,
 .cursor-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: var(--indigo);
-  box-shadow: 0 0 14px rgba(99,102,241,0.8);
+  background: linear-gradient(120deg, #6D4AFF, #C63FAE);
+  box-shadow: 0 0 14px rgba(155,74,220,0.75);
   transition: transform 0.05s;
 }
 .cursor-ring {
   width: 28px; height: 28px;
   border-radius: 50%;
-  border: 1.5px solid rgba(99,102,241,0.45);
+  border: 1.5px solid rgba(155,74,220,0.5);
   transition: transform 0.12s, width 0.2s, height 0.2s;
 }
 .cursor-glow {
   width: 120px; height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.20) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(155,74,220,0.22) 0%, transparent 70%);
   filter: blur(20px);
   transition: transform 0.08s;
 }
