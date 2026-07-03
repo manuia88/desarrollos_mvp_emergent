@@ -28,6 +28,18 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 12, height: 12, borderRadius: '50%', background: 'rgba(16,18,28,0.05)', color: '#9499AE', fontSize: 8.5, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
+// Campo dinero/número — A NIVEL DE MÓDULO a propósito. Si vive dentro del componente, React lo
+// recrea en cada render y REMONTA el <input> en cada tecla → el input pierde el foco y se siente
+// como "no puedo escribir ni borrar". Recibe f/set/estilos por props para no cerrar sobre el render.
+function Field({ f, k, label, set, money, auto, fmt, lab, inp }) {
+  const raw = f[k];
+  const shown = money ? (raw === '' || raw === null || raw === undefined ? '' : fmt(raw)) : raw;
+  return (
+    <div><span style={lab}>{label}{auto && <Auto />}</span>
+      <input type="text" inputMode="numeric" value={shown} onChange={(e) => set(k, String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>
+  );
+}
+
 export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devId = '', numDesarrollos = null, mode = 'individual', portfolioUnits = [], noStickyBar = false, onResult = null }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
@@ -179,17 +191,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {opts.map(([v, l]) => { const on = String(f[k]) === String(v); return <button key={String(v)} type="button" onClick={() => set(k, v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: on ? '1.5px solid #6D4AFF' : '1px solid rgba(99,102,241,0.2)', background: on ? 'rgba(109,74,255,0.1)' : '#fff', color: on ? '#6D4AFF' : '#4B4F66' }}>{l}</button>; })}
     </div>
   );
-  const Field = ({ label, k, money, auto }) => (
-    <div><span style={lab}>{label}{auto && <Auto />}</span>
-      <input type="text" inputMode="numeric" value={money ? m(f[k]) : f[k]} onChange={(e) => set(k, String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>
-  );
+  // Field vive a NIVEL DE MÓDULO (arriba), no aquí, para no perder el foco del input al teclear.
 
   const multifamily = Number(f.num_unidades) >= 5;
   const sem = (r && r.veredicto && SEM[r.veredicto.semaforo]) || '#8A8FA6';
   // tarjeta de métrica limpia (look calcV4: barra de acento arriba, número grande, aire)
   const MetricCard = ({ label, value, color = '#1E2230', sub, info, badge }) => (
-    <div style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 16, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: '17px 18px 16px', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: color }} />
+    <div style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 16, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: '17px 18px 16px', position: 'relative' }}>
+      {/* SIN overflow:hidden — recortaba los globitos (?). La barra se redondea sola para no salirse. */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: color, borderRadius: '16px 16px 0 0' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 10.5, color: '#5A5F6E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         <span>{label}</span>{info && <Info>{info}</Info>}{badge && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#6B6F86', background: 'rgba(16,18,28,0.06)', borderRadius: 5, padding: '1px 6px', letterSpacing: 0 }}>{badge}</span>}
       </div>
@@ -348,13 +358,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div style={grpLabel}>⚙️ Supuestos <span style={{ fontWeight: 600, color: '#8A8FA6', textTransform: 'none', letterSpacing: 0 }}>· predial, mantenimiento, horizonte, plusvalía, régimen fiscal · estimados editables</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 6 }}>
             {f.modo_renta === 'corto' ? (<>
-              <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
+              <Field f={f} set={set} fmt={m} lab={lab} inp={inp} label="Tarifa por noche" k="tarifa_noche" money auto />
               <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
-            </>) : <Field label="Renta mensual" k="renta_mensual" money auto />}
+            </>) : <Field f={f} set={set} fmt={m} lab={lab} inp={inp} label="Renta mensual" k="renta_mensual" money auto />}
             <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D4AFF', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
-            <Field label="Predial / año" k="predial" money auto />
-            <Field label="Mantenim. / año" k="mantenimiento" money auto />
-            <Field label="Seguro / año" k="seguro" money auto />
+            <Field f={f} set={set} fmt={m} lab={lab} inp={inp} label="Predial / año" k="predial" money auto />
+            <Field f={f} set={set} fmt={m} lab={lab} inp={inp} label="Mantenim. / año" k="mantenimiento" money auto />
+            <Field f={f} set={set} fmt={m} lab={lab} inp={inp} label="Seguro / año" k="seguro" money auto />
             <div><span style={lab}>Horizonte (años)</span><input type="number" value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={inp} /></div>
             <div><span style={lab}>Plusvalía / año (%)</span><input type="number" step="0.1" value={f.apreciacion_anual * 100} onChange={(e) => set('apreciacion_anual', Number(e.target.value) / 100)} style={inp} /></div>
             <div><span style={lab}>Crecim. renta / año (%)</span><input type="number" step="0.1" value={f.crecimiento_renta_anual * 100} onChange={(e) => set('crecimiento_renta_anual', Number(e.target.value) / 100)} style={inp} /></div>
@@ -1038,7 +1048,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       )}
 
       <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', lineHeight: 1.5, marginTop: 14 }}>
-        {loading ? 'Calculando…' : `Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} · USD ${(r && r.mercado && r.mercado.fix_usd) || '—'} (Banxico). `}
+        {/* NO cambiar el texto con `loading` (saltaba en cada tecla). CETES/UDIS/FIX no cambian al editar → línea estable. */}
+        {`Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} · USD ${(r && r.mercado && r.mercado.fix_usd) || '—'} (Banxico). `}
         Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
         para el detalle de <b>ISAI</b> (al comprar) e <b>ISR</b> (al vender) usa el <ProyectorLink />. El cálculo definitivo lo hace tu contador/notario.
       </div>
