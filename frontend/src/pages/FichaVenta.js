@@ -55,25 +55,31 @@ const AVM_LABEL = { bajo: 'Buen precio', justo: 'En línea', alto: 'Sobre mercad
 const planoOf = (dev, u) => u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || (dev.photos || [])[0] || null;
 
 const NAV = [
-  ['proyecto', 'El proyecto'],
+  ['destacados', 'Destacados'],
   ['precios', 'Precios y modelos'],
   ['dinero', 'Tu dinero'],
   ['tour', 'Recorrido 3D'],
   ['amenidades', 'Amenidades'],
-  ['resenas', 'Reseñas'],
+  ['detalles', 'Detalles'],
   ['zona', 'La zona'],
+  ['resenas', 'Reseñas'],
   ['confianza', 'Confianza'],
 ];
 
 // ════════════════════ PRECIOS Y MODELOS (patrón apartments.com) ════════════════════
 function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
-  const units = dev.units || [];
+  const allUnits = dev.units || [];
   const [avm, setAvm] = useState({});
   const [expanded, setExpanded] = useState({});   // {proto: true} = mostrar todas las unidades del modelo
+  const [bed, setBed] = useState('all');           // filtro por recámaras (Todas / 1 / 2 / 3…)
+
+  // opciones de recámaras presentes (para las tabs estilo apartments.com)
+  const bedOpts = [...new Set(allUnits.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b);
+  const units = bed === 'all' ? allUnits : allUnits.filter((u) => String(u.bedrooms) === String(bed));
 
   useEffect(() => {
     const colid = dev.colonia_id || dev.colonia;
-    const us = units.filter((u) => u.price && m2of(u));
+    const us = allUnits.filter((u) => u.price && m2of(u));
     if (!colid || !us.length) return undefined;
     let alive = true;
     fetch(`${API}/api/precio-posicion-batch`, {
@@ -83,7 +89,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
     return () => { alive = false; };
   }, [dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!units.length) return <Card style={{ padding: 22, fontFamily: SANS, color: 'var(--cream-3)' }}>La lista de precios se publica pronto. Pídesela a tu asesor.</Card>;
+  if (!allUnits.length) return <Card style={{ padding: 22, fontFamily: SANS, color: 'var(--cream-3)' }}>La lista de precios se publica pronto. Pídesela a tu asesor.</Card>;
 
   // agrupar por modelo/prototipo
   const groups = {};
@@ -99,9 +105,18 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit }) {
 
   const rangeTxt = (a, b) => (a === b ? money(a) : `${money(a)} – ${money(b)}`);
   const rangeNum = (arr, suf) => (arr.length ? (arr[0] === arr[arr.length - 1] ? `${arr[0]}${suf}` : `${arr[0]}–${arr[arr.length - 1]}${suf}`) : null);
+  const bedLabel = (n) => (n === 0 ? 'Estudio' : `${n} rec`);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* filtro por recámaras (tabs estilo apartments.com) */}
+      {bedOpts.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[['all', 'Todas'], ...bedOpts.map((n) => [String(n), bedLabel(n)])].map(([k, l]) => (
+            <button key={k} onClick={() => setBed(k)} style={{ padding: '8px 16px', borderRadius: 9999, border: `1px solid ${bed === k ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: bed === k ? 'var(--theme)' : 'transparent', color: bed === k ? '#fff' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{l}</button>
+          ))}
+        </div>
+      )}
       {models.map((m) => {
         const plano = planoOf(dev, m.us[0]);
         const show = expanded[m.proto] ? m.us : m.us.slice(0, 4);
@@ -273,6 +288,65 @@ function VentaResenas({ devId }) {
   );
 }
 
+// ════════════════════ PUNTOS DESTACADOS (patrón apartments.com: ícono+label 3-col) ════════════════════
+function VentaDestacados({ dev }) {
+  const units = dev.units || [];
+  const avail = units.filter((u) => u.status === 'disponible').length;
+  const m2s = units.map(m2of).filter(Boolean);
+  const amenTop = (Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 5).map((a) => amenInfo(a));
+  const items = [
+    { icon: '📅', label: STAGE[dev.stage] || dev.stage, sub: dev.delivery_estimate ? `Entrega ${dev.delivery_estimate}` : 'Entrega por confirmar' },
+    avail > 0 && { icon: '🔑', label: `${avail} unidad${avail === 1 ? '' : 'es'} disponible${avail === 1 ? '' : 's'}`, sub: 'De la lista actual' },
+    dev.bedrooms_range && { icon: '🛏️', label: `${dev.bedrooms_range} recámaras`, sub: 'Según el modelo' },
+    m2s.length && { icon: '📐', label: m2s[0] === Math.max(...m2s) ? `${m2s[0]} m²` : `${Math.min(...m2s)}–${Math.max(...m2s)} m²`, sub: 'Superficie' },
+    dev.price_from && { icon: '💲', label: `Desde ${money(dev.price_from)}`, sub: 'Precio de lista' },
+    ...amenTop.map((a) => ({ icon: a.icon, label: titleCase(a.label), sub: null })),
+  ].filter(Boolean);
+  if (!items.length) return null;
+  return (
+    <Card style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: '14px 22px' }}>
+        {items.map((it, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 21, lineHeight: 1, width: 28, textAlign: 'center', flex: 'none' }}>{it.icon}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 600, color: 'var(--cream)', lineHeight: 1.25 }}>{it.label}</div>
+              {it.sub && <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)' }}>{it.sub}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// ════════════════════ DETALLES / INFORMACIÓN (patrón apartments.com: lista de datos) ════════════════════
+function VentaDetalles({ dev }) {
+  const units = dev.units || [];
+  const protos = [...new Set(units.map((u) => u.prototype).filter(Boolean))].length;
+  const rows = [
+    ['Tipo de propiedad', dev.property_type ? titleCase(dev.property_type) : 'Departamentos en preventa'],
+    ['Etapa', STAGE[dev.stage] || dev.stage],
+    ['Entrega estimada', dev.delivery_estimate || dev.fecha_lanzamiento || null],
+    ['Niveles', dev.max_level != null ? `${dev.max_level}` : null],
+    ['Unidades totales', dev.units_total || dev.total_units || (units.length || null)],
+    ['Modelos / prototipos', protos || null],
+    ['Créditos aceptados', Array.isArray(dev.creditos_aceptados) && dev.creditos_aceptados.length ? dev.creditos_aceptados.map((c) => titleCase(c)).join(' · ') : null],
+    ['Dirección', dev.address_full || dev.street || null],
+  ].filter(([, v]) => v != null && v !== '');
+  if (!rows.length) return null;
+  return (
+    <Card style={{ padding: '6px 20px' }}>
+      {rows.map(([k, v], i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: i < rows.length - 1 ? '1px solid var(--card-border, var(--border))' : 'none' }}>
+          <span style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-3)' }}>{k}</span>
+          <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: 'var(--cream)', textAlign: 'right' }}>{v}</span>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
 // ── helpers de layout ────────────────────────────────────────────────────────
 const linkBtn = { background: 'transparent', border: 'none', padding: 0, color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' };
 function Section({ id, title, sub, refEl, children, first }) {
@@ -316,8 +390,8 @@ export default function FichaVenta({ user, onLogin }) {
   const [activeNav, setActiveNav] = useState('proyecto');
 
   const refs = {
-    proyecto: useRef(null), precios: useRef(null), dinero: useRef(null), tour: useRef(null),
-    amenidades: useRef(null), resenas: useRef(null), zona: useRef(null), confianza: useRef(null),
+    proyecto: useRef(null), destacados: useRef(null), precios: useRef(null), dinero: useRef(null), tour: useRef(null),
+    amenidades: useRef(null), detalles: useRef(null), resenas: useRef(null), zona: useRef(null), confianza: useRef(null),
   };
   const scrollTo = useCallback((key) => { const el = refs[key] && refs[key].current; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [refs]);
 
@@ -456,7 +530,11 @@ export default function FichaVenta({ user, onLogin }) {
                 {dev.parking_range && <StatCell k="Estac." v={dev.parking_range} />}
                 {nUnits > 0 && <StatCell k="Unidades" v={nUnits} />}
               </Card>
-              <div style={{ marginTop: 22 }}><SeccionLente dev={dev} lens={lens} /></div>
+            </Section>
+
+            <Section id="destacados" refEl={refs.destacados} title="Puntos destacados" sub="Lo esencial de este desarrollo de un vistazo.">
+              <VentaDestacados dev={dev} />
+              <div style={{ marginTop: 20 }}><SeccionLente dev={dev} lens={lens} /></div>
             </Section>
 
             <Section id="precios" refEl={refs.precios} title="Precios y modelos" sub="Cada modelo con su rango de precio y las unidades disponibles. Su posición vs el mercado (AVM) al lado. Elige una para ver tus números.">
@@ -504,12 +582,16 @@ export default function FichaVenta({ user, onLogin }) {
               </Section>
             )}
 
-            <Section id="resenas" refEl={refs.resenas} title="Reseñas" sub="Lo que dicen residentes y vecinos de la zona.">
-              <VentaResenas devId={dev.id} />
+            <Section id="detalles" refEl={refs.detalles} title="Detalles" sub="Información de la propiedad.">
+              <VentaDetalles dev={dev} />
             </Section>
 
             <Section id="zona" refEl={refs.zona} title="La zona" sub="Cómo se vive alrededor: caminabilidad, transporte, lugares.">
               <SeccionUbicacion dev={dev} />
+            </Section>
+
+            <Section id="resenas" refEl={refs.resenas} title="Reseñas" sub="Lo que dicen residentes y vecinos de la zona.">
+              <VentaResenas devId={dev.id} />
             </Section>
 
             <Section id="confianza" refEl={refs.confianza} title="Confianza" sub="Riesgos reales del inmueble y quién lo construye — sin letra chica.">
@@ -545,14 +627,22 @@ export default function FichaVenta({ user, onLogin }) {
           {/* COLUMNA STICKY DE CONTACTO */}
           <aside className="dmx-venta-side" style={{ position: 'sticky', top: 130 }}>
             <Card style={{ padding: '20px 20px' }}>
-              <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 12 }}>Comunícate con esta propiedad</div>
+              <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)' }}>Comunícate con esta propiedad</div>
+              <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', margin: '3px 0 12px' }}>Opciones de visita: <b>presencial o por video</b></div>
               <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
               <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: '2px 0 2px' }}>{money(unit ? unit.price : dev.price_from)}</div>
               <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 6 }}>{STAGE[dev.stage] || dev.stage}{dev.delivery_estimate ? ` · entrega ${dev.delivery_estimate}` : ''}</div>
               <button onClick={() => agendar('agendar')} style={sideBtn(true)}>Agendar visita</button>
               <button onClick={() => agendar('mensaje')} style={sideBtn(false)}>Enviar mensaje</button>
               {unit && <button onClick={toggleSaveUnit} style={sideBtn(false)}>{savedUnits.has(unit.unit_number) ? '♥ Guardada' : `Guardar la ${unit.unit_number}`}</button>}
-              <div style={{ borderTop: '1px solid var(--card-border, var(--border))', margin: '14px 0 0', paddingTop: 12, fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', textAlign: 'center' }}>✨ ¿Dudas? Pregúntale a <b style={{ color: 'var(--theme)' }}>Atlax</b> — sabe de esta unidad.</div>
+              <div style={{ borderTop: '1px solid var(--card-border, var(--border))', margin: '14px 0 0', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 9 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9999, background: 'var(--grad)', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13 }}>{(developer.name || dev.name || 'D')[0]}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{developer.name || 'Tu asesor DMX'}</div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>Responde en el día · español</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 10, fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', textAlign: 'center' }}>✨ ¿Dudas? Pregúntale a <b style={{ color: 'var(--theme)' }}>Atlax</b> — sabe de esta unidad.</div>
             </Card>
             <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>Datos reales, sin presión. Tu asesor recibe exactamente lo que ves aquí.</div>
           </aside>
