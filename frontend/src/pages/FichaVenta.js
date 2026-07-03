@@ -20,7 +20,7 @@ import { getIsaiComprador, getClosingCost } from '../api/tax_projector';
 import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
 // Calculadora de inversión (personal + institucional) — reusa motor inversion-v4 (theme-adaptive dentro de LightScope)
-import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
+import InversionV4Calculator from '../components/investment/InversionV4Calculator';
 // Calculadoras standalone re-vestidas al look v4 (motores intactos): hipotecario + ISAI/cierre
 import FichaMortgageV4 from '../components/ficha/FichaMortgageV4';
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
@@ -77,7 +77,6 @@ const NAV = [
   ['precios', 'Precios y modelos'],
   ['tarifas', 'Planes de pago'],
   ['tour', 'Recorrido 3D'],
-  ['detalles', 'Detalles'],
   ['ubicacion', 'Ubicación'],
   ['inversion', 'Inversión'],
 ];
@@ -361,6 +360,11 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
     u.m2_roof_garden && `${u.m2_roof_garden} m² de roof garden`,
     u.level != null && `Piso ${u.level}`,
     u.vista && `Vista ${titleCase(u.vista)}`,
+    u.orientation && `Orientación ${titleCase(u.orientation)}`,
+    u.parking_spots && `${u.parking_spots} cajón(es)${u.parking_type ? ` · ${titleCase(u.parking_type)}` : ''}`,
+    u.estacionamiento_independiente && 'Cajón independiente',
+    u.bodega && (typeof u.bodega === 'string' ? `Bodega ${titleCase(u.bodega)}` : 'Bodega incluida'),
+    u.pet_friendly && 'Pet friendly',
     ...(Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 8).map((x) => titleCase(amenInfo(x).label)),
   ].filter(Boolean);
   const groups = {}; allUnits.forEach((x) => { const k = x.prototype || '?'; (groups[k] = groups[k] || []).push(x); });
@@ -449,22 +453,6 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
   );
 }
 
-// ════════════════════ DETALLES ════════════════════
-function VentaDetalles({ dev }) {
-  const units = dev.units || [];
-  const rows = [
-    ['Tipo de propiedad', dev.property_type ? titleCase(dev.property_type) : 'Departamentos en preventa'],
-    ['Etapa', STAGE[dev.stage] || dev.stage],
-    ['Entrega estimada', dev.delivery_estimate || dev.fecha_lanzamiento || null],
-    ['Niveles', dev.max_level != null ? `${dev.max_level}` : null],
-    ['Unidades totales', dev.units_total || dev.total_units || (units.length || null)],
-    ['Modelos', [...new Set(units.map((u) => u.prototype).filter(Boolean))].length || null],
-    ['Créditos aceptados', Array.isArray(dev.creditos_aceptados) && dev.creditos_aceptados.length ? dev.creditos_aceptados.map((c) => titleCase(c)).join(' · ') : null],
-    ['Dirección', dev.address_full || dev.street || null],
-  ].filter(([, v]) => v != null && v !== '');
-  if (!rows.length) return null;
-  return <div style={{ ...box, padding: '4px 18px' }}>{rows.map(([k, v], i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: i < rows.length - 1 ? `1px solid ${C.line2}` : 'none' }}><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.faint }}>{k}</span><span style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 600, color: C.ink, textAlign: 'right' }}>{v}</span></div>)}</div>;
-}
 
 // ═══════════════ MODALES DE CONVERSIÓN (spec §8) ═══════════════
 // UI blanca coherente con la ficha. TODOS reusan el MISMO backend /api/buyer/registrar (no duplican motor).
@@ -688,10 +676,24 @@ function TabGeneral({ dev }) {
   const sistema = tec.Estructura || tec.estructura || tec['Sistema constructivo'] || dev.sistema_constructivo || null;
   const grouped = {}; units.forEach((u) => { const k = u.prototype || '?'; (grouped[k] = grouped[k] || []).push(u); });
   const protoList = Object.entries(grouped).map(([p, us]) => { const prices = us.map((u) => u.price).filter(Boolean); const m2s = us.map(m2of).filter(Boolean); const bed = [...new Set(us.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b); const bath = [...new Set(us.map((u) => u.bathrooms).filter((x) => x != null))].sort((a, b) => a - b); return { proto: p, n: us.length, avail: us.filter((u) => u.status === 'disponible').length, minP: prices.length ? Math.min(...prices) : null, bed, bath, m2min: m2s.length ? Math.min(...m2s) : null, m2max: m2s.length ? Math.max(...m2s) : null }; }).sort((a, b) => (a.minP || 1e15) - (b.minP || 1e15));
+  const soldPct = total > 0 ? Math.round(((sold + res) / total) * 100) : null;
   return (
     <div>
+      {/* ── PLUSVALÍA (dato clave, resaltado) ── */}
+      {plusv && (
+        <div style={{ ...gradBorder('#fff', R_CARD), padding: 2, marginBottom: 4 }}>
+          <div style={{ background: '#fff', borderRadius: R_CARD - 2, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, letterSpacing: '-0.02em', background: GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{plusv}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Plusvalía desde el lanzamiento</div>
+              <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>El precio ya subió {plusv} desde que abrió preventa — entrar hoy captura esa apreciación.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── CARACTERÍSTICAS DE LOS DEPARTAMENTOS ── */}
-      <DataBlock title="Características de los departamentos" first>
+      <DataBlock title="Características de los departamentos" first={!plusv}>
         <div style={fg}>
           <Fact icon="🛏️" label="Recámaras" value={bedR} />
           <Fact icon="🛁" label="Baños" value={bathR} />
@@ -714,7 +716,6 @@ function TabGeneral({ dev }) {
           <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
           <Fact icon="🚀" label="Lanzamiento" value={dev.fecha_lanzamiento} />
           <Fact icon="🔑" label="Entrega estimada" value={dev.delivery_estimate} />
-          <Fact icon="📈" label="Plusvalía desde lanzamiento" value={plusv} />
         </div>
       </DataBlock>
 
@@ -750,6 +751,7 @@ function TabGeneral({ dev }) {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
               <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: C.green }}>{avail}</span>
               <span style={{ fontFamily: FONT, fontSize: 14, color: C.ink2 }}>de {total} unidades disponibles</span>
+              {soldPct != null && soldPct > 0 && <span style={{ marginLeft: 'auto', fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.accent }}>{soldPct}% colocado</span>}
             </div>
             <div style={{ display: 'flex', height: 14, borderRadius: 9999, overflow: 'hidden', background: C.line2, gap: 2 }}>
               {avail > 0 && <div style={{ width: seg(avail), background: C.green }} />}
@@ -844,13 +846,20 @@ function TabPlanesPago({ dev, unit }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {lista && (
-        <div className="dmx-card" style={{ ...box, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14, color: C.ink, flex: 'none' }}>Precio de lista</span>
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontFamily: FONT, fontSize: 13, color: C.ink2 }}>
-            {lista.apartado_mxn != null && <span>Apartado <b style={{ color: C.ink }}>{money(lista.apartado_mxn)}</b></span>}
-            {lista.firma_pct != null && <span>Enganche <b style={{ color: C.ink }}>{lista.firma_pct}%</b></span>}
-            {lista.mensualidades_pct != null && <span>Mensualidades <b style={{ color: C.ink }}>{lista.mensualidades_pct}%</b></span>}
-            {lista.escritura_pct != null && <span>Escritura <b style={{ color: C.ink }}>{lista.escritura_pct}%</b></span>}
+        <div>
+          <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 17, color: C.ink, marginBottom: 12, letterSpacing: '-0.01em' }}>Forma de pago · Precio de lista</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+            {[
+              lista.apartado_mxn != null && { icon: '🔒', label: 'Apartado', v: money(lista.apartado_mxn) },
+              lista.firma_pct != null && { icon: '✍️', label: 'Enganche', v: `${lista.firma_pct}%` },
+              lista.mensualidades_pct != null && { icon: '📅', label: 'Mensualidades (obra)', v: `${lista.mensualidades_pct}%` },
+              lista.escritura_pct != null && { icon: '🔑', label: 'Contra escritura', v: `${lista.escritura_pct}%` },
+            ].filter(Boolean).map((c, i) => (
+              <div key={i} className="dmx-card" style={{ ...box, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 12, color: C.faint }}><span style={{ fontSize: 14 }}>{c.icon}</span>{c.label}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 20, color: C.ink, marginTop: 4, letterSpacing: '-0.01em' }}>{c.v}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -886,9 +895,9 @@ function TabInversion({ dev, unit, onGoTo }) {
           <label style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: C.ink2, display: 'block', marginBottom: 8 }}>Elige la unidad a calcular</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))', gap: 8 }}>
             {choices.map((u) => { const on = defUnit && (u.id || u.unit_number) === (defUnit.id || defUnit.unit_number); return (
-              <button key={u.id || u.unit_number} className="dmx-press" onClick={() => setPickedKey(u.id || u.unit_number)} style={{ padding: '10px 12px', borderRadius: R_BTN, textAlign: 'left', cursor: 'pointer', ...(on ? { border: 'none', background: C.accentSoft, boxShadow: `inset 0 0 0 1.5px ${C.accent}` } : { border: `1px solid ${C.line}`, background: '#fff' }) }}>
-                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, color: on ? C.accent : C.ink }}>{u.unit_number}</div>
-                <div style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: C.ink, marginTop: 1 }}>{money(u.price)}</div>
+              <button key={u.id || u.unit_number} className="dmx-card" onClick={() => setPickedKey(u.id || u.unit_number)} style={{ padding: '10px 12px', borderRadius: R_CARD, textAlign: 'left', cursor: 'pointer', ...(on ? { border: 'none', background: C.accentSoft, boxShadow: `inset 0 0 0 1.5px ${C.accent}` } : { border: `1px solid ${CARD_LINE}`, background: '#fff' }) }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{u.unit_number}</div>
+                <div style={{ fontFamily: HEAD, fontSize: 14, fontWeight: 800, color: C.accent, marginTop: 1, letterSpacing: '-0.01em' }}>{money(u.price)}</div>
                 <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 1 }}>{[u.prototype ? protoName(u.prototype) : null, m2of(u) ? `${m2of(u)} m²` : null].filter(Boolean).join(' · ')}</div>
               </button>
             ); })}
@@ -909,8 +918,10 @@ function TabInversion({ dev, unit, onGoTo }) {
         <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Elige una unidad en “Precios y modelos” para calcular tu inversión.</div>
       ) : (mode === 'institucional' && fundUnits.length === 0) ? (
         <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Selecciona al menos una unidad para armar tu fondo.</div>
+      ) : mode === 'individual' ? (
+        <InversionV4Calculator key={`ind-${defUnit.id || defUnit.unit_number}`} mode="individual" prefilled={{ precio: defUnit.price }} lockPrice zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
       ) : (
-        <SeccionCalcInversion dev={dev} unit={defUnit} mode={mode} units={fundUnits} onGoTo={() => onGoTo && onGoTo('precios')} />
+        <InversionV4Calculator key={`inst-${fundUnits.map((u) => u.id || u.unit_number).join('_')}`} mode="institucional" portfolioUnits={fundUnits.map((u) => ({ label: u.unit_number, precio: u.price, renta: Math.round(u.price * 0.0045) }))} zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
       )}
     </div>
   );
@@ -1055,9 +1066,6 @@ export default function FichaVenta() {
             )}
 
 
-            {activeNav === 'detalles' && (
-              <Section title="Detalles"><VentaDetalles dev={dev} /></Section>
-            )}
 
             {activeNav === 'ubicacion' && (
               <Section title="Ubicación">

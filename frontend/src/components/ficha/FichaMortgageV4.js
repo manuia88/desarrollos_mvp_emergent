@@ -19,12 +19,14 @@ const FIELDS = [
 export default function FichaMortgageV4({ basePrice = 0, devId, devName }) {
   const [form, setForm] = useState({ precio: basePrice || '', enganche_pct: 20, plazo_anos: 20, ingreso_mensual: '', edad: 32, sbc: '', sueldo_basico: '', ahorro_voluntario: '' });
   const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [result, setResult] = useState(null);
+  const [openBank, setOpenBank] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false); const [email, setEmail] = useState(''); const [accepted, setAccepted] = useState(false); const [saving, setSaving] = useState(false); const [saved, setSaved] = useState(false);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const submit = async () => {
     setError(null);
     if (!form.precio || Number(form.precio) <= 0) { setError('Ingresa un precio válido'); return; }
+    if (!form.ingreso_mensual || Number(form.ingreso_mensual) <= 0) { setError('Ingresa tu ingreso mensual — es necesario para calcular la viabilidad del crédito bancario.'); return; }
     setLoading(true);
     try {
       const data = await calculateMortgage({
@@ -58,23 +60,43 @@ export default function FichaMortgageV4({ basePrice = 0, devId, devName }) {
 
       {result && (
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: V4.ink, marginBottom: 12 }}>Crédito bancario</div>
-          <div className="mortv4-res" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
-            {(result.banca || []).map((b) => (
-              <div key={b.banco} className="dmx-card" style={{ ...cardV4, padding: '14px 16px', borderColor: b.viable ? 'rgba(109,74,255,0.28)' : V4.line }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: V4.ink }}>Crédito bancario</div>
+            <span style={{ padding: '3px 10px', borderRadius: 9999, fontFamily: SANS, fontWeight: 700, fontSize: 10, color: V4.amber, background: 'rgba(224,163,62,0.12)', border: '1px solid rgba(224,163,62,0.3)' }}>Tasas referenciales · no oficiales</span>
+            <span style={{ fontFamily: SANS, fontSize: 11.5, color: V4.ink3 }}>Toca un banco para ver el desglose</span>
+          </div>
+          <div className="mortv4-res" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 12, marginBottom: 16 }}>
+            {(result.banca || []).map((b) => { const open = openBank === b.banco; return (
+              <div key={b.banco} className="dmx-card" onClick={() => setOpenBank(open ? null : b.banco)} style={{ ...cardV4, padding: '14px 16px', cursor: 'pointer', borderColor: b.viable ? 'rgba(109,74,255,0.28)' : V4.line }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: V4.ink }}>{b.banco}</div>
                   <span style={{ padding: '2px 9px', borderRadius: 9999, fontFamily: SANS, fontWeight: 700, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.05em', color: b.viable ? V4.green : V4.red, background: b.viable ? 'rgba(14,159,110,0.1)' : 'rgba(220,38,38,0.08)' }}>{b.viable ? 'Viable' : 'No viable'}</span>
                 </div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: V4.theme }}>{fmtMXN(b.pago_mensual)}</div>
                 <div style={{ fontFamily: SANS, fontSize: 11, color: V4.ink3, marginBottom: 8 }}>al mes</div>
-                <div style={{ display: 'flex', gap: 14, fontFamily: SANS, fontSize: 11.5, color: V4.ink2 }}>
+                <div style={{ display: 'flex', gap: 14, fontFamily: SANS, fontSize: 11.5, color: V4.ink2, flexWrap: 'wrap' }}>
+                  <span>Tasa <b style={{ color: V4.ink }}>{b.tasa_anual_pct}%</b></span>
                   <span>CAT <b style={{ color: V4.ink }}>{b.cat_pct}%</b></span>
                   {b.dti_ratio != null && <span>DTI <b style={{ color: V4.ink }}>{(b.dti_ratio * 100).toFixed(1)}%</b></span>}
                 </div>
                 {!b.viable && b.razon && <div style={{ fontFamily: SANS, fontSize: 11, color: V4.amber, marginTop: 8, lineHeight: 1.4 }}>{b.razon}</div>}
+                {open && (
+                  <div style={{ marginTop: 10, borderTop: `1px solid ${V4.line}`, paddingTop: 8 }}>
+                    {[
+                      ['Tasa de interés anual', `${b.tasa_anual_pct}%`],
+                      ['CAT (aprox.)', `${b.cat_pct}%`],
+                      ['Monto del crédito', fmtMXN(b.monto_credito)],
+                      ['Enganche', `${fmtMXN(b.enganche_monto)} · ${b.enganche_pct}%`],
+                      b.comision_apertura != null && ['Comisión de apertura', fmtMXN(b.comision_apertura)],
+                      ['Plazo', `${b.plazo_anos} años · ${b.n_pagos} pagos`],
+                      b.dti_ratio != null && ['DTI (deuda/ingreso)', `${(b.dti_ratio * 100).toFixed(1)}%`],
+                    ].filter(Boolean).map(([k, v], i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', fontFamily: SANS, fontSize: 12 }}><span style={{ color: V4.ink2 }}>{k}</span><span style={{ fontWeight: 700, color: V4.ink }}>{v}</span></div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+            ); })}
           </div>
 
           {!saved && !saveOpen && <button className="dmx-press" onClick={() => setSaveOpen(true)} style={{ padding: '11px 18px', borderRadius: 9999, background: '#fff', border: `1px solid ${V4.line}`, color: V4.ink, fontFamily: SANS, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Enviarme este cálculo por email</button>}
