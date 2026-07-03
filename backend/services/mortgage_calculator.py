@@ -44,7 +44,8 @@ BANCA_TASAS = [
 ]
 
 DTI_MAX = 0.35  # debt-to-income máximo aceptable
-SEGUROS_PCT = 0.005  # ~0.5% anual seguro vida + daños sobre saldo
+SEGUROS_PCT = 0.01  # ~1% anual seguro vida + daños sobre saldo (0.5% subestimaba: reales ~0.8–1.5%)
+CAT_GASTOS_PCT = 0.006  # avalúo, investigación y gastos administrativos anualizados (~0.6%)
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -60,9 +61,12 @@ def _pago_frances(monto: float, tasa_anual: float, n_meses: int) -> float:
     return round(pago, 2)
 
 
-def _cat_aproximado(tasa_anual: float, comision_pct: float) -> float:
-    """CAT aproximado: tasa + comisiones amortizadas + seguros. (Referencial.)"""
-    return round((tasa_anual + comision_pct / 20 + SEGUROS_PCT) * 100, 2)
+def _cat_aproximado(tasa_anual: float, comision_pct: float, plazo_anos: int = 20) -> float:
+    """CAT aproximado (referencial, NO el oficial): tasa + comisión de apertura amortizada al plazo REAL
+    + seguros (~1%) + gastos (~0.6%). Antes amortizaba la comisión con /20 fijo y usaba seguro 0.5% →
+    daba CAT ~+0.55pp (irreal); el CAT de mercado está ~+1.5–3pp sobre la tasa. El definitivo lo publica el banco."""
+    plazo = max(1, int(plazo_anos))
+    return round((tasa_anual + comision_pct / plazo + SEGUROS_PCT + CAT_GASTOS_PCT) * 100, 2)
 
 
 # ─── Cálculos por fuente ─────────────────────────────────────────────────────
@@ -166,7 +170,11 @@ def calculate_banca(
             continue
         tasa = b["tasa_anual"]
         pago_mensual = _pago_frances(monto_credito, tasa, n_meses)
-        dti = pago_mensual / ingreso_mensual
+        # Seguro mensual (vida + daños) sobre el saldo inicial — el pago REAL al banco lo incluye. El DTI se
+        # evalúa sobre el pago CON seguro (antes lo omitía y podía marcar "viable" un crédito que no lo es).
+        seguro_mensual = round(monto_credito * SEGUROS_PCT / 12.0, 2)
+        pago_total_mensual = round(pago_mensual + seguro_mensual, 2)
+        dti = pago_total_mensual / ingreso_mensual
         viable = dti <= DTI_MAX
         razon = None if viable else (
             f"DTI {round(dti*100, 1)}% supera el máximo {int(DTI_MAX*100)}% · sube enganche o aumenta plazo"
@@ -178,8 +186,11 @@ def calculate_banca(
             "enganche_monto": round(enganche_monto, 2),
             "enganche_pct": round(enganche_pct * 100, 2),
             "pago_mensual": pago_mensual,
+            "seguro_mensual": seguro_mensual,
+            "pago_total_mensual": pago_total_mensual,
             "tasa_anual_pct": round(tasa * 100, 2),
-            "cat_pct": _cat_aproximado(tasa, b["comision_apertura_pct"]),
+            "cat_pct": _cat_aproximado(tasa, b["comision_apertura_pct"], plazo_anos),
+            "cat_es_aproximado": True,
             "comision_apertura": round(monto_credito * b["comision_apertura_pct"], 2),
             "plazo_anos": plazo_anos,
             "n_pagos": n_meses,

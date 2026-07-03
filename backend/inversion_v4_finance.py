@@ -153,17 +153,48 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     # ── propiedad ──
     valor = _g(inp, "valor_propiedad", 0.0)
     terreno_pct = _g(inp, "valor_terreno_pct", 0.30)
-    escrit_pct = _g(inp, "gastos_escrituracion_pct", 0.08)
     equipamiento = _g(inp, "costo_equipamiento", 0.0)
-    costo_total = valor * (1.0 + escrit_pct) + equipamiento
+    # Escrituración/cierre REAL con el motor progresivo del Proyector (ISAI CDMX + notario + RPP + avalúo +
+    # IVA [+ hipoteca]) en vez de un % plano — así el desglose CUADRA con la pestaña de Impuestos. Si el
+    # caller manda gastos_escrituracion_pct explícito se respeta ese override (retrocompatible).
+    _escrit_override = _g(inp, "gastos_escrituracion_pct", 0.0)
+    _closing = None
+    if _escrit_override <= 0:
+        try:
+            import tax_projector_engine as _tpe
+            _cl = _tpe.calculate_closing_cost_total(
+                valor, _g(inp, "valor_catastral", 0.0),
+                con_credito_hipotecario=bool(inp.get("con_credito", True)))
+            if _cl.get("ok"):
+                _closing = _cl
+        except Exception:
+            _closing = None
+    gastos_escrit = _closing["total"] if _closing else valor * (_escrit_override if _escrit_override > 0 else 0.08)
+    escrit_pct = (gastos_escrit / valor) if valor else 0.08   # tasa efectiva de cierre (para reportes)
+    costo_total = valor + gastos_escrit + equipamiento
 
     # ── renta → ingreso efectivo anual neto de vacancia ──
+    # Salvaguarda: si la renta (o la tarifa Airbnb) llega vacía/0/negativa, estimamos una renta típica por
+    # cap rate de zona (default 5% anual) en vez de dejar que el 0 se propague a NOI/TIR/flujo como basura
+    # ("$6/mes", cap −0.52%, Airbnb −9% TIR). Lo marcamos con renta_estimada para que la UI pueda avisar.
+    renta_estimada = False
+    def _renta_ref():
+        rr = _g(inp, "renta_mensual", 0.0)
+        return rr if rr > 0 else round(valor * _g(inp, "cap_rate_tipico", 0.05) / 12.0)
     if renta_corto:
-        ingreso_bruto_anual = _g(inp, "tarifa_noche", 0.0) * 365.0 * _g(inp, "ocupacion_pct", 0.0)
+        tarifa_n = _g(inp, "tarifa_noche", 0.0)
+        ocup = _g(inp, "ocupacion_pct", 0.0)
+        if tarifa_n <= 0:
+            tarifa_n = round(_renta_ref() / 30.0 * 2.2); renta_estimada = True   # ≈ renta larga escalada a noche
+        if ocup <= 0:
+            ocup = 0.6
+        ingreso_bruto_anual = tarifa_n * 365.0 * ocup
         vacancia = 0.0
     else:
         renta_mensual = _g(inp, "renta_mensual", 0.0)
         vacancia = _g(inp, "tasa_vacancia", 0.05)
+        if renta_mensual <= 0:
+            renta_mensual = _renta_ref(); renta_estimada = True
         ingreso_bruto_anual = renta_mensual * 12.0
     ingreso_efectivo_anual = ingreso_bruto_anual * (1.0 - vacancia)
 
@@ -412,7 +443,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     }
 
     return {
-        "ok": True, "perfil": perfil, "multifamily": multifamily, "con_credito": con_credito,
+        "ok": True, "perfil": perfil, "multifamily": multifamily, "con_credito": con_credito, "renta_estimada": renta_estimada,
         # desglose del costo (estilo pro-forma) + fuentes de cada dato (de dónde sale)
         "desglose": {
             "valor_propiedad": round(valor), "enganche": round(capital_propio) if con_credito else round(costo_total),
@@ -420,8 +451,14 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "equipamiento": round(equipamiento), "costo_total": round(costo_total),
             "ingreso_bruto_anual": round(ingreso_bruto_anual), "ingreso_efectivo_anual": round(ingreso_efectivo_anual),
             "egresos_operativos": round(egresos), "capex_reserve": round(capex_reserve),
-            # de qué se componen los gastos de escrituración (proporcional al total; ISAI lo afina el Proyector de Impuestos)
-            "escrituracion_detalle": [
+            # de qué se componen los gastos de escrituración — números REALES del motor de cierre (mismo que
+            # el Proyector). El fallback proporcional solo si el motor no estuvo disponible.
+            "escrituracion_detalle": ([
+                {"concepto": "ISAI (impuesto por comprar)", "monto": round(_closing["isai"]), "nota": "tarifa progresiva CDMX 2026 · igual que el Proyector de Impuestos"},
+                {"concepto": "Honorarios del notario (con IVA)", "monto": round(_closing["notario_fees"] + _closing["iva"]), "nota": "redacta y da fe de la escritura"},
+                {"concepto": "Registro Público de la Propiedad", "monto": round(_closing["registro"]), "nota": "inscribe el depa a tu nombre"},
+                {"concepto": "Avalúo y gestorías", "monto": round(_closing["avaluo"] + _closing["gestorias"]), "nota": "trámites previos"},
+            ] + ([{"concepto": "Constitución de la hipoteca", "monto": round(_closing["hipoteca"]["total"]), "nota": "escritura del crédito ante notario"}] if _closing.get("hipoteca", {}).get("aplica") else [])) if _closing else [
                 {"concepto": "ISAI (impuesto por comprar)", "monto": round(valor * escrit_pct * 0.625), "nota": "el monto exacto lo calcula el Proyector de Impuestos"},
                 {"concepto": "Honorarios del notario", "monto": round(valor * escrit_pct * 0.1875), "nota": "redacta y da fe de la escritura"},
                 {"concepto": "Registro Público de la Propiedad", "monto": round(valor * escrit_pct * 0.125), "nota": "inscribe el depa a tu nombre"},

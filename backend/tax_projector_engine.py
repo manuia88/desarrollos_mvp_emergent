@@ -213,6 +213,48 @@ def _aplicar_tarifa(base: float, brackets: List[Dict[str, float]]) -> Dict[str, 
     return {"impuesto": round(impuesto, 2), "bracket_idx": len(brackets) - 1, "limite_inferior": round(last["limite_inferior"], 2), "limite_superior": round(last["limite_superior"], 2), "cuota_fija": round(last["cuota_fija"], 2), "excedente": round(excedente, 2), "marginal_pct": last["marginal_pct"]}
 
 
+def _isr_art126_core(precio_compra: float, precio_venta: float, terreno_pct: float,
+                     anios: int, factor_inpc: float, participacion_pct: float = 1.0) -> Dict[str, Any]:
+    """Núcleo ISR enajenación PF (art. 126 LISR) — SINGLE SOURCE OF TRUTH de la tarifa.
+    Recibe `anios` y `factor_inpc` YA calculados para servir a dos casos:
+      · Proyector (venta pasada→hoy): factor_inpc = INPC real por fechas.
+      · Calculadora de inversión (compra hoy→venta futura): factor_inpc = proxy (1+inflación)^años
+        (el INPC futuro no existe todavía; el proxy es lo correcto para proyectar).
+    Así ambas superficies usan la MISMA tarifa/método (art. 126), difiriendo solo en la fuente de INPC.
+    """
+    anios = max(1, min(20, int(anios)))
+    construccion_pct = 1.0 - terreno_pct
+    valor_terreno_original = precio_compra * terreno_pct
+    valor_construccion_original = precio_compra * construccion_pct
+    depreciacion_total_pct = min(DEPRECIACION_CAP_PCT, DEPRECIACION_ANUAL_PCT * anios) / 100.0
+    valor_construccion_depreciado = valor_construccion_original * (1.0 - depreciacion_total_pct)
+    terreno_actualizado = round(valor_terreno_original * factor_inpc, 2)
+    construccion_actualizada = round(valor_construccion_depreciado * factor_inpc, 2)
+    deducciones_actualizadas = round(terreno_actualizado + construccion_actualizada, 2)
+    ganancia_total = max(0.0, precio_venta - deducciones_actualizadas)
+    ganancia_gravable = round(ganancia_total * participacion_pct, 2)
+    ganancia_acumulable = round(ganancia_gravable / anios, 2)
+    tarifa = _aplicar_tarifa(ganancia_acumulable, LISR_ART_126_BRACKETS_2026)
+    isr_total = round(tarifa["impuesto"] * anios, 2)
+    isr_entidad = round(ganancia_gravable * 0.05, 2)
+    isr_federacion = round(max(0.0, isr_total - isr_entidad), 2)
+    tasa_efectiva = round((isr_total / ganancia_gravable * 100.0) if ganancia_gravable > 0 else 0.0, 2)
+    return {
+        "anios": anios, "factor_inpc": round(factor_inpc, 4),
+        "deducciones_actualizadas": deducciones_actualizadas,
+        "ganancia_gravable": ganancia_gravable, "ganancia_acumulable": ganancia_acumulable,
+        "isr_total": isr_total, "isr_entidad": isr_entidad, "isr_federacion": isr_federacion,
+        "tasa_efectiva_pct": tasa_efectiva, "construccion_pct": round(construccion_pct, 4),
+        "valor_terreno_original": round(valor_terreno_original, 2),
+        "valor_construccion_original": round(valor_construccion_original, 2),
+        "depreciacion_total_pct": round(depreciacion_total_pct * 100.0, 2),
+        "valor_construccion_depreciado": round(valor_construccion_depreciado, 2),
+        "terreno_actualizado": terreno_actualizado, "construccion_actualizada": construccion_actualizada,
+        "ganancia_total": round(ganancia_total, 2),
+        "tarifa_bracket_idx": tarifa["bracket_idx"], "tarifa_marginal_pct": tarifa["marginal_pct"],
+    }
+
+
 # ─── Funciones publicas ──────────────────────────────────────────────────────
 def calculate_isr_vendedor(
     precio_compra: float,
@@ -244,63 +286,42 @@ def calculate_isr_vendedor(
         if d_venta <= d_compra:
             return {"ok": False, "reason": "La fecha de venta debe ser posterior a la fecha de compra"}
 
-        anios = max(1, min(20, int((d_venta - d_compra).days / 365.25)))
+        # Años COMPLETOS de calendario (semántica SAT), NO int(días/365.25): ese floor convertía
+        # 5 años exactos con 1 bisiesto (1826 días → 4.9993 → 4) en 4, distorsionando la anualización.
+        anios = max(1, min(20, d_venta.year - d_compra.year
+                           - (1 if (d_venta.month, d_venta.day) < (d_compra.month, d_compra.day) else 0)))
         inpc_compra = _inpc_for(d_compra)
         inpc_venta = _inpc_for(d_venta)
         factor_inpc = inpc_venta / inpc_compra if inpc_compra > 0 else 1.0
 
-        construccion_pct = 1.0 - terreno_pct
-        valor_terreno_original = precio_compra * terreno_pct
-        valor_construccion_original = precio_compra * construccion_pct
-
-        # Depreciacion construccion
-        depreciacion_total_pct = min(DEPRECIACION_CAP_PCT, DEPRECIACION_ANUAL_PCT * anios) / 100.0
-        valor_construccion_depreciado = valor_construccion_original * (1.0 - depreciacion_total_pct)
-
-        # Actualizacion INPC
-        terreno_actualizado = round(valor_terreno_original * factor_inpc, 2)
-        construccion_actualizada = round(valor_construccion_depreciado * factor_inpc, 2)
-        deducciones_actualizadas = round(terreno_actualizado + construccion_actualizada, 2)
-
-        # Ganancia gravable (aplicar participacion para co-propietarios)
-        ganancia_total = max(0.0, precio_venta - deducciones_actualizadas)
-        ganancia_gravable = round(ganancia_total * participacion_pct, 2)
-        ganancia_acumulable = round(ganancia_gravable / anios, 2)
-
-        tarifa = _aplicar_tarifa(ganancia_acumulable, LISR_ART_126_BRACKETS_2026)
-        isr_total = round(tarifa["impuesto"] * anios, 2)
-
-        # Split entidad federativa (5% s/ganancia) vs federacion (resto)
-        isr_entidad = round(ganancia_gravable * 0.05, 2)
-        isr_federacion = round(max(0.0, isr_total - isr_entidad), 2)
-        tasa_efectiva = round((isr_total / ganancia_gravable * 100.0) if ganancia_gravable > 0 else 0.0, 2)
+        c = _isr_art126_core(precio_compra, precio_venta, terreno_pct, anios, factor_inpc, participacion_pct)
 
         return {
             "ok": True,
-            "deducciones_actualizadas": deducciones_actualizadas,
-            "ganancia_gravable": ganancia_gravable,
-            "ganancia_acumulable": ganancia_acumulable,
-            "isr_federacion": isr_federacion,
-            "isr_entidad": isr_entidad,
-            "isr_total": isr_total,
+            "deducciones_actualizadas": c["deducciones_actualizadas"],
+            "ganancia_gravable": c["ganancia_gravable"],
+            "ganancia_acumulable": c["ganancia_acumulable"],
+            "isr_federacion": c["isr_federacion"],
+            "isr_entidad": c["isr_entidad"],
+            "isr_total": c["isr_total"],
             "breakdown": {
-                "anios_tenencia": anios,
+                "anios_tenencia": c["anios"],
                 "inpc_compra": round(inpc_compra, 4),
                 "inpc_venta": round(inpc_venta, 4),
-                "factor_inpc": round(factor_inpc, 4),
+                "factor_inpc": c["factor_inpc"],
                 "terreno_pct": terreno_pct,
-                "construccion_pct": round(construccion_pct, 4),
-                "valor_terreno_original": round(valor_terreno_original, 2),
-                "valor_construccion_original": round(valor_construccion_original, 2),
-                "depreciacion_total_pct": round(depreciacion_total_pct * 100.0, 2),
-                "valor_construccion_depreciado": round(valor_construccion_depreciado, 2),
-                "terreno_actualizado": terreno_actualizado,
-                "construccion_actualizada": construccion_actualizada,
-                "ganancia_total": round(ganancia_total, 2),
+                "construccion_pct": c["construccion_pct"],
+                "valor_terreno_original": c["valor_terreno_original"],
+                "valor_construccion_original": c["valor_construccion_original"],
+                "depreciacion_total_pct": c["depreciacion_total_pct"],
+                "valor_construccion_depreciado": c["valor_construccion_depreciado"],
+                "terreno_actualizado": c["terreno_actualizado"],
+                "construccion_actualizada": c["construccion_actualizada"],
+                "ganancia_total": c["ganancia_total"],
                 "participacion_pct": participacion_pct,
-                "tarifa_bracket_idx": tarifa["bracket_idx"],
-                "tarifa_marginal_pct": tarifa["marginal_pct"],
-                "tasa_efectiva_pct": tasa_efectiva,
+                "tarifa_bracket_idx": c["tarifa_bracket_idx"],
+                "tarifa_marginal_pct": c["tarifa_marginal_pct"],
+                "tasa_efectiva_pct": c["tasa_efectiva_pct"],
             },
         }
     except Exception as e:  # noqa: BLE001

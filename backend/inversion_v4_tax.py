@@ -125,8 +125,6 @@ def isr_venta(ctx: Dict[str, Any]) -> Dict[str, Any]:
     costo_adq = _g(ctx, "costo_adquisicion", 0.0)
     terreno_pct = _g(ctx, "terreno_pct", 0.30)
     anios = int(_g(ctx, "horizonte_anios", 5))
-    com_venta = _g(ctx, "comision_venta_pct", 0.05)
-    gastos_venta = valor_venta * com_venta
     multifamily = ctx.get("multifamily", False)
 
     if perfil == "moral":
@@ -147,25 +145,19 @@ def isr_venta(ctx: Dict[str, Any]) -> Dict[str, Any]:
             and not ctx.get("uso_exencion_3anios", False)):
         return {"isr_venta": 0, "exento": True, "nota": f"Exención casa habitación (art. 93-XIX-a · tope {round(tope_exencion):,} MXN)"}
 
-    # ganancia con terreno/construcción separados + INPC (factor ≈ (1+inflación)^años · proxy editable)
+    # PF gravable — REUSA el núcleo art. 126 del Proyector (single source of truth de la tarifa), con INPC
+    # PROXY a futuro: la venta es a N años, el INPC futuro no existe todavía → (1+inflación)^años es lo correcto
+    # para proyectar. Antes usaba una tarifa art. 152 propia → daba un número distinto al Proyector aunque la UI
+    # decía "el mismo motor". La comisión de venta NO entra en la base del ISR (se resta aparte en "neto al vender").
+    import tax_projector_engine as _tpe
     inpc_factor = _g(ctx, "inpc_factor", (1.0 + _g(ctx, "inflacion_anual", 0.045)) ** anios)
-    costo_terreno = costo_adq * terreno_pct
-    costo_constr = costo_adq * (1 - terreno_pct)
-    depr_fiscal = min(costo_constr * 0.03 * anios, costo_constr * 0.80)        # construcción se deprecia (art. 124)
-    costo_terreno_act = costo_terreno * inpc_factor
-    costo_constr_act = (costo_constr - depr_fiscal) * inpc_factor
-    costo_comprobado_act = costo_terreno_act + costo_constr_act
-    # Los gastos de venta (comisión) se incurren AL vender → se deducen a valor nominal, NO se actualizan
-    # por INPC (solo el costo de adquisición se actualiza). Antes: gastos_venta*inpc_factor → sobre-deducía → subestimaba ISR.
-    ganancia = valor_venta - costo_comprobado_act - gastos_venta
-    if ganancia <= 0:
-        return {"isr_venta": 0, "exento": False, "nota": "Sin ganancia gravable tras actualización por INPC (revisar)"}
-    # ganancia anualizada (art. 120/124): se divide entre años, se grava, se multiplica
-    ganancia_anual = ganancia / max(anios, 1)
-    isr_anual = tarifa_art152(ganancia_anual)
-    isr = isr_anual * anios
-    return {"isr_venta": round(isr), "exento": False, "ganancia_gravable": round(ganancia),
-            "nota": "Estimación · terreno/construcción separados + INPC · el cálculo final lo hace el notario"}
+    core = _tpe._isr_art126_core(costo_adq, valor_venta, terreno_pct, anios, inpc_factor)
+    if core["ganancia_total"] <= 0:
+        return {"isr_venta": 0, "exento": False, "nota": "Sin ganancia gravable tras actualización por INPC"}
+    return {"isr_venta": int(core["isr_total"]), "exento": False, "ganancia_gravable": round(core["ganancia_gravable"]),
+            "isr_entidad": int(core["isr_entidad"]), "isr_federacion": int(core["isr_federacion"]),
+            "tasa_efectiva_pct": core["tasa_efectiva_pct"],
+            "nota": "Art. 126 LISR (mismo método del Proyector de Impuestos) · INPC proxy a futuro · el cálculo definitivo lo hace el notario"}
 
 
 def iva(ctx: Dict[str, Any]) -> Dict[str, Any]:

@@ -16,18 +16,21 @@ def _src(name: str) -> str:
 
 # ── COR-01/02 · inversion_v4_tax.isr_venta (ejecución real) ───────────────────
 
-def test_cor02_gastos_venta_nominal_no_inpc():
-    """PF: los gastos de venta NO se actualizan por INPC (se deducen nominales)."""
+def test_cor02_isr_pf_usa_nucleo_art126_del_proyector():
+    """PF gravable: la calc de inversión REUSA el núcleo art.126 del Proyector (single source of truth),
+    no una tarifa art.152 propia. La comisión de venta ya NO entra en la base del ISR (se resta en 'neto al vender')."""
     import inversion_v4_tax as t
+    import tax_projector_engine as p
     ctx = {"perfil": "fisica", "valor_venta": 6_000_000, "costo_adquisicion": 4_000_000,
            "terreno_pct": 0.30, "horizonte_anios": 8, "comision_venta_pct": 0.05,
            "es_casa_habitacion": False, "tipo_inmueble": "residencial",
            "inflacion_anual": 0.045, "udis_actual": 8.40}
     r = t.isr_venta(ctx)
-    # con gastos nominales la ganancia gravable ≈ 967k; si se inflaran por INPC daría ~840k
-    assert 965_000 <= r["ganancia_gravable"] <= 969_000, r
-    # y el código no debe multiplicar gastos_venta por inpc_factor
-    assert "gastos_venta * inpc_factor" not in _src("inversion_v4_tax.py")
+    core = p._isr_art126_core(4_000_000, 6_000_000, 0.30, 8, (1.045) ** 8)
+    assert r["isr_venta"] == int(core["isr_total"]), (r, core)
+    assert r["ganancia_gravable"] == round(core["ganancia_gravable"]), (r, core)
+    # el núcleo NO deduce comisión de venta de la base (se evita doble conteo con "neto al vender")
+    assert "gastos_venta" not in _src("inversion_v4_tax.py")
 
 
 def test_cor08_depreciacion_pm_topada():
