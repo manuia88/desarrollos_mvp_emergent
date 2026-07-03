@@ -18,12 +18,13 @@ import { PublicNav, LightScope } from '../components/ui';
 import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
 import { sendBuyerSignal } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
-import SeccionPanorama from '../components/ficha/SeccionPanorama';
-import PlanDePago from '../components/ficha/PlanDePago';
-import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
-import SeccionDinero from '../components/ficha/SeccionDinero';
-import SeccionConfianza from '../components/ficha/SeccionConfianza';
-import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
+// EN STANDBY (founder) hasta terminar el diseño puro — se re-cablean después:
+// import SeccionPanorama from '../components/ficha/SeccionPanorama';
+// import PlanDePago from '../components/ficha/PlanDePago';
+// import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
+// import SeccionDinero from '../components/ficha/SeccionDinero';
+// import SeccionConfianza from '../components/ficha/SeccionConfianza';
+// import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
@@ -59,22 +60,23 @@ const AVM_LABEL = { bajo: 'Buen precio', justo: 'En línea', alto: 'Sobre mercad
 const planoOf = (dev, u) => u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || null;
 
 // sub-nav — orden de apartments.com
+// Nota: Tu dinero (calculadoras), Confianza y el mapa/crédito quedan EN STANDBY (founder) para clonar
+// el diseño puro de apartments.com primero. Se re-cablearán después. Se conservan sus imports comentados.
 const NAV = [
   ['destacados', 'Destacados'],
   ['precios', 'Precios y modelos'],
-  ['dinero', 'Tu dinero'],       // upgrade DMX
   ['tarifas', 'Tarifas y políticas'],
   ['tour', 'Recorrido 3D'],
   ['servicios', 'Servicios'],
   ['detalles', 'Detalles'],
   ['ubicacion', 'Ubicación'],
   ['resenas', 'Reseñas'],
-  ['confianza', 'Confianza'],    // upgrade DMX
 ];
 
 // ── átomos UI estilo apts ────────────────────────────────────────────────────
 const box = { background: C.bg, border: `1px solid ${C.line}`, borderRadius: 12 };
-function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 26, color: C.ink, margin: 0, letterSpacing: '-0.01em' }}>{children}</h2>; }
+// apartments.com: títulos de sección grandes, PESO LIGERO, gris #4C4C4C (extraído del CSS real)
+function H2({ children }) { return <h2 style={{ fontFamily: FONT, fontWeight: 300, fontSize: 30, color: '#4C4C4C', margin: 0, letterSpacing: 0 }}>{children}</h2>; }
 function DmxChip() { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentSoft, border: `1px solid ${C.accent}33`, borderRadius: 9999, padding: '2px 9px', letterSpacing: '0.02em' }}>✦ Solo en DMX</span>; }
 function CtaGrad({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>{children}</button>; }
 function CtaGhost({ onClick, children }) { return <button onClick={onClick} style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${C.accent}`, background: '#fff', color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 14.5, cursor: 'pointer' }}>{children}</button>; }
@@ -475,18 +477,7 @@ export default function FichaVenta() {
               <VentaPrecios dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onAgendar={() => agendar('agendar')} avm={avm} onOpenModel={setOpenModel} />
             </Section>
 
-            {/* UPGRADE DMX */}
-            <Section id="dinero" refEl={refs.dinero} title="Tu dinero" note={<DmxChip />}>
-              <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: 9, overflow: 'hidden', width: 'fit-content', marginBottom: 16 }}>
-                {[['invertir', 'Como inversión'], ['vivir', 'Para vivir']].map(([k, l], idx) => <button key={k} onClick={() => setLens(k)} style={{ padding: '9px 18px', border: 'none', borderLeft: idx ? `1px solid ${C.line}` : 'none', background: lens === k ? C.accent : '#fff', color: lens === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>)}
-              </div>
-              {!unit && <div style={{ ...box, padding: '12px 16px', marginBottom: 16, background: C.accentSoft, border: `1px solid ${C.accent}33`, fontFamily: FONT, fontSize: 13.5, color: C.ink2 }}>Elige una unidad arriba en <b>Precios y modelos</b> para ver tus números exactos.</div>}
-              <div style={{ marginBottom: 22 }}><SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} /></div>
-              <PlanDePago dev={dev} unit={unit} />
-              {unit && (lens === 'invertir'
-                ? <div style={{ marginTop: 24 }}><SeccionCalcInversion dev={dev} unit={unit} mode="individual" onGoTo={scrollTo} /></div>
-                : <div style={{ marginTop: 24 }}><SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="rentobuy" /></div>)}
-            </Section>
+            {/* Tu dinero (calculadoras) → EN STANDBY hasta acabar el diseño puro. */}
 
             <Section id="tarifas" refEl={refs.tarifas} title="Tarifas y políticas">
               <VentaTarifas dev={dev} />
@@ -503,15 +494,21 @@ export default function FichaVenta() {
 
             <Section id="detalles" refEl={refs.detalles} title="Detalles"><VentaDetalles dev={dev} /></Section>
 
-            <Section id="ubicacion" refEl={refs.ubicacion} title="Ubicación"><SeccionUbicacion dev={dev} /></Section>
+            <Section id="ubicacion" refEl={refs.ubicacion} title="Ubicación">
+              <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
+                <div style={{ height: 280, background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${C.line}` }}>
+                  <div style={{ textAlign: 'center', color: C.faint, fontFamily: FONT }}><div style={{ fontSize: 26 }}>📍</div><div style={{ fontSize: 13, marginTop: 6 }}>Mapa interactivo — próximamente</div></div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto' }}>
+                  {['Escuelas', 'Restaurantes', 'Supermercados', 'Café', 'Transporte', 'Parques'].map((c) => <button key={c} style={{ padding: '8px 14px', borderRadius: 9999, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontSize: 13, cursor: 'default', whiteSpace: 'nowrap' }}>{c}</button>)}
+                </div>
+                <div style={{ padding: '14px 16px', fontFamily: FONT, fontSize: 14, color: C.ink2, borderTop: `1px solid ${C.line2}` }}>{dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ')}</div>
+              </div>
+            </Section>
 
             <Section id="resenas" refEl={refs.resenas} title="Reseñas"><VentaResenas devId={dev.id} /></Section>
 
-            {/* UPGRADE DMX */}
-            <Section id="confianza" refEl={refs.confianza} title="Confianza" note={<DmxChip />}>
-              {seals.length > 0 && <div style={{ ...box, padding: '16px 20px', marginBottom: 18 }}><div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: C.faint, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 10 }}>El desarrollador{developer.name ? ` · ${developer.name}` : ''}</div><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{seals.map((s, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999, background: '#E9F7EF', border: '1px solid #B7E4C7', fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.green }}>✓ {s}</span>)}</div></div>}
-              <SeccionConfianza dev={dev} />
-            </Section>
+            {/* Confianza (riesgo/sellos) → EN STANDBY hasta acabar el diseño puro. */}
 
             {similars.length > 0 && (
               <Section title="Desarrollos cercanos">
