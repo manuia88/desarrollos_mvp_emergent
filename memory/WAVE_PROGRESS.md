@@ -15,6 +15,8 @@ Calculadora de inversión nivel fondo en `/zona/{slug}` → Invertir. "Pro por d
 | **Feeds** | Atlas Riesgos CDMX (`/atlas-riesgo/ingest`) · Índice SHF 1T2026 (`/shf/refresh` · CDMX 5.1%/nacional 8.7%) · absorción | ✅ dev · ⏳ correr ingest en prod |
 | **Multitenant/analíticas** | lead por desarrollo + pool DMX (política) · log anónimo → `/analytics` demanda revelada superadmin | ✅ |
 | **Verificación** | 11 tests + 41 invariantes + verificado en app · portafolio validado por 2 caminos | ✅ |
+| **Ficha venta (`?venta=1`) + look calcV4** | calc de inversión + hipotecaria + planes de pago + ISAI al look calcV4 · tabs guiadas · Renta vs Airbnb rediseñada · globitos simples + title case | ✅ 2026-07-03 |
+| **Auditoría fiscal (2026-07-03)** | ISR/ISAI unificados al motor canónico del Proyector (art.126 · `_isr_art126_core`) + bug de años + salvaguardas renta≤0 + CAT real · suite backend 1258 verde · ver `auditoria/CORRECCIONES.md` Batch 12 | ✅ |
 
 ---
 

@@ -129,3 +129,14 @@ Ver tabla COR-01..09 en HALLAZGOS.md. Fixes en 7 motores (inversion_v4_tax/finan
 
 ## Batch 11 · Rendimiento — índices seguros aplicados (resto = backlog en MEJORAS.md)
 Workflow 18 archivos → 43 anti-patrones (verificación adversarial CAÍDA por rate-limits → tratados como backlog, no confirmados). Sin tráfico en prod → no urge; NO se reescribieron N+1 (riesgo sin beneficio). **Aplicado:** 4 índices seguros en `dev_scale_indexes.py` (idempotentes, background): `colonias.id` (FALTANTE confirmado · 2,788 docs · hot), `buyer_signals (type, created_at_dt)`, `marketplace_searches (created_at_dt)`, `asistente_messages (role, created_at)`. Verificados creándose contra el Mongo vivo. Backlog completo (43, priorizado, con corrección por hallazgo) + resumen de dependencias en `auditoria/MEJORAS.md`.
+
+## Batch 12 · Auditoría motores fiscales de la calculadora de inversión (ISR/ISAI/hipoteca) — ✅ (2026-07-03)
+Workflow de auditoría (4 agentes + verificación adversarial, python real) sobre los motores de cálculo. Corregido:
+- **ISR venta unificado a art.126 (single source of truth).** La calc de inversión usaba tarifa art.152 propia (~$97k) mientras el Proyector usa art.126 (~$170k) y la UI decía "el mismo motor". Se extrajo `tax_projector_engine._isr_art126_core`; `inversion_v4_tax.isr_venta` lo reusa con INPC **proxy** a futuro (la venta es a N años). Preserva exención casa-habitación + rama persona moral. La comisión de venta sale de la base del ISR (se resta en "neto al vender", sin doble conteo).
+- **Bug art.126 (afectaba también al Proyector):** `int(días/365.25)` contaba 5 años de calendario exactos (1826 días con bisiesto) como 4 → ahora años de calendario completos (semántica SAT). Golden vs PDF SAT sigue verde.
+- **ISAI/escrituración:** el desglose usaba 8% plano + reparto inventado (ISAI 5% plano vs 5.67% real, notario +50%, RPP +140% off) → ahora `calculate_closing_cost_total` (ISAI progresivo CDMX real). El ISAI de la calc **coincide al peso** con el del Proyector ($328,664 = $328,664).
+- **Salvaguarda renta≤0** (evita el análisis basura "$6/mes", cap −0.52%) + **Airbnb sin tarifa** → estima por cap rate típico y marca `renta_estimada`.
+- **CAT hipotecario** irreal (+0.55pp) → +1.5–3pp (seguro 0.5%→1%, comisión amortizada al plazo REAL, gastos); el pago expone `seguro_mensual`/`pago_total_mensual` y el DTI se evalúa CON seguro (antes podía marcar "viable" un crédito que no lo es).
+- Correctos y sin cambios (verificados): PMT francés, split capital/interés, DSCR, debt yield, cobertura, TIR, MIRR, VPN, cap rate, equity multiple.
+
+Verificación: `tests/test_audit_correctness.py` actualizado + suite backend **1258 passed, 0 failures** · verificado en vivo en la ficha (`?venta=1`) y `/simulador`. Doc de decisión: memoria `tax-engine-canonical`.
