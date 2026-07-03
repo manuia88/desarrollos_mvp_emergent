@@ -17,6 +17,12 @@ Activa, todos de golpe: freno de AirROI en los crons, cierre de la fuga de datos
 (AUD-027), gentrificación/budgets protegidos (AUD-028/029), rate-limit de invite-codes (AUD-030),
 y los fixes de auth del Batch 3 (AUD-021/022/023).
 
+## 1.5 · Dependencias con CVE (subir versión al construir la imagen · pip-audit 2026-07-02)
+Al reconstruir el venv/imagen para deploy, subir estas versiones en `backend/requirements.txt` y **correr la suite + smoke test** después (algunas pueden romper). `litellm` ya se **borró** (huérfano, cero imports · quitó 7 avisos).
+- [ ] Bajo riesgo (patch/minor de seguridad): `PyJWT` 2.12.1→2.13.0 (firma sesiones), `cryptography` 46.0.7→48.0.1, `urllib3` 2.6.3→2.7.0, `idna` 3.11→3.15, `pymongo` 4.6.0→4.6.3, `python-dotenv` 1.0.0→1.2.2, `msgpack` 1.1.2→1.2.1, `pydantic-settings` 2.14.1→2.14.2, `aiohttp`→último patch.
+- [ ] **Acoplado (RIESGO · probar juntos):** `fastapi` 0.104.1→≥0.109.1 + `starlette` 0.27.0→(la que pida fastapi) + `python-multipart` 0.0.6→0.0.31. fastapi moderno exige starlette ≥0.40 y pydantic v2 → **probar formularios/uploads + arranque** antes de mergear.
+- [ ] Frontend (yarn audit 59 avisos, 2 críticos): casi todos son transitivos del build (webpack/babel) que NO viajan al bundle → prioridad baja; `yarn upgrade` de los que sí sean runtime.
+
 ## 2. Variables de entorno en prod (sin esto = fail-open o se rompe)
 - [ ] `AIRROI_ENABLED=true` — (nuevo) freno de emergencia; ponlo `false` para apagar AirROI sin deploy.
 - [ ] `DMX_ENV=production`
