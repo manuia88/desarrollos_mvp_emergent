@@ -1943,6 +1943,49 @@ async def list_developments(
                 c["units_match"] = match_counts[cid]
             if match_samples.get(cid):
                 c["units_match_sample"] = match_samples[cid]
+
+    # DEMANDA REVELADA por el buscador ESTRUCTURADO (chips) — antes NO se registraba, así que quien filtra con
+    # chips en vez de escribir en la barra IA era INVISIBLE a la inteligencia de demanda. Escribimos
+    # marketplace_searches (mismo shape que ai_search) fire-and-forget: solo con filtros REALES, 1ª página (offset 0)
+    # y visitor_id presente, deduplicado por visitante+criterios+día. Fail-open, jamás bloquea la respuesta.
+    try:
+        import hashlib as _hashlib, json as _json
+        from datetime import datetime as _dt
+        _has_filter = any([colonia, min_price, max_price, min_sqm, max_sqm, beds, baths, parking, stage, tipo,
+                           unit_feature, amenity, enganche_max, mensualidad_max, orientacion, piso_min])
+        if _has_filter and offset == 0 and visitor_id:
+            from data_developments import colonia_slug as _cslug   # MOAT: id canónico (linaje cross-engine)
+            _db = request.app.state.db
+            _cols = [s for s in (_cslug(c) for c in (colonia or [])) if s]
+            _amen = [str(a) for a in (amenity or [])][:15]
+            _feat = [str(f) for f in (unit_feature or [])][:15]
+            _rc = len(results)
+            _crit = {
+                "source": "filtro_estructurado",
+                "colonias": _cols, "colonia_id": (_cols[0] if _cols else None),
+                "recamaras_min": beds, "banos_min": baths,
+                "precio_min": min_price, "precio_max": max_price,
+                "m2_min": min_sqm, "m2_max": max_sqm,
+                "enganche_max": enganche_max, "mensualidad_max": mensualidad_max,
+                "stage_pedido": stage, "tipo_pedido": tipo,
+                "amenidades_pedidas": _amen, "features_pedidos": _feat,
+                "results_count": _rc, "unmet": _rc == 0,
+                "visitor_id": visitor_id[:64],
+            }
+            _key = _hashlib.sha256(_json.dumps(
+                {k: _crit[k] for k in ("colonias", "recamaras_min", "banos_min", "precio_max", "m2_min", "m2_max",
+                                       "amenidades_pedidas", "features_pedidos", "stage_pedido", "tipo_pedido")},
+                sort_keys=True, default=str).encode()).hexdigest()[:16]
+            _today0 = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            _dup = await _db.marketplace_searches.find_one(
+                {"source": "filtro_estructurado", "visitor_id": _crit["visitor_id"], "crit_key": _key,
+                 "created_at_dt": {"$gte": _today0}}, {"_id": 1})
+            if not _dup:
+                _crit["crit_key"] = _key
+                _crit["created_at_dt"] = _dt.utcnow()
+                await _db.marketplace_searches.insert_one(_crit)
+    except Exception:
+        pass
     return cards
 
 

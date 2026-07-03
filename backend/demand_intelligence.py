@@ -18,7 +18,10 @@ from typing import Any, Dict, List, Optional
 
 _ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwell", "photo_zoom", "intent", "save",
            "atlax_profile", "zone_profile", "lens", "module_open", "section_view",
-           "atlax_query", "atlax_apartado"]   # + señales explícitas (amenidades/filtros de CADA pregunta a Atlax)
+           "atlax_query", "atlax_apartado",
+           # Intención financiera/casi-compra de la ficha (antes capturadas-y-muertas): elegir crédito, calcular el
+           # cierre, tocar el teléfono, abrir el tour — señales calientes que ahora cuentan en engagement/demanda.
+           "credit_selected", "cierre_computed", "phone_click", "tour_view"]   # + señales explícitas (amenidades/filtros de CADA pregunta a Atlax)
 
 
 def _as_feature_list(v):
@@ -1066,11 +1069,24 @@ async def financial_intent(db, colonias: Optional[List[str]] = None, since_days:
     eng_band = defaultdict(int); tir_band = defaultdict(int)     # distribución, no solo promedio
     mens_band = defaultdict(int); mens_vals = []
     by_col = defaultdict(lambda: {"pago": 0, "roi": 0}); recency = defaultdict(int)
-    async for s in db.buyer_signals.find({**q, "type": {"$in": ["payment_explore", "roi_explore"]}},
+    bancos = defaultdict(int); credito_n = 0; cierre_n = 0     # embudo profundo: eligió banco / calculó el cierre
+    async for s in db.buyer_signals.find({**q, "type": {"$in": ["payment_explore", "roi_explore", "credit_selected", "cierre_computed"]}},
                                          {"_id": 0, "type": 1, "meta": 1, "colonia": 1, "created_at_dt": 1}):
         meta = s.get("meta") or {}
         col = s.get("colonia")
         recency[_time_band(s.get("created_at_dt"), now)] += 1
+        if s["type"] == "credit_selected":       # eligió banco+plan — demanda por banco (dato de negociación)
+            credito_n += 1
+            if meta.get("banco"):
+                bancos[str(meta["banco"])] += 1
+            if col:
+                by_col[col]["pago"] += 1
+            continue
+        if s["type"] == "cierre_computed":        # calculó ISAI+cierre — avanza al cierre
+            cierre_n += 1
+            if col:
+                by_col[col]["pago"] += 1
+            continue
         if s["type"] == "payment_explore":
             pay += 1
             if col:
@@ -1096,6 +1112,8 @@ async def financial_intent(db, colonias: Optional[List[str]] = None, since_days:
     total = pay + roi
     col_rows = sorted(by_col.items(), key=lambda x: -(x[1]["pago"] + x[1]["roi"]))[:10]
     return {"exploraron_pago": pay, "exploraron_roi": roi,
+            "eligieron_credito": credito_n, "calcularon_cierre": cierre_n,
+            "bancos_preferidos": dict(sorted(bancos.items(), key=lambda x: -x[1])[:6]),
             "enganche_promedio_pct": round(sum(enganches) / len(enganches), 1) if enganches else None,
             "tir_buscado_promedio_pct": round(sum(tirs) / len(tirs), 1) if tirs else None,
             "esquemas_preferidos": dict(sorted(esquemas.items(), key=lambda x: -x[1])[:5]),

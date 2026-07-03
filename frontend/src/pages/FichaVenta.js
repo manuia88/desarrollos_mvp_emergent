@@ -33,6 +33,23 @@ import { tc as titleCase } from '../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// ── Señal del comprador con MÁXIMA segmentación ──────────────────────────────────────────────
+// El backend indexa entity_id/unit_number/colonia/value/dwell_ms/seconds/device en el top-level; TODO lo demás
+// (banco/tasa/cat/precio/enganche/plazo/recámaras/feature/sección/intención…) DEBE ir en `meta` o se descarta.
+// Este helper rutea automáticamente: lo indexable arriba, el resto a meta. Un solo punto para no perder nunca la
+// segmentación (antes se mandaba todo al top-level y el backend lo tiraba silenciosamente).
+const FV_SIGNAL_TOP = new Set(['entity_id', 'unit_number', 'colonia', 'value', 'dwell_ms', 'seconds', 'device']);
+function fvSignal(type, opts = {}) {
+  try {
+    const top = {}; const meta = {};
+    for (const [k, v] of Object.entries(opts || {})) {
+      if (v === undefined || v === null || v === '') continue;
+      (FV_SIGNAL_TOP.has(k) ? top : meta)[k] = v;
+    }
+    sendBuyerSignal(type, { ...top, meta: Object.keys(meta).length ? meta : undefined });
+  } catch { /* fail-open */ }
+}
+
 // ── design tokens (spec del founder · valores exactos) ──────────────────────
 const C = {
   ink: '#000000',        // texto principal / precios (spec)
@@ -263,7 +280,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
         {bedOpts.length > 1 ? (
           <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: R_CARD, overflow: 'hidden', width: 'fit-content' }}>
             {[['all', 'Todas'], ...bedOpts.map((n) => [String(n), bedLabel(n)])].map(([k, l], idx) => (
-              <button key={k} onClick={() => setBed(k)} style={{ padding: '9px 18px', border: 'none', borderLeft: idx ? `1px solid ${C.line}` : 'none', background: bed === k ? C.accent : '#fff', color: bed === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
+              <button key={k} onClick={() => { setBed(k); if (k !== 'all') fvSignal('section_view', { entity_id: dev.id, colonia: dev.colonia, value: `recamaras:${k}`, recamaras: k }); }} style={{ padding: '9px 18px', border: 'none', borderLeft: idx ? `1px solid ${C.line}` : 'none', background: bed === k ? C.accent : '#fff', color: bed === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
             ))}
           </div>
         ) : <span />}
@@ -551,7 +568,7 @@ function AgendarModal({ dev, unit, onClose }) {
   const progress = (day ? 0.34 : 0) + (hour ? 0.33 : 0) + (contactOk ? 0.33 : 0);
   const submit = async () => {
     if (!ready || busy) return; setBusy(true); setErr(false);
-    try { const r = await registrar(dev, unit, { name: name.trim(), phone: phone.trim(), source: 'ficha_agendar', contexto: `Visita ${day} ${hour}` }); if (!r.ok) throw new Error(); setSent(true); try { sendBuyerSignal('agendar', { entity_id: dev.id, value: `${day} ${hour}` }); } catch (e) { /* noop */ } } catch (e) { setErr(true); }
+    try { const r = await registrar(dev, unit, { name: name.trim(), phone: phone.trim(), source: 'ficha_agendar', contexto: `Visita ${day} ${hour}` }); if (!r.ok) throw new Error(); setSent(true); fvSignal('intent', { entity_id: dev.id, unit_number: unit ? unit.unit_number : null, colonia: dev.colonia, value: 'agendar', dia: day, hora: hour, precio: unit ? unit.price : null }); } catch (e) { setErr(true); }
     setBusy(false);
   };
   if (sent) return (
@@ -1022,14 +1039,14 @@ function TabPlanesPago({ dev, unit, onLead }) {
   }, [scrollTick]);
 
   // señal de demanda (fail-open) — alimenta el Modelo de la Demanda. REUSA sendBuyerSignal.
-  const signal = (type, extra) => { try { sendBuyerSignal(type, { entity_id: dev.id, colonia: dev.colonia, ...extra }); } catch { /* noop */ } };
+  const signal = (type, extra) => fvSignal(type, { entity_id: dev.id, colonia: dev.colonia, ...extra });
   const planSig = (p) => (p ? { unit_number: p.unit ? p.unit.unit_number : null, precio: p.price, enganche_pct: p.eng, mensualidades_pct: p.mens, escritura_pct: p.esc, meses: p.meses } : {});
 
   const onPlanChange = useCallback((p) => setPlan(p), []);
   const onCierre = useCallback((r) => { setCierre(r); signal('cierre_computed', { precio: r.precio, con_credito: r.con_credito, cierre_total: r.closing && r.closing.total, isai: r.closing && r.closing.isai }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goCredito = () => { setCredito(null); setTab('credito'); setScrollTick((t) => t + 1); signal('plan_explore', { via: 'credito', ...planSig(plan) }); };
-  const goEscrituracion = () => { setCredito(null); setTab('cierre'); setScrollTick((t) => t + 1); signal('plan_explore', { via: 'contado', ...planSig(plan) }); };
+  const goCredito = () => { setCredito(null); setTab('credito'); setScrollTick((t) => t + 1); signal('payment_explore', { via: 'credito', ...planSig(plan) }); };
+  const goEscrituracion = () => { setCredito(null); setTab('cierre'); setScrollTick((t) => t + 1); signal('payment_explore', { via: 'contado', ...planSig(plan) }); };
   const onElegirCredito = (b) => {
     setCredito({ banco: b.banco, producto: b.producto, tasa: b.tasa, cat: b.cat, pago: b.pago, monto: b.monto, meses: b.meses, enganchePct: plan ? plan.enganchePctCredito : null });
     setTab('cierre'); setScrollTick((t) => t + 1);
@@ -1091,7 +1108,7 @@ function TabPlanesPago({ dev, unit, onLead }) {
       {tab === 'resumen' && (
         <FichaResumenCierre dev={dev} plan={plan} credito={credito} cierre={cierre}
           onGoCierre={() => { setTab('cierre'); setScrollTick((t) => t + 1); }}
-          onApartar={(u) => { signal('apartar_intent', { unit_number: u ? u.unit_number : null, con_credito: !!credito, ...planSig(plan) }); if (onLead) onLead(u); }} />
+          onApartar={(u) => { signal('atlax_apartado', { unit_number: u ? u.unit_number : null, con_credito: !!credito, banco: credito ? credito.banco : null, ...planSig(plan) }); if (onLead) onLead(u); }} />
       )}
     </div>
   );
@@ -1187,16 +1204,26 @@ export default function FichaVenta() {
     return () => { alive = false; };
   }, [dev && dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Ref de contexto vivo (dev/unit/lens) para que goTab/pickUnit (useCallback estables) emitan señal SIN capturar
+  // valores stale. Se actualiza en cada render.
+  const sigRef = useRef({});
+  sigRef.current = { dev, unit, lens };
   // Tabs = paneles (cada tab su propio espacio, NO scroll infinito). Al cambiar, re-fija la barra bajo el nav.
   const panelTopRef = useRef(null);
   const goTab = useCallback((k) => {
     setActiveNav(k);
+    const c = sigRef.current;   // section_view: qué contenido capta la atención del comprador (colonia+unidad+lente)
+    if (c.dev) fvSignal('section_view', { entity_id: c.dev.id, colonia: c.dev.colonia, value: k, unit_number: c.unit ? c.unit.unit_number : null, lens: c.lens });
     requestAnimationFrame(() => { const el = panelTopRef.current; if (!el) return; const y = el.getBoundingClientRect().top + window.scrollY - 56; if (window.scrollY > y) window.scrollTo({ top: y, behavior: 'auto' }); });
   }, []);
 
   const agendar = useCallback((reason) => setConv({ type: reason === 'mensaje' ? 'mensaje' : reason === 'compartir' ? 'compartir' : 'agendar' }), []);
-  const toggleSaveUnit = useCallback(() => { if (!unit) return; setSavedUnits((s) => { const n = new Set(s); n.has(unit.unit_number) ? n.delete(unit.unit_number) : n.add(unit.unit_number); return n; }); try { sendBuyerSignal('save_unit', { entity_id: dev?.id, unit_number: unit.unit_number }); } catch (e) { /* noop */ } }, [unit, dev]);
-  const pickUnit = useCallback((u) => { setUnit(u); }, []);
+  const toggleSaveUnit = useCallback(() => { if (!unit) return; const willSave = !savedUnits.has(unit.unit_number); setSavedUnits((s) => { const n = new Set(s); willSave ? n.add(unit.unit_number) : n.delete(unit.unit_number); return n; }); fvSignal(willSave ? 'unit_save' : 'unit_unsave', { entity_id: dev?.id, unit_number: unit.unit_number, colonia: dev?.colonia, precio: unit.price, recamaras: unit.bedrooms, banos: unit.bathrooms, m2: unit.m2_privative || unit.m2_total, lens }); }, [unit, dev, savedUnits, lens]);
+  const pickUnit = useCallback((u) => {
+    setUnit(u);
+    const c = sigRef.current;   // unit_view: unidad como átomo — precisión a nivel unidad (precio/recámaras/m²)
+    if (u && c.dev) fvSignal('unit_view', { entity_id: c.dev.id, colonia: c.dev.colonia, unit_number: u.unit_number, precio: u.price, recamaras: u.bedrooms, banos: u.bathrooms, m2: u.m2_privative || u.m2_total, lens: c.lens });
+  }, []);
 
   const navRef = useRef(null);
   useEffect(() => {
@@ -1244,8 +1271,8 @@ export default function FichaVenta() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <button aria-label="Compartir" onClick={() => setConv({ type: 'compartir' })} style={iconBtn}>↗</button>
-              <button aria-label="Guardar en favoritos" onClick={() => { setDevFav((v) => !v); try { sendBuyerSignal('favorite', { entity_id: dev.id }); } catch (e) { /* noop */ } }} style={{ ...iconBtn, color: devFav ? C.accent : C.ink2, borderColor: devFav ? C.accent : C.line }}>{devFav ? '♥' : '♡'}</button>
+              <button aria-label="Compartir" onClick={() => { setConv({ type: 'compartir' }); fvSignal('share', { entity_id: dev.id, colonia: dev.colonia, unit_number: unit ? unit.unit_number : null }); }} style={iconBtn}>↗</button>
+              <button aria-label="Guardar en favoritos" onClick={() => { const willFav = !devFav; setDevFav(willFav); fvSignal(willFav ? 'save' : 'unsave', { entity_id: dev.id, colonia: dev.colonia, lens }); }} style={{ ...iconBtn, color: devFav ? C.accent : C.ink2, borderColor: devFav ? C.accent : C.line }}>{devFav ? '♥' : '♡'}</button>
             </div>
           </div>
           <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
@@ -1343,7 +1370,7 @@ export default function FichaVenta() {
                 {unit && <button onClick={toggleSaveUnit} style={{ width: '100%', padding: 12, borderRadius: R_BTN, border: `1px solid ${C.line}`, background: '#fff', color: C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>{savedUnits.has(unit.unit_number) ? '♥ Guardada' : `Guardar la ${unit.unit_number}`}</button>}
               </div>
               {/* Teléfono como enlace con ícono, precedido de divisor (spec §5) */}
-              {developer.phone && <a href={`tel:${developer.phone}`} onClick={() => { try { sendBuyerSignal('phone_click', { entity_id: dev.id }); } catch (e) { /* noop */ } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.link, textDecoration: 'none' }}>📱 {developer.phone}</a>}
+              {developer.phone && <a href={`tel:${developer.phone}`} onClick={() => fvSignal('phone_click', { entity_id: dev.id, colonia: dev.colonia, unit_number: unit ? unit.unit_number : null, value: 'developer' })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.link, textDecoration: 'none' }}>📱 {developer.phone}</a>}
               {/* Recorrido + idioma + horario (patrón apts §5) */}
               <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 84, flex: 'none' }}>🌐 Idioma</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}>Español · Inglés</span></div>

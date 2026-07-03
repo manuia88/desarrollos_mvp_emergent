@@ -60,7 +60,11 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "roi_explore",    # exploró rentabilidad/ROI (meta = escenario/yield/plusvalía) — lente inversionista
          # Engagement profundo de contenido (antes invisible):
          "tour_view",      # abrió el tour 3D / video / recorrido (value = tipo) — interés visual alto
-         "scroll_depth"}   # qué tan profundo bajó en la ficha (value = % máximo) — qué tanto leyó
+         "scroll_depth",   # qué tan profundo bajó en la ficha (value = % máximo) — qué tanto leyó
+         # Exploración financiera profunda de la ficha (máxima segmentación: banco/tasa/CAT/enganche/plazo/ISAI):
+         "credit_selected",  # eligió banco + plan de crédito (meta = banco/tasa/cat/monto/mensualidad) — intención financiera
+         "cierre_computed",  # calculó ISAI + costos de cierre (meta = isai/total/con_credito) — avanza al cierre
+         "phone_click"}      # tocó el teléfono del desarrollador (value = origen) — intención altísima
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -176,15 +180,18 @@ async def buyer_signal(s: SignalIn, request: Request):
             "ip_hash": ip_hash,
             "created_at_dt": now,
         }
-        # meta granular: se guarda en las señales que la traen (Atlax + perfil de zona + apartado), sanitizado y acotado.
-        if s.type in ("atlax_query", "atlax_profile", "dismiss", "zone_profile", "atlax_apartado", "payment_explore", "roi_explore") and isinstance(s.meta, dict):
+        # MÁXIMA GRANULARIDAD: persistimos la meta de CUALQUIER señal que la traiga (sanitizada + acotada), no solo
+        # un whitelist — así cada interacción (crédito/cierre/sección/unidad/galería…) conserva TODAS sus dimensiones
+        # (colonia+unidad ya van arriba; aquí banco/tasa/cat/enganche/plazo/isai/feature/intent/sección…).
+        if isinstance(s.meta, dict) and s.meta:
             clean = {}
-            for k, v in list(s.meta.items())[:20]:
+            for k, v in list(s.meta.items())[:24]:
                 if isinstance(v, (str, int, float, bool)) or v is None:
                     clean[str(k)[:40]] = (v[:120] if isinstance(v, str) else v)
                 elif isinstance(v, list):
                     clean[str(k)[:40]] = [str(x)[:60] for x in v[:15]]
-            doc["meta"] = clean
+            if clean:
+                doc["meta"] = clean
         # like/save/unlike → upsert por (visitor, type, entity) para no duplicar el estado; el resto = append.
         if s.type in ("like", "unlike", "save", "unsave"):
             base = s.type.replace("un", "") if s.type.startswith("un") else s.type  # like/save
