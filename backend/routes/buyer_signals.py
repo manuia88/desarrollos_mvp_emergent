@@ -119,6 +119,8 @@ async def _ensure_index(db):
         await db.marketplace_searches.create_index([("visitor_id", 1), ("created_at_dt", -1)], name="ms_vid_dt")
         # B4: timeline de señales de un visitante (record_closing 'primera señal' + dwell) — antes solo (visitor_id, type)
         await db.buyer_signals.create_index([("visitor_id", 1), ("created_at_dt", -1)], name="bs_vid_dt")
+        # PERF-B6: demanda_zona filtra demanda_insatisfecha por zona en cada carga del dev → sin índice era COLLSCAN
+        await db.demanda_insatisfecha.create_index([("zona", 1)], name="di_zona")
         _indexed["done"] = True
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] index: {e}")
@@ -245,16 +247,25 @@ async def embudo_unidades(dev_id: str, request: Request):
         db = request.app.state.db
         from collections import defaultdict
         fun = defaultdict(lambda: {"vistas": 0, "guardados": 0, "leads": 0})
-        async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_view"}, {"_id": 0, "unit_number": 1}):
-            if s.get("unit_number"):
-                fun[s["unit_number"]]["vistas"] += 1
-        async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_save", "active": True}, {"_id": 0, "unit_number": 1}):
-            if s.get("unit_number"):
-                fun[s["unit_number"]]["guardados"] += 1
+        # PERF-B4: antes 2 find() sin límite doc-por-doc; ahora UN $group por unidad con sumas condicionales por tipo.
+        async for row in db.buyer_signals.aggregate([
+            {"$match": {"entity_id": dev_id,
+                        "$or": [{"type": "unit_view"}, {"type": "unit_save", "active": True}]}},
+            {"$group": {"_id": "$unit_number",
+                        "vistas": {"$sum": {"$cond": [{"$eq": ["$type", "unit_view"]}, 1, 0]}},
+                        "guardados": {"$sum": {"$cond": [{"$eq": ["$type", "unit_save"]}, 1, 0]}}}},
+        ]):
+            if row.get("_id"):
+                fun[row["_id"]]["vistas"] += int(row.get("vistas") or 0)
+                fun[row["_id"]]["guardados"] += int(row.get("guardados") or 0)
         # LEADS por unidad (cierra la granularidad comprador→dev): leads que eligieron esta unidad concreta en la
         # ficha/cotizador (unidad_interes). Antes el embudo solo tenía vistas/guardados; ahora ve hasta el lead por unidad.
-        async for ld in db.leads.find({"development_id": dev_id, "unidad_interes": {"$nin": [None, ""]}}, {"_id": 0, "unidad_interes": 1}):
-            fun[ld["unidad_interes"]]["leads"] += 1
+        # PERF-B4: conteo agrupado en Mongo (antes un find doc-por-doc sobre leads).
+        async for row in db.leads.aggregate([
+            {"$match": {"development_id": dev_id, "unidad_interes": {"$nin": [None, ""]}}},
+            {"$group": {"_id": "$unidad_interes", "n": {"$sum": 1}}},
+        ]):
+            fun[row["_id"]]["leads"] += int(row.get("n") or 0)
         out = [{"unidad": k, **v} for k, v in fun.items()]
         out.sort(key=lambda x: (-x["leads"], -x["guardados"], -x["vistas"]))
         return {"ok": True, "unidades": out}
@@ -528,6 +539,25 @@ def _donde_why(r, target, liked_tiers):
     return " · ".join(bits[:3]) or "buena calidad de vida"
 
 
+# PERF-B2: el POOL de colonias (~2.8k docs, parte que NO depende del visitante) se cachea a nivel módulo con TTL —
+# antes cada request lo recorría entero en Mongo. El scoring por visitante sigue igual sobre el pool cacheado.
+_DONDE_POOL_TTL = 600.0   # 10 min
+_donde_pool: dict = {"ts": 0.0, "rows": None}
+
+
+async def _donde_vivir_pool(db):
+    """Pool de colonias con scores_reales (proyección mínima), cacheado con TTL. Solo LECTURA (no mutar los docs)."""
+    import time as _t
+    now = _t.monotonic()
+    if _donde_pool["rows"] is not None and (now - _donde_pool["ts"]) < _DONDE_POOL_TTL:
+        return _donde_pool["rows"]
+    rows = [c async for c in db.colonias.find(
+        {"scores_reales": {"$exists": True}},
+        {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "tier": 1, "precio_pm2": 1, "scores_reales": 1})]
+    _donde_pool["ts"], _donde_pool["rows"] = now, rows
+    return rows
+
+
 @router.get("/api/buyer/donde-vivir")
 async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
     """Mapa personal '¿dónde vivirías feliz?': rankea colonias por calidad de vida + tu presupuesto + afinidad con las
@@ -574,9 +604,7 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
         if not target_pm2 and techo:
             target_pm2 = techo / 80.0
         rows = []
-        async for c in db.colonias.find(
-            {"scores_reales": {"$exists": True}},
-            {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "tier": 1, "precio_pm2": 1, "scores_reales": 1}):
+        for c in await _donde_vivir_pool(db):   # PERF-B2: pool cacheado (TTL) en vez de recorrer Mongo cada request
             cid = c.get("id")
             if not cid or cid in evita:
                 continue
@@ -618,13 +646,30 @@ async def demanda_mapa(request: Request, visitor_id: str = ""):
         since = _dt.datetime.utcnow() - _dt.timedelta(days=90)
         demanda = Counter()
         try:
-            async for r in db.marketplace_searches.find({"created_at_dt": {"$gte": since}},
-                                                        {"_id": 0, "colonia_id": 1, "colonias": 1}):
-                zs = [str(z).strip().lower() for z in (r.get("colonias") or []) if z]
-                if not zs and r.get("colonia_id"):
-                    zs = [str(r["colonia_id"]).strip().lower()]
-                for z in zs:
-                    demanda[z] += 1
+            # PERF-B3: el conteo por colonia se agrupa en Mongo ($unwind+$group) en vez de recorrer 90d de
+            # búsquedas doc-por-doc en Python. Misma lógica: lista `colonias` (cada ocurrencia cuenta) y si
+            # viene vacía cae a `colonia_id`; normaliza strip+lower. Resultado idéntico.
+            def _norm(e):   # str(z).strip().lower() — onError/onNull protegen datos raros sin abortar el pipeline
+                return {"$toLower": {"$trim": {"input": {"$convert": {"input": e, "to": "string", "onError": "", "onNull": ""}}}}}
+            _falsy = [None, "", 0, False]   # truthiness de Python (`if z`)
+            pipeline = [
+                {"$match": {"created_at_dt": {"$gte": since}}},
+                {"$project": {"_id": 0, "zs": {"$let": {
+                    "vars": {"cols": {"$map": {
+                        "input": {"$filter": {
+                            "input": {"$cond": [{"$isArray": "$colonias"}, "$colonias", []]},
+                            "as": "z", "cond": {"$not": [{"$in": ["$$z", _falsy]}]}}},
+                        "as": "z", "in": _norm("$$z")}}},
+                    "in": {"$cond": [
+                        {"$gt": [{"$size": "$$cols"}, 0]}, "$$cols",
+                        {"$cond": [{"$in": [{"$ifNull": ["$colonia_id", None]}, _falsy]},
+                                   [], [_norm("$colonia_id")]]}]},
+                }}}},
+                {"$unwind": "$zs"},
+                {"$group": {"_id": "$zs", "n": {"$sum": 1}}},
+            ]
+            async for row in db.marketplace_searches.aggregate(pipeline):
+                demanda[str(row["_id"])] = int(row.get("n") or 0)
         except Exception:  # noqa: BLE001
             pass
 
@@ -701,10 +746,17 @@ async def percepcion_desarrollo(dev_id: str, request: Request):
         saves = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "save", "active": True})
         quickviews = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "view", "value": "atlax_quickview"})
         motivos, total = Counter(), 0
-        async for x in db.buyer_signals.find({"entity_id": dev_id, "type": "dismiss"}, {"_id": 0, "value": 1}):
-            r = (x.get("value") or "").strip().lower()
-            if r:
-                motivos[r] += 1; total += 1
+        # PERF-B5: los motivos de dismiss se agrupan en Mongo ($group por value normalizado), no doc-por-doc.
+        async for row in db.buyer_signals.aggregate([
+            {"$match": {"entity_id": dev_id, "type": "dismiss"}},
+            {"$group": {"_id": {"$toLower": {"$trim": {"input": {"$convert": {
+                "input": "$value", "to": "string", "onError": "", "onNull": ""}}}}},
+                "n": {"$sum": 1}}},
+        ]):
+            r = str(row.get("_id") or "")
+            n = int(row.get("n") or 0)
+            if r and n:
+                motivos[r] += n; total += n
         rechazo_por_motivo = [{"motivo": m, "veces": n} for m, n in motivos.most_common(8)]
         fotos = motivos.get("fotos", 0)
         pct_fotos = round(100 * fotos / total) if total else 0
@@ -733,21 +785,51 @@ async def percepcion_unidades(dev_id: str, request: Request):
         from data_developments import DEVELOPMENTS_BY_ID
         dev = DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0})
         units = (dev or {}).get("units") or []
+        # PERF-B1: antes eran 3 count_documents + 1 find POR UNIDAD (N+1 severo). Ahora 1 $aggregate por dev
+        # (sumas condicionales por tipo + dwell) y se mapea a las unidades en memoria. Resultado idéntico.
+        _VIEW_T, _SAVE_T, _DWELL_T = ["unit_view", "view"], ["unit_save", "save"], ["photo_dwell", "dwell"]
+        _ALL_T = _VIEW_T + _SAVE_T + _DWELL_T + ["dismiss"]
+
+        def _group_stage(key):
+            dw_ok = {"$and": [{"$in": ["$type", _DWELL_T]}, {"$gt": [{"$ifNull": ["$dwell_ms", 0]}, 0]}]}
+            return {"$group": {
+                "_id": key,
+                "views": {"$sum": {"$cond": [{"$in": ["$type", _VIEW_T]}, 1, 0]}},
+                "saves": {"$sum": {"$cond": [{"$in": ["$type", _SAVE_T]}, 1, 0]}},
+                "dismiss": {"$sum": {"$cond": [{"$eq": ["$type", "dismiss"]}, 1, 0]}},
+                "dwell_sum": {"$sum": {"$cond": [dw_ok, {"$ifNull": ["$dwell_ms", 0]}, 0]}},
+                "dwell_n": {"$sum": {"$cond": [dw_ok, 1, 0]}},
+            }}
+        # Las señales por-unidad viven como {entity_id: dev_id, unit_number: '02A'} — NO por el id compuesto.
+        # (Bug previo: se cruzaba por uid → 0 matches. El superadmin sí las ve porque cruza por unit_number.)
+        unums = [u.get("unit_number") for u in units if u.get("id") and u.get("unit_number")]
+        fb_uids = [u.get("id") for u in units if u.get("id") and not u.get("unit_number")]   # sin unit_number → cruza por uid
+        by_unum: dict = {}
+        if unums:
+            async for row in db.buyer_signals.aggregate([
+                {"$match": {"entity_id": dev_id, "unit_number": {"$in": unums}, "type": {"$in": _ALL_T}}},
+                _group_stage("$unit_number"),
+            ]):
+                by_unum[row["_id"]] = row
+        by_uid: dict = {}
+        if fb_uids:
+            async for row in db.buyer_signals.aggregate([
+                {"$match": {"entity_id": {"$in": fb_uids}, "type": {"$in": _ALL_T}}},
+                _group_stage("$entity_id"),
+            ]):
+                by_uid[row["_id"]] = row
         out = []
         for u in units:
             uid = u.get("id")
             unum = u.get("unit_number")
             if not uid:
                 continue
-            # Las señales por-unidad viven como {entity_id: dev_id, unit_number: '02A'} — NO por el id compuesto.
-            # (Bug previo: se cruzaba por uid → 0 matches. El superadmin sí las ve porque cruza por unit_number.)
-            q = {"entity_id": dev_id, "unit_number": unum} if unum else {"entity_id": uid}
-            views = await db.buyer_signals.count_documents({**q, "type": {"$in": ["unit_view", "view"]}})
-            saves = await db.buyer_signals.count_documents({**q, "type": {"$in": ["unit_save", "save"]}})
-            dismiss = await db.buyer_signals.count_documents({**q, "type": "dismiss"})
-            dwells = [d.get("dwell_ms") async for d in db.buyer_signals.find(
-                {**q, "type": {"$in": ["photo_dwell", "dwell"]}}, {"dwell_ms": 1}) if d.get("dwell_ms")]
-            dwell_avg = round(sum(dwells) / len(dwells) / 1000, 1) if dwells else None
+            agg = (by_unum.get(unum) if unum else by_uid.get(uid)) or {}
+            views = int(agg.get("views") or 0)
+            saves = int(agg.get("saves") or 0)
+            dismiss = int(agg.get("dismiss") or 0)
+            dwell_n = int(agg.get("dwell_n") or 0)
+            dwell_avg = round((agg.get("dwell_sum") or 0) / dwell_n / 1000, 1) if dwell_n else None
             interes = saves * 3 + views - dismiss * 2
             out.append({"unit_id": uid, "tipologia": u.get("tipologia") or u.get("type"),
                         "vistas": views, "guardados": saves, "descartes": dismiss,
@@ -839,7 +921,8 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
         {"visitor_id": visitor_id}, {"_id": 0}, sort=[("created_at_dt", -1)]) or {}
     # 2. Histórico de conducta: qué likeó y qué vio (capa C/D).
     liked, viewed = [], []
-    async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+    # PERF-B7: mismo tope que el histórico de vistas — los likes son upsert por (visitor, dev), 50 devs likeados basta.
+    async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}).limit(50):
         if s.get("entity_id"):
             liked.append(s["entity_id"])
     async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "ficha_view"}, {"_id": 0, "entity_id": 1}).limit(50):
