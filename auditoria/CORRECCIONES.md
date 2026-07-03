@@ -140,3 +140,16 @@ Workflow de auditoría (4 agentes + verificación adversarial, python real) sobr
 - Correctos y sin cambios (verificados): PMT francés, split capital/interés, DSCR, debt yield, cobertura, TIR, MIRR, VPN, cap rate, equity multiple.
 
 Verificación: `tests/test_audit_correctness.py` actualizado + suite backend **1258 passed, 0 failures** · verificado en vivo en la ficha (`?venta=1`) y `/simulador`. Doc de decisión: memoria `tax-engine-canonical`.
+
+## Batch 13 · Captura hiper-segmentada del comprador (fugas de señal en la ficha DEFAULT) — ✅ (2026-07-03)
+Auditoría de conectividad + captura de métricas del comprador (40 agentes, verificación adversarial). Veredicto: arquitectura sólida (espinazo señal→demand_intelligence→superadmin end-to-end, page-view central, Atlax/buscador-IA capturan bien); **el problema eran fugas de captura**, agravadas al volver FichaVenta la ficha default. Corregido:
+- **Gate `VALID` (`buyer_signals.py`):** FichaVenta emitía 8 tipos que el backend RECHAZABA (apartar/crédito/cierre/plan/save/agendar/phone/favorito) → se perdían en silencio (fail-open). Se agregaron `credit_selected`/`cierre_computed`/`phone_click` y se renombraron los demás a los canónicos ya válidos en el front.
+- **Meta = máxima granularidad:** antes la meta solo se persistía para un whitelist; ahora se guarda para CUALQUIER señal que la traiga (sanitizada, ≤24 claves) → se conservan banco/tasa/cat/enganche/plazo/precio/recámaras/feature/sección/intención, no solo colonia+unidad.
+- **Bug de segmentación (front):** el wrapper `signal()` mandaba los datos financieros al top-level (que el backend ignora) en vez de a `meta` → se perdían aunque el tipo fuera válido. Helper central `fvSignal()` los rutea a `meta`.
+- **Señales que no existían:** `section_view` (cada tab), `unit_view` (elegir unidad), `share`, `phone_click`, filtro de recámaras — cableadas.
+- **Buscador estructurado (`public.py`):** los filtros de chips NO escribían `marketplace_searches` → quien filtra por chips era invisible a demanda. Ahora escribe `source=filtro_estructurado` fire-and-forget, deduplicado por visitante+criterios+día.
+- **Consumo superadmin (`demand_intelligence.py`):** los 4 tipos calientes entran a `_ENGAGE` y la vista financiera reporta `eligieron_credito`/`calcularon_cierre`/`bancos_preferidos`.
+
+Pendiente (backlog, no bloqueante): conectar avance-de-obra dev→ficha (el dev edita `project_construction_progress` pero el endpoint público lee el SEED), memoria de acabados/ficha técnica sin write-path del dev, y reemplazar placeholders (mapa Ubicación, StandbyPanels del ModeloModal, foto/URL search).
+
+Verificación: suite backend **1258 passed** · señales antes rechazadas ahora `{ok:true}` y persisten con meta · front en vivo emitiendo con segmentación (section_view+colonia+lens, save, share).
