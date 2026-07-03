@@ -44,7 +44,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   useEffect(() => { if (r && onResult) onResult(r); }, [r]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const vista = mode === 'institucional' ? 'institucional' : 'simple';  // lo decide ZonePageV2 (paso 1 del flow), no un toggle aquí
-  const [openAdv, setOpenAdv] = useState(false);
+  const [paso, setPaso] = useState(1);   // secuencia guiada: ① inmueble · ② pago · ③ supuestos · ④ resultado
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
@@ -173,7 +173,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   // estilos
   const inp = { background: '#fff', border: '1px solid #ECECEC', borderRadius: 11, color: '#1E2230', fontFamily: 'DM Sans', fontSize: 13, padding: '10px 12px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
-  const sectTitle = { fontFamily: "'Outfit', system-ui, -apple-system, sans-serif", fontWeight: 800, fontSize: 18, color: '#1E2230', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' };
   const grpLabel = { fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 };
   const Toggle = ({ k, opts }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -187,6 +186,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
   const multifamily = Number(f.num_unidades) >= 5;
   const sem = (r && r.veredicto && SEM[r.veredicto.semaforo]) || '#8A8FA6';
+  // barra de navegación entre pasos (Atrás / Siguiente) — look de marca
+  const NavRow = ({ back, next, nextLabel }) => (
+    <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+      {back && <button type="button" onClick={back} style={{ padding: '11px 16px', borderRadius: 11, border: '1px solid #ECECEC', background: '#fff', color: '#5A5F6E', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← Atrás</button>}
+      {next && <button type="button" onClick={next} style={{ padding: '12px 20px', borderRadius: 11, border: 'none', background: 'linear-gradient(120deg, #6D4AFF, #C63FAE)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.26)' }}>{nextLabel}</button>}
+    </div>
+  );
   // formateador de dinero local (convierte a USD con el FIX vivo) — sombrea el módulo para toda la vista
   const fix = (r && r.mercado && r.mercado.fix_usd) || 18.0;
   const m = (n) => (moneda === 'USD'
@@ -203,130 +209,136 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         @media print{.iv4-noprint{display:none}}
       `}</style>
 
-      {/* ───── BARRA DE CONTROL · tus datos (ancho completo, horizontal — sin columna angosta = sin huecos) ───── */}
-      <div ref={tusDatosRef} className="iv4-card iv4-noprint" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-          <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
-            <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
-              {['MXN', 'USD'].map((mo) => (
-                <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D4AFF' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
-              ))}
-            </div>
+      {/* ───── SECUENCIA GUIADA · pasos ① inmueble · ② pago · ③ supuestos · ④ resultado ───── */}
+      <div className="iv4-noprint" style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ECECEC', marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+        {[['1', 'Tu inmueble'], ['2', 'Cómo lo pagas'], ['3', 'Supuestos'], ['4', 'Resultado']].map(([n, l]) => { const on = paso === Number(n); return (
+          <button key={n} type="button" onClick={() => setPaso(Number(n))} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 4px', marginRight: 22, border: 'none', borderBottom: on ? '2.5px solid #6D4AFF' : '2.5px solid transparent', background: 'none', color: on ? '#6D4AFF' : '#5A5F6E', fontFamily: 'Outfit', fontWeight: on ? 800 : 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, fontFamily: 'Outfit', fontSize: 11, fontWeight: 800, background: on ? '#6D4AFF' : '#eae7f6', color: on ? '#fff' : '#5A5F6E' }}>{n}</span>{l}
+          </button>
+        ); })}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
+          <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
+            {['MXN', 'USD'].map((mo) => (
+              <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D4AFF' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* ───── INPUTS · pasos ①②③ (mismos campos de siempre, ahora guiados) ───── */}
+      <div ref={tusDatosRef} className="iv4-card iv4-noprint" style={{ marginBottom: 16, display: paso <= 3 ? 'block' : 'none' }}>
         {moneda === 'USD' && r && r.mercado && r.mercado.fix_usd && (
           <div style={{ fontSize: 10.5, color: '#0B6E99', background: 'rgba(14,165,233,0.08)', borderRadius: 8, padding: '7px 11px', marginBottom: 12, display: 'inline-block' }}>
             💱 Tipo de cambio: <b>1 USD = ${r.mercado.fix_usd} MXN</b> · Banxico (FIX){(r.fuentes_fecha || {}).banxico ? `, consultado ${r.fuentes_fecha.banxico}` : ''}. Se actualiza solo cada día.
           </div>
         )}
-        {/* INSTITUCIONAL · las unidades ya se eligieron ARRIBA (ZonePageV2). Aquí solo descuento por volumen + desglose por unidad. */}
-        {vista === 'institucional' && portfolioUnits.length >= 2 && (
-          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(16,18,28,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen <Info><>Lo que sueles negociar al comprar en bloque. Se aplica al precio de cada unidad del portafolio.</></Info></span>
-              <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 66 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
-              <span style={{ fontSize: 10, color: '#A2A6BC' }}>al comprar en bloque</span>
-            </div>
-            {port && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '9px 13px', fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> Todo (cómo lo pagas, impuestos, crédito, pentágono, métricas) ya es del portafolio combinado.</div>
-                <div style={{ overflowX: 'auto', marginTop: 10 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                    <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-                    <tbody>{port.unidades.map((u, i) => (
-                      <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
-                        <td style={{ padding: '4px 8px', fontWeight: 700 }}>{u.label}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{m(u.precio)}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{pct(u.cap_rate_pct)}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, color: (u.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(u.tir_pct)}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', color: (u.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626' }}>{m(u.flujo_mensual)}</td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
+
+        {/* PASO ① TU INMUEBLE */}
+        {paso === 1 && (<>
+          {/* INSTITUCIONAL · descuento por volumen + desglose por unidad */}
+          {vista === 'institucional' && portfolioUnits.length >= 2 && (
+            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(16,18,28,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen <Info><>Lo que sueles negociar al comprar en bloque. Se aplica al precio de cada unidad del portafolio.</></Info></span>
+                <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 66 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
+                <span style={{ fontSize: 10, color: '#A2A6BC' }}>al comprar en bloque</span>
               </div>
-            )}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {/* Grupo 1 · El inmueble */}
-          <div>
-            <div style={grpLabel}>🏠 El inmueble</div>
-            <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              {(vista === 'institucional' && portfolioUnits.length >= 1 && port) ? (
-                <div style={{ minWidth: 150 }}><span style={lab}>{port.n_unidades > 1 ? 'Precio total' : 'Precio'} <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} {port.n_unidades > 1 ? 'unidades' : 'unidad'}</span></span>
-                  <input type="text" readOnly value={m(port.precio_total)} style={{ ...inp, background: 'rgba(192,38,211,0.06)', color: '#86198F', fontWeight: 700, cursor: 'not-allowed' }} /></div>
-              ) : (
-                <div style={{ minWidth: 150 }}><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
-                  {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
-                    : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
+              {port && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '9px 13px', fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> Todo (cómo lo pagas, impuestos, crédito, pentágono, métricas) ya es del portafolio combinado.</div>
+                  <div style={{ overflowX: 'auto', marginTop: 10 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                      <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                      <tbody>{port.unidades.map((u, i) => (
+                        <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                          <td style={{ padding: '4px 8px', fontWeight: 700 }}>{u.label}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'right' }}>{m(u.precio)}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'right' }}>{pct(u.cap_rate_pct)}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, color: (u.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(u.tir_pct)}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'right', color: (u.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626' }}>{m(u.flujo_mensual)}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
               )}
-              <div><span style={lab}>Tipo de renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo'], ['corto', 'Airbnb']]} /></div>
-            </div>
-          </div>
-          <div style={{ alignSelf: 'stretch', width: 1, background: 'rgba(16,18,28,0.08)' }} />
-          {/* Grupo 2 · Cómo lo pagas */}
-          <div>
-            <div style={grpLabel}>💳 Cómo lo pagas</div>
-            <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
-              {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[10, 20, 30, 40, 50, 60, 70, 80, 90].map((e) => <option key={e} value={(100 - e) / 100}>{e}%</option>)}</select></div>}
-              {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
-              {f.con_credito && <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="text" inputMode="decimal" placeholder="11.45" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, width: 90 }} /></div>}
-              {f.con_credito && <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opc.</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={{ ...inp, width: 110 }} /></div>}
-            </div>
-          </div>
-        </div>
-        {/* TIRA DE CRÉDITO EN VIVO · ves el efecto de plazo/enganche/tasa sin bajar (quita fricción) */}
-        {f.con_credito && r && r.credito && r.credito.pmt_mensual && (
-          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', padding: '11px 14px', background: 'rgba(109,74,255,0.06)', borderRadius: 10 }}>
-            {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes'], ['Te prestan', m(r.credito.monto_credito)], ['Tu enganche', m(r.credito.capital_propio)], ['Interés total', m(r.credito.interes_total)], ['La renta cubre', pct(r.credito.cobertura_renta_pct)]].map(([l, v]) => (
-              <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{v}</div></div>
-            ))}
-            <div style={{ fontSize: 9.5, color: '#A2A6BC', marginLeft: 'auto' }}>↻ cambia plazo, enganche o tasa y mira aquí</div>
-          </div>
-        )}
-        {/* AIRROI · datos reales de renta corta por zona (cuesta por llamada → botón explícito + caché) */}
-        {f.modo_renta === 'corto' && zoneId && (
-          <div style={{ marginTop: 12, padding: '11px 14px', background: 'rgba(14,165,233,0.08)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 11.5, color: '#0B6E99', lineHeight: 1.45 }}>
-              {airroi && airroi.adr_mxn ? <>📡 <b>AirROI</b> (real de esta zona): <b>{m(airroi.adr_mxn)}/noche</b> · {Math.round((airroi.ocupacion || 0) * 100)}% ocupación · {Math.round(airroi.listings || 0)} deptos activos.</> : (airroi && airroi.error ? <>⚠️ {airroi.error}</> : <>¿Quieres la tarifa y ocupación <b>reales</b> de Airbnb en esta zona? Las trae AirROI.</>)}
-            </div>
-            <button type="button" onClick={traerAirroi} disabled={airroiLoading} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', cursor: airroiLoading ? 'wait' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, background: '#0EA5E9', color: '#fff', whiteSpace: 'nowrap' }}>{airroiLoading ? 'Trayendo…' : (airroi && airroi.adr_mxn ? '↻ Actualizar' : '📡 Usar AirROI')}</button>
-          </div>
-        )}
-        <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 12, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D4AFF' }}>AUTO</b> son estimados editables (en <b>Configuración</b>). Solo el precio está fijo.</div>
-        {/* CONFIGURACIÓN (supuestos) · dentro de Tus datos */}
-        <div style={{ borderTop: '1px solid rgba(16,18,28,0.07)', marginTop: 14, paddingTop: 12 }}>
-          <button type="button" onClick={() => setOpenAdv((o) => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>
-            <span>⚙️ Configuración <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· predial, mantenimiento, horizonte, plusvalía, régimen fiscal</span></span><span style={{ color: '#6D4AFF' }}>{openAdv ? '−' : '+'}</span>
-          </button>
-          {openAdv && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 14 }}>
-              {f.modo_renta === 'corto' ? (<>
-                <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
-                <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
-              </>) : <Field label="Renta mensual" k="renta_mensual" money auto />}
-              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D4AFF', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
-              <Field label="Predial / año" k="predial" money auto />
-              <Field label="Mantenim. / año" k="mantenimiento" money auto />
-              <Field label="Seguro / año" k="seguro" money auto />
-              <div><span style={lab}>Horizonte (años)</span><input type="number" value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={inp} /></div>
-              <div><span style={lab}>Plusvalía / año (%)</span><input type="number" step="0.1" value={f.apreciacion_anual * 100} onChange={(e) => set('apreciacion_anual', Number(e.target.value) / 100)} style={inp} /></div>
-              <div><span style={lab}>Crecim. renta / año (%)</span><input type="number" step="0.1" value={f.crecimiento_renta_anual * 100} onChange={(e) => set('crecimiento_renta_anual', Number(e.target.value) / 100)} style={inp} /></div>
-              <div><span style={lab}>Perfil</span><select value={f.perfil} onChange={(e) => set('perfil', e.target.value)} style={inp}><option value="fisica">Persona física</option><option value="moral">Persona moral</option></select></div>
-              {f.perfil === 'fisica' && <div><span style={lab}>Régimen fiscal</span><select value={f.regimen_fiscal} onChange={(e) => set('regimen_fiscal', e.target.value)} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
             </div>
           )}
-        </div>
+          <div style={grpLabel}>🏠 El inmueble</div>
+          <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            {(vista === 'institucional' && portfolioUnits.length >= 1 && port) ? (
+              <div style={{ minWidth: 150 }}><span style={lab}>{port.n_unidades > 1 ? 'Precio total' : 'Precio'} <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} {port.n_unidades > 1 ? 'unidades' : 'unidad'}</span></span>
+                <input type="text" readOnly value={m(port.precio_total)} style={{ ...inp, background: 'rgba(192,38,211,0.06)', color: '#86198F', fontWeight: 700, cursor: 'not-allowed' }} /></div>
+            ) : (
+              <div style={{ minWidth: 150 }}><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
+                {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
+                  : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
+            )}
+            <div><span style={lab}>Tipo de renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo'], ['corto', 'Airbnb']]} /></div>
+          </div>
+          {/* AIRROI · datos reales de renta corta por zona */}
+          {f.modo_renta === 'corto' && zoneId && (
+            <div style={{ marginTop: 12, padding: '11px 14px', background: 'rgba(14,165,233,0.08)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 11.5, color: '#0B6E99', lineHeight: 1.45 }}>
+                {airroi && airroi.adr_mxn ? <>📡 <b>AirROI</b> (real de esta zona): <b>{m(airroi.adr_mxn)}/noche</b> · {Math.round((airroi.ocupacion || 0) * 100)}% ocupación · {Math.round(airroi.listings || 0)} deptos activos.</> : (airroi && airroi.error ? <>⚠️ {airroi.error}</> : <>¿Quieres la tarifa y ocupación <b>reales</b> de Airbnb en esta zona? Las trae AirROI.</>)}
+              </div>
+              <button type="button" onClick={traerAirroi} disabled={airroiLoading} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', cursor: airroiLoading ? 'wait' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, background: '#0EA5E9', color: '#fff', whiteSpace: 'nowrap' }}>{airroiLoading ? 'Trayendo…' : (airroi && airroi.adr_mxn ? '↻ Actualizar' : '📡 Usar AirROI')}</button>
+            </div>
+          )}
+          <div style={{ fontSize: 10.5, color: '#8A8FA6', marginTop: 12, lineHeight: 1.5 }}>La <b>renta</b> y otros supuestos los ajustas en el paso <b>③ Supuestos</b>. Solo el precio está fijo.{vista === 'simple' ? ' ¿Inviertes como fondo? Elige 🏛️ Institucional arriba.' : ''}</div>
+          <NavRow next={() => setPaso(2)} nextLabel="Siguiente · cómo lo pagas →" />
+        </>)}
+
+        {/* PASO ② CÓMO LO PAGAS */}
+        {paso === 2 && (<>
+          <div style={grpLabel}>💳 Cómo lo pagas</div>
+          <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
+            {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[10, 20, 30, 40, 50, 60, 70, 80, 90].map((e) => <option key={e} value={(100 - e) / 100}>{e}%</option>)}</select></div>}
+            {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+            {f.con_credito && <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="text" inputMode="decimal" placeholder="11.45" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, width: 90 }} /></div>}
+            {f.con_credito && <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opc.</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={{ ...inp, width: 110 }} /></div>}
+          </div>
+          {/* TIRA DE CRÉDITO EN VIVO */}
+          {f.con_credito && r && r.credito && r.credito.pmt_mensual && (
+            <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', padding: '11px 14px', background: 'rgba(109,74,255,0.06)', borderRadius: 10 }}>
+              {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes'], ['Te prestan', m(r.credito.monto_credito)], ['Tu enganche', m(r.credito.capital_propio)], ['Interés total', m(r.credito.interes_total)], ['La renta cubre', pct(r.credito.cobertura_renta_pct)]].map(([l, v]) => (
+                <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{v}</div></div>
+              ))}
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginLeft: 'auto' }}>↻ cambia plazo, enganche o tasa y mira aquí</div>
+            </div>
+          )}
+          <NavRow back={() => setPaso(1)} next={() => setPaso(3)} nextLabel="Siguiente · supuestos →" />
+        </>)}
+
+        {/* PASO ③ SUPUESTOS (Configuración) */}
+        {paso === 3 && (<>
+          <div style={grpLabel}>⚙️ Supuestos <span style={{ fontWeight: 600, color: '#8A8FA6', textTransform: 'none', letterSpacing: 0 }}>· predial, mantenimiento, horizonte, plusvalía, régimen fiscal · estimados editables</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 6 }}>
+            {f.modo_renta === 'corto' ? (<>
+              <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
+              <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
+            </>) : <Field label="Renta mensual" k="renta_mensual" money auto />}
+            <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D4AFF', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
+            <Field label="Predial / año" k="predial" money auto />
+            <Field label="Mantenim. / año" k="mantenimiento" money auto />
+            <Field label="Seguro / año" k="seguro" money auto />
+            <div><span style={lab}>Horizonte (años)</span><input type="number" value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={inp} /></div>
+            <div><span style={lab}>Plusvalía / año (%)</span><input type="number" step="0.1" value={f.apreciacion_anual * 100} onChange={(e) => set('apreciacion_anual', Number(e.target.value) / 100)} style={inp} /></div>
+            <div><span style={lab}>Crecim. renta / año (%)</span><input type="number" step="0.1" value={f.crecimiento_renta_anual * 100} onChange={(e) => set('crecimiento_renta_anual', Number(e.target.value) / 100)} style={inp} /></div>
+            <div><span style={lab}>Perfil</span><select value={f.perfil} onChange={(e) => set('perfil', e.target.value)} style={inp}><option value="fisica">Persona física</option><option value="moral">Persona moral</option></select></div>
+            {f.perfil === 'fisica' && <div><span style={lab}>Régimen fiscal</span><select value={f.regimen_fiscal} onChange={(e) => set('regimen_fiscal', e.target.value)} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+          </div>
+          <NavRow back={() => setPaso(2)} next={() => setPaso(4)} nextLabel="Ver mi resultado →" />
+        </>)}
       </div>
 
-      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Elige <b>🏛️ Institucional</b> arriba ↑</div>}
+      {/* ④ · aviso mientras calcula (motor reactivo) */}
+      {paso === 4 && !r && <div className="iv4-card" style={{ marginBottom: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6' }}>{loading ? 'Calculando tu inversión…' : 'Ajusta tus datos en los pasos anteriores para ver el resultado.'}</div>}
 
       {/* RESUMEN EJECUTIVO · institucional: tras elegir las unidades, lo clave del PORTAFOLIO de un vistazo */}
-      {vista === 'institucional' && r && (
+      {paso === 4 && vista === 'institucional' && r && (
         <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
           <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {portfolioUnits.length >= 2 ? `${portfolioUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
@@ -344,8 +356,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
       )}
 
-      {/* ───── RESULTADOS (ancho completo · sin columna angosta = sin huecos) ───── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* ───── RESULTADOS · paso ④ (mismos resultados de siempre, ahora en su paso) ───── */}
+      <div style={{ display: paso === 4 ? 'flex' : 'none', flexDirection: 'column', gap: 14 }}>
 
           {/* Resultado grande + veredicto */}
           {r && (
