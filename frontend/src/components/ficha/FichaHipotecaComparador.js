@@ -1,13 +1,26 @@
 /**
  * FichaHipotecaComparador — comparador de crédito hipotecario estilo CONDUSEF/Banxico,
- * re-vestido al look v4 (light + degradado morado). Datos REALES publicados (jul 2026,
- * fuentes: comparador.banxico.org.mx + folletos Ley de Transparencia de cada banco).
+ * re-vestido al look v4 (light + degradado morado). Datos REALES publicados por cada banco
+ * (fuentes: comparador.banxico.org.mx + folletos Ley de Transparencia de cada banco).
+ * La FECHA de referencia en pantalla es dinámica: la del "Promedio de mercado" (Banxico CF303).
  * Cálculo 100% cliente (amortización francesa) — referencial, no oferta vinculante.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { V4, HEAD, SANS, GRAD, fmtMXN, inpV4, cardV4, BtnV4, Field, CalcHeader, Disclaimer, gradBorder } from './calcV4';
 
-// Datos oficiales publicados (jul 2026). tasa = PROMEDIO/típica (punto medio del rango publicado):
+// Fecha "2026-04" → "abril 2026" · "2026-05-22" → "22 mayo 2026" (referencia única en pantalla)
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const fmtMes = (s) => {
+  if (!s || typeof s !== 'string') return null;
+  const m = s.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+  if (!m) return s;
+  const mo = parseInt(m[2], 10) - 1;
+  if (mo < 0 || mo > 11) return s;
+  return m[3] ? `${parseInt(m[3], 10)} ${MESES[mo]} ${m[1]}` : `${MESES[mo]} ${m[1]}`;
+};
+
+// Datos oficiales publicados por cada banco. tasa = PROMEDIO/típica (punto medio del rango publicado):
 // la tasa "desde" casi nadie la alcanza (requiere score alto). tasa_desde/tasa_hasta = rango real publicado.
 const BANCOS = [
   { banco: 'Banorte', producto: 'Hipoteca Fuerte', tasa: 10.9, tasa_desde: 8.80, tasa_hasta: 12.99, cat: 12.4, comision_pct: 1.0, seg_danos: 0.28, seg_vida: 0.60, edad_min: 25, edad_max: 69, ingreso_min: 10000, fin_max: 0.90, antig_lab: '2 años comprobables', antig_res: 'No especificada', pago_tardio: '5% + IVA sobre saldo vencido (desde 4º mes); moratoria 17.6–21.6%', prepago: 'Sin penalización (primeros 3 años)', plazos: '5, 10, 15, 20 años' },
@@ -17,10 +30,9 @@ const BANCOS = [
   { banco: 'Scotiabank', producto: 'Adquisición (Valora)', tasa: 10.42, tasa_desde: 10.42, tasa_hasta: 11.50, cat: 12.9, comision_pct: 1.25, seg_danos: 0.31, seg_vida: 0.60, edad_min: 25, edad_max: 80, ingreso_min: 10000, fin_max: 0.95, antig_lab: '2 años entre empleo actual y anterior', antig_res: 'Comprobante menor a 3 meses', pago_tardio: '$500 + IVA por evento', prepago: 'Sin penalización si ya se pagó la comisión; si no, 3% + IVA', plazos: '5, 7, 10, 15, 20 años' },
 ];
 
-// Avalúo escalonado por valor de vivienda (promedio nacional, ref. tabuladores HSBC/BBVA/Scotiabank)
+// Avalúo bancario escalonado por valor de vivienda (promedio nacional, ref. tabuladores HSBC/BBVA/Scotiabank).
+// El banco lo exige para autorizar el crédito. Escrituración/ISAI/registro NO van aquí: se calculan en el Proyector de impuestos.
 const avaluoEstimado = (valor) => { if (valor <= 1500000) return 3000; if (valor <= 3000000) return 6000; if (valor <= 6000000) return 12000; if (valor <= 12000000) return 22000; return 35000; };
-// Gastos notariales estimados como % nacional decreciente por valor (patrón observado en simulador Banorte: honorarios+ISAI+registro)
-const notarialPct = (valor) => { if (valor <= 1200000) return 0.07; if (valor <= 2400000) return 0.06; if (valor <= 5000000) return 0.055; if (valor <= 10000000) return 0.05; return 0.045; };
 
 const pagoFrances = (monto, tasaAnual, meses) => { const r = tasaAnual / 100 / 12; return r === 0 ? monto / meses : monto * (r / (1 - Math.pow(1 + r, -meses))); };
 
@@ -46,12 +58,12 @@ function DetalleGrid({ b }) {
         ['Aforo (LTV = crédito / valor)', `${Math.round((b.aforo || 0) * 100)}%`],
         b.interes_total != null && ['Intereses en todo el plazo', fmtMXN(b.interes_total)],
       ])}
-      {secc('Pago inicial (una sola vez)', [
+      {secc('Desembolso inicial al banco', [
         ['Enganche', fmtMXN(b.enganche)],
         ['Comisión de apertura', fmtMXN(b.comision)],
-        ['Avalúo (est.)', fmtMXN(b.avaluo)],
-        ['Gastos notariales (est.)', fmtMXN(b.notariales)],
-        ['Total del pago inicial', fmtMXN(b.pago_inicial)],
+        ['Avalúo bancario (est.)', fmtMXN(b.avaluo)],
+        ['Total al banco', fmtMXN(b.pago_inicial)],
+        ['Escrituración e ISAI', 'Se calcula abajo →'],
       ])}
       {secc('Requisitos', [['Edad', `${b.edad_min}–${b.edad_max} años`], ['Ingreso mensual mínimo', b.ingreso_min ? fmtMXN(b.ingreso_min) : 'No publicado'], ['Antigüedad laboral', b.antig_lab], ['Antigüedad residencial', b.antig_res], ['Financiamiento máximo', `${Math.round(b.fin_max * 100)}%`], ['Score de crédito', 'Buen historial (Buró) — sin score numérico']])}
       {secc('Seguros (mensual)', [['Seguro de daños', `${b.seg_danos} por millar`], ['Seguro de vida/desempleo', `${b.seg_vida} por millar`], ['Seguros incluidos en tu pago', fmtMXN(b.seguros_mes)]])}
@@ -60,13 +72,40 @@ function DetalleGrid({ b }) {
   );
 }
 
-// Globito de ayuda (tooltip) — hover o click
+// Globito de ayuda (tooltip) — hover o click. Se renderiza en un PORTAL a document.body con
+// position:fixed, para que NUNCA lo recorte el overflow:hidden de las tarjetas del ranking.
 function Tip({ text }) {
+  const ref = useRef(null);
   const [on, setOn] = useState(false);
+  const [pos, setPos] = useState(null);
+  const W = 240;
+  const show = () => {
+    const el = ref.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const below = r.top < 150;                 // si está muy arriba, abre hacia abajo
+    const left = Math.min(Math.max(r.left + r.width / 2, W / 2 + 10), window.innerWidth - W / 2 - 10);
+    setPos({ left, top: below ? r.bottom + 9 : r.top - 9, below });
+    setOn(true);
+  };
+  const hide = () => setOn(false);
+  useEffect(() => {
+    if (!on) return;
+    const close = () => setOn(false);
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOn(false); }; // click fuera cierra
+    window.addEventListener('scroll', close, true);   // capture: el scroll NO burbujea (cierra ante cualquier contenedor)
+    window.addEventListener('resize', close);
+    window.addEventListener('pointerdown', onDown, true);
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close); window.removeEventListener('pointerdown', onDown, true); };
+  }, [on]);
+  const canPortal = typeof document !== 'undefined' && !!document.body;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onMouseEnter={() => setOn(true)} onMouseLeave={() => setOn(false)}>
-      <button type="button" onClick={(e) => { e.stopPropagation(); setOn((o) => !o); }} aria-label="Más información" style={{ width: 16, height: 16, borderRadius: 9999, border: `1px solid ${V4.ink3}`, background: '#fff', color: V4.ink3, fontSize: 10, fontWeight: 800, cursor: 'help', fontFamily: SANS, lineHeight: 1, padding: 0 }}>?</button>
-      {on && <span style={{ position: 'absolute', bottom: '145%', left: '50%', transform: 'translateX(-50%)', width: 230, background: V4.ink, color: '#fff', fontFamily: SANS, fontSize: 11.5, lineHeight: 1.45, padding: '9px 11px', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.28)', zIndex: 20, fontWeight: 500, textTransform: 'none', letterSpacing: 0, textAlign: 'left' }}>{text}<span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: `${V4.ink} transparent transparent transparent` }} /></span>}
+    <span ref={ref} style={{ display: 'inline-flex', alignItems: 'center' }} onMouseEnter={show} onMouseLeave={hide}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); if (on) hide(); else show(); }} aria-label="Más información" style={{ width: 16, height: 16, borderRadius: 9999, border: `1px solid ${V4.ink3}`, background: '#fff', color: V4.ink3, fontSize: 10, fontWeight: 800, cursor: 'help', fontFamily: SANS, lineHeight: 1, padding: 0 }}>?</button>
+      {on && pos && canPortal && ReactDOM.createPortal(
+        <span style={{ position: 'fixed', left: pos.left, top: pos.top, transform: pos.below ? 'translate(-50%,0)' : 'translate(-50%,-100%)', width: W, background: V4.ink, color: '#fff', fontFamily: SANS, fontSize: 11.5, lineHeight: 1.45, padding: '9px 11px', borderRadius: 10, boxShadow: '0 10px 28px rgba(0,0,0,0.30)', zIndex: 99999, fontWeight: 500, textTransform: 'none', letterSpacing: 0, textAlign: 'left', pointerEvents: 'none' }}>
+          {text}
+          <span style={{ position: 'absolute', [pos.below ? 'bottom' : 'top']: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: pos.below ? `transparent transparent ${V4.ink} transparent` : `${V4.ink} transparent transparent transparent` }} />
+        </span>, document.body)}
     </span>
   );
 }
@@ -75,7 +114,7 @@ const SORT_INFO = {
   cat: { label: 'CAT', long: 'CAT (Costo Anual Total)', tip: 'El CAT resume en un solo % TODO lo que pagas al año: tasa de interés + comisiones + seguros. Entre más bajo, más barato el crédito en total.' },
   tasa: { label: 'Tasa de interés', long: 'Tasa de interés anual', tip: 'El % anual que el banco cobra sobre el saldo. Usamos la tasa PROMEDIO/típica (punto medio del rango publicado): la tasa "desde" que anuncian casi nadie la alcanza, exige score alto e historial impecable. Tu tasa definitiva sale de tu estudio de crédito.' },
   pago: { label: 'Pago mensual', long: 'Pago mensual', tip: 'Lo que pagarías cada mes: capital + intereses + seguros. Debe caber holgadamente en tu ingreso.' },
-  total: { label: 'Pago total', long: 'Pago total', tip: 'La suma de todo lo que habrás pagado al final del plazo: mensualidades + enganche + comisiones + gastos notariales.' },
+  total: { label: 'Pago total', long: 'Pago total', tip: 'La suma de todo lo que le pagas al banco por el crédito al final del plazo: mensualidades + enganche + comisión de apertura + avalúo. No incluye escrituración ni ISAI (esos van en el Proyector de impuestos).' },
 };
 
 export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
@@ -91,7 +130,6 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
   const [banxCat, setBanxCat] = useState(null);     // CAT promedio de Banxico (CF303) o null
   const [banxFecha, setBanxFecha] = useState(null);
   const [banxFuente, setBanxFuente] = useState(null);
-  const [banxModo, setBanxModo] = useState(null);   // 'vivo' | 'default_oficial' | 'fallback'
 
   // Ancla Banxico: tasa hipotecaria promedio del sistema (cuadro CF303). Fail-open: si no responde, null → media de bancos.
   useEffect(() => {
@@ -103,7 +141,7 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
         if (!r.ok) return;
         const d = await r.json();
         if (activo && d && d.ok && typeof d.tasa_pct === 'number') {
-          setLiveRate(d.tasa_pct); setBanxFecha(d.fecha || null); setBanxFuente(d.fuente || null); setBanxModo(d.modo || null);
+          setLiveRate(d.tasa_pct); setBanxFecha(d.fecha || null); setBanxFuente(d.fuente || null);
           if (typeof d.cat_pct === 'number') setBanxCat(d.cat_pct);
         }
       } catch { /* fail-open: se promedian los 5 bancos */ }
@@ -120,12 +158,13 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
     const interes_total = cuota * meses - monto;               // intereses pagados en todo el plazo
     const comision = monto * b.comision_pct / 100;
     const avaluo = avaluoEstimado(P);
-    const notariales = Math.round(P * notarialPct(P));          // escritura+ISAI+registro (patrón simulador Banorte)
-    const pago_inicial = eng + comision + notariales + avaluo;
+    // Desembolso inicial AL BANCO por el crédito. Escrituración/ISAI/registro NO aquí (se calculan
+    // en el Proyector de impuestos, misma pestaña) para no duplicar y porque en preventa no hay catastral.
+    const pago_inicial = eng + comision + avaluo;
     const total = pago * meses + pago_inicial;
     const dti = ing ? pago / ing : null;
     const aforo = P > 0 ? monto / P : 0;                        // LTV = crédito / valor
-    return { ...b, monto, enganche: eng, aforo, cuota, seguros_mes, interes_total, pago, comision, avaluo, notariales, pago_inicial, total, dti, tasa_val: b.tasa, cat_val: b.cat, meses };
+    return { ...b, monto, enganche: eng, aforo, cuota, seguros_mes, interes_total, pago, comision, avaluo, pago_inicial, total, dti, tasa_val: b.tasa, cat_val: b.cat, meses };
   };
 
   const results = useMemo(() => {
@@ -148,11 +187,10 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
     const catProm = (liveRate != null && banxCat != null) ? Number(banxCat) : Number(avg(BANCOS.map((b) => b.cat)).toFixed(1));
     const b = { banco: 'Promedio de mercado', tasa: tasaProm, cat: catProm, comision_pct: 1.1, seg_danos: 0.29, seg_vida: 0.54, fin_max: 0.90 };
     const c = calcCredito(b, P, eng, meses, ing);
-    c.esBanxico = liveRate != null;               // el número viene del cuadro oficial de Banxico
-    c.vivo = banxModo === 'vivo';                 // tick verdaderamente en vivo (raro en CF303, que es mensual)
+    c.esBanxico = liveRate != null;               // el número viene del cuadro oficial (mensual) de Banxico
     c.fecha = banxFecha; c.fuente = banxFuente;
     return c;
-  }, [precio, enganchePct, plazo, ingreso, liveRate, banxCat, banxFecha, banxFuente, banxModo]);
+  }, [precio, enganchePct, plazo, ingreso, liveRate, banxCat, banxFecha, banxFuente]);
 
   const sorted = useMemo(() => {
     const key = { cat: 'cat_val', tasa: 'tasa_val', pago: 'pago', total: 'total' }[sort];
@@ -191,20 +229,22 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
             <div style={{ ...gradBorder('#faf9ff', 14), padding: '13px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 190 }}>
                 {(() => {
-                  const verde = mercado.vivo;                       // tick en vivo
+                  // CF303 es un cuadro MENSUAL de Banxico: nunca es "en vivo" tick-a-tick. Por honestidad
+                  // siempre lo etiquetamos como dato oficial mensual con su fecha, sin prometer tiempo real.
                   const banx = mercado.esBanxico;                   // dato oficial de Banxico (mensual)
-                  const badgeTxt = verde ? 'Banxico en vivo' : banx ? `Banxico oficial${mercado.fecha ? ` · ${mercado.fecha}` : ''}` : 'Media de bancos';
-                  const col = verde ? V4.green : banx ? V4.theme : V4.ink3;
-                  const bg = verde ? 'rgba(14,159,110,0.10)' : banx ? 'rgba(109,74,255,0.10)' : 'rgba(154,160,174,0.12)';
-                  const bd = verde ? 'rgba(14,159,110,0.30)' : banx ? 'rgba(109,74,255,0.28)' : 'rgba(154,160,174,0.30)';
+                  const fechaRef = fmtMes(mercado.fecha);           // referencia ÚNICA en pantalla (ej. "abril 2026")
+                  const badgeTxt = banx ? `Banxico oficial${fechaRef ? ` · ${fechaRef}` : ''}` : 'Media de bancos';
+                  const col = banx ? V4.theme : V4.ink3;
+                  const bg = banx ? 'rgba(109,74,255,0.10)' : 'rgba(154,160,174,0.12)';
+                  const bd = banx ? 'rgba(109,74,255,0.28)' : 'rgba(154,160,174,0.30)';
                   const tip = banx
-                    ? `Tasa hipotecaria promedio de TODO el sistema, publicada por Banxico en su cuadro CF303${mercado.fecha ? ` (${mercado.fecha})` : ''}. Incluye todos los perfiles, por eso suele ser algo más alta que la de los grandes bancos. Es la referencia oficial contra la que comparas cada banco. Se actualiza cada mes.`
+                    ? `Tasa hipotecaria promedio de TODO el sistema, publicada por Banxico en su cuadro CF303${fechaRef ? ` (${fechaRef})` : ''}. Es un dato MENSUAL (no en tiempo real). Incluye todos los perfiles, por eso suele ser algo más alta que la de los grandes bancos. Es la referencia oficial —y la fecha— de todo este comparador.`
                     : 'Media simple de la tasa de los 5 bancos (Banxico no respondió). Es solo una referencia; no es un banco al que puedas ir a solicitar.';
                   return (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: V4.ink }}>Promedio de mercado</span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, background: bg, border: `1px solid ${bd}`, fontFamily: SANS, fontSize: 10, fontWeight: 800, color: col, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{verde && <span style={{ width: 6, height: 6, borderRadius: 9999, background: V4.green }} />}{badgeTxt}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, background: bg, border: `1px solid ${bd}`, fontFamily: SANS, fontSize: 10, fontWeight: 800, color: col, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{badgeTxt}</span>
                         <Tip text={tip} />
                       </div>
                       <span style={{ fontFamily: SANS, fontSize: 11, color: V4.ink3 }}>{banx ? (mercado.fuente || 'Banxico · cuadro CF303 (tasa fija prom.)') : 'Referencia · promedia los 5 bancos'}</span>
@@ -242,8 +282,8 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
                       <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: V4.ink }}>{b.banco}</span>
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 9999, fontFamily: SANS, fontWeight: 700, fontSize: 9, textTransform: 'uppercase', color: b.viable ? V4.green : V4.red, background: b.viable ? 'rgba(14,159,110,0.1)' : 'rgba(220,38,38,0.08)' }}>{b.viable ? 'Sí calificas' : 'No calificas'}</span>
-                      <Tip text={b.viable ? 'Con tu ingreso y enganche calificas: tu pago mensual no rebasa el 35% de tu ingreso y cumples el ingreso mínimo del banco.' : 'Con estos datos NO calificas: tu pago rebasa el 35% de tu ingreso o no llegas al ingreso mínimo del banco. Sube enganche, alarga el plazo o aumenta el ingreso comprobable.'} />
+                      <span style={{ padding: '2px 8px', borderRadius: 9999, fontFamily: SANS, fontWeight: 800, fontSize: 9, textTransform: 'uppercase', whiteSpace: 'nowrap', color: b.viable ? V4.green : '#8A5A12', background: b.viable ? 'rgba(14,159,110,0.1)' : 'rgba(224,163,62,0.18)' }}>{b.viable ? 'A tu alcance' : 'Por ajustar'}</span>
+                      <Tip text={b.viable ? 'A tu alcance: con tu ingreso y enganche, el pago mensual cabe holgado (no rebasa el 35% de tu ingreso) y cumples el ingreso mínimo del banco.' : 'Por ajustar: con estos datos el pago te queda alto (arriba del 35% de tu ingreso) o aún no llegas al ingreso mínimo del banco. Sube el enganche, alarga el plazo o suma un coacreditado y vuelve a comparar.'} />
                     </span>
                   </div>
                   <div style={{ fontFamily: SANS, fontSize: 11.5, color: V4.ink3, marginBottom: 12 }}>{b.producto}</div>
@@ -271,12 +311,15 @@ export default function FichaHipotecaComparador({ basePrice = 0, devName }) {
                     <div style={{ fontFamily: SANS, fontSize: 12, color: V4.ink3, marginBottom: 4 }}>{b.producto}</div>
                     {b.nota && <div style={{ fontFamily: SANS, fontSize: 11.5, color: V4.theme, padding: '6px 0 2px', fontWeight: 600 }}>ℹ️ {b.nota}</div>}
                     <DetalleGrid b={b} />
+                    <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 10, background: 'rgba(109,74,255,0.05)', border: `1px solid rgba(109,74,255,0.16)`, fontFamily: SANS, fontSize: 11.5, color: V4.ink2, lineHeight: 1.5 }}>
+                      Esto es solo el desembolso <b>al banco</b>. Los gastos de <b>escrituración, ISAI y registro</b> se calculan aparte en el <b>Proyector de impuestos</b>, aquí abajo. En preventa aún no hay valor catastral, así que el proyector usa el <b>precio de compra</b> como base.
+                    </div>
                   </div>
                 )}
               </div>
             ); })}
           </div>
-          <div style={{ marginTop: 16 }}><Disclaimer>Usamos la <b>tasa promedio/típica</b> de cada banco (punto medio del rango publicado a jul 2026), no la tasa "desde": esa mejor tasa casi nadie la alcanza porque exige score alto e historial impecable. El "Promedio de mercado" se ancla a la tasa hipotecaria del sistema de Banxico (cuadro CF303) cuando está disponible. Gastos notariales, avalúo y aforo son estimados de referencia. Tu tasa, CAT y condiciones definitivas salen de tu estudio de crédito y no constituyen una oferta vinculante.</Disclaimer></div>
+          <div style={{ marginTop: 16 }}><Disclaimer>Usamos la <b>tasa promedio/típica</b> de cada banco (punto medio del rango publicado), no la tasa "desde": esa mejor tasa casi nadie la alcanza porque exige score alto e historial impecable. La <b>fecha de referencia</b> de todo el comparador es la del "Promedio de mercado", anclado a la tasa del sistema de Banxico (cuadro CF303). El avalúo y el aforo son estimados; los gastos de <b>escrituración e ISAI se calculan en el Proyector de impuestos</b>, aquí abajo. Tu tasa, CAT y condiciones definitivas salen de tu estudio de crédito y no constituyen una oferta vinculante.</Disclaimer></div>
         </div>
         );
       })()}
