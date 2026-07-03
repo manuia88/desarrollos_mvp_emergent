@@ -14,7 +14,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PublicNav } from '../components/ui';
+import { PublicNav, LightScope } from '../components/ui';
 import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
 import { sendBuyerSignal } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
@@ -217,7 +217,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                             <td style={{ padding: '11px 12px', fontSize: 13, color: C.ink2 }}>{m2of(u) ? `${m2of(u)} m²` : '—'}</td>
                             <td style={{ padding: '11px 12px', fontSize: 12.5, fontWeight: 700, color: est.c }}>{est.l}</td>
                             <td style={{ padding: '11px 12px' }}>{a ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</span> : <span style={{ color: C.faint }}>—</span>}</td>
-                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><span style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 8, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5 }}>{sel ? 'Elegida ✓' : 'Ver'}</span></td>
+                            <td style={{ padding: '11px 12px', textAlign: 'right' }}><button onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u.prototype); }} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${sel ? C.accent : C.line}`, background: sel ? C.accent : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Ver detalles</button></td>
                           </tr>
                         );
                       })}
@@ -421,6 +421,7 @@ export default function FichaVenta() {
   ].filter(Boolean);
 
   return (
+    <LightScope>
     <div style={{ background: '#fff', minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
       <DevStructuredData dev={dev} />
       <PublicNav />
@@ -562,6 +563,7 @@ export default function FichaVenta() {
       <AtlaxBubble theme="light" context={atlaxContext} quickActions={atlaxQuick} dev={dev} unit={unit} lens={lens} />
       {leadModal && (() => { const wu = leadModal.unit; const leadUnit = wu ? ((dev.units || []).find((u) => u.unit_number === wu) || { unit_number: wu }) : unit; return <LeadCaptureModal dev={dev} unit={leadUnit} reason={leadModal.reason} onClose={() => setLeadModal(null)} />; })()}
     </div>
+    </LightScope>
   );
 }
 
