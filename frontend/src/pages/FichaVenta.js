@@ -49,6 +49,7 @@ const C = {
   red: '#DC2626',        // vendido/escasez
 };
 const GRAD = 'linear-gradient(120deg, #6D4AFF, #C63FAE)';   // degradado de marca morado→rosa (v4)
+const BLUE = '#2563EB';   // azul para precios en la lista (pedido del founder)
 // borde con degradado (double-background, respeta border-radius)
 const gradBorder = (fill = '#ffffff', r = R_BTN) => ({ borderRadius: r, border: '1.5px solid transparent', backgroundImage: `linear-gradient(${fill},${fill}), ${GRAD}`, backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', WebkitBackgroundClip: 'padding-box, border-box' });
 const R_BTN = 8, R_CARD = 12, MAXW = 1200;   // radios suavizados (upgrade: menos cuadrado) + contenedor
@@ -287,8 +288,8 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                   {plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</span>}
                 </button>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 19, color: C.ink }}>{protoName(m.proto)}</div>
-                  <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 19, color: C.ink, marginTop: 1 }}>{rng(m.min, m.max)}</div>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: C.ink, letterSpacing: '-0.01em' }}>{protoName(m.proto)}</div>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: BLUE, marginTop: 1, letterSpacing: '-0.01em' }}>{rng(m.min, m.max)}</div>
                   <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 3 }}>{specs}</div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkA}>Detalles del modelo</button>
@@ -301,23 +302,38 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
               <div style={{ background: C.bgSoft, padding: '8px 10px 10px', borderTop: `1px solid ${C.line2}` }}>
                 <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink, padding: '6px 6px 10px' }}>{m.us.length} unidad{m.us.length === 1 ? '' : 'es'}</div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, minWidth: 620, background: '#fff', borderRadius: 8 }}>
-                    <thead><tr>{['Unidad', 'Nivel', 'Rec', 'Baño', 'Estac', 'm²', 'Precio', 'Estado', <span key="a" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>vs mercado <span style={{ fontSize: 8, color: C.accent }}>✦</span></span>, ''].map((h, i) => <th key={i} style={{ padding: '8px 8px', fontSize: 10, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: `1px solid ${C.line}`, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, minWidth: 940, background: '#fff', borderRadius: 8 }}>
+                    <thead>
+                      <tr>
+                        {[['Unidad', 3, '#6b7280', '#f3f4f6'], ['M² desglosados', 5, C.accent, C.accentSoft], ['Características', 3, '#9333ea', '#f5ecff'], ['Precio', 3, BLUE, '#eaf1ff']].map(([l, span, col, bg], i) => (
+                          <th key={i} colSpan={span} style={{ padding: '6px 8px', fontSize: 10, fontWeight: 800, color: col, background: bg, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${C.line}` }}>{l}</th>
+                        ))}
+                      </tr>
+                      <tr>{['ID', 'Proto', 'Nivel', 'Priv', 'Balcón', 'Terraza', 'RG', 'Totales', 'Rec', 'Baños', 'Cajones', 'Precio', 'Estado', ''].map((h, i) => <th key={i} style={{ padding: '7px 8px', fontSize: 9.5, fontWeight: 700, color: C.faint, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: `1px solid ${C.line}`, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+                    </thead>
                     <tbody>
                       {show.map((u) => {
                         const est = ESTADO[u.status] || ESTADO.disponible; const a = avm[u.id]; const sel = selectedUnit && selectedUnit.id === u.id;
                         const td = { padding: '8px 8px', fontSize: 12, color: C.ink2, whiteSpace: 'nowrap' };
+                        const mm = (v) => (v ? `${v} m²` : '—');
                         return (
                           <tr key={u.id || u.unit_number} className="dmx-row" onClick={() => onSelectUnit(u)} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
                             <td style={{ ...td, fontWeight: 700, fontSize: 12.5, color: C.ink }}>{u.unit_number}</td>
+                            <td style={td}>{u.prototype || '—'}</td>
                             <td style={td}>{u.level != null ? `P${u.level}` : '—'}</td>
+                            <td style={td}>{mm(u.m2_privative)}</td>
+                            <td style={td}>{mm(u.m2_balcony)}</td>
+                            <td style={td}>{mm(u.m2_terrace)}</td>
+                            <td style={td}>{mm(u.m2_roof_garden)}</td>
+                            <td style={{ ...td, fontWeight: 700, color: C.ink }}>{mm(m2of(u))}</td>
                             <td style={td}>{u.bedrooms != null ? u.bedrooms : '—'}</td>
                             <td style={td}>{u.bathrooms != null ? u.bathrooms : '—'}</td>
                             <td style={td}>{u.parking_spots != null ? u.parking_spots : '—'}</td>
-                            <td style={td}>{m2of(u) ? m2of(u) : '—'}</td>
-                            <td style={{ ...td, fontWeight: 700, fontSize: 13, color: C.ink }}>{money(u.price)}</td>
+                            <td style={{ ...td }}>
+                              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: BLUE, letterSpacing: '-0.01em' }}>{money(u.price)}</div>
+                              {a && <div style={{ fontSize: 10.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.faint }}>{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</div>}
+                            </td>
                             <td style={{ ...td, fontSize: 11.5, fontWeight: 700, color: est.c }}>{est.l}</td>
-                            <td style={{ padding: '8px 8px' }}>{a ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: AVM_COLOR[a.color] || C.ink2, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}%` : ''}</span> : <span style={{ color: C.faint }}>—</span>}</td>
                             <td style={{ padding: '8px 8px', textAlign: 'right' }}><button className="dmx-press" onClick={(e) => { e.stopPropagation(); onSelectUnit(u); onOpenModel(u); }} style={{ padding: '5px 11px', borderRadius: R_BTN, border: `1px solid ${sel ? 'transparent' : C.accent}`, background: sel ? GRAD : '#fff', color: sel ? '#fff' : C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ver</button></td>
                           </tr>
                         );
@@ -623,6 +639,87 @@ function CompartirModal({ dev, onClose }) {
   );
 }
 
+// ── Servicios y sistema constructivo (etiquetas en lenguaje humano, portadas del portal dev) ──
+const SERVICE_META = {
+  gas: { icon: '🔥', label: 'Gas', values: { natural: 'Natural (de red)', lp: 'LP', estacionario: 'Estacionario', mixto: 'Mixto' } },
+  agua: { icon: '💧', label: 'Agua', values: { red: 'De la red municipal', pozo: 'Pozo propio', ambos: 'Red + pozo', mixta: 'Red + pozo' } },
+  energia: { icon: '⚡', label: 'Energía eléctrica', values: { cfe: 'CFE', paneles: 'Paneles solares', hibrido: 'CFE + paneles', subterranea: 'Cableado subterráneo', planta: 'Con planta de emergencia' } },
+  agua_caliente: { icon: '♨️', label: 'Agua caliente', values: { boiler: 'Boiler', solar: 'Calentador solar', instantaneo: 'Instantáneo' } },
+  drenaje: { icon: '🚿', label: 'Drenaje', values: { municipal: 'Municipal', planta: 'Planta de tratamiento', fosa: 'Fosa séptica' } },
+  internet: { icon: '🛜', label: 'Internet', values: { fibra: 'Fibra óptica', cable: 'Cable', preinstalado: 'Preinstalado' } },
+  cisterna: { icon: '🪣', label: 'Cisterna', values: {} },
+};
+const SERVICE_ORDER = ['gas', 'agua', 'cisterna', 'energia', 'agua_caliente', 'drenaje', 'internet'];
+const SISTEMA_LABEL = { cajon: 'Cimentación de cajón', losa: 'Losa de cimentación', pilotes: 'Pilotes', zapatas: 'Zapatas', concreto: 'Concreto armado', acero: 'Acero', mixta: 'Mixta', muros: 'Muros de carga', prefabricado: 'Prefabricado' };
+
+// Historial de precios — curva de apreciación desde el lanzamiento (SVG, blanco)
+function PriceHistoryChart({ history }) {
+  const pts = (history || []).filter((p) => p && p.price);
+  if (pts.length < 2) return null;
+  const prices = pts.map((p) => p.price);
+  const min = Math.min(...prices), max = Math.max(...prices); const rng = (max - min) || 1;
+  const W = 640, H = 165, padX = 34, padT = 34, padB = 26;
+  const x = (i) => padX + i * (W - 2 * padX) / (pts.length - 1);
+  const y = (v) => padT + (1 - (v - min) / rng) * (H - padT - padB);
+  const linePts = pts.map((p, i) => `${x(i)},${y(p.price)}`);
+  const area = `M${x(0)},${H - padB} L${linePts.join(' L')} L${x(pts.length - 1)},${H - padB} Z`;
+  const first = pts[0].price, last = pts[pts.length - 1].price;
+  const pct = Math.round(((last - first) / first) * 100);
+  const mm = (v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`);
+  return (
+    <div className="dmx-card" style={{ ...box, padding: '18px 16px 10px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6, padding: '0 4px' }}>
+        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green, letterSpacing: '-0.02em' }}>+{pct}%</span>
+        <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2, fontWeight: 600 }}>desde el lanzamiento</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <defs><linearGradient id="phA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="rgba(109,74,255,0.20)" /><stop offset="1" stopColor="rgba(109,74,255,0.02)" /></linearGradient></defs>
+        <path d={area} fill="url(#phA)" />
+        <polyline points={linePts.join(' ')} fill="none" stroke="#6D4AFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map((p, i) => (<g key={i}>
+          <circle cx={x(i)} cy={y(p.price)} r="4" fill="#fff" stroke="#6D4AFF" strokeWidth="2" />
+          <text x={x(i)} y={y(p.price) - 10} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#1E2230" fontFamily="Outfit">{mm(p.price)}</text>
+          <text x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#9aa0ae" fontFamily="DM Sans">{p.date}</text>
+        </g>))}
+      </svg>
+      <div style={{ fontSize: 10, color: C.faint, fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>○ estimado desde el lanzamiento · se afina con cada cambio de precio registrado</div>
+    </div>
+  );
+}
+
+// Avance de obra — timeline de hitos (dots conectados)
+function ObraTimeline({ cp }) {
+  const phases = Array.isArray(cp.phases) && cp.phases.length ? cp.phases : null;
+  const base = phases ? phases : [{ label: 'Cimentación' }, { label: 'Estructura' }, { label: 'Instalaciones' }, { label: 'Acabados' }, { label: 'Entrega final' }];
+  const per = 100 / base.length;
+  const steps = base.map((p, i) => {
+    let pct = p.percentage;
+    if (pct == null) pct = (p.status === 'completado' || p.status === 'completed') ? 100 : Math.max(0, Math.min(100, Math.round(((cp.percentage || 0) - i * per) / per * 100)));
+    return { label: p.label, pct };
+  });
+  return (
+    <div className="dmx-card" style={{ ...box, padding: 18, background: 'linear-gradient(180deg, #faf8ff, #ffffff)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.ink, letterSpacing: '-0.02em' }}>{cp.percentage}% <span style={{ fontSize: 14, fontWeight: 600, color: C.ink2 }}>completado</span></div>
+          {cp.status && <span style={{ display: 'inline-block', marginTop: 6, fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: C.accent, background: C.accentSoft, borderRadius: 9999, padding: '4px 12px' }}>{cp.status}</span>}
+        </div>
+        {cp.last_update && <div style={{ textAlign: 'right', fontFamily: FONT }}><div style={{ fontSize: 10, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Última actualización</div><div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{cp.last_update}</div></div>}
+      </div>
+      <div style={{ display: 'flex', overflowX: 'auto' }}>
+        {steps.map((s, i) => { const done = s.pct >= 100; const active = s.pct > 0 && s.pct < 100; const on = done || active; return (
+          <div key={i} style={{ flex: 1, minWidth: 84, textAlign: 'center', position: 'relative' }}>
+            {i > 0 && <div style={{ position: 'absolute', left: '-50%', top: 11, width: '100%', height: 2, background: on ? C.accent : C.line2 }} />}
+            <div style={{ position: 'relative', width: 24, height: 24, borderRadius: 9999, margin: '0 auto', background: done ? C.accent : '#fff', border: `2px solid ${on ? C.accent : C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{done ? <span style={{ color: '#fff', fontSize: 12 }}>✓</span> : active ? <span style={{ width: 8, height: 8, borderRadius: 9999, background: C.accent }} /> : null}</div>
+            <div style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 600, color: on ? C.ink : C.faint, marginTop: 6 }}>{s.label}</div>
+            <div style={{ fontFamily: HEAD, fontSize: 12, fontWeight: 800, color: on ? C.accent : C.faint }}>{s.pct}%</div>
+          </div>
+        ); })}
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════ TAB 1 · EL PROYECTO (datos generales del desarrollo) ═══════════════
 function Fact({ icon, label, value }) {
   if (value == null || value === '') return null;
@@ -657,7 +754,6 @@ function TabGeneral({ dev }) {
   if (ph.length >= 2) { const a = ph[0].price, b = ph[ph.length - 1].price; if (a && b && b > a) plusv = `+${Math.round(((b - a) / a) * 100)}%`; }
   const tec = dev.tecnica || (dev.config || {}).tecnica || {};
   const memoria = Array.isArray(dev.memoria_acabados) ? dev.memoria_acabados : [];
-  const servicios = (dev.config || {}).servicios || dev.servicios || [];
   const creds = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
   const cp = dev.construction_progress || {};
   const developer = dev.developer || {};
@@ -673,7 +769,10 @@ function TabGeneral({ dev }) {
   const seg = (n) => `${(n / total) * 100}%`;
   const fg = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 };
   const uFeatures = Array.isArray(dev.unit_features) ? dev.unit_features : [];
-  const sistema = tec.Estructura || tec.estructura || tec['Sistema constructivo'] || dev.sistema_constructivo || null;
+  // servicios y sistema constructivo (portados del portal dev; objeto config.* o top-level)
+  const serviciosObj = (dev.config && dev.config.servicios) || (dev.servicios && !Array.isArray(dev.servicios) ? dev.servicios : null);
+  const sistemaObj = (dev.config && dev.config.sistema_constructivo) || dev.sistema_constructivo || (typeof (tec.Estructura || tec.estructura) === 'string' ? { estructura: tec.Estructura || tec.estructura, cimentacion: tec.Cimentacion || tec.cimentacion } : null);
+  const ph2 = Array.isArray(dev.price_history) ? dev.price_history : [];
   const grouped = {}; units.forEach((u) => { const k = u.prototype || '?'; (grouped[k] = grouped[k] || []).push(u); });
   const protoList = Object.entries(grouped).map(([p, us]) => { const prices = us.map((u) => u.price).filter(Boolean); const m2s = us.map(m2of).filter(Boolean); const bed = [...new Set(us.map((u) => u.bedrooms).filter((x) => x != null))].sort((a, b) => a - b); const bath = [...new Set(us.map((u) => u.bathrooms).filter((x) => x != null))].sort((a, b) => a - b); return { proto: p, n: us.length, avail: us.filter((u) => u.status === 'disponible').length, minP: prices.length ? Math.min(...prices) : null, bed, bath, m2min: m2s.length ? Math.min(...m2s) : null, m2max: m2s.length ? Math.max(...m2s) : null }; }).sort((a, b) => (a.minP || 1e15) - (b.minP || 1e15));
   const soldPct = total > 0 ? Math.round(((sold + res) / total) * 100) : null;
@@ -712,7 +811,6 @@ function TabGeneral({ dev }) {
           <Fact icon="🏬" label="Depas por piso" value={depasPiso} />
           <Fact icon="🔢" label="Unidades totales" value={nUnits ? String(nUnits) : null} />
           <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
-          <Fact icon="🧱" label="Sistema constructivo" value={sistema ? titleCase(String(sistema)) : null} />
           <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
           <Fact icon="🚀" label="Lanzamiento" value={dev.fecha_lanzamiento} />
           <Fact icon="🔑" label="Entrega estimada" value={dev.delivery_estimate} />
@@ -738,9 +836,23 @@ function TabGeneral({ dev }) {
       )}
 
       {/* ── AMENIDADES ── */}
-      {amen.length > 0 && (
-        <DataBlock title="Amenidades">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{amen.map((a, i) => { const info = amenInfo(a); return <span key={i} className="dmx-chiph" style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 7 }}><span>{info.icon}</span>{titleCase(info.label)}</span>; })}</div>
+      {(amen.length > 0 || uFeatures.length > 0) && (
+        <DataBlock title="Amenidades y características">
+          {amen.length > 0 && (<>
+            <div style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Del desarrollo (comunes)</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{amen.map((a, i) => { const info = amenInfo(a); return <span key={i} className="dmx-chiph" style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 7 }}><span>{info.icon}</span>{titleCase(info.label)}</span>; })}</div>
+          </>)}
+          {uFeatures.length > 0 && (<>
+            <div style={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>Internas (por unidad)</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{uFeatures.map((f, i) => <span key={i} className="dmx-chiph" style={chip}>{tcNice(typeof f === 'string' ? f : (f.label || f.nombre || ''))}</span>)}</div>
+          </>)}
+        </DataBlock>
+      )}
+
+      {/* ── HISTORIAL DE PRECIOS ── */}
+      {ph2.length >= 2 && (
+        <DataBlock title="Historial de precios">
+          <PriceHistoryChart history={ph2} />
         </DataBlock>
       )}
 
@@ -767,11 +879,34 @@ function TabGeneral({ dev }) {
         </DataBlock>
       )}
 
-      {/* ── CONSTRUCCIÓN Y SERVICIOS ── */}
-      {(Object.keys(tec).length > 0 || servicios.length > 0) && (
-        <DataBlock title="Construcción y servicios">
-          {Object.keys(tec).length > 0 && <div className="dmx-card" style={{ ...box, padding: '4px 18px', marginBottom: servicios.length ? 12 : 0 }}>{Object.entries(tec).map(([k, v], i, a) => <DataRow key={i} k={tcNice(k)} v={tcNice(v)} last={i === a.length - 1} />)}</div>}
-          {servicios.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{servicios.map((s, i) => <span key={i} style={chip}>{tcNice(typeof s === 'string' ? s : (s.label || s.nombre || ''))}</span>)}</div>}
+      {/* ── SERVICIOS DEL DESARROLLO ── */}
+      {serviciosObj && Object.values(serviciosObj).some(Boolean) && (
+        <DataBlock title="Servicios del desarrollo">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
+            {SERVICE_ORDER.map((k) => { const meta = SERVICE_META[k]; const v = serviciosObj[k]; const set = v && v !== 'no_especificado'; const valLabel = set ? (meta.values[v] || tcNice(v)) : 'No especificado'; return (
+              <div key={k} className={set ? 'dmx-card' : undefined} style={{ ...box, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', opacity: set ? 1 : 0.6 }}>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{meta.icon}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{meta.label}</div>
+                  <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14, color: set ? C.accent : C.faint }}>{valLabel}</div>
+                </div>
+              </div>
+            ); })}
+          </div>
+        </DataBlock>
+      )}
+
+      {/* ── SISTEMA CONSTRUCTIVO ── */}
+      {sistemaObj && (sistemaObj.cimentacion || sistemaObj.estructura) && (
+        <DataBlock title="Sistema constructivo">
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {[sistemaObj.cimentacion && ['Cimentación', sistemaObj.cimentacion], sistemaObj.estructura && ['Estructura', sistemaObj.estructura]].filter(Boolean).map(([lbl, val], i) => (
+              <div key={i} className="dmx-card" style={{ ...box, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 2, borderColor: 'rgba(30,158,99,0.35)', background: 'rgba(30,158,99,0.05)' }}>
+                <span style={{ fontFamily: FONT, fontSize: 10.5, color: C.green, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>🛡️ {lbl}</span>
+                <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{SISTEMA_LABEL[val] || tcNice(val)}</span>
+              </div>
+            ))}
+          </div>
         </DataBlock>
       )}
 
@@ -791,26 +926,13 @@ function TabGeneral({ dev }) {
 
       {cp.percentage != null && (
         <DataBlock title="Avance de obra">
-          <div className="dmx-card" style={{ ...box, padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.ink }}>{cp.status || 'En tiempo según calendario'}</span>
-              <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: C.accent }}>{cp.percentage}%</span>
+          <ObraTimeline cp={cp} />
+          {Array.isArray(cp.log) && cp.log.length > 0 && (
+            <div className="dmx-card" style={{ ...box, padding: '14px 18px', marginTop: 12 }}>
+              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 13, color: C.ink, marginBottom: 8 }}>Bitácora de obra</div>
+              {cp.log.slice(0, 6).map((e, i) => <div key={i} style={{ display: 'flex', gap: 12, padding: '7px 0', fontFamily: FONT, fontSize: 12.5, borderTop: i ? `1px solid ${C.line2}` : 'none' }}><span style={{ color: C.faint, minWidth: 84, flex: 'none' }}>{e.date}</span><span style={{ color: C.ink2 }}>{e.description}</span></div>)}
             </div>
-            <div style={{ height: 12, borderRadius: 9999, background: C.line2, overflow: 'hidden' }}><div style={{ width: `${cp.percentage}%`, height: '100%', background: GRAD }} /></div>
-            {Array.isArray(cp.phases) && cp.phases.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'nowrap', overflowX: 'auto' }}>
-                {cp.phases.map((p, i) => { const done = p.status === 'completado' || p.status === 'completed' || (cp.percentage >= (p.threshold || 0)); return (
-                  <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 11, fontWeight: 600, color: done ? C.ink : C.faint, background: done ? C.accentSoft : C.bgSoft, border: `1px solid ${done ? C.accent + '44' : CARD_LINE}`, borderRadius: 9999, padding: '4px 9px', whiteSpace: 'nowrap', flex: 'none' }}><span style={{ fontSize: 10 }}>{done ? '✅' : '⏳'}</span>{p.label}</div>
-                ); })}
-              </div>
-            )}
-            {Array.isArray(cp.log) && cp.log.length > 0 && (
-              <div style={{ marginTop: 16, borderTop: `1px solid ${C.line2}`, paddingTop: 14 }}>
-                <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 13, color: C.ink, marginBottom: 8 }}>Bitácora de obra</div>
-                {cp.log.slice(0, 6).map((e, i) => <div key={i} style={{ display: 'flex', gap: 12, padding: '7px 0', fontFamily: FONT, fontSize: 12.5, borderTop: i ? `1px solid ${C.line2}` : 'none' }}><span style={{ color: C.faint, minWidth: 84, flex: 'none' }}>{e.date}</span><span style={{ color: C.ink2 }}>{e.description}</span></div>)}
-              </div>
-            )}
-          </div>
+          )}
         </DataBlock>
       )}
 
