@@ -372,18 +372,21 @@ async def _activity_score(db, asesor_id: str, lead_id: str, now: datetime) -> fl
     cutoff = (now - timedelta(days=21)).isoformat()
     score = 0.0
     try:
-        audits = await db.audit_log.find(
-            {"entity_id": lead_id, "actor.user_id": asesor_id, "ts": {"$gte": cutoff}},
-            {"_id": 0, "ts": 1},
-        ).to_list(100)
-        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "notes": 1})
+        # PERF C4 · las 3 lecturas son independientes → en paralelo (antes: en serie por cada other_lead)
+        audits, lead, apts = await asyncio.gather(
+            db.audit_log.find(
+                {"entity_id": lead_id, "actor.user_id": asesor_id, "ts": {"$gte": cutoff}},
+                {"_id": 0, "ts": 1},
+            ).to_list(100),
+            db.leads.find_one({"id": lead_id}, {"_id": 0, "notes": 1}),
+            db.appointments.find(
+                {"lead_id": lead_id, "asesor_id": asesor_id, "created_at": {"$gte": cutoff}},
+                {"_id": 0, "created_at": 1},
+            ).to_list(50),
+        )
         note_dates = [
             n.get("created_at", "") for n in (lead.get("notes") or []) if n.get("user_id") == asesor_id
         ] if lead else []
-        apts = await db.appointments.find(
-            {"lead_id": lead_id, "asesor_id": asesor_id, "created_at": {"$gte": cutoff}},
-            {"_id": 0, "created_at": 1},
-        ).to_list(50)
         all_ts = [a["ts"] for a in audits] + note_dates + [a["created_at"] for a in apts]
         for ts_str in all_ts:
             try:
@@ -682,24 +685,51 @@ async def _pick_best_inmobiliaria_asesor(db, inmobiliaria_id: str, colonia: str)
     ).to_list(50)
     if not candidates:
         return None
+    from services.ai_safety import escape_regex  # C4 · evita ReDoS/inyección en $regex
+    # PERF C1 · UNA sola aggregation sobre leads (antes: 4 count_documents × candidato ≈ 200 queries
+    # dentro de POST /api/cita). Mismos números que los counts originales, un solo scan.
+    uids = [(c.get("user_id") or c.get("id")) for c in candidates]
+    _CERR = ["cerrado_ganado", "cerrado_perdido"]
+    _stats: Dict[Any, Dict[str, int]] = {}
+    pipeline = [
+        {"$match": {"asesor_id": {"$in": uids}}},
+        {"$group": {
+            "_id": "$asesor_id",
+            "won": {"$sum": {"$cond": [{"$eq": ["$status", "cerrado_ganado"]}, 1, 0]}},
+            "total_closed": {"$sum": {"$cond": [
+                {"$in": [{"$ifNull": ["$status", None]}, _CERR]}, 1, 0]}},
+            # $nin del count original: status faltante también cuenta como activo
+            "active": {"$sum": {"$cond": [
+                {"$in": [{"$ifNull": ["$status", None]}, _CERR]}, 0, 1]}},
+            "closed_in_col": {"$sum": {"$cond": [
+                {"$and": [
+                    {"$eq": ["$status", "cerrado_ganado"]},
+                    # mismo criterio que {"$regex": ...} en query: solo aplica sobre strings
+                    {"$cond": [
+                        {"$eq": [{"$type": "$colonia"}, "string"]},
+                        {"$regexMatch": {"input": "$colonia", "regex": escape_regex(colonia), "options": "i"}},
+                        False,
+                    ]},
+                ]}, 1, 0]}},
+        }},
+    ]
+    async for row in db.leads.aggregate(pipeline):
+        _stats[row["_id"]] = row
     scored: List[tuple] = []
     for c in candidates:
         uid = c.get("user_id") or c.get("id")
+        st = _stats.get(uid) or {}
         sc = 0
         # +50 if past closed deals in colonia
-        from services.ai_safety import escape_regex  # C4 · evita ReDoS/inyección en $regex
-        closed_in_col = await db.leads.count_documents({
-            "asesor_id": uid, "status": "cerrado_ganado",
-            "colonia": {"$regex": escape_regex(colonia), "$options": "i"},
-        })
+        closed_in_col = st.get("closed_in_col", 0)
         sc += 50 * min(closed_in_col, 1)
         # +30 if conversion_rate > 0.5
-        total_closed = await db.leads.count_documents({"asesor_id": uid, "status": {"$in": ["cerrado_ganado", "cerrado_perdido"]}})
-        won = await db.leads.count_documents({"asesor_id": uid, "status": "cerrado_ganado"})
+        total_closed = st.get("total_closed", 0)
+        won = st.get("won", 0)
         if total_closed > 0 and (won / total_closed) > 0.5:
             sc += 30
         # -20 per active lead (load balancing)
-        active_leads = await db.leads.count_documents({"asesor_id": uid, "status": {"$nin": ["cerrado_ganado", "cerrado_perdido"]}})
+        active_leads = st.get("active", 0)
         sc -= 20 * min(active_leads, 3)
         scored.append((uid, sc))
     if not scored:
@@ -1323,20 +1353,29 @@ async def list_asesor_citas(
     appointments = await db.appointments.find(
         q, {"_id": 0, "confirmation_token": 0, "cancel_token": 0}
     ).sort("datetime", 1).limit(200).to_list(200)
-    # Enrich with lead data
+    # Enrich with lead data — PERF C2: 1 find con $in (antes: 1 find_one por cita, ≤200 queries)
+    lead_ids = list({apt["lead_id"] for apt in appointments if apt.get("lead_id")})
+    leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if lead_ids:
+        async for _l in db.leads.find(
+            {"id": {"$in": lead_ids}},
+            {"_id": 0, "id": 1, "contact": 1, "status": 1, "budget_range": 1, "project_id": 1},
+        ):
+            leads_by_id[_l.pop("id")] = _l  # pop: 'id' no iba en la respuesta original
     for apt in appointments:
-        if apt.get("lead_id"):
-            lead = await db.leads.find_one({"id": apt["lead_id"]}, {"_id": 0, "contact": 1, "status": 1, "budget_range": 1, "project_id": 1})
-            if lead:
-                apt["lead"] = lead
+        lead = leads_by_id.get(apt.get("lead_id"))
+        if lead:
+            apt["lead"] = lead
     now_iso = _now().isoformat()
-    # Stats
+    # Stats — PERF C2: los 4 counts son independientes → en paralelo
     month_start = _now().replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     week_end = (_now() + timedelta(days=7)).isoformat()
-    total_mes = await db.appointments.count_documents({"asesor_id": user.user_id, "datetime": {"$gte": month_start}})
-    proximas = await db.appointments.count_documents({"asesor_id": user.user_id, "datetime": {"$gte": now_iso, "$lte": week_end}, "status": {"$nin": ["cancelada"]}})
-    realizadas = await db.appointments.count_documents({"asesor_id": user.user_id, "status": "realizada"})
-    canceladas = await db.appointments.count_documents({"asesor_id": user.user_id, "status": "cancelada"})
+    total_mes, proximas, realizadas, canceladas = await asyncio.gather(
+        db.appointments.count_documents({"asesor_id": user.user_id, "datetime": {"$gte": month_start}}),
+        db.appointments.count_documents({"asesor_id": user.user_id, "datetime": {"$gte": now_iso, "$lte": week_end}, "status": {"$nin": ["cancelada"]}}),
+        db.appointments.count_documents({"asesor_id": user.user_id, "status": "realizada"}),
+        db.appointments.count_documents({"asesor_id": user.user_id, "status": "cancelada"}),
+    )
     return {
         "items": appointments,
         "stats": {"total_mes": total_mes, "proximas_7d": proximas, "realizadas": realizadas, "canceladas": canceladas},
@@ -1382,11 +1421,19 @@ async def list_dev_citas(
     items = await db.appointments.find(
         q, {"_id": 0, "confirmation_token": 0, "cancel_token": 0}
     ).sort("datetime", 1).skip(skip).limit(limit).to_list(limit)
+    # PERF C2 (mismo patrón): 1 find con $in en vez de 1 find_one por cita
+    _lead_ids = list({apt["lead_id"] for apt in items if apt.get("lead_id")})
+    _leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if _lead_ids:
+        async for _l in db.leads.find(
+            {"id": {"$in": _lead_ids}},
+            {"_id": 0, "id": 1, "contact": 1, "status": 1, "payment_methods": 1, "budget_range": 1},
+        ):
+            _leads_by_id[_l.pop("id")] = _l  # pop: 'id' no iba en la respuesta original
     for apt in items:
-        if apt.get("lead_id"):
-            lead = await db.leads.find_one({"id": apt["lead_id"]}, {"_id": 0, "contact": 1, "status": 1, "payment_methods": 1, "budget_range": 1})
-            if lead:
-                apt["lead"] = lead
+        lead = _leads_by_id.get(apt.get("lead_id"))
+        if lead:
+            apt["lead"] = lead
     return {"total": total, "page": page, "limit": limit, "items": items}
 
 
@@ -1774,12 +1821,29 @@ async def inmobiliaria_dashboard(
         {"inmobiliaria_id": inmobiliaria_id, "status": "active"},
         {"_id": 0, "id": 1, "name": 1, "email": 1},
     ).limit(20).to_list(20)
+    # PERF C3 · UNA aggregation con sums condicionales (antes: 3 count_documents × asesor ≤60 queries)
+    _uids = [(a.get("user_id") or a.get("id")) for a in asesores]
+    _by_asesor: Dict[Any, Dict[str, int]] = {}
+    if _uids:
+        _pipe = [
+            {"$match": {"asesor_id": {"$in": _uids}, "inmobiliaria_id": inmobiliaria_id, "created_at": {"$gte": since}}},
+            {"$group": {
+                "_id": "$asesor_id",
+                "leads": {"$sum": 1},
+                "won": {"$sum": {"$cond": [{"$eq": ["$status", "cerrado_ganado"]}, 1, 0]}},
+                "closed": {"$sum": {"$cond": [
+                    {"$in": [{"$ifNull": ["$status", None]}, ["cerrado_ganado", "cerrado_perdido"]]}, 1, 0]}},
+            }},
+        ]
+        async for _row in db.leads.aggregate(_pipe):
+            _by_asesor[_row["_id"]] = _row
     top_asesores = []
     for a in asesores:
         uid = a.get("user_id") or a.get("id")
-        a_leads = await db.leads.count_documents({"asesor_id": uid, "inmobiliaria_id": inmobiliaria_id, "created_at": {"$gte": since}})
-        a_won = await db.leads.count_documents({"asesor_id": uid, "inmobiliaria_id": inmobiliaria_id, "status": "cerrado_ganado", "created_at": {"$gte": since}})
-        a_closed = await db.leads.count_documents({"asesor_id": uid, "inmobiliaria_id": inmobiliaria_id, "status": {"$in": ["cerrado_ganado", "cerrado_perdido"]}, "created_at": {"$gte": since}})
+        st = _by_asesor.get(uid) or {}
+        a_leads = st.get("leads", 0)
+        a_won = st.get("won", 0)
+        a_closed = st.get("closed", 0)
         wr = round(a_won / a_closed * 100, 1) if a_closed else 0
         top_asesores.append({**a, "leads": a_leads, "won": a_won, "win_rate": wr})
     top_asesores.sort(key=lambda x: x["leads"], reverse=True)

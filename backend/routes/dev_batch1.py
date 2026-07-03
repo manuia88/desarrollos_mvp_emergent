@@ -20,6 +20,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import csv
 import uuid
@@ -28,6 +29,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from pymongo import UpdateOne
 from pydantic import BaseModel, Field, field_validator
 from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
@@ -279,6 +281,21 @@ async def bulk_commit(payload: BulkCommitPayload, request: Request):
     committed = 0
     errors = []
 
+    # PERF C8 · precarga de existentes para skip_existing (antes: 1 find_one por fila)
+    _existing_ids: set = set()
+    if payload.override_mode == "skip_existing":
+        _all_unit_ids = []
+        for row in valid_rows:
+            _un = str(row.get("_unit_number") or row.get("unit_number", "")).strip()
+            if _un:
+                _all_unit_ids.append(f"{payload.dev_id}-{_un.lower().replace(' ', '-')}")
+        if _all_unit_ids:
+            async for _doc in db.developer_unit_overrides.find(
+                {"unit_id": {"$in": _all_unit_ids}}, {"_id": 0, "unit_id": 1}
+            ):
+                _existing_ids.add(_doc["unit_id"])
+
+    _ops: List[UpdateOne] = []
     for row in valid_rows:
         unit_number = str(row.get("_unit_number") or row.get("unit_number", "")).strip()
         if not unit_number:
@@ -329,16 +346,18 @@ async def bulk_commit(payload: BulkCommitPayload, request: Request):
         override = {k: v for k, v in override.items() if v is not None or k in ("unit_id", "unit_number", "dev_id", "dev_org_id")}
 
         if payload.override_mode == "skip_existing":
-            existing = await db.developer_unit_overrides.find_one({"unit_id": unit_id})
-            if existing:
+            if unit_id in _existing_ids:
                 continue
+            # filas duplicadas en el mismo archivo: la 2ª se salta (igual que el find_one previo)
+            _existing_ids.add(unit_id)
 
-        await db.developer_unit_overrides.update_one(
-            {"unit_id": unit_id},
-            {"$set": override},
-            upsert=True,
-        )
+        _ops.append(UpdateOne({"unit_id": unit_id}, {"$set": override}, upsert=True))
         committed += 1
+
+    # PERF C8 · bulk_write en lotes de 500 (antes: ≤2000 update_one en serie).
+    # ordered=True conserva "última fila gana" cuando el archivo trae unit_number duplicado.
+    for _i in range(0, len(_ops), 500):
+        await db.developer_unit_overrides.bulk_write(_ops[_i:_i + 500], ordered=True)
 
     # Update job status
     job_status = "committed" if not errors else "partial"
@@ -1051,7 +1070,10 @@ async def quote_pdf(project_id: str, payload: QuotePdfBody, request: Request):
     )
     images = await _fetch_quote_images(db, project_id, dev)
 
-    pdf_bytes = _render_quote_pdf(dev, unit, prog, images, payload, rows, base, meses_auto)
+    # PERF C9 · ReportLab/PIL son síncronos y pesados → thread executor para no bloquear el event loop
+    pdf_bytes = await asyncio.get_event_loop().run_in_executor(
+        None, _render_quote_pdf, dev, unit, prog, images, payload, rows, base, meses_auto
+    )
     fname = f"cotizacion_{project_id}_{_uid('q')}.pdf"
     (dev_assets.ASSET_UPLOAD_DIR / fname).write_bytes(pdf_bytes)
     pdf_url = f"/api/assets-static/{fname}"

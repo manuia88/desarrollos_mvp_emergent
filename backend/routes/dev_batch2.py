@@ -133,31 +133,57 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
     # ── Cargar leads REALES del dev (antes era random.Random — datos inventados).
     # Scope por development_id ∈ sus proyectos (los leads traen development_id, NO dev_org_id →
     # antes con dev_org_id devolvía VACÍO). dev_ids ya refleja el filtro de project_id de arriba.
+    # PERF C10 · los conteos viven en Mongo con UNA aggregation ($facet) en vez de traer hasta
+    # 5000 leads y contar en Python. $limit 5000 espeja el cap del to_list(5000) previo.
     q: Dict[str, Any] = {"development_id": {"$in": dev_ids}}
-    leads = await db.leads.find(
-        q, {"_id": 0, "status": 1, "lost_reason": 1, "created_at": 1, "updated_at": 1}
-    ).to_list(5000)
 
-    def _parse(dt):
-        if not dt:
-            return None
-        if isinstance(dt, datetime):
-            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-        try:
-            d = datetime.fromisoformat(str(dt).replace("Z", "+00:00"))
-            return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
-        except Exception:
-            return None
+    def _fmt_expr(field: str, n_chars: int, fmt: str) -> Dict[str, Any]:
+        # 'YYYY-MM' / 'YYYY-MM-DD' del campo — equivale a strftime sobre string ISO o datetime
+        return {"$switch": {"branches": [
+            {"case": {"$eq": [{"$type": field}, "date"]},
+             "then": {"$dateToString": {"format": fmt, "date": field}}},
+            {"case": {"$eq": [{"$type": field}, "string"]},
+             "then": {"$substrCP": [field, 0, n_chars]}},
+        ], "default": ""}}
 
-    counts = Counter(l.get("status") for l in leads)
+    _facets = await db.leads.aggregate([
+        {"$match": q},
+        {"$limit": 5000},
+        {"$project": {"_id": 0, "status": 1, "lost_reason": 1, "created_at": 1, "updated_at": 1}},
+        {"$facet": {
+            "by_status": [
+                {"$group": {"_id": "$status", "n": {"$sum": 1}}},
+            ],
+            "lost_reasons": [
+                {"$match": {"status": "cerrado_perdido"}},
+                {"$group": {"_id": "$lost_reason", "n": {"$sum": 1}}},
+            ],
+            "cohort": [
+                {"$match": {"status": "cerrado_ganado"}},
+                {"$group": {"_id": {"cm": _fmt_expr("$created_at", 7, "%Y-%m"),
+                                    "clm": _fmt_expr("$updated_at", 7, "%Y-%m")},
+                            "n": {"$sum": 1}}},
+            ],
+            "by_close_day": [
+                {"$match": {"status": "cerrado_ganado"}},
+                {"$group": {"_id": _fmt_expr("$updated_at", 10, "%Y-%m-%d"), "n": {"$sum": 1}}},
+            ],
+        }},
+    ]).to_list(1)
+    _fx = _facets[0] if _facets else {}
+
+    counts = Counter()
+    for d in _fx.get("by_status", []):
+        counts[d["_id"]] += d["n"]
     won = counts.get("cerrado_ganado", 0)
-    lost_leads = [l for l in leads if l.get("status") == "cerrado_perdido"]
-    lost_total = len(lost_leads)
+    lost_total = counts.get("cerrado_perdido", 0)
 
     # ── Win/Loss REAL (motivos desde lost_reason)
     REASON_COLOR = {"precio": "#ef4444", "timing": "#f59e0b", "financiamiento": "#EC4899",
                     "ubicacion": "#6366F1", "competencia": "#10b981"}
-    reason_ct = Counter((l.get("lost_reason") or "otro") for l in lost_leads)
+    reason_ct = Counter()
+    for d in _fx.get("lost_reasons", []):
+        reason_ct[d["_id"] or "otro"] += d["n"]  # null/"" → "otro" (mismo criterio que antes)
     lost_reasons = [
         {"reason": str(r).replace("_", " ").title(), "count": c,
          "color": REASON_COLOR.get(str(r).lower(), "#94a3b8"),
@@ -171,7 +197,7 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
 
     # ── Funnel REAL por etapa (acumulado hacia el cierre). Vocabulario canonizado: acepta los dos
     #    sets de status que conviven en la data (cita/cita_agendada · propuesta).
-    n_total = len(leads)
+    n_total = sum(counts.values())
     _CALIF = ("calificado", "cita", "cita_agendada", "propuesta", "cerrado_ganado", "cerrado_perdido")
     _VISITA = ("cita", "cita_agendada", "propuesta", "cerrado_ganado", "cerrado_perdido")
     n_calif = sum(counts.get(s, 0) for s in _CALIF)
@@ -191,29 +217,26 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
             s["dropoff_pct"] = round(100 * (prev - s["count"]) / prev, 1) if prev else 0
             s["conversion_from_prev"] = round(100 * s["count"] / prev, 1) if prev else 0
 
-    # ── Cohort REAL: mes de captación × mes de cierre (leads ganados)
+    # ── Cohort REAL: mes de captación × mes de cierre (leads ganados) — ya agrupado en Mongo;
+    #    meses inválidos/vacíos quedan fuera por el filtro `in midx` (mismo skip que _parse=None).
     midx = {m: i for i, m in enumerate(months)}
     cohort = [{"captacion_month": m, "closes": {}} for m in months]
-    for l in leads:
-        if l.get("status") != "cerrado_ganado":
-            continue
-        c, cl = _parse(l.get("created_at")), _parse(l.get("updated_at"))
-        if not c or not cl:
-            continue
-        cm, clm = c.strftime("%Y-%m"), cl.strftime("%Y-%m")
+    for d in _fx.get("cohort", []):
+        _cid = d.get("_id") or {}
+        cm, clm = _cid.get("cm") or "", _cid.get("clm") or ""
         if cm in midx and clm in midx:
-            cohort[midx[cm]]["closes"][clm] = cohort[midx[cm]]["closes"].get(clm, 0) + 1
+            cohort[midx[cm]]["closes"][clm] = cohort[midx[cm]]["closes"].get(clm, 0) + d["n"]
 
     # ── Heatmap REAL: cierres por día YTD (fecha de cierre = updated_at del lead ganado)
     year = today.year
     jan1 = datetime(year, 1, 1, tzinfo=timezone.utc)
+    jan1_str = jan1.strftime("%Y-%m-%d")
     day_ct: Counter = Counter()
-    for l in leads:
-        if l.get("status") != "cerrado_ganado":
-            continue
-        cl = _parse(l.get("updated_at"))
-        if cl and cl >= jan1:
-            day_ct[cl.strftime("%Y-%m-%d")] += 1
+    for d in _fx.get("by_close_day", []):
+        ds = d.get("_id") or ""
+        # mismo corte >= 1-ene que antes; strings no-fecha no matchean el calendario de abajo
+        if len(ds) == 10 and ds >= jan1_str:
+            day_ct[ds] += d["n"]
     days = (today - jan1).days + 1
     heatmap = []
     for d in range(days):

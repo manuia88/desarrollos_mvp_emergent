@@ -345,6 +345,25 @@ async def _run_kanban(
         if to_date:
             q["created_at"]["$lte"] = to_date
 
+    # PERF C7 · empuja la búsqueda a la query (menos docs del server); el filtro Python
+    # de abajo se conserva como refinamiento → mismo resultado final.
+    if q_search:
+        from services.ai_safety import escape_regex
+        _name_rx = escape_regex(q_search.strip())
+        _digits = "".join(ch for ch in q_search if ch.isdigit())
+        _search_or: List[Dict[str, Any]] = []
+        if _name_rx:
+            _search_or.append({"contact.name": {"$regex": _name_rx, "$options": "i"}})
+        if _digits:
+            _search_or.append({"contact.phone_norm": _digits})
+        if "@" in q_search:
+            _search_or.append({"contact.email_norm": q_search.strip().lower()})
+        if _search_or:
+            if "$or" in q:  # scope=mine ya usa $or → combinar con $and
+                q = {"$and": [q, {"$or": _search_or}]}
+            else:
+                q["$or"] = _search_or
+
     items = await db.leads.find(q, {"_id": 0}).sort("last_activity_at", -1).limit(1000).to_list(1000)
 
     # Filter by search
@@ -359,19 +378,26 @@ async def _run_kanban(
         async for u in db.users.find({"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "name": 1, "email": 1}):
             name_by_id[u["user_id"]] = u.get("name") or u.get("email", "—")
 
-    # Cross-project counts (B4.30)
+    # Cross-project counts (B4.30) — PERF C5: 1 aggregation con $in (antes: 1 count por cliente único)
     gids = list({l["client_global_id"] for l in items if l.get("client_global_id")})
     cross_counts: Dict[str, int] = {}
     if gids:
+        _totals: Dict[str, int] = {}
+        _agg = db.leads.aggregate([
+            {"$match": {"client_global_id": {"$in": gids},
+                        "status": {"$nin": ["cerrado_ganado", "cerrado_perdido"]}}},
+            {"$group": {"_id": "$client_global_id", "n": {"$sum": 1}}},
+        ])
+        async for _d in _agg:
+            _totals[_d["_id"]] = _d["n"]
+        # mismo criterio que el count original: excluye el PRIMER lead visto por gid (id != l.id)
         for l in items:
             gid = l.get("client_global_id")
             if gid and gid not in cross_counts:
-                other_count = await db.leads.count_documents({
-                    "client_global_id": gid,
-                    "id": {"$ne": l["id"]},
-                    "status": {"$nin": ["cerrado_ganado", "cerrado_perdido"]},
-                })
-                cross_counts[gid] = other_count
+                n = _totals.get(gid, 0)
+                if l.get("status") not in ("cerrado_ganado", "cerrado_perdido"):
+                    n -= 1  # este lead activo estaba dentro del total agregado
+                cross_counts[gid] = max(0, n)
 
     now = _now()
     use_v2 = (str(pipeline).lower() == "v2")
@@ -380,6 +406,9 @@ async def _run_kanban(
     cols: Dict[str, List] = {c["key"]: [] for c in active_columns}
     total_counts: Dict[str, int] = {c["key"]: 0 for c in active_columns}
     sum_budgets: Dict[str, float] = {c["key"]: 0.0 for c in active_columns}
+    # PERF C6 · enrich_lead_metadata solo depende de (dev_org, asesor, inmobiliaria) + rol del viewer
+    # (constante en el request) → memo local: 1 llamada por combinación, no por lead (≤1000).
+    _enrich_cache: Dict[tuple, Dict[str, Any]] = {}
 
     for lead in items:
         if use_v2:
@@ -397,7 +426,16 @@ async def _run_kanban(
         # Phase 15 Batch 38 — Enriched metadata (dev branding + commission + asesor info)
         try:
             from services.lead_capture import enrich_lead_metadata
-            enriched = await enrich_lead_metadata(db, lead, viewer_role=getattr(user, "role", ""))
+            _ekey = (
+                lead.get("dev_org_id") or lead.get("dev_org_attributed"),
+                lead.get("assigned_to"),
+                lead.get("inmobiliaria_id"),
+            )
+            if _ekey in _enrich_cache:
+                enriched = _enrich_cache[_ekey]
+            else:
+                enriched = await enrich_lead_metadata(db, lead, viewer_role=getattr(user, "role", ""))
+                _enrich_cache[_ekey] = enriched
             if enriched:
                 card["enriched_metadata"] = enriched
         except Exception as e:
