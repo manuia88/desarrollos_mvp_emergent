@@ -121,3 +121,11 @@ Verificación: `NODE_ENV=development babel react-app` parsea los 7 archivos OK.
 - **P3 menores:** `TabBtn` inline → función `tabBtn` (no remonta, no pierde foco); WhatsApp `type="tel"`+`inputMode`; devs fetch Legacy con `.catch`; `CreateContactForm` botón dinámico "Crear lead/contacto".
 
 Verificación: `NODE_ENV=development babel react-app` parsea los 18 `.js` OK · CSS con llaves balanceadas · sin refs colgantes a `TabBtn`.
+
+---
+
+## Batch 10 · Correctness de motores (9 bugs de cálculo) — ✅ 9/9
+Ver tabla COR-01..09 en HALLAZGOS.md. Fixes en 7 motores (inversion_v4_tax/finance, composite_metrics, hedonic, absorcion, risk_score, health_score). Test `tests/test_audit_correctness.py` (9 verdes · impuestos por ejecución real). Suite 1248 passed.
+
+## Batch 11 · Rendimiento — índices seguros aplicados (resto = backlog en MEJORAS.md)
+Workflow 18 archivos → 43 anti-patrones (verificación adversarial CAÍDA por rate-limits → tratados como backlog, no confirmados). Sin tráfico en prod → no urge; NO se reescribieron N+1 (riesgo sin beneficio). **Aplicado:** 4 índices seguros en `dev_scale_indexes.py` (idempotentes, background): `colonias.id` (FALTANTE confirmado · 2,788 docs · hot), `buyer_signals (type, created_at_dt)`, `marketplace_searches (created_at_dt)`, `asistente_messages (role, created_at)`. Verificados creándose contra el Mongo vivo. Backlog completo (43, priorizado, con corrección por hallazgo) + resumen de dependencias en `auditoria/MEJORAS.md`.

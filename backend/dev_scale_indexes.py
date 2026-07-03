@@ -39,6 +39,18 @@ _DEV_SCALE_SPECS = {
     "project_amenities": [[("project_id", 1)]],
     "project_commercialization": [[("project_id", 1)]],
     "project_construction_progress": [[("project_id", 1)]],
+    # ── Auditoría de rendimiento (Batch 11) · índices faltantes confirmados ──
+    # colonias se consulta por el campo `id` (NO _id) en _colonia_value / colonia_watch_list
+    # (público, caliente) sobre ~2,788 docs → antes COLLSCAN.
+    "colonias": [[("id", 1)]],
+    # buyer_signals se filtra por type + ventana de created_at_dt en múltiples scans de demanda
+    # (demand_by_feature, marketplace_granularity) → compuesto (type, created_at_dt).
+    "buyer_signals": [[("type", 1), ("created_at_dt", -1)]],
+    # marketplace_searches se recorre por rango de fecha (demanda_mapa) sin índice de solo-fecha.
+    "marketplace_searches": [[("created_at_dt", -1)]],
+    # asistente_messages se filtra por role (+ fecha, tras el fix de query del backlog) en conversation_intel /
+    # competitor_mentions → índice (role, created_at) para cuando la query deje de traer todo.
+    "asistente_messages": [[("role", 1), ("created_at", 1)]],
 }
 
 
