@@ -4,6 +4,7 @@
  * Sharpe de la zona, yield corto vs largo). Datos reales por colonia; join con el catálogo (n → nombre + qué descubre).
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import ProbabilityBadge from '../shared/ProbabilityBadge';   // W5.19 · prob. pública de plusvalía de la zona (drpi_up)
 
 const API = process.env.REACT_APP_BACKEND_URL;
 // métricas curadas del lente inversor (n del catálogo) + cómo formatear el valor
@@ -44,6 +45,8 @@ export default function LenteInversorPanel({ coloniaId, coloniaName }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#1E2230' }}>🎯 Lente inversor · {coloniaName || zona.nombre}</div>
         {zona.tier && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11, color: '#6D4AFF', background: 'rgba(109,74,255,0.1)', borderRadius: 9999, padding: '3px 11px' }}>{zona.tier}</span>}
+        {/* Prob. pública de que la plusvalía de la zona suba (forecast ARIMA W5.3). Se auto-oculta si no hay datos. */}
+        {coloniaId && <ProbabilityBadge type="drpi_up" entity_id={String(coloniaId)} params={{ months: 3 }} format="medium" />}
       </div>
       <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5B5F76', marginTop: 4, lineHeight: 1.5 }}>
         Señales de inversión de la zona — comportamiento del comprador × mercado (motores fusionados). Datos reales de la colonia.
