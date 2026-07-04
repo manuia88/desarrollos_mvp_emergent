@@ -213,9 +213,9 @@ async def demand_supply_gap_geojson(db) -> Dict[str, Any]:
         supply_counts[cid] = supply_counts.get(cid, 0) + (d.get("units_available") or 1)
 
     # Demand per colonia · fuente canónica REUSADA (dmx_demand._zone_demand) — honesta:
-    # usa vistas reales de behavioral_events y, si no hay, marca proxy de inventario.
+    # multi-fuente (vistas + búsquedas + conducta) y, si no hay señal real, fallback uniforme (no inventario).
     from dmx_demand import _zone_demand
-    demand_counts, demand_is_proxy = await _zone_demand(db)
+    demand_counts, demand_is_proxy, _ = await _zone_demand(db)   # 3-tupla: (demand, is_proxy, sources)
     dmax = max(demand_counts.values()) if demand_counts else 1.0
     smax = max(supply_counts.values()) if supply_counts else 1.0
 
