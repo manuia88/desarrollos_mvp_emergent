@@ -700,6 +700,15 @@ const SERVICE_META = {
   cisterna: { icon: '🪣', label: 'Cisterna', values: {} },
 };
 const SERVICE_ORDER = ['gas', 'agua', 'cisterna', 'energia', 'agua_caliente', 'drenaje', 'internet'];
+// #9 · Normaliza la llave del servicio (el seed usa TitleCase con acentos "Gas"/"Energía"; SERVICE_ORDER es
+// minúscula sin acento) y FUSIONA seed + overlay del dev (el dev gana por llave) → antes el overlay pisaba el seed
+// y los servicios con llave TitleCase salían "No especificado".
+const svcKey = (k) => String(k).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, '_');
+const mergeServicios = (...objs) => {
+  const out = {};
+  objs.forEach((o) => { if (o && typeof o === 'object' && !Array.isArray(o)) Object.entries(o).forEach(([k, v]) => { if (v) out[svcKey(k)] = v; }); });
+  return Object.keys(out).length ? out : null;
+};
 const SISTEMA_LABEL = { cajon: 'Cimentación de cajón', losa: 'Losa de cimentación', pilotes: 'Pilotes', zapatas: 'Zapatas', concreto: 'Concreto armado', acero: 'Acero', mixta: 'Mixta', muros: 'Muros de carga', prefabricado: 'Prefabricado' };
 
 // Historial de precios — curva de apreciación desde el lanzamiento (SVG, blanco)
@@ -821,7 +830,7 @@ function TabGeneral({ dev }) {
   const fg = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 };
   const uFeatures = Array.isArray(dev.unit_features) ? dev.unit_features : [];
   // servicios y sistema constructivo (portados del portal dev; objeto config.* o top-level)
-  const serviciosObj = (dev.config && dev.config.servicios) || (dev.servicios && !Array.isArray(dev.servicios) ? dev.servicios : null);
+  const serviciosObj = mergeServicios(dev.servicios && !Array.isArray(dev.servicios) ? dev.servicios : null, dev.config && dev.config.servicios);
   const sistemaObj = (dev.config && dev.config.sistema_constructivo) || dev.sistema_constructivo || (typeof (tec.Estructura || tec.estructura) === 'string' ? { estructura: tec.Estructura || tec.estructura, cimentacion: tec.Cimentacion || tec.cimentacion } : null);
   const ph2 = Array.isArray(dev.price_history) ? dev.price_history : [];
   const grouped = {}; units.forEach((u) => { const k = u.prototype || '?'; (grouped[k] = grouped[k] || []).push(u); });
