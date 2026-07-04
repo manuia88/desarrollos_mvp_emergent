@@ -39,6 +39,13 @@ async def record_closing(db, lead_id=None, visitor_id=None, dev_id=None, price_c
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) if lead_id else None
     if lead and not visitor_id:
         visitor_id = lead.get("visitor_id")
+    # Cierre del loop de DEMANDA (auditoría N3): al registrar un cierre, la demanda de ese comprador
+    # deja de contar como insatisfecha (antes quedaba abierta para siempre inflando los agregados).
+    try:
+        from demand_feedback import mark_demand_satisfied
+        await mark_demand_satisfied(db, visitor_id=visitor_id, lead_id=lead_id)
+    except Exception:
+        pass
     bp = (lead or {}).get("buyer_profile") or {}
     dev = by_id.get(dev_id) or {}
 

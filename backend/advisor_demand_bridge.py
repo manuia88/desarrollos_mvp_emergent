@@ -72,6 +72,69 @@ async def materialize_asesor_busquedas(db, limit: int = MAX_BATCH) -> dict:
     return {"materialized": n, "source": "asesor_anon"}
 
 
+async def match_asesor_busquedas(db, limit: int = MAX_BATCH) -> dict:
+    """El RETORNO del ciclo (auditoría N3): la demanda del asesor subía al cubo pero nunca VOLVÍA como
+    oportunidades. Matchea cada búsqueda activa contra el inventario (mismas primitivas que la casamentera:
+    perfil duro por zona/precio/recámaras + unidades disponibles) y llena `matched_dev_ids` → el asesor ve
+    qué desarrollos encajan con su cliente. Owner-scoped: todo queda en asesor_busquedas, cero PII fuera.
+    También actualiza el espejo anónimo (results_count/unmet) → los agregados de demanda quedan honestos."""
+    try:
+        from data_developments import DEVELOPMENTS
+        from routes.perfil_recomendar import _passes_extra
+        from routes.casamentera import _profile_from_search, _matching_units
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[advisor_demand_bridge] match imports fallaron: {e}")
+        return {"matched": 0}
+    n = 0
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        cursor = db.asesor_busquedas.find(
+            {"stage": {"$nin": ["cerrada", "ganada", "perdida", "descartada"]}}, {"_id": 0}).limit(limit)
+        async for bq in cursor:
+            s = {  # shape que esperan las primitivas de la casamentera
+                "colonias": bq.get("colonias") or [], "precio_max": bq.get("precio_max"),
+                "recamaras_min": bq.get("recamaras_min"), "banos_min": bq.get("banos_min"),
+                "estacionamientos_min": bq.get("estacionamientos_min"), "m2_min": bq.get("m2_min"),
+            }
+            try:
+                prof = _profile_from_search(s)
+            except Exception:
+                continue
+            matches = []
+            for d in DEVELOPMENTS:
+                try:
+                    if not _passes_extra(d, prof):
+                        continue
+                    unidades = _matching_units(d, s)
+                    if (d.get("units") or []) and not unidades:
+                        continue  # tiene lista de precios pero ninguna unidad disponible cumple
+                    matches.append(d.get("id"))
+                    if len(matches) >= 12:
+                        break
+                except Exception:
+                    continue
+            if set(matches) != set(bq.get("matched_dev_ids") or []):
+                await db.asesor_busquedas.update_one(
+                    {"id": bq.get("id")},
+                    {"$set": {"matched_dev_ids": matches, "matched_at": now}})
+                n += 1
+            # Espejo anónimo honesto: con matches, esa demanda deja de contar como insatisfecha.
+            try:
+                src_id = str(bq.get("id") or "")
+                if src_id:
+                    dedup = "asesor_" + hashlib.sha256(f"asesor_busq:{src_id}".encode()).hexdigest()[:20]
+                    await db.marketplace_searches.update_one(
+                        {"dedup_key": dedup},
+                        {"$set": {"results_count": len(matches), "unmet": (len(matches) == 0)}})
+            except Exception:
+                pass
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[advisor_demand_bridge] match falló: {e}")
+    if n:
+        log.info(f"[advisor_demand_bridge] {n} búsquedas del asesor con matches actualizados")
+    return {"matched": n}
+
+
 async def ensure_indexes(db) -> None:
     try:
         await db.marketplace_searches.create_index(
@@ -87,6 +150,7 @@ def register_advisor_bridge_job(scheduler, db) -> None:
 
     async def _run():
         await materialize_asesor_busquedas(db)
+        await match_asesor_busquedas(db)   # el retorno: llena matched_dev_ids para el asesor
 
     scheduler.add_job(
         _run, CronTrigger(hour=9, minute=15),  # 03:15 MX ≈ 09:15 UTC

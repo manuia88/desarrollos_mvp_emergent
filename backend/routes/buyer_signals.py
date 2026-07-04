@@ -300,7 +300,7 @@ async def demanda_zona(dev_id: str, request: Request):
             return {"ok": True, "zona": None, "huecos": []}
         from collections import Counter
         groups: dict = {}
-        async for x in db.demanda_insatisfecha.find({"zona": zona}, {"_id": 0, "criterios": 1, "falta_top": 1}):
+        async for x in db.demanda_insatisfecha.find({"zona": zona, "satisfecha": {"$ne": True}}, {"_id": 0, "criterios": 1, "falta_top": 1}):
             c = x.get("criterios") or {}
             key = (c.get("beds"), c.get("max_price"), c.get("min_sqm"))
             g = groups.setdefault(key, {"personas": 0, "falta": Counter()})

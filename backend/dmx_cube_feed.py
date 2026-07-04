@@ -129,6 +129,10 @@ def flatten_atom(a: Dict[str, Any]) -> Dict[str, Any]:
     m2 = areas.get("m2_privativo") or areas.get("m2_construido")
     precio = com.get("precio_lista_mxn")
     return {
+        # LINAJE: retener unit_id en la fila plana — permite (a) que los overrides del dev apliquen al
+        # cubo (join ov.unit_id) y (b) rastrear de qué unidad sale cada número (auditoría N1/N3).
+        "unit_id": a.get("unit_id"),
+        "development_id": a.get("development_id"),
         # claves legacy que el agregador/_key_of_unit ya leen
         "status": com.get("status"),
         "price": precio,

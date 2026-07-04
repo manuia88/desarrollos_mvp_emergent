@@ -3333,6 +3333,11 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                     {"$set": {"unit_id": _uid, "dev_id": _did, "status": "vendido",
                               "reason": "Venta cerrada por asesor", "updated_by": user.user_id,
                               "updated_at": _now()}}, upsert=True)
+                try:
+                    import cube_cache
+                    cube_cache.cache_invalidate_zones([])   # el cubo ve el override al instante (no espera TTL 5min)
+                except Exception:
+                    pass
         except Exception as _ue:
             logging.getLogger("dmx.advisor").warning(f"[operacion] marcar unidad vendida falló: {_ue}")
         # Sincroniza el LEAD a 'cerrado_ganado' → la conversión/deals-cerrados del dev y del superadmin (que leen
@@ -3354,6 +3359,10 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                 await db.leads.update_one({"id": _lid_op}, {"$set": {
                     "status": "cerrado_ganado", "lead_stage": "cerrado_ganado",
                     "updated_at": _now(), "last_activity_at": _now()}})
+                # Cierre del loop de DEMANDA (auditoría N3): al cerrar, su demanda registrada deja de
+                # contar como hueco (antes inflaba demanda insatisfecha de dev/superadmin para siempre).
+                from demand_feedback import mark_demand_satisfied
+                await mark_demand_satisfied(db, lead_id=_lid_op)
         except Exception as _le:
             logging.getLogger("dmx.advisor").info(f"[operacion] sync lead cerrado no aplicó: {_le}")
     # P2.6 · operación CANCELADA → cierra el ciclo: marca el contacto como PERDIDO y

@@ -175,7 +175,7 @@ async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
             return 0
 
     total = await _count(base)
-    insatisfechas = await _count({**base, "unmet": True})
+    insatisfechas = await _count({**base, "unmet": True, "satisfecha": {"$ne": True}})
     # Sustitución: de MI zona, ¿a qué zonas se va la demanda que no pude cumplir?
     sust = await _agg([
         {"$match": {**base, "sustitucion": True}}, {"$unwind": "$zonas_sustitutas"},
@@ -253,7 +253,7 @@ async def zona_cambios(request: Request, dias: int = Query(30, ge=7, le=90)):
         m = {"colonia_id": {"$in": cols}, "created_at_dt": {"$gte": t0, "$lt": t1}}
         try:
             n = await db.marketplace_searches.count_documents(m)
-            unmet = await db.marketplace_searches.count_documents({**m, "unmet": True})
+            unmet = await db.marketplace_searches.count_documents({**m, "unmet": True, "satisfecha": {"$ne": True}})
             precios, recs = [], []   # MEDIANA, no media → resiste outliers (1 búsqueda de $100M no mueve la señal)
             async for s in db.marketplace_searches.find(m, {"_id": 0, "precio_max": 1, "recamaras_min": 1}):
                 if isinstance(s.get("precio_max"), (int, float)) and s["precio_max"] > 0:

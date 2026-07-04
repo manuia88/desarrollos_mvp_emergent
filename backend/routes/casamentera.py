@@ -65,7 +65,7 @@ async def correr_casamentera(db, dev_ids=None):
     devs = [d for d in DEVELOPMENTS if (dev_ids is None or d.get("id") in dev_ids)]
     now = datetime.now(timezone.utc)
     created = 0
-    async for s in db.marketplace_searches.find({"alert": True}):
+    async for s in db.marketplace_searches.find({"alert": True, "satisfecha": {"$ne": True}}):
       try:
         prof = _profile_from_search(s)
         for d in devs:

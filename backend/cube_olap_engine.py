@@ -65,6 +65,28 @@ def _decade_for(year: Optional[int]) -> str:
 
 # ─── Unit-level filtering ─────────────────────────────────────────────────────
 
+async def _apply_dev_overrides(db, units: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Los overrides del DEV (developer_unit_overrides: precio/estado/m²…) también aplican al CUBO.
+    Antes el cubo agregaba precio/estado del seed/átomo aunque el dev ya los hubiera editado → métricas
+    stale hasta el próximo backfill. Misma semántica que public._merge_units (join u.id↔ov.unit_id;
+    el átomo usa 'unit_id'). Fail-open."""
+    if not units:
+        return units
+    _SKIP = {"unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id", "price_change_reason"}
+    try:
+        ov_map: Dict[str, Dict[str, Any]] = {}
+        async for ov in db.developer_unit_overrides.find({}, {"_id": 0}):
+            if ov.get("unit_id"):
+                ov_map[ov["unit_id"]] = ov
+        if not ov_map:
+            return units
+        return [({**u, **{k: v for k, v in (ov_map.get(u.get("id") or u.get("unit_id")) or {}).items()
+                          if k not in _SKIP and v is not None}}) for u in units]
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[olap] overrides apply failed (fail-open): {e}")
+        return units
+
+
 async def _list_units_for_zone(db, tier: str, tier_id: str) -> List[Dict[str, Any]]:
     """Returns merged seed + mongo units for a zone (any tier).
     Fase 1: el ÁTOMO milimétrico (dmx_units) es la fuente de verdad si está poblado;
@@ -72,7 +94,7 @@ async def _list_units_for_zone(db, tier: str, tier_id: str) -> List[Dict[str, An
     try:
         atom_rows = await dmx_cube_feed.atom_units_for(db, tier, tier_id)
         if atom_rows:
-            return atom_rows
+            return await _apply_dev_overrides(db, atom_rows)
     except Exception as e:
         log.warning(f"[olap] atom read failed · fallback seed: {e}")
     units: List[Dict[str, Any]] = []
@@ -116,9 +138,9 @@ async def _list_units_for_zone(db, tier: str, tier_id: str) -> List[Dict[str, An
                 enriched.append(dmx_cube_feed.flatten_atom(dmx_cube_feed.seed_to_atom(u, dev)))
             except Exception:
                 enriched.append(u)
-        return enriched
+        return await _apply_dev_overrides(db, enriched)
     except Exception:
-        return units
+        return await _apply_dev_overrides(db, units)
 
 
 def _unit_property_type(u: Dict[str, Any]) -> str:

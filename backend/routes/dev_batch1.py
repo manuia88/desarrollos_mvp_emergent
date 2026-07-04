@@ -1188,6 +1188,11 @@ async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
         upsert=True,
     )
     try:
+        import cube_cache
+        cube_cache.cache_invalidate_zones([])   # el cubo ve el override al instante (no espera TTL 5min)
+    except Exception:
+        pass
+    try:
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "unit_hold", unit_id,
                            before=None, after={"hours": payload.hours, "expires_at": expires_at.isoformat()},
@@ -1219,6 +1224,11 @@ async def release_hold(unit_id: str, dev_id: str, request: Request):
         {"unit_id": unit_id},
         {"$set": {"status": "disponible", "hold_id": None, "updated_by": user.user_id, "updated_at": _now().isoformat()}},
     )
+    try:
+        import cube_cache
+        cube_cache.cache_invalidate_zones([])   # el cubo ve el override al instante (no espera TTL 5min)
+    except Exception:
+        pass
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "delete", "unit_hold", unit_id,
@@ -1283,6 +1293,11 @@ async def auto_release_expired_holds(db) -> int:
             {"unit_id": hold["unit_id"]},
             {"$set": {"status": "disponible", "hold_id": None, "updated_at": now_iso}},
         )
+        try:
+            import cube_cache
+            cube_cache.cache_invalidate_zones([])   # el cubo ve el override al instante (no espera TTL 5min)
+        except Exception:
+            pass
         released += 1
     if released:
         log.info(f"[unit_holds] auto-released {released} expired holds")

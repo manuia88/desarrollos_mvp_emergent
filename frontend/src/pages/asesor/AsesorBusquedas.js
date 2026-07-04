@@ -130,6 +130,17 @@ export default function AsesorBusquedas({ user, onLogout, embedded }) {
                             <Badge tone="neutral">{b.visits || 0} visitas</Badge>
                             <Badge tone="neutral">{b.offers || 0} ofertas</Badge>
                             {b.urgencia === 'alta' && <Badge tone="bad">Urgente</Badge>}
+                            {/* El RETORNO del ciclo: matches que el sistema encontró para este cliente (cron diario). */}
+                            {(b.matched_dev_ids || []).length > 0 && (
+                              <span
+                                role="button" tabIndex={0} data-testid={`busq-matches-${b.id}`}
+                                onClick={(e) => { e.stopPropagation(); window.open(`/desarrollo/${b.matched_dev_ids[0]}`, '_blank'); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); window.open(`/desarrollo/${b.matched_dev_ids[0]}`, '_blank'); } }}
+                                title={`El sistema encontró ${b.matched_dev_ids.length} desarrollo(s) que encajan — clic para ver el primero`}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 700, cursor: 'pointer', background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ADE80' }}>
+                                ✨ {b.matched_dev_ids.length} {b.matched_dev_ids.length === 1 ? 'match' : 'matches'}
+                              </span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                             <button onClick={e => { e.stopPropagation(); regVisit(b.id); }} data-testid={`visit-${b.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}>+ visita</button>

@@ -808,7 +808,7 @@ async def unmet_demand(db, colonias: Optional[List[str]] = None, since_days: int
     pura de 'qué construir que NO existe'. Por colonia × recámaras × precio."""
     now = dt.datetime.utcnow()
     cutoff = now - dt.timedelta(days=since_days)
-    q = {"created_at_dt": {"$gte": cutoff}, "$or": [{"unmet": True}, {"results_count": {"$lte": 2}}]}
+    q = {"created_at_dt": {"$gte": cutoff}, "satisfecha": {"$ne": True}, "$or": [{"unmet": True}, {"results_count": {"$lte": 2}}]}
     if colonias:
         q["colonias"] = {"$in": colonias}
     by_col = defaultdict(int); by_rec = defaultdict(int); by_price = defaultdict(int); n = 0
