@@ -14,6 +14,7 @@ const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c)
 
 export default function CubeActuarView({ onToast }) {
   const [cells, setCells] = useState(null);
+  const [meta, setMeta] = useState(null);   // {es_estimado, lectura_datos} — honestidad de la fuente
   const [err, setErr] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
   const [done, setDone] = useState({});   // key → brief_id (feedback de "ya generado" en esta sesión)
@@ -22,7 +23,7 @@ export default function CubeActuarView({ onToast }) {
   useEffect(() => {
     let alive = true;
     getCubeDemandGap(25)
-      .then((d) => { if (alive) setCells((d && d.cells) || []); })
+      .then((d) => { if (alive) { setCells((d && d.cells) || []); setMeta(d || {}); } })
       .catch((e) => { if (alive) setErr(e?.message || 'No se pudo cargar la demanda.'); });
     return () => { alive = false; };
   }, []);
@@ -84,6 +85,12 @@ export default function CubeActuarView({ onToast }) {
       <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.6)', marginBottom: 14 }}>
         Colonias × tipo de unidad donde la gente busca y casi no hay inventario. Genera el brief («qué construir aquí») y queda guardado para mandárselo a un desarrollador.
       </div>
+      {meta?.es_estimado && (
+        <div data-testid="actuar-estimado" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', borderRadius: 10, background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.22)', marginBottom: 14, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.75)' }}>
+          <AlertCircle size={13} style={{ color: '#FCD34D', flexShrink: 0 }} />
+          {meta.lectura_datos || 'Demanda estimada — aún sin señal real de compradores. Úsala como referencia, no como medición.'}
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12 }}>
         {cells.map((c) => {
           const key = `${c.colonia}|${c.tipologia}`;

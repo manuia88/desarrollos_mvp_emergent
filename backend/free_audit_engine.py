@@ -348,17 +348,22 @@ def render_audit_pdf(audit: Dict[str, Any], context: Dict[str, Any]) -> str:
     c.setFont("Helvetica-Bold", 22); c.setFillColor(BG_DARK)
     c.drawString(MARGIN, H - MARGIN - 30, "Demanda vs oferta")
     ds = context.get("demand_supply") or {}
-    gap = float(ds.get("gap_score") or ds.get("gap") or 0)
-    label = "Mercado caliente" if gap > 30 else "Equilibrado" if gap > 0 else "Sobreoferta"
-    color_hex = HexColor("#22c55e") if gap > 30 else HexColor("#f59e0b") if gap > 0 else HexColor("#ef4444")
+    # El geojson expone 'score' = dem_norm - sup_norm ∈ [-1,1] (antes se leía 'gap_score', clave inexistente
+    # → siempre 0 → todo 'Sobreoferta · Gap 0'). Índice de demanda 0-100 (50 = equilibrado).
+    score = float(ds.get("score") or 0)
+    idx = round((score + 1) * 50)
+    label = "Mercado caliente" if idx > 65 else "Equilibrado" if idx > 50 else "Sobreoferta"
+    color_hex = HexColor("#22c55e") if idx > 65 else HexColor("#f59e0b") if idx > 50 else HexColor("#ef4444")
     c.setFillColor(color_hex); c.roundRect(MARGIN, H - MARGIN - 100, 220, 40, 10, fill=1, stroke=0)
     c.setFont("Helvetica-Bold", 14); c.setFillColor(WHITE)
     c.drawCentredString(MARGIN + 110, H - MARGIN - 85, label)
     c.setFont("Helvetica", 11); c.setFillColor(BG_DARK)
-    c.drawString(MARGIN, H - MARGIN - 130, f"Gap score: {gap:.0f}")
-    velocity = float(ds.get("velocity_months") or 9)
-    c.setFont("Helvetica-Bold", 12); c.setFillColor(BG_DARK)
-    c.drawString(MARGIN, H - MARGIN - 170, f"Velocity estimada: {velocity:.0f} meses al sellout completo")
+    c.drawString(MARGIN, H - MARGIN - 130, f"Índice de demanda: {idx}/100")
+    # Velocity: solo si viene un dato real (antes se imprimía siempre un "9 meses" fabricado).
+    velocity = ds.get("velocity_months")
+    if velocity is not None:
+        c.setFont("Helvetica-Bold", 12); c.setFillColor(BG_DARK)
+        c.drawString(MARGIN, H - MARGIN - 170, f"Velocity estimada: {float(velocity):.0f} meses al sellout completo")
     c.showPage()
 
     # PAGE 5: Scenarios

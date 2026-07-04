@@ -84,15 +84,13 @@ def _normalize_zone(zone_score_doc: Optional[Dict[str, Any]]) -> float:
     return float(ZONE_TIER_TO_SCORE.get(tier, 50))
 
 
-def _normalize_demand(gap_score: Optional[float]) -> float:
-    if gap_score is None:
+def _normalize_demand(score: Optional[float]) -> float:
+    # score = dem_norm - sup_norm ∈ [-1,1] (del geojson demand-gap). Mapea a [0,100] centrado en 50.
+    # (Antes esperaba una escala de conteo ±30 y leía una clave inexistente → siempre 50 = neutro muerto.)
+    if score is None:
         return 50.0
-    # gap >= +30 → 100; gap <= -30 → 0; linear, centered at 50.
-    if gap_score >= 30:
-        return 100.0
-    if gap_score <= -30:
-        return 0.0
-    return round(50 + (gap_score / 30.0) * 50, 1)
+    s = max(-1.0, min(1.0, score))
+    return round(50 + s * 50, 1)
 
 
 def _normalize_stress(stress_result: Optional[Dict[str, Any]]) -> float:
@@ -158,7 +156,7 @@ async def _fetch_factors(
         for f in feats:
             p = f.get("properties") or {}
             if p.get("colonia_id") == colonia_slug or p.get("slug") == colonia_slug:
-                gap_score = float(p.get("gap_score") or p.get("gap") or 0)
+                gap_score = float(p.get("score") or 0)   # 'score' = dem_norm - sup_norm ∈ [-1,1]
                 break
     except Exception as exc:
         log.debug(f"[score_inv] demand failed: {exc}")

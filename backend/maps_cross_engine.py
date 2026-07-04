@@ -263,8 +263,8 @@ async def demand_supply_gap_geojson(db) -> Dict[str, Any]:
         })
     return {"type": "FeatureCollection", "features": features,
             "es_estimado": demand_is_proxy,
-            "lectura_datos": ("Demanda estimada (proxy de inventario) — aún sin vistas reales de zona"
-                              if demand_is_proxy else "Demanda con vistas reales de zona")}
+            "lectura_datos": ("Demanda estimada — aún sin vistas, búsquedas ni conducta reales en estas zonas"
+                              if demand_is_proxy else "Demanda con datos reales (vistas + búsquedas + conducta)")}
 
 
 # ─── Sub-B · Save Zones (inversionista) ───────────────────────────────────────

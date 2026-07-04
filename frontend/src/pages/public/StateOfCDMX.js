@@ -83,7 +83,7 @@ export default function StateOfCDMX() {
       sub: top[0] ? `+${top[0].roi_12m_pct.toFixed(1)}%` : '' },
     { id: 'demand-leader', label: 'Demanda más caliente',
       value: demand[0]?.name || '—',
-      sub: demand[0] ? `Gap ${demand[0].gap_score.toFixed(0)}` : '' },
+      sub: demand[0] ? `Índice de demanda ${demand[0].gap_score.toFixed(0)}/100` : '' },
     { id: 'velocity-champion', label: 'Velocity champion',
       value: `${metrics.velocity_by_category?.social ?? 7} meses`,
       sub: 'segmento Social' },

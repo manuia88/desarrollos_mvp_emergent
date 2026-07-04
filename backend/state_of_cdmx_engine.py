@@ -95,17 +95,20 @@ async def _demand_supply_top(db, limit: int = 10) -> List[Dict[str, Any]]:
         scored = []
         for f in feats:
             p = f.get("properties") or {}
-            gap = float(p.get("gap_score") or p.get("gap") or 0)
+            # El geojson expone 'score' = dem_norm - sup_norm ∈ [-1,1] (antes se leía 'gap_score', clave
+            # inexistente → siempre 0 → todo 'Sobreoferta'). Lo mapeamos a un índice 0-100 (50 = equilibrado).
+            score = float(p.get("score") or 0)
+            idx = round((score + 1) * 50)
             slug = p.get("colonia_id") or p.get("slug")
             if not slug:
                 continue
             scored.append({
                 "slug": slug,
                 "name": p.get("name") or slug.replace("-", " ").title(),
-                "gap_score": gap,
+                "gap_score": idx,
                 "opportunity_label": (
-                    "Demanda alta" if gap > 30 else
-                    "Equilibrado" if gap > 0 else "Sobreoferta"
+                    "Demanda alta" if idx > 65 else
+                    "Equilibrado" if idx > 50 else "Sobreoferta"
                 ),
             })
         scored.sort(key=lambda x: x["gap_score"], reverse=True)
