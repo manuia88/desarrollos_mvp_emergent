@@ -504,7 +504,9 @@ async def dev_responder_recomendacion(brief_id: str, body: BriefRespuesta, reque
     if body.status not in ("aceptado", "rechazado", "en_revision"):
         raise HTTPException(400, "status inválido")
     cols = [c.lower() for c in (await _dev_colonias(db, user))]
-    b = await db.product_briefs.find_one({"id": brief_id}, {"_id": 0, "colonia": 1})
+    # Solo se responde a briefs ENVIADOS a las colonias del dev — antes solo validaba la colonia, así que un
+    # dev podía responder un brief en 'borrador' (aún no despachado) de su zona enumerando ids.
+    b = await db.product_briefs.find_one({"id": brief_id, "status": "enviado"}, {"_id": 0, "colonia": 1})
     if not b or (b.get("colonia") or "").lower() not in cols:
         raise HTTPException(404, "Recomendación no encontrada en tus zonas")
     import datetime as _dt

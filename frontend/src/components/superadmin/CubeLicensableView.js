@@ -11,10 +11,11 @@ const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const money = (v) => (v == null ? '—' : `$${nf.format(v)}`);
 
+const int = (v) => (v == null ? '—' : nf.format(v));   // honestidad: sin dato → "—", no "0" inventado
 const COLS = [
   ['colonia', 'Colonia', (v) => tc(v)],
-  ['unidades', 'Unidades', (v) => nf.format(v || 0)],
-  ['disponibles', 'Disponibles', (v) => nf.format(v || 0)],
+  ['unidades', 'Unidades', int],
+  ['disponibles', 'Disponibles', int],
   ['precio_m2', '$/m²', money],
   ['precio_prom', 'Precio prom.', money],
   ['m2_prom', 'm² prom.', (v) => (v == null ? '—' : v)],

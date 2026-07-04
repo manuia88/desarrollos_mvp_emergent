@@ -290,7 +290,7 @@ async def licensable_route(request: Request, period: PeriodLit = "current"):
             "m2_prom": round(k.get("avg_m2"), 1) if k.get("avg_m2") else None,
             "absorcion_pct": k.get("absorcion_pct"),
         })
-    rows.sort(key=lambda r: (r.get("precio_m2") or 0), reverse=True)
+    rows.sort(key=lambda r: (r.get("precio_m2") is not None, r.get("precio_m2") or 0), reverse=True)
     return {
         "ok": True, "period": period, "k_anon": K,
         "colonias": rows, "n_colonias": len(rows), "suprimidas_kanon": suprimidas,
