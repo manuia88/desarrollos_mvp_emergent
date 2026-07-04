@@ -128,6 +128,11 @@ export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
 
+// Cubo Unificado — la LENTE LICENCIABLE: agregados de mercado por colonia (k-anon, sin nombres de dev)
+export async function getCubeLicensable(period = 'current') {
+  return _j(await fetch(`${BASE}/licensable?period=${encodeURIComponent(period)}`, { headers: h(), credentials: 'include' }));
+}
+
 // Cubo Unificado — el ÁTOMO: una unidad con TODOS sus indicadores por familia (máxima hipergranularidad)
 export async function getCubeAtom(unitId) {
   return _j(await fetch(`${BASE}/atom/${encodeURIComponent(unitId)}`, { headers: h(), credentials: 'include' }));

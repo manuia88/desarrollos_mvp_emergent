@@ -13,7 +13,8 @@ import CubeCatalogView from '../../components/superadmin/CubeCatalogView';
 import CubeCrossCutView from '../../components/superadmin/CubeCrossCutView';
 import CubeActuarView from '../../components/superadmin/CubeActuarView';
 import CubeAtomView from '../../components/superadmin/CubeAtomView';
-import { Database, LayoutGrid, Send, Layers, TrendingUp, Box } from 'lucide-react';
+import CubeLicensableView from '../../components/superadmin/CubeLicensableView';
+import { Database, LayoutGrid, Send, Layers, TrendingUp, Box, ShieldCheck } from 'lucide-react';
 import { Z } from '../../styles/zIndex';
 
 const PERIODS = [['current', 'Actual'], ['7d', '7d'], ['30d', '30d'], ['90d', '90d']];
@@ -23,6 +24,7 @@ const TABS = [
   ['crosscut', 'Corte cruzado', LayoutGrid],
   ['atomo', 'Átomo', Box],
   ['actuar', 'Actuar', Send],
+  ['licenciable', 'Licenciable', ShieldCheck],
 ];
 
 export default function SuperadminHubMercado({ user, onLogout }) {
@@ -87,6 +89,7 @@ export default function SuperadminHubMercado({ user, onLogout }) {
         {tab === 'crosscut' && <CubeCrossCutView period={period} />}
         {tab === 'atomo' && <CubeAtomView />}
         {tab === 'actuar' && <CubeActuarView onToast={setToast} />}
+        {tab === 'licenciable' && <CubeLicensableView period={period} />}
       </div>
     </SuperadminLayout>
   );

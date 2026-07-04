@@ -259,6 +259,49 @@ async def _audit(db, user, action: str, entity_type: str, entity_id=None, after=
         log.warning("[audit] log_mutation perdido (%s %s %s): %s", action, entity_type, entity_id, _e)
 
 
+# ─── Cubo Unificado · GET /licensable — la LENTE LICENCIABLE (data para vender · BEFORE /{tier}) ──
+@router.get(PREFIX + "/licensable")
+async def licensable_route(request: Request, period: PeriodLit = "current"):
+    """Decisión Terminal Mercado = vender data (estilo HouseCanary/Bloomberg). Agregados de MERCADO por
+    colonia, listos para licenciar: precio/m², absorción, inventario, demanda — con K-ANON ≥3 (celdas de <3
+    unidades se SUPRIMEN) y SIN nombres de desarrollo (cero identidad, cero PII). Es el mismo cubo, con el
+    contrato de privacidad puesto para exposición externa."""
+    await _require_superadmin(request)
+    db = _db(request)
+    K = 3
+    try:
+        cc = await olap.query_cross_cut(db, dimensions=["zone"], filters={}, period=period)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"cross-cut falló: {str(e)[:120]}")
+    rows = []
+    suprimidas = 0
+    for c in (cc.get("matrix") or []):
+        k = c.get("kpis") or {}
+        n = k.get("units_total") or 0
+        if n < K:                       # k-anon: no publicar zonas con muy poca oferta
+            suprimidas += 1
+            continue
+        rows.append({
+            "colonia": c.get("zone"),
+            "unidades": n,
+            "disponibles": k.get("units_available"),
+            "precio_m2": round(k.get("avg_price_per_m2")) if k.get("avg_price_per_m2") else None,
+            "precio_prom": round(k.get("avg_price_mxn")) if k.get("avg_price_mxn") else None,
+            "m2_prom": round(k.get("avg_m2"), 1) if k.get("avg_m2") else None,
+            "absorcion_pct": k.get("absorcion_pct"),
+        })
+    rows.sort(key=lambda r: (r.get("precio_m2") or 0), reverse=True)
+    return {
+        "ok": True, "period": period, "k_anon": K,
+        "colonias": rows, "n_colonias": len(rows), "suprimidas_kanon": suprimidas,
+        "licencia": {
+            "producto": "DMX Market Data · CDMX residencial",
+            "nota": "Agregados de mercado por colonia. Sin identidad de desarrollo ni datos personales. "
+                    "Celdas con menos de 3 unidades suprimidas por privacidad (k-anon).",
+        },
+    }
+
+
 # ─── Cubo Unificado · GET /atom/{unit_id} — la MÁXIMA hipergranularidad (BEFORE /{tier}) ──
 @router.get(PREFIX + "/atom/{unit_id}")
 async def atom_route(unit_id: str, request: Request):
