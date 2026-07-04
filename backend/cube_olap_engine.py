@@ -288,6 +288,46 @@ async def query_slice(
 
 # ─── Cross-cut OLAP query ─────────────────────────────────────────────────────
 
+async def _join_colonia_demand(db, matrix: List[Dict[str, Any]], dimensions: List[str]) -> bool:
+    """Une la demanda por colonia al cross-cut (in-place) cuando el corte incluye `zone`.
+    Antes el cross-cut era ciego a la demanda (solo agregaba unidades) → las columnas demand_* nunca
+    aparecían. Lee facts_buyer_signals (ya k-anon ≥3) e inyecta por celda: demand_interactions ·
+    demand_visitors · interest_score + tensión demanda↔oferta (interacciones por unidad disponible).
+    La demanda es atributo de COLONIA: si el corte parte además por otras dims, cada sub-celda de esa
+    colonia recibe el total de la colonia (marcado demand_scope="colonia" para que la UI lo etiquete).
+    Devuelve True si unió al menos una celda. Fail-open: cualquier error → no une, no rompe el corte."""
+    if "zone" not in dimensions:
+        return False
+    demand_by_col: Dict[str, Dict[str, Any]] = {}
+    try:
+        async for f in db.facts_buyer_signals.find(
+                {"scope": "colonia"},
+                {"_id": 0, "colonia": 1, "total_signals": 1, "distinct_visitors": 1, "interest_score": 1}):
+            col = str(f.get("colonia") or "").strip().lower()
+            if col:
+                demand_by_col[col] = f
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[olap] crosscut demand join: {e}")
+        return False
+    joined = False
+    for cell in matrix:
+        col = str(cell.get("zone") or "").strip().lower()
+        d = demand_by_col.get(col)
+        if not d:
+            continue
+        k = cell["kpis"]
+        k["demand_interactions"] = d.get("total_signals")
+        k["demand_visitors"] = d.get("distinct_visitors")
+        k["interest_score"] = d.get("interest_score")
+        avail = k.get("units_available") or 0
+        # tensión: interacciones por unidad disponible (alto = caliente y con poca oferta = dónde construir)
+        if d.get("total_signals") is not None and avail:
+            k["demanda_oferta_ratio"] = round(d["total_signals"] / avail, 2)
+        cell["demand_scope"] = "colonia"
+        joined = True
+    return joined
+
+
 async def query_cross_cut(
     db, *, dimensions: List[str], filters: Dict[str, Any],
     period: str = "current",
@@ -348,10 +388,14 @@ async def query_cross_cut(
 
     matrix.sort(key=lambda c: c["kpis"].get("units_total") or 0, reverse=True)
 
+    # ── DEMANDA (F2 · lente Demanda del Hub): une la demanda por colonia cuando el corte incluye `zone`.
+    demand_joined = await _join_colonia_demand(db, matrix, dimensions)
+
     result = {
         "dimensions": dimensions, "filters": filters, "period": period,
         "tier": tier, "matrix": matrix, "matrix_size": len(matrix),
         "source_units_count": len(units),
+        "demand_joined": demand_joined,   # la UI sabe si el corte trae demanda (requiere dim `zone`)
         "computed_at": _iso(),
     }
     cube_cache.cache_set("crosscut", cache_params, result)

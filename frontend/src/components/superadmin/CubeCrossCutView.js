@@ -60,7 +60,16 @@ const MEASURES = [
   { key: 'demand_interactions', label: 'Interacciones', fmt: int },
   { key: 'demand_visitors', label: 'Visitantes', fmt: int },
   { key: 'interest_score', label: 'Interés', fmt: num1 },
+  { key: 'demanda_oferta_ratio', label: 'Tensión', fmt: num1 },   // interacciones por unidad disponible
 ];
+const MEASURE_BY_KEY = Object.fromEntries(MEASURES.map((m) => [m.key, m]));
+
+// Lente Oferta/Demanda: qué columnas se muestran y en qué orden. La Demanda requiere la dimensión `zone`
+// (la demanda se materializa por colonia, k-anon ≥3); sin ella el backend no une nada.
+const LENS = {
+  oferta: ['units_total', 'units_available', 'units_sold', 'units_reserved', 'absorcion_pct', 'avg_price_per_m2', 'avg_price_mxn', 'avg_m2', 'conversion_rate', 'por_cobrar_mxn'],
+  demanda: ['demand_interactions', 'demand_visitors', 'interest_score', 'demanda_oferta_ratio', 'units_available', 'absorcion_pct', 'avg_price_per_m2'],
+};
 
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const dimCellText = (key, val) => {
@@ -79,6 +88,7 @@ const pill = (on) => ({
 const LABEL = { fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 };
 
 export default function CubeCrossCutView({ period = 'current' }) {
+  const [lens, setLens] = useState('oferta');   // 'oferta' | 'demanda'
   const [dims, setDims] = useState(['property_type', 'price_tier']);
   const [propertyType, setPropertyType] = useState(null);
   const [priceTier, setPriceTier] = useState(null);
@@ -94,6 +104,18 @@ export default function CubeCrossCutView({ period = 'current' }) {
       if (cur.length >= MAX_DIMS) return cur;   // tope 3
       return [...cur, k];
     });
+  }, []);
+
+  // Cambiar de lente: la Demanda necesita la colonia (zone). Si falta, la anteponemos (respetando el tope 3)
+  // y ordenamos por tensión (dónde hay más demanda por unidad disponible). Volver a Oferta reordena por inventario.
+  const switchLens = useCallback((l) => {
+    setLens(l);
+    if (l === 'demanda') {
+      setDims((cur) => (cur.includes('zone') ? cur : ['zone', ...cur].slice(0, MAX_DIMS)));
+      setSort({ key: 'demanda_oferta_ratio', dir: 'desc' });
+    } else {
+      setSort({ key: 'units_total', dir: 'desc' });
+    }
   }, []);
 
   useEffect(() => {
@@ -114,12 +136,13 @@ export default function CubeCrossCutView({ period = 'current' }) {
 
   const matrix = data?.matrix || [];
 
-  // Measures presentes en la data (intersección con el catálogo conocido).
+  // Measures presentes en la data, ORDENADAS por la lente activa (Oferta vs Demanda).
   const cols = useMemo(() => {
     const present = new Set();
     matrix.forEach((r) => Object.keys(r.kpis || {}).forEach((k) => present.add(k)));
-    return MEASURES.filter((m) => present.has(m.key));
-  }, [matrix]);
+    const order = LENS[lens] || MEASURES.map((m) => m.key);
+    return order.filter((k) => present.has(k) && MEASURE_BY_KEY[k]).map((k) => MEASURE_BY_KEY[k]);
+  }, [matrix, lens]);
 
   // Clave de orden EFECTIVA: si sort.key ya no está presente (dimensión deseleccionada o KPI ausente en la data),
   // cae a la primera columna disponible → el orden nunca queda "roto en silencio" apuntando a una columna fantasma.
@@ -155,6 +178,25 @@ export default function CubeCrossCutView({ period = 'current' }) {
 
   return (
     <div data-testid="cube-crosscut-view">
+      {/* Lente Oferta / Demanda — reencuadra el drill (la Demanda se une por colonia, k-anon ≥3) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <span style={LABEL}>Lente:</span>
+        {[['oferta', 'Oferta'], ['demanda', 'Demanda']].map(([k, l]) => (
+          <button key={k} data-testid={`cc-lens-${k}`} onClick={() => switchLens(k)}
+            style={{ ...pill(lens === k), padding: '5px 14px', fontSize: 11.5 }}>{l}</button>
+        ))}
+        {lens === 'demanda' && !dims.includes('zone') && (
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#FCD34D' }}>
+            La demanda se mide por colonia — activa la dimensión Colonia.
+          </span>
+        )}
+        {lens === 'demanda' && dims.includes('zone') && (
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>
+            Tensión = interacciones por unidad disponible (alto = mucha demanda, poca oferta).
+          </span>
+        )}
+      </div>
+
       {/* Controles: dimensiones (máx 3) + filtros */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
         <LayoutGrid size={12} style={{ color: 'var(--theme)' }} />
@@ -217,6 +259,7 @@ export default function CubeCrossCutView({ period = 'current' }) {
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.72)' }}>
               {rows.length} {rows.length === 1 ? 'celda' : 'celdas'} · {dims.map((d) => DIM_LABEL[d] || d).join(' × ')}
+              {lens === 'demanda' && data?.demand_joined && <span style={{ color: 'rgba(240,235,224,0.5)' }}> · demanda a nivel colonia (k-anon ≥3)</span>}
             </div>
             {data?.cache && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: data.cache === 'hit' ? '#22c55e' : 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{data.cache === 'hit' ? '● caché' : '○ recalculado'}</span>}
           </div>
@@ -242,9 +285,13 @@ export default function CubeCrossCutView({ period = 'current' }) {
                     {dims.map((d) => (
                       <td key={d} style={tdL}>{dimCellText(d, r[d])}</td>
                     ))}
-                    {cols.map((m) => (
-                      <td key={m.key} style={td}>{m.fmt((r.kpis || {})[m.key])}</td>
-                    ))}
+                    {cols.map((m) => {
+                      const v = (r.kpis || {})[m.key];
+                      // La tensión (interacciones/disponible) es la métrica-titular de la lente Demanda: se colorea.
+                      const tension = m.key === 'demanda_oferta_ratio' && v != null;
+                      const tColor = tension ? (v >= 5 ? '#F59E0B' : v >= 2 ? '#FCD34D' : td.color) : td.color;
+                      return <td key={m.key} style={{ ...td, color: tColor, fontWeight: tension ? 800 : 400 }}>{m.fmt(v)}</td>;
+                    })}
                   </tr>
                 ))}
               </tbody>
