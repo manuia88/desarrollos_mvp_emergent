@@ -300,9 +300,9 @@ async def learning_demo(request: Request):
     import cerebro
     db = _db(request)
     ref = "ejemplo"
-    await cerebro.log_prediction(db, user, kind="close_prob", predicted=0.8, ref=ref, meta={"demo": True})
-    await cerebro.log_prediction(db, user, kind="days_on_market", predicted=90, ref=ref, meta={"demo": True})
-    await cerebro.log_prediction(db, user, kind="price", predicted=5_000_000, ref=ref, meta={"demo": True})
+    await cerebro.log_prediction(db, user, kind="close_prob", predicted=0.8, ref=ref, meta={"demo": True, "is_example": True})
+    await cerebro.log_prediction(db, user, kind="days_on_market", predicted=90, ref=ref, meta={"demo": True, "is_example": True})
+    await cerebro.log_prediction(db, user, kind="price", predicted=5_000_000, ref=ref, meta={"demo": True, "is_example": True})
     res = await cerebro.on_deal_closed(db, user, ref=ref, outcome="won",
         deal={"response_time_hrs": 1.5, "angle": "precio", "follow_ups": 2,
               "days_to_close": 85, "sale_price": 5_200_000})

@@ -1390,11 +1390,10 @@ export default function FichaVenta() {
               </div>
               {/* Teléfono como enlace con ícono, precedido de divisor (spec §5) */}
               {developer.phone && <a href={`tel:${developer.phone}`} onClick={() => fvSignal('phone_click', { entity_id: dev.id, colonia: dev.colonia, unit_number: unit ? unit.unit_number : null, value: 'developer' })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, fontFamily: FONT, fontWeight: 700, fontSize: 18, color: C.link, textDecoration: 'none' }}>📱 {developer.phone}</a>}
-              {/* Recorrido + idioma + horario (patrón apts §5) */}
+              {/* Recorrido (patrón apts §5) — sin idioma/horario hardcodeados (eran fijos para todos, dato falso). */}
               <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 84, flex: 'none' }}>🌐 Idioma</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}>Español · Inglés</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 84, flex: 'none' }}>🕐 Horario</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}><b style={{ color: C.green }}>Abierto</b> · Lun–Sáb 9:00–19:00</span></div>
-                <button onClick={() => agendar('agendar')} style={{ ...linkA, alignSelf: 'flex-start', marginLeft: 92, fontSize: 12.5 }}>Ver todas las horas</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, width: 84, flex: 'none' }}>🕐 Atención</span><span style={{ fontFamily: FONT, fontSize: 13, color: C.ink }}>Por cita — agenda el día y hora que te acomoden</span></div>
+                <button onClick={() => agendar('agendar')} style={{ ...linkA, alignSelf: 'flex-start', marginLeft: 92, fontSize: 12.5 }}>Agendar una visita</button>
               </div>
               <div style={{ borderTop: `1px solid ${C.line2}`, marginTop: 14, paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 36, height: 36, borderRadius: 9999, background: C.accent, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 14 }}>{(developer.name || dev.name || 'D')[0]}</span>
