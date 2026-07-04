@@ -280,6 +280,7 @@ const SUPERADMIN_NAV = [
       { key: 'compliance',             to: '/superadmin/compliance',             label: 'Compliance',             Icon: Shield },
       // ─ Fraud & risk ─
       { key: 'duplicates',             to: '/superadmin/duplicates',             label: 'Duplicados pendientes',  Icon: GitMerge },
+      { key: 'entity-resolution',      to: '/superadmin/entity-resolution',      label: 'Resolución de entidades', Icon: GitMerge },
       { key: 'fraud-patterns',         to: '/superadmin/fraud-patterns',         label: 'Patrones de fraude',     Icon: AlertTriangle },
       { key: 'fraud-alerts',           to: '/superadmin/fraud-alerts',           label: 'Fraud Alerts',           Icon: AlertTriangle },
       { key: 'risk-alerts',            to: '/superadmin/risk-alerts',            label: 'Risk Alerts',            Icon: AlertTriangle },

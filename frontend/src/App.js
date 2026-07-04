@@ -299,7 +299,6 @@ const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/I
 const SuperadminTenants              = lazy(() => import('./pages/superadmin/SuperadminTenants'));
 // W1.3 SA1.2 — Superadmin System Health
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
-const SuperadminKG                   = lazy(() => import('./pages/superadmin/SuperadminKG'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
 // W2.1 SA2 — Data Sources Hub (unified connectors)
@@ -397,8 +396,6 @@ const SuperadminForecastAccuracy     = lazy(() => import('./pages/superadmin/Sup
 const SeoThemedLanding               = lazy(() => import('./pages/public/SeoThemedLanding'));
 
 // Superadmin
-const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
-const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
 const DataSourceDetailPage       = lazy(() => import('./pages/superadmin/DataSourceDetailPage'));
 const ScoresPage                 = lazy(() => import('./pages/superadmin/ScoresPage'));
 const DocumentsPage              = lazy(() => import('./pages/superadmin/DocumentsPage'));
@@ -406,7 +403,6 @@ const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/Superad
 const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
 const SuperadminPhaseYObservability = lazy(() => import('./pages/superadmin/SuperadminObservability'));
 const SuperadminDataSourcesPage = lazy(() => import('./pages/superadmin/SuperadminDataSources'));
-const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
 const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
 const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
 const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
@@ -753,7 +749,7 @@ function AppRouter() {
       <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
       <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
-      <Route path="/superadmin/kg" element={<SuperadminRoute Page={SuperadminKG} />} />
+      <Route path="/superadmin/kg" element={<Navigate to="/superadmin/knowledge-graph" replace />} />{/* legacy KG → canónica (W5.12) */}
       <Route path="/superadmin/granularidad" element={<SuperadminRoute Page={SuperadminGranularidad} />} />
       <Route path="/superadmin/demanda-mercado" element={<SuperadminRoute Page={SuperadminDemandaMercado} />} />
       <Route path="/superadmin/terminal-zona" element={<SuperadminRoute Page={SuperadminTerminalZona} />} />
@@ -963,14 +959,14 @@ function AppRouter() {
       {/* Superadmin — IE Engine Phase A */}
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
       <Route path="/superadmin" element={<SuperadminRoute Page={SuperadminFounderConsole} />} />
-      <Route path="/superadmin/dashboard-legacy" element={<SuperadminRoute Page={SuperadminDashboard} />} />
+      <Route path="/superadmin/dashboard-legacy" element={<Navigate to="/superadmin" replace />} />{/* legacy → Founder Console (W2.6) */}
       <Route path="/superadmin/catalog-pulse" element={<SuperadminRoute Page={SuperadminCatalogPulse} />} />
       <Route path="/superadmin/desarrollos" element={<SuperadminRoute Page={SuperadminDesarrollos} />} />
       <Route path="/superadmin/desarrollos/:id" element={<SuperadminRoute Page={SuperadminDesarrolloFicha} />} />
       {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
       <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesHub} />} />
       {/* Legacy IE Engine sources page (kept accessible) */}
-      <Route path="/superadmin/ie-engine-sources" element={<SuperadminRoute Page={DataSourcesPage} />} />
+      <Route path="/superadmin/ie-engine-sources" element={<Navigate to="/superadmin/data-sources" replace />} />{/* legacy → Data Sources Hub (W2.1) */}
       <Route path="/superadmin/ie-engine-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
       {/* Legacy detail still reachable via old path */}
       <Route path="/superadmin/data-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
@@ -984,7 +980,7 @@ function AppRouter() {
       <Route path="/superadmin/data-sources-gov-mx" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
       <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
-      <Route path="/superadmin/audit-log-legacy" element={<SuperadminRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/audit-log-legacy" element={<Navigate to="/superadmin/audit-log" replace />} />{/* legacy → audit-log nuevo */}
       <Route path="/superadmin/ai-cost" element={<SuperadminRoute Page={SuperadminAiCost} />} />
       <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
       <Route path="/superadmin/commercial" element={<SuperadminRoute Page={SuperadminCommercial} />} />

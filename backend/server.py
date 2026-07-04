@@ -2577,6 +2577,13 @@ async def startup():
             live_pulse_cron.register_live_pulse_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[LivePulse] startup register failed: {e}")
+        # Puente demanda del ASESOR → demanda anónima (cierra el cable roto asesor→dev/superadmin)
+        try:
+            import advisor_demand_bridge
+            await advisor_demand_bridge.ensure_indexes(db)
+            advisor_demand_bridge.register_advisor_bridge_job(sched, db)
+        except Exception as e:
+            logging.warning(f"[advisor_demand_bridge] startup register failed: {e}")
         # W5.15 Parte 1 — Accuracy indexes + 3 crons (MAPE / drift / weights)
         try:
             import fsd_engine
