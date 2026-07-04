@@ -234,7 +234,11 @@ export default function CubeCrossCutView({ period = 'current' }) {
               </thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} style={{ background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
+                  /* n<3: NO se oculta al superadmin (god-view), pero se marca — si esta celda baja a una
+                     lente dev/licenciable, el contrato k-anon la suprime (estándar N4). */
+                  <tr key={i}
+                    title={(r.kpis?.units_total ?? 0) < 3 ? 'Muestra chica (menos de 3 unidades) — al exponerse fuera del superadmin, esta celda se suprime por privacidad' : undefined}
+                    style={{ background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent', opacity: (r.kpis?.units_total ?? 0) < 3 ? 0.55 : 1 }}>
                     {dims.map((d) => (
                       <td key={d} style={tdL}>{dimCellText(d, r[d])}</td>
                     ))}

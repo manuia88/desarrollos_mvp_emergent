@@ -127,3 +127,12 @@ export async function getCubeAmenityRanker(colonia) {
 export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
+
+// N5 Slice 1 — la ACCIÓN desde el cubo: genera y persiste el brief de producto para una colonia
+// (reusa el generador del founder-console; F3 lo despacha al dev).
+export async function createCubeProductBrief(colonia, { terrenoM2 = 1000, tipologia = null } = {}) {
+  return _j(await fetch(`${BASE}/product-brief`, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ colonia, terreno_m2: terrenoM2, tipologia }),
+  }));
+}

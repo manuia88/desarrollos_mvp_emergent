@@ -8,7 +8,8 @@ import CubeHeatmap from '../../components/superadmin/CubeHeatmap';
 import CubeDrilldownTable from '../../components/superadmin/CubeDrilldownTable';
 import CubeIntelPanel from '../../components/superadmin/CubeIntelPanel';
 import CubeCrossCutView from '../../components/superadmin/CubeCrossCutView';
-import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles, LayoutGrid } from 'lucide-react';
+import CubeActuarView from '../../components/superadmin/CubeActuarView';
+import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles, LayoutGrid, Send } from 'lucide-react';
 import {
   getTierDetail, getTierChildren, getHeatmap, getComparables, getUnitDetail,
   refreshAggregations, compareZones, triggerBackfill, getBackfillStatus, listTier,
@@ -832,7 +833,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
 
         {/* Selector de vista: Drill-down jerárquico vs Corte cruzado OLAP (surfacea queryCrossCut/getCacheStats) */}
         <div data-testid="cube-vista-tabs" style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-          {[['drill', 'Drill-down', Layers], ['crosscut', 'Corte cruzado', LayoutGrid]].map(([k, label, Icon]) => (
+          {[['drill', 'Drill-down', Layers], ['crosscut', 'Corte cruzado', LayoutGrid], ['actuar', 'Actuar', Send]].map(([k, label, Icon]) => (
             <button key={k} data-testid={`cube-vista-${k}`} onClick={() => setVista(k)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 11,
@@ -847,6 +848,8 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
         </div>
 
         {vista === 'crosscut' && <CubeCrossCutView period={period} />}
+
+        {vista === 'actuar' && <CubeActuarView onToast={setToast} />}
 
         {vista === 'drill' && (<>
         {/* W2.8 Filters strip — slice_by + property_type + price_tier */}
@@ -932,7 +935,21 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             )}
 
             {!loading && node && (
-              <CubeKpiStrip kpis={node.kpis} />
+              <>
+                <CubeKpiStrip kpis={node.kpis} />
+                {/* N5 · LINEAJE: de dónde sale cada número (auditoría N1: "falta lineaje de datos") */}
+                <div data-testid="cube-lineage" style={{
+                  fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)',
+                  margin: '2px 2px 12px', display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span>ℹ</span>
+                  <span>
+                    Basado en {(node.kpis?.units_total ?? 0).toLocaleString('es-MX')} unidades
+                    {node.computed_at ? ` · actualizado ${new Date(node.computed_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                    {' · fuente: cubo DMX (unidades reales + ediciones del desarrollador)'}
+                  </span>
+                </div>
+              </>
             )}
 
             {!loading && (

@@ -11,7 +11,7 @@ are registered BEFORE the dynamic /{tier} route to avoid path-shadowing.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -448,6 +448,43 @@ async def demand_gap_route(request: Request, top: int = Query(25, ge=1, le=200))
     await _require_superadmin(request)
     import dmx_demand
     return await dmx_demand.demand_gap(_db(request), top=top)
+
+
+# ─── N5 Slice 1 · POST /product-brief — la ACCIÓN desde el cubo (BEFORE /{tier}) ──
+class ProductBriefBody(BaseModel):
+    colonia: str
+    terreno_m2: float = 1000
+    tipologia: Optional[str] = None   # contexto de la card de demanda (se guarda como evidencia)
+
+
+@router.post(PREFIX + "/product-brief")
+async def create_product_brief_route(body: ProductBriefBody, request: Request):
+    """El primer verbo del tab Actuar: desde una card de demanda insatisfecha, genera el brief de
+    producto ("qué construir aquí") REUSANDO generador_producto_engine (el mismo del founder-console)
+    y lo PERSISTE (db.product_briefs) → queda auditable y listo para despacharse al dev en F3."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    col = str(body.colonia or "").strip().lower()
+    if not col:
+        raise HTTPException(400, "colonia requerida")
+    try:
+        from generador_producto_engine import generar_producto
+        brief = await generar_producto(db, col, float(body.terreno_m2 or 1000), "media")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"El generador de producto no pudo correr: {str(e)[:120]}")
+    import uuid as _uuid
+    doc = {
+        "id": f"brief_{_uuid.uuid4().hex[:12]}",
+        "colonia": col, "terreno_m2": body.terreno_m2, "tipologia": body.tipologia,
+        "brief": brief, "status": "borrador",           # F3: borrador → enviado → aceptado/rechazado
+        "developer_id": None, "viewed_at": None,
+        "created_by": user.user_id, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.product_briefs.insert_one(dict(doc))
+    await _audit(db, user, "create", "cube_product_brief", doc["id"],
+                 after={"colonia": col, "tipologia": body.tipologia}, request=request)
+    doc.pop("_id", None)
+    return {"ok": True, "brief_id": doc["id"], "brief": brief}
 
 
 @router.post(PREFIX + "/score-close-prob")
