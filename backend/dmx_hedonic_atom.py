@@ -169,6 +169,10 @@ async def fit_and_rank(db, scope: Optional[Dict[str, Any]] = None,
         "sample_size": fit.get("sample_size", len(rows)),
         "r_squared": fit.get("r_squared"),
         "amenity_ranker": ranker,
+        # coeficientes crudos (binarios + continuos) para consumo hipergranular (átomo del cubo).
+        # Aditivo: los callers existentes leen amenity_ranker; esto no rompe a nadie.
+        "coefficients": fit.get("coefficients"),
+        "feature_names": fit.get("feature_names"),
         "baseline_colonia": fit.get("baseline_colonia"),
         "computed_at": _iso(),
         "cache": "miss",

@@ -5,7 +5,7 @@
  * de la Demanda hasta el último ladrillo.
  */
 import React, { useState } from 'react';
-import { Box, Search, Database, Shield, AlertCircle } from 'lucide-react';
+import { Box, Search, Database, Shield, AlertCircle, Layers } from 'lucide-react';
 import { getCubeAtom } from '../../api/superadminMetricsCube';
 
 const FAMILY_COLOR = {
@@ -30,6 +30,39 @@ function scoreColor(m) {
   const good = m.direction === 'lower' ? (m.value <= 40) : (m.value >= 70);
   const bad = m.direction === 'lower' ? (m.value >= 70) : (m.value <= 40);
   return good ? '#4ADE80' : bad ? '#F87171' : '#FCD34D';
+}
+
+// ── Render de UNA característica (prototipo/tamaño/precio/espacio/extra) ──
+function featText(f) {
+  if (f.value == null || f.value === '') return '—';
+  if (f.fmt === 'pesos') return money(f.value);
+  if (typeof f.value === 'boolean') return f.value ? 'Sí' : 'No';
+  return String(f.value);
+}
+// Cuánto mueve el precio/m² (hedónico): binario = la feature entera; marginal = cada unidad extra
+function ImpactoBadge({ f }) {
+  if (f.impacto_pct == null) return null;
+  const pos = f.impacto_pct >= 0;
+  const sign = pos ? '+' : '';
+  const suffix = f.impacto_tipo === 'marginal' ? ' c/u' : '';
+  const title = f.impacto_tipo === 'marginal'
+    ? `Cada unidad adicional mueve el precio/m² ${sign}${f.impacto_pct}%`
+    : `Tener esta característica mueve el precio/m² ${sign}${f.impacto_pct}%`;
+  return (
+    <span title={title} style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 800, color: pos ? '#4ADE80' : '#F87171', background: pos ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderRadius: 6, padding: '1px 6px', whiteSpace: 'nowrap' }}>
+      {sign}{f.impacto_pct}%{suffix}
+    </span>
+  );
+}
+// Posicionamiento del precio/m² de la unidad vs. la mediana de su colonia
+function PosBadge({ f }) {
+  if (f.vs_colonia_pct == null) return null;
+  const up = f.vs_colonia_pct >= 0;
+  return (
+    <span title={`Mediana de la colonia: ${money(f.ref_colonia)}/m²`} style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 800, color: 'rgba(240,235,224,0.78)', background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '1px 6px', whiteSpace: 'nowrap' }}>
+      {up ? '▲' : '▼'} {Math.abs(f.vs_colonia_pct)}% vs. colonia
+    </span>
+  );
 }
 
 export default function CubeAtomView({ initialUnitId = '' }) {
@@ -88,6 +121,39 @@ export default function CubeAtomView({ initialUnitId = '' }) {
               {data.zone_score?.score_letter && <span>Zona: <b style={{ color: 'var(--theme)' }}>{data.zone_score.score_letter} ({Math.round(data.zone_score.score_numeric)})</b></span>}
             </div>
           </div>
+
+          {/* Características hipergranulares: qué la compone y cuánto vale cada parte (hedónico + posición) */}
+          {(data.caracteristicas || []).length > 0 && (
+            <div className="dmx-card" style={{ padding: '16px 18px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <Layers size={15} color="var(--theme)" />
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>Características</span>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 12 }}>
+                Qué la compone y cuánto vale cada parte.{' '}
+                {data.hedonico_disponible
+                  ? 'El % es cuánto mueve el precio/m² (modelo hedónico, controlando por colonia).'
+                  : 'El impacto por característica se activa cuando hay muestra suficiente.'}
+              </div>
+              {data.caracteristicas.map((g) => (
+                <div key={g.grupo} style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.5)', marginBottom: 6 }}>{g.grupo}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(184px,1fr))', gap: 7 }}>
+                    {g.features.map((f) => (
+                      <div key={f.key} data-testid={`feat-${f.key}`} style={{ padding: '9px 11px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.6)', fontWeight: 600 }}>{f.label}</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 3, flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', letterSpacing: '-0.01em' }}>{featText(f)}</span>
+                          <ImpactoBadge f={f} />
+                          <PosBadge f={f} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Familias × métricas (hipergranular) */}
           {(data.families || []).map((fam) => {

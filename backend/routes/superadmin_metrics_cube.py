@@ -339,6 +339,106 @@ async def atom_route(unit_id: str, request: Request):
     if colonia:
         zscore = await db.zone_scores.find_one({"zone_id": colonia}, {"_id": 0, "score_numeric": 1, "score_letter": 1, "subscores_real": 1})
 
+    # ── GRANULARIDAD DE FEATURES (más a fondo que la unidad): descompone la unidad en sus características
+    # —prototipo/tipología, tamaño, precio/m², espacio, extras— y a cada una le pega CUÁNTO VALE (impacto
+    # hedónico en $/m², controlando por colonia) y su POSICIONAMIENTO (precio/m² vs. la mediana de su
+    # colonia). El moat: no solo "esta unidad", sino "su roof vale +N%" y "está 12% arriba de su colonia".
+    import re as _re
+    from dmx_cube_feed import tipologia_from_beds as _tipo_from_beds, banda_m2 as _banda_m2
+    from dmx_hedonic_atom import UNITS as _UNITS_COL
+    _m2 = unit.get("m2_privative") or unit.get("m2_total") or unit.get("size_m2")
+    _beds = unit.get("bedrooms") or unit.get("recamaras")
+    _park = unit.get("parking_spots") or unit.get("n_parking") or 0
+    _precio = unit.get("price") or unit.get("price_mxn")
+    _pm2 = (_precio / _m2) if (_precio and _m2) else None
+    _has = lambda *k: any(unit.get(x) for x in k)  # noqa: E731
+
+    # precio/m² de referencia de la colonia (posicionamiento del átomo) — desde dmx_units, k-anon interno ≥3
+    col_pm2_med = None
+    if colonia:
+        try:
+            _vals: List[float] = []
+            async for a in db[_UNITS_COL].find(
+                    {"geo.colonia_id": {"$regex": f"^{_re.escape(colonia)}$", "$options": "i"}},
+                    {"_id": 0, "commercial": 1, "areas": 1}):
+                com = a.get("commercial") or {}; ar = a.get("areas") or {}
+                p = com.get("precio_cierre_mxn") or com.get("precio_lista_mxn")
+                mm = ar.get("m2_privativo") or ar.get("m2_construido")
+                if p and mm and mm > 0:
+                    _vals.append(p / mm)
+            if len(_vals) >= 3:                      # no exponemos posición contra 1-2 datos
+                _vals.sort(); col_pm2_med = _vals[len(_vals) // 2]
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[atom] colonia pm2: {e}")
+
+    _TIPO_LABEL = {"estudio": "Estudio", "1_recamara": "1 recámara", "2_recamaras": "2 recámaras",
+                   "3_recamaras": "3 recámaras", "4_mas_recamaras": "4+ recámaras"}
+    _tipo = _tipo_from_beds(_beds)
+    # (grupo, label, value, key, fmt, hedkey)
+    raw_feats = [
+        # Prototipo y tamaño — el MOLDE repetible: qué ES esta unidad
+        ("Prototipo y tamaño", "Tipología", _TIPO_LABEL.get(_tipo, _tipo), "tipologia", None, None),
+        ("Prototipo y tamaño", "Modelo / prototipo", unit.get("prototype") or unit.get("prototype_id"), "prototipo", None, None),
+        ("Prototipo y tamaño", "Banda de tamaño", (f"{_banda_m2(_m2)} m²") if _m2 else None, "banda_m2", None, None),
+        # Precio — el resultado, con posicionamiento vs. la colonia
+        ("Precio", "Precio de lista", _precio, "precio", "pesos", None),
+        ("Precio", "Precio por m²", _pm2, "precio_m2", "pesos", None),
+        # Espacio — con impacto hedónico MARGINAL (cada +1 suma X%)
+        ("Espacio", "Metros cuadrados", _m2, "m2", None, "m2"),
+        ("Espacio", "Recámaras", _beds, "recamaras", None, "recamaras"),
+        ("Espacio", "Baños", unit.get("bathrooms") or unit.get("banos"), "banos", None, "banos"),
+        # Ubicación en el edificio
+        ("Ubicación en el edificio", "Piso", unit.get("level") or unit.get("piso"), "piso", None, None),
+        ("Ubicación en el edificio", "Orientación", unit.get("orientation") or unit.get("orientacion"), "orientacion", None, None),
+        ("Ubicación en el edificio", "Vista", unit.get("vista"), "vista", None, None),
+        # Extras que suben el precio — impacto hedónico BINARIO (la feature entera suma X%)
+        ("Extras que suben el precio", "Roof garden privado", _has("has_roof", "roof", "roof_garden"), "has_roof", None, "roof"),
+        ("Extras que suben el precio", "Terraza", _has("has_terraza", "terraza"), "has_terraza", None, "terraza"),
+        ("Extras que suben el precio", "Balcón", _has("has_balcon", "balcon"), "has_balcon", None, "balcon"),
+        ("Extras que suben el precio", "Bodega", _has("has_bodega", "bodega", "storage"), "has_bodega", None, "bodega"),
+        ("Extras que suben el precio", "2+ estacionamientos", (_park or 0) >= 2, "parking_2plus", None, "parking"),
+        # Estacionamiento / acabados
+        ("Estacionamiento", "Cajones", _park, "n_parking", None, "n_parking"),
+        ("Acabados", "Nivel de acabado", unit.get("nivel_acabado") or unit.get("acabado"), "acabado", None, None),
+    ]
+    # Impacto hedónico por atributo (%$/m²) ciudad-wide (el modelo YA controla por colonia vía one-hot,
+    # así el impacto es estructural y robusto; slicing a 1 colonia rompería el control y encogería muestra).
+    impactos: Dict[str, float] = {}
+    impacto_tipo: Dict[str, str] = {}
+    hedonico_disp = False
+    try:
+        import math as _math
+        import dmx_hedonic_atom
+        fit = await dmx_hedonic_atom.fit_and_rank(db, None)
+        if fit.get("available"):
+            hedonico_disp = True
+            coefs = fit.get("coefficients") or {}
+            for hk, ck, tipo in (("roof", "has_roof", "binario"), ("terraza", "has_terraza", "binario"),
+                                 ("balcon", "has_balcon", "binario"), ("bodega", "has_bodega", "binario"),
+                                 ("parking", "parking_2plus", "binario"),
+                                 ("m2", "m2", "marginal"), ("recamaras", "recamaras", "marginal"),
+                                 ("banos", "banos", "marginal"), ("n_parking", "n_parking", "marginal")):
+                c = coefs.get(ck)
+                if c and c.get("coef") is not None:
+                    impactos[hk] = (_math.exp(c["coef"]) - 1) * 100    # % de impacto en $/m²
+                    impacto_tipo[hk] = tipo
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[atom] hedónico: {e}")
+    caracteristicas: Dict[str, List[Dict[str, Any]]] = {}
+    for grupo, label, value, key, fmt, hedkey in raw_feats:
+        if value in (None, "", 0) and key not in ("banos", "recamaras", "n_parking"):
+            continue  # no listamos features ausentes (salvo conteos, que 0 es dato)
+        entry: Dict[str, Any] = {"label": label, "value": value, "key": key}
+        if fmt:
+            entry["fmt"] = fmt
+        if hedkey and impactos.get(hedkey) is not None:
+            entry["impacto_pct"] = round(impactos[hedkey], 1)          # cuánto suma esta feature al $/m²
+            entry["impacto_tipo"] = impacto_tipo.get(hedkey)           # 'binario' | 'marginal'
+        if key == "precio_m2" and _pm2 and col_pm2_med:                # posicionamiento vs. la colonia
+            entry["vs_colonia_pct"] = round((_pm2 / col_pm2_med - 1) * 100, 1)
+            entry["ref_colonia"] = round(col_pm2_med)
+        caracteristicas.setdefault(grupo, []).append(entry)
+
     # Ensambla por familia según el catálogo (cada métrica declara su nivel y motor)
     import cube_catalog
     unit_measures = {
@@ -376,6 +476,9 @@ async def atom_route(unit_id: str, request: Request):
         "colonia": colonia,
         "zone_score": zscore,
         "demanda": detail.get("demanda"),
+        # Granularidad de features: la unidad descompuesta, con cuánto vale cada extra (hedónico)
+        "caracteristicas": [{"grupo": g, "features": caracteristicas[g]} for g in caracteristicas],
+        "hedonico_disponible": hedonico_disp,
         "families": [{"key": f, "label": cube_catalog.FAMILY_LABEL.get(f, f), "metrics": fams[f]}
                      for f in cube_catalog.FAMILIES if fams.get(f)],
     }
