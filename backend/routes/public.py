@@ -2174,6 +2174,14 @@ async def get_development(dev_id: str, request: Request):
                                        for r in mem_doc["memoria"] if isinstance(r, dict) and r.get("area") and r.get("detalle")]
     except Exception:
         pass
+    # Ficha técnica REAL del dev (project_tecnica, filas → dict) → la ficha (dev.tecnica). Antes solo seed. Fail-open.
+    try:
+        tec_doc = await db.project_tecnica.find_one({"project_id": dev_id}, {"_id": 0})
+        if tec_doc and isinstance(tec_doc.get("tecnica"), list) and tec_doc["tecnica"]:
+            out["tecnica"] = {r.get("campo"): r.get("valor") for r in tec_doc["tecnica"]
+                              if isinstance(r, dict) and r.get("campo") and r.get("valor")}
+    except Exception:
+        pass
     # Ubicación que el dev corrigió (pin del mapa / dirección / colonia) → el comprador ve el dato real, no el del seed. Fail-open.
     try:
         meta = await db.dev_project_meta.find_one({"project_id": dev_id}, {"_id": 0})

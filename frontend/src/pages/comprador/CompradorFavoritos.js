@@ -5,6 +5,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listFavorites, deleteFavorite } from '../../api/comprador';
+import { sendBuyerSignal } from '../../lib/buyerSignal';   // señal NEGATIVA al quitar favorito (preferencia de rechazo)
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import { Heart, X, Share, ArrowRight } from '../../components/icons';
 import { tc } from '../../lib/titleCase';
@@ -38,10 +39,12 @@ export default function CompradorFavoritos() {
   };
   useEffect(() => { load(); }, []);
 
-  const handleDelete = async (favId) => {
+  const handleDelete = async (favId, fav) => {
     if (!window.confirm('¿Eliminar este favorito?')) return;
     try {
       await deleteFavorite(favId);
+      // señal NEGATIVA: quitó un favorito → preferencia de rechazo (alimenta gusto/demanda), antes se perdía.
+      try { sendBuyerSignal('unsave', { entity_id: fav && fav.item_id, colonia: fav && fav.thumb && fav.thumb.colonia, value: 'favoritos', meta: { item_type: fav && fav.item_type } }); } catch (_e) { /* fail-open */ }
     } catch (e) {
       /* el borrado falló — el load() de abajo resincroniza y muestra el estado real */
     }
@@ -97,7 +100,7 @@ export default function CompradorFavoritos() {
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14,
           }}>
             {filtered.map(f => (
-              <FavCard key={f.fav_id} fav={f} onDelete={() => handleDelete(f.fav_id)} />
+              <FavCard key={f.fav_id} fav={f} onDelete={() => handleDelete(f.fav_id, f)} />
             ))}
           </div>
         )}

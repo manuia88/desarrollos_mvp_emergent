@@ -1127,6 +1127,9 @@ function TabInversion({ dev, unit, onGoTo }) {
   const picked = choices.find((u) => (u.id || u.unit_number) === pickedKey);
   const defUnit = picked || unit || choices[0];
   const fundUnits = units.filter((u) => fundIds.has(u.id || u.unit_number)).map((u) => ({ id: u.id, unit_number: u.unit_number, price: u.price }));
+  // roi_explore: exploró rentabilidad — UNA vez por visita (no en cada recálculo) con TIR/cap. Lente inversionista.
+  const roiSentRef = useRef(false);
+  const onRoi = (r) => { if (roiSentRef.current || !r) return; roiSentRef.current = true; fvSignal('roi_explore', { entity_id: dev.id, colonia: dev.colonia, unit_number: defUnit ? defUnit.unit_number : null, tir_pct: r.tir_pct, cap_rate_pct: r.cap_rate_pct, modo: mode }); };
   const toggleFund = (u) => setFundIds((s) => { const n = new Set(s); const k = u.id || u.unit_number; n.has(k) ? n.delete(k) : n.add(k); return n; });
   return (
     <div>
@@ -1165,9 +1168,9 @@ function TabInversion({ dev, unit, onGoTo }) {
       ) : (mode === 'institucional' && fundUnits.length === 0) ? (
         <div style={{ ...box, padding: 20, fontFamily: FONT, color: C.faint }}>Selecciona al menos una unidad para armar tu fondo.</div>
       ) : mode === 'individual' ? (
-        <InversionV4Calculator key={`ind-${defUnit.id || defUnit.unit_number}`} mode="individual" prefilled={{ precio: defUnit.price }} lockPrice zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
+        <InversionV4Calculator key={`ind-${defUnit.id || defUnit.unit_number}`} mode="individual" prefilled={{ precio: defUnit.price }} lockPrice zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar onResult={onRoi} />
       ) : (
-        <InversionV4Calculator key={`inst-${fundUnits.map((u) => u.id || u.unit_number).join('_')}`} mode="institucional" portfolioUnits={fundUnits.map((u) => ({ label: u.unit_number, precio: u.price, renta: Math.round(u.price * 0.0045) }))} zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar />
+        <InversionV4Calculator key={`inst-${fundUnits.map((u) => u.id || u.unit_number).join('_')}`} mode="institucional" portfolioUnits={fundUnits.map((u) => ({ label: u.unit_number, precio: u.price, renta: Math.round(u.price * 0.0045) }))} zoneId={dev.colonia_id || dev.colonia} devId={dev.id} noStickyBar onResult={onRoi} />
       )}
     </div>
   );

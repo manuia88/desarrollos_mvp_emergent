@@ -64,7 +64,8 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          # Exploración financiera profunda de la ficha (máxima segmentación: banco/tasa/CAT/enganche/plazo/ISAI):
          "credit_selected",  # eligió banco + plan de crédito (meta = banco/tasa/cat/monto/mensualidad) — intención financiera
          "cierre_computed",  # calculó ISAI + costos de cierre (meta = isai/total/con_credito) — avanza al cierre
-         "phone_click"}      # tocó el teléfono del desarrollador (value = origen) — intención altísima
+         "phone_click",      # tocó el teléfono del desarrollador (value = origen) — intención altísima
+         "card_click"}       # clic en tarjeta del marketplace → ficha (meta.pos = posición) — atribución búsqueda→click + calidad del ranking
 _TTL_DAYS = 120
 _indexed = {"done": False}
 

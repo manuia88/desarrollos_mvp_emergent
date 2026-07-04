@@ -21,7 +21,7 @@ _ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwe
            "atlax_query", "atlax_apartado",
            # Intención financiera/casi-compra de la ficha (antes capturadas-y-muertas): elegir crédito, calcular el
            # cierre, tocar el teléfono, abrir el tour — señales calientes que ahora cuentan en engagement/demanda.
-           "credit_selected", "cierre_computed", "phone_click", "tour_view"]   # + señales explícitas (amenidades/filtros de CADA pregunta a Atlax)
+           "credit_selected", "cierre_computed", "phone_click", "tour_view", "card_click"]   # + señales explícitas (amenidades/filtros de CADA pregunta a Atlax)
 
 
 def _as_feature_list(v):

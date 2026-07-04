@@ -364,6 +364,71 @@ async def patch_memoria(project_id: str, payload: MemoriaPatch, request: Request
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FICHA TÉCNICA  (construcción/servicios: niveles, elevadores, cisterna, estructura, gas, agua…)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TecnicaRow(BaseModel):
+    campo: str = ""
+    valor: str = ""
+
+
+class TecnicaPatch(BaseModel):
+    tecnica: List[TecnicaRow] = Field(default_factory=list)
+
+
+def _clean_tecnica(rows) -> List[Dict[str, str]]:
+    out = []
+    for r in (rows or [])[:30]:
+        campo = (getattr(r, "campo", None) or (r.get("campo") if isinstance(r, dict) else "") or "").strip()[:50]
+        valor = (getattr(r, "valor", None) or (r.get("valor") if isinstance(r, dict) else "") or "").strip()[:160]
+        if campo and valor:
+            out.append({"campo": campo, "valor": valor})
+    return out
+
+
+def _seed_tecnica_rows(project_id) -> List[Dict[str, str]]:
+    from data_developments import DEVELOPMENTS
+    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
+    tec = (dev or {}).get("tecnica")
+    if isinstance(tec, dict):
+        return [{"campo": str(k), "valor": str(v)} for k, v in tec.items() if k and v]
+    return []
+
+
+@router.get("/projects/{project_id}/tecnica")
+async def get_tecnica(project_id: str, request: Request):
+    """Ficha técnica para editar. Doc del dev si existe; si no, cae al seed (tecnica dict → filas)."""
+    user = await _auth(request)
+    db = _db(request)
+    doc = await db.project_tecnica.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    if doc and isinstance(doc.get("tecnica"), list):
+        return {"project_id": project_id, "tecnica": _clean_tecnica(doc["tecnica"]), "source": "dev"}
+    return {"project_id": project_id, "tecnica": _seed_tecnica_rows(project_id), "source": "seed"}
+
+
+@router.patch("/projects/{project_id}/tecnica")
+async def patch_tecnica(project_id: str, payload: TecnicaPatch, request: Request):
+    """Guarda la ficha técnica del dev → se muestra en la ficha pública (public.py convierte filas→dict en el overlay)."""
+    user = await _auth(request)
+    if user.role not in ("developer_admin", "superadmin"):
+        raise HTTPException(403, "Solo developer_admin puede editar la ficha técnica")
+    db = _db(request)
+    if project_id not in _user_dev_ids(user):
+        raise HTTPException(403, "Proyecto no accesible")
+    tecnica = _clean_tecnica(payload.tecnica)
+    now_iso = _now().isoformat()
+    old = await db.project_tecnica.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    update = {"project_id": project_id, "dev_org_id": _tenant(user), "tecnica": tecnica,
+              "updated_at": now_iso, "updated_by": user.user_id}
+    await db.project_tecnica.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"$set": update}, upsert=True)
+    await _safe_audit(db, user, "update", "ficha_tecnica", project_id,
+                      before=old, after=update, request=request,
+                      ml_event="tecnica_changed", ml_context={"project_id": project_id, "count": len(tecnica)})
+    return {"ok": True, "tecnica": tecnica}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COMERCIALIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
 

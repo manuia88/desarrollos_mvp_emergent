@@ -161,6 +161,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   return (
     <Link
       to={`/desarrollo/${dev.id}`}
+      onClick={() => { try { sendBuyerSignal('card_click', { entity_id: dev.id, colonia: dev.colonia, meta: { pos: index } }); } catch (e) { /* fail-open */ } }}
       className="dmx-card"
       data-testid={`dev-card-${dev.id}`}
       style={{
