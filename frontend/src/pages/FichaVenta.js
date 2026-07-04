@@ -27,6 +27,7 @@ import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
 import FichaPlanDesarrollador from '../components/ficha/FichaPlanDesarrollador';
 import FichaResumenCierre from '../components/ficha/FichaResumenCierre';
 import LugaresPanel from '../components/ficha/LugaresPanel';   // qué hay alrededor · reusa mapa (maplibre/CARTO gratis) + zone_places cacheado
+import LenteInversorPanel from '../components/ficha/LenteInversorPanel';   // surfacea composites/inversor (moat antes sin UI)
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import DevStructuredData from '../components/seo/DevStructuredData';
@@ -1156,6 +1157,8 @@ function TabInversion({ dev, unit, onGoTo }) {
   const toggleFund = (u) => setFundIds((s) => { const n = new Set(s); const k = u.id || u.unit_number; n.has(k) ? n.delete(k) : n.add(k); return n; });
   return (
     <div>
+      {/* Lente inversor de la zona (composites/inversor) — contexto de inversión de la colonia, arriba de la calc */}
+      <LenteInversorPanel coloniaId={dev.colonia_id || dev.colonia} coloniaName={dev.colonia ? titleCase(dev.colonia) : null} />
       <div style={{ display: 'flex', gap: 0, border: `1px solid ${C.line}`, borderRadius: R_BTN, overflow: 'hidden', width: 'fit-content', marginBottom: 18 }}>
         {[['individual', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([k, l], i) => (
           <button key={k} className="dmx-press" onClick={() => setMode(k)} style={{ padding: '10px 20px', border: 'none', borderLeft: i ? `1px solid ${C.line}` : 'none', background: mode === k ? GRAD : '#fff', color: mode === k ? '#fff' : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
