@@ -222,6 +222,7 @@ const SUPERADMIN_NAV = [
     tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
     items: [
       // ─ Accuracy & ML (W5.x) ─
+      { key: 'aprendizaje',       to: '/superadmin/aprendizaje',       label: 'Aprendizaje del modelo', Icon: Activity },
       { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
       { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
       { key: 'fsd-accuracy',      to: '/superadmin/fsd-accuracy',      label: 'Precisión FSD',     Icon: Gauge },
