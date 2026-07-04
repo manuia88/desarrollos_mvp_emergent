@@ -7,7 +7,8 @@ import CubeKpiStrip from '../../components/superadmin/CubeKpiStrip';
 import CubeHeatmap from '../../components/superadmin/CubeHeatmap';
 import CubeDrilldownTable from '../../components/superadmin/CubeDrilldownTable';
 import CubeIntelPanel from '../../components/superadmin/CubeIntelPanel';
-import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles } from 'lucide-react';
+import CubeCrossCutView from '../../components/superadmin/CubeCrossCutView';
+import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles, LayoutGrid } from 'lucide-react';
 import {
   getTierDetail, getTierChildren, getHeatmap, getComparables, getUnitDetail,
   refreshAggregations, compareZones, triggerBackfill, getBackfillStatus, listTier,
@@ -616,6 +617,7 @@ function BackfillModal({ onClose, onToast }) {
 export default function SuperadminMetricsCube({ user, onLogout }) {
   const [path, setPath] = useState([ROOT]);
   const [period, setPeriod] = useState('current');
+  const [vista, setVista] = useState('drill');   // 'drill' (jerárquico) | 'crosscut' (corte cruzado OLAP)
   const [node, setNode] = useState(null);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -690,8 +692,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
     }
   }, [heatmapMetric, heatmapTier, period]);
 
-  useEffect(() => { loadDetail(); }, [loadDetail]);
-  useEffect(() => { loadHeatmap(); }, [loadHeatmap]);
+  // Solo cargan datos del drill cuando esa vista está activa (evita fetches inútiles en 'crosscut'; refetch al volver).
+  useEffect(() => { if (vista === 'drill') loadDetail(); }, [loadDetail, vista]);
+  useEffect(() => { if (vista === 'drill') loadHeatmap(); }, [loadHeatmap, vista]);
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2500);
@@ -803,6 +806,8 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             {refreshing ? 'Refrescando…' : 'Refrescar'}
           </button>
 
+          {/* Comparar/Backfill son del drill (operan sobre zonas jerárquicas) → ocultos en 'crosscut' */}
+          {vista === 'drill' && (<>
           <button onClick={() => setCompareOpen(true)}
             data-testid="cube-compare-btn"
             style={{
@@ -822,8 +827,28 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               color: 'rgba(240,235,224,0.65)', fontFamily: 'DM Sans', fontWeight: 600,
               fontSize: 11.5, cursor: 'pointer',
             }}>Backfill histórico</button>
+          </>)}
         </div>
 
+        {/* Selector de vista: Drill-down jerárquico vs Corte cruzado OLAP (surfacea queryCrossCut/getCacheStats) */}
+        <div data-testid="cube-vista-tabs" style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {[['drill', 'Drill-down', Layers], ['crosscut', 'Corte cruzado', LayoutGrid]].map(([k, label, Icon]) => (
+            <button key={k} data-testid={`cube-vista-${k}`} onClick={() => setVista(k)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 11,
+                background: vista === k ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${vista === k ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.08)'}`,
+                color: vista === k ? 'var(--theme)' : 'rgba(240,235,224,0.6)',
+                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              }}>
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+
+        {vista === 'crosscut' && <CubeCrossCutView period={period} />}
+
+        {vista === 'drill' && (<>
         {/* W2.8 Filters strip — slice_by + property_type + price_tier */}
         <div data-testid="cube-filter-strip" style={{
           display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
@@ -999,6 +1024,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             )}
           </>
         )}
+        </>)}
 
         {/* W2.8 Compare modal */}
         {compareOpen && (
