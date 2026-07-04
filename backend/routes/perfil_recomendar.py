@@ -155,11 +155,18 @@ async def _run_search(rs_search, db, by_id, prof: PerfilIn, ignore_budget: bool 
             continue
         seen.add(dev.get("id"))
         over = bool(prof.presupuesto_max and (dev.get("price_from") or 0) > prof.presupuesto_max)
+        score = round(item.get("match_score", 0))
+        reasons = _reasons(dev, prof)
         out.append({
             "id": dev.get("id"), "name": dev.get("name"), "colonia": dev.get("colonia"),
+            "alcaldia": dev.get("alcaldia"),
             "price_from": dev.get("price_from"), "price_from_display": dev.get("price_from_display"),
             "price_m2_dev": dev.get("price_m2_dev"), "stage": dev.get("stage"),
-            "match_score": round(item.get("match_score", 0)), "match_reasons": _reasons(dev, prof),
+            # Campos que la tarjeta persuasiva (AtlaxResults/ResultCard) necesita para renderizar rico.
+            "photos": dev.get("photos") or [], "bedrooms_range": dev.get("bedrooms_range"),
+            "bathrooms_range": dev.get("bathrooms_range"), "amenities": dev.get("amenities") or [],
+            "match_score": score, "match_reasons": reasons,
+            "match_total": score, "match_met": reasons,   # alias que consume la tarjeta compartida
             "sobre_presupuesto": over,
         })
     return out

@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { sendBuyerSignal, visitorId, claimVisitor } from '../../lib/buyerSignal';
 import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';
+import { aiSearchParse } from '../../api/marketplace';   // #12: parsea zona+presupuesto (texto libre) del perfilador
 import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import AtlaxResults from '../../components/landing/AtlaxResults';
 import AtlaxQuickView from '../../components/landing/AtlaxQuickView';
@@ -50,6 +51,34 @@ function assembleQuery(a) {
   if (a.presupuesto) p.push(a.presupuesto);
   if (Array.isArray(a.amenidades) && a.amenidades.length) p.push(`con ${a.amenidades.join(', ').toLowerCase()}`);
   return p.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+// #12 — respuestas del perfilador (botones estructurados + zona/presupuesto de texto) → PerfilIn del motor.
+// Los botones se parsean determinista; zona+presupuesto (texto libre) llegan ya parseados (colonia, max_price).
+const _int = (s) => { const m = String(s || '').match(/\d+/); return m ? parseInt(m[0], 10) : null; };
+const _m2Range = (label) => {
+  const s = String(label || '');
+  if (/hasta 60/i.test(s)) return { m2_min: null, m2_max: 60 };
+  if (/60.?90/i.test(s)) return { m2_min: 60, m2_max: 90 };
+  if (/90.?120/i.test(s)) return { m2_min: 90, m2_max: 120 };
+  if (/m[aá]s de 120/i.test(s)) return { m2_min: 120, m2_max: null };
+  return { m2_min: null, m2_max: null };
+};
+function answersToPerfil(answers, filters, limit = 12) {
+  const f = filters || {};
+  const cols = Array.isArray(f.colonia) ? f.colonia : (f.colonia ? [f.colonia] : []);
+  const { m2_min, m2_max } = _m2Range(answers.m2);
+  return {
+    presupuesto_max: f.max_price || null,
+    recamaras_min: _int(answers.recamaras) || f.beds || null,
+    banos_min: _int(answers.banos) || f.baths || null,
+    estacionamientos_min: _int(answers.estacionamientos) || null,
+    m2_min, m2_max,
+    colonias: cols,
+    uso: f.buyer_intent || f.intent || null,
+    must_haves: Array.isArray(answers.amenidades) ? answers.amenidades.map((a) => String(a).toLowerCase()) : [],
+    limit,
+  };
 }
 
 function renderRich(text) {
@@ -117,6 +146,39 @@ export default function AtlaxSurface() {
     setBusy(false);
   }, [busy]);
 
+  // #12 — Perfilador → MOTOR ESTRUCTURADO /api/perfil/recomendar (zona sagrada + nota honesta + zonas cercanas),
+  // no el query de texto (que trata la zona como match parcial y cuela colonias equivocadas). Fallback al texto.
+  const runProfilerSearch = useCallback(async (answers) => {
+    if (busy) return undefined;
+    setBusy(true); setProf(null);
+    const aid = `pf_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setMessages((prev) => [...prev, { id: aid, role: 'atlax', kind: 'results', intro: '', r: { pending: true }, pending: true }]);
+    const drop = () => setMessages((prev) => prev.filter((m) => m.id !== aid));
+    const patch = (p) => setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, ...p } : m)));
+    try {
+      const parsed = await aiSearchParse(`${answers.zona || ''} ${answers.presupuesto || ''}`.trim());
+      const perfil = answersToPerfil(answers, (parsed && parsed.filters) || {});
+      const res = await fetch(`${API}/api/perfil/recomendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(perfil) });
+      const data = await res.json();
+      const resultados = (data && data.resultados) || [];
+      if (!resultados.length) { drop(); setBusy(false); return runSearch(assembleQuery(answers)); }
+      const exact = resultados.filter((x) => !x.ampliado && !x.sobre_presupuesto);
+      const casi = resultados.filter((x) => x.ampliado || x.sobre_presupuesto);
+      const zonaTxt = perfil.colonias[0] ? ` en ${perfil.colonias[0]}` : '';
+      const intro = data.nota || (exact.length ? `Con tu perfil, ${exact.length === 1 ? 'esta opción encaja' : `estas ${exact.length} opciones encajan`}${zonaTxt}:` : `Esto es lo más cercano a tu perfil${zonaTxt}:`);
+      // r.filters para que "Guardar Búsqueda" (armar alerta) registre con los datos reales del perfil.
+      const filters = { colonia: perfil.colonias, max_price: perfil.presupuesto_max, beds: perfil.recamaras_min };
+      patch({ intro, pending: false, zonasCercanas: data.zonas_cercanas || [], r: { exact, casi, crossZone: [], zonaNoDisp: null, filters, pending: false, hasResults: true } });
+      // Demanda: registra la búsqueda estructurada (cierra el ciclo → Grafo del Comprador + unmet demand).
+      try { fetch(`${API}/api/perfil/registrar-busqueda`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...perfil, visitor_id: visitorId(), found_count: resultados.length }) }).catch(() => {}); } catch (_) { /* noop */ }
+      try { sendBuyerSignal('atlax_query', { value: assembleQuery(answers).slice(0, 120), colonia: (perfil.colonias[0] || undefined), meta: { source: 'perfilador', n_exact: exact.length, n_casi: casi.length } }); } catch (_) { /* noop */ }
+    } catch (_) {
+      drop(); setBusy(false); return runSearch(assembleQuery(answers));
+    }
+    setBusy(false);
+    return undefined;
+  }, [busy, runSearch]);
+
   // ── Perfilador ────────────────────────────────────────────────────────────
   const startProfiler = () => {
     setMessages((prev) => [...prev, { id: `p_${Date.now()}`, role: 'atlax', kind: 'text', intro: 'Va — te hago unas preguntas rápidas y te armo la búsqueda ideal.', pending: false }]);
@@ -131,7 +193,7 @@ export default function AtlaxSurface() {
     if (prof.step + 1 >= PROFILER.length) {
       setProf(null);
       try { sendBuyerSignal('atlax_profile', { value: 'completo', colonia: String(answers.zona || '').toLowerCase() || undefined, meta: { ...answers, amenidades: Array.isArray(answers.amenidades) ? answers.amenidades.join(', ') : answers.amenidades } }); } catch (_) { /* noop */ }
-      runSearch(assembleQuery(answers));
+      runProfilerSearch(answers);   // #12: motor estructurado (zona sagrada), no el query de texto
     } else { setProf((p) => ({ step: p.step + 1, answers, picked: [], text: '' })); }
   };
   const togglePick = (val) => setProf((p) => ({ ...p, picked: p.picked.includes(val) ? p.picked.filter((x) => x !== val) : [...p.picked, val] }));
@@ -212,6 +274,17 @@ export default function AtlaxSurface() {
                   <>
                     {m.intro && <div style={{ color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{last ? <Typewriter text={m.intro} /> : renderRich(m.intro)}</div>}
                     {m.kind === 'results' && m.r && !m.r.pending && <AtlaxResults r={m.r} onQuick={(dev, list) => setQuick({ list: list || [dev], index: Math.max(0, (list || [dev]).findIndex((d) => d.id === dev.id)) })} onRefine={(suf) => runSearch(`${lastUserQ()} ${suf}`)} onAdvisor={() => wantAdvisor()} />}
+                    {/* #12: zonas ALEDAÑAS con inventario que encaja (el motor las devuelve cuando tu zona es delgada). El cliente decide. */}
+                    {m.kind === 'results' && Array.isArray(m.zonasCercanas) && m.zonasCercanas.length > 0 && (
+                      <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.18)', borderRadius: 14 }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', fontWeight: 700, marginBottom: 8 }}>Cerca de tu zona, con opciones que encajan:</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {m.zonasCercanas.map((z) => (
+                            <button key={z.colonia} onClick={() => runSearch(`Departamento en ${z.colonia}`)} style={chip}>{z.colonia}{z.n > 1 ? ` · ${z.n}` : ''} →</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {m.kind === 'compare' && m.blocks && m.blocks.length > 0 && <AtlaxBlocks blocks={m.blocks} />}
                     {last && !m.pending && (m.kind === 'results' || m.kind === 'compare') && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border)' }}>
