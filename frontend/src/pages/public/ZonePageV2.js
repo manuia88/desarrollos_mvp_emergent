@@ -6,6 +6,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';   // W5.5 · pulso vivo de la zona (antes sin UI)
+import ColoniaHistoryTab from '../../components/marketplace/ColoniaHistoryTab';    // historia 20y + proyección 10y (antes sin UI)
+import ColoniaReportModal from '../../components/marketplace/ColoniaReportModal';  // email → PDF de la colonia (lead-gen · antes sin UI)
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
 import InversionV4Calculator from '../../components/investment/InversionV4Calculator';
@@ -900,6 +902,7 @@ export default function ZonePageV2() {
   const [profile, setProfile] = useState(null);
   const [lens] = useState(null);     // lente del inversionista (renta/plusvalia/refugio) · el selector se absorbió en el arco; queda null → veredicto usa su mensaje por defecto
   const [saveOpen, setSaveOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);   // modal reporte PDF de la colonia (lead-gen)
 
   // Todos los desarrollos (1 sola vez · ~18) para recomendar en OTRAS zonas si el presupuesto no alcanza ésta.
   useEffect(() => {
@@ -1832,6 +1835,16 @@ export default function ZonePageV2() {
         {/* ── VOZ DE RESIDENTES (motor reviews_residents · hide-if-empty: invisible si no hay reseñas reales) ── */}
         <div style={{ ...sec, marginTop: 46 }}><ZoneReviewsBlock zoneId={slug} /></div>
 
+        {/* ── HISTORIA DE LA ZONA (20 años atrás + proyección 10 años · antes sin UI) ── */}
+        <div style={{ ...sec, marginTop: 46 }}>
+          <ColoniaHistoryTab coloniaId={slug} coloniaNombre={name} />
+          {/* CTA lead-gen: reporte PDF completo de la colonia (captura email → lead) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 22 }}>
+            <button type="button" onClick={() => setReportOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 24px', borderRadius: 13, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 12px 30px rgba(99,102,241,0.28)' }}>📄 Recibe el reporte de {name}</button>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#8A8FA6' }}>Te lo enviamos por correo · gratis</span>
+          </div>
+        </div>
+
         {/* ── FUENTES ── */}
         <section style={{ ...sec, marginTop: 46 }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', lineHeight: 1.6, borderTop: '1px solid rgba(16,18,28,0.06)', paddingTop: 18 }}>
@@ -1845,6 +1858,7 @@ export default function ZonePageV2() {
         </>)}
       </div>
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
+      <ColoniaReportModal open={reportOpen} onClose={() => setReportOpen(false)} coloniaId={slug} coloniaNombre={name} />
       <AtlaxBubble theme="light" context={`El usuario está viendo la ficha de la colonia ${name} (CDMX)${lensCfg ? `, con enfoque de ${lensCfg.label}` : ''}. Responde con datos de ${name}: cómo se vive, inversión/plusvalía, lugares cerca y desarrollos disponibles. Si no hay inventario aún en ${name}, ofrécele explorar la zona a fondo o ver zonas similares que sí tengan.`} />
       <Footer />
     </LightScope>
