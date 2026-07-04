@@ -962,7 +962,7 @@ function AppRouter() {
 
       {/* Superadmin — IE Engine Phase A */}
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
-      <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminFounderConsole} />} />
+      <Route path="/superadmin" element={<SuperadminRoute Page={SuperadminFounderConsole} />} />
       <Route path="/superadmin/dashboard-legacy" element={<SuperadminRoute Page={SuperadminDashboard} />} />
       <Route path="/superadmin/catalog-pulse" element={<SuperadminRoute Page={SuperadminCatalogPulse} />} />
       <Route path="/superadmin/desarrollos" element={<SuperadminRoute Page={SuperadminDesarrollos} />} />

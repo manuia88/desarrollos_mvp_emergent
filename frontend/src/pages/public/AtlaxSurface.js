@@ -173,7 +173,9 @@ export default function AtlaxSurface() {
       const filters = { colonia: perfil.colonias, max_price: perfil.presupuesto_max, beds: perfil.recamaras_min };
       patch({ intro, pending: false, zonasCercanas: data.zonas_cercanas || [], r: { exact, casi, crossZone: [], zonaNoDisp: null, filters, pending: false, hasResults: true } });
       // Demanda: registra la búsqueda estructurada (cierra el ciclo → Grafo del Comprador + unmet demand).
-      try { fetch(`${API}/api/perfil/registrar-busqueda`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...perfil, visitor_id: visitorId(), found_count: resultados.length }) }).catch(() => {}); } catch (_) { /* noop */ }
+      // found_count = matches ESTRICTOS (exact): si el motor solo halló relajados/sobre-presupuesto, cuenta como
+      // hueco (unmet=true) → el dato de demanda insatisfecha del perfilador no se pierde por la relajación.
+      try { fetch(`${API}/api/perfil/registrar-busqueda`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...perfil, visitor_id: visitorId(), found_count: exact.length }) }).catch(() => {}); } catch (_) { /* noop */ }
       try { sendBuyerSignal('atlax_query', { value: assembleQuery(answers).slice(0, 120), colonia: (perfil.colonias[0] || undefined), meta: { source: 'perfilador', n_exact: exact.length, n_casi: casi.length } }); } catch (_) { /* noop */ }
     } catch (_) {
       drop(); setBusy(false); return runSearch(assembleQuery(answers));
