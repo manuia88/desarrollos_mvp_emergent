@@ -4,6 +4,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import NewCitaModal from '../../components/developer/NewCitaModal';
 import { getAsesorCitas, patchCita } from '../../api/developer';
 import { listTareas, completeTarea } from '../../api/advisor';
+import FeedbackCapture from '../../components/feedback/FeedbackCapture';   // captura post-cita (antes sin montar)
 import { CalendarCheck, Plus, Clock, CheckCircle, X, Phone, Video, AlertCircle, ExternalLink, ClipboardList } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
@@ -46,6 +47,8 @@ function CitaDrawer({ apt, onClose, onAction }) {
   const [newDatetime, setNewDatetime] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  // Feedback post-cita: se muestra cuando la cita ya está realizada (o al marcarla ahora). Requiere lead.
+  const [showFeedback, setShowFeedback] = useState(apt.status === 'realizada');
 
   const handleAction = async () => {
     if (!status) return;
@@ -59,7 +62,8 @@ function CitaDrawer({ apt, onClose, onAction }) {
       if (newDatetime) body.datetime = new Date(newDatetime).toISOString();
       await patchCita(apt.id, body);
       onAction();
-      onClose();
+      // Si quedó realizada: NO cerrar — revelar la captura de feedback (dato que alimenta lead-scoring/IA).
+      if (status === 'realizada') { setShowFeedback(true); setStatus(''); } else { onClose(); }
     } catch (e) {
       setErr(e.message || 'Error al actualizar');
     } finally {
@@ -126,6 +130,13 @@ function CitaDrawer({ apt, onClose, onAction }) {
             </button>
           )}
         </div>
+        {/* Captura de feedback post-cita (taxonomía cerrada + auto-etiquetar IA) → alimenta lead-scoring/demanda */}
+        {showFeedback && apt.lead?.id && (
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Feedback de la cita</div>
+            <FeedbackCapture leadId={apt.lead.id} onSaved={() => { onAction(); onClose(); }} />
+          </div>
+        )}
       </div>
     </div>
   );

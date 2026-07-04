@@ -93,12 +93,33 @@ async def _top_zones(db, limit: int = 50) -> List[str]:
         {"$sort": {"count": -1}},
         {"$limit": limit},
     ]
+    zones: List[str] = []
     try:
         rows = await db.leads.aggregate(pipeline).to_list(limit)
-        return [r["_id"] for r in rows if r.get("_id")]
+        zones = [r["_id"] for r in rows if r.get("_id")]
     except Exception as exc:
-        log.warning(f"[LivePulse] top_zones failed: {exc}")
-        return []
+        log.warning(f"[LivePulse] top_zones (leads) failed: {exc}")
+    # Fallback: los leads no siempre traen zone_slug (traen development_id/project_id) → el pulso nunca
+    # encontraría zonas. Usa las colonias con más señales de comprador (buyer_signals), que ES el calor real.
+    if len(zones) < limit:
+        try:
+            seen = set(zones)
+            rows = await db.buyer_signals.aggregate([
+                {"$match": {"colonia": {"$nin": [None, ""]}}},
+                {"$group": {"_id": "$colonia", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+                {"$limit": limit},
+            ]).to_list(limit)
+            for r in rows:
+                z = r.get("_id")
+                if z and z not in seen:
+                    zones.append(z)
+                    seen.add(z)
+                    if len(zones) >= limit:
+                        break
+        except Exception as exc:
+            log.warning(f"[LivePulse] top_zones (buyer_signals fallback) failed: {exc}")
+    return zones
 
 
 async def _run_live_pulse_compute(db) -> Dict[str, Any]:

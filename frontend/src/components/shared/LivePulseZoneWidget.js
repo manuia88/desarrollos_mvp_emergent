@@ -38,9 +38,10 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
       if (cancel) return;
       const match = (r.body?.zones || []).find((z) => z.zone_slug === zone_slug);
       if (!match) { setHidden(true); return; }
-      // Si todas las senales son insufficient/unavailable, ocultar
+      // Ocultar si NO hay ninguna señal REAL. 'stub' = placeholder determinista del trend (apify no-real) →
+      // cuenta como no-real, para no pintar un pulso falso (~50 plano) sin datos verdaderos de la zona.
       const allStub = match.signals && Object.values(match.signals).every(
-        (s) => ['insufficient_data', 'unavailable'].includes(s?.source)
+        (s) => ['insufficient_data', 'unavailable', 'stub'].includes(s?.source)
       );
       if (allStub) { setHidden(true); return; }
       setPulse(match);
