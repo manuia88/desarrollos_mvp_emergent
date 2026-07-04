@@ -33,22 +33,23 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
 
 @router.get("/timeseries")
 async def demand_timeseries(request: Request, tier: str = "colonia", tier_id: str = "",
-                            measure: str = "demand_interactions", limit: int = 120):
+                            measure: str = "demand_interactions", gran: str = "month", limit: int = 180):
     """ESCALA · serie de tiempo del histórico materializado (dmx_market_snapshots) — el moat temporal: cómo evoluciona
-    la demanda/interés/AVM por colonia o desarrollo. Antes 0 escrituras; el cron de demanda ya lo alimenta mensual.
-    Sin tier_id devuelve la lista de series disponibles (para el selector)."""
+    la demanda/interés/AVM por colonia o desarrollo, a la granularidad pedida (day/week/quincena/month).
+    Antes 0 escrituras; el cron de demanda lo alimenta en las 4 granularidades. Sin tier_id lista las series disponibles."""
     from permissions import require_superadmin
     await require_superadmin(request)
     db = request.app.state.db
     import dmx_snapshots
+    dims = {"gran": gran}
     if not tier_id:
         seen = set()
-        async for d in db.dmx_market_snapshots.find({"tier": tier, "measure": measure}, {"_id": 0, "tier_id": 1}).limit(500):
+        async for d in db.dmx_market_snapshots.find({"tier": tier, "measure": measure, "dims": dims}, {"_id": 0, "tier_id": 1}).limit(800):
             if d.get("tier_id"):
                 seen.add(d["tier_id"])
-        return {"tier": tier, "measure": measure, "disponibles": sorted(seen)}
-    serie = await dmx_snapshots.read_timeseries(db, tier=tier, tier_id=tier_id, measure=measure, limit=limit)
-    return {"tier": tier, "tier_id": tier_id, "measure": measure, "n": len(serie),
+        return {"tier": tier, "measure": measure, "gran": gran, "granularidades": ["day", "week", "quincena", "month"], "disponibles": sorted(seen)}
+    serie = await dmx_snapshots.read_timeseries(db, tier=tier, tier_id=tier_id, measure=measure, dims=dims, limit=limit)
+    return {"tier": tier, "tier_id": tier_id, "measure": measure, "gran": gran, "n": len(serie),
             "serie": [{"period": s.get("period"), "value": s.get("value")} for s in serie]}
 
 

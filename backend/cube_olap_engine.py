@@ -591,6 +591,47 @@ def _interest_score(signals: Dict[str, int]) -> float:
     return round(sum(_INTEREST_WEIGHTS.get(t, 0.0) * n for t, n in signals.items()), 2)
 
 
+def _periods_of(dt, grans) -> Dict[str, str]:
+    """De un created_at_dt (datetime) deriva el periodo en cada granularidad: día/semana ISO/quincena/mes.
+    Quincena = quincena mexicana (días 1-15 = Q1, 16+ = Q2)."""
+    if not dt:
+        return {}
+    out: Dict[str, str] = {}
+    if "day" in grans:
+        out["day"] = dt.strftime("%Y-%m-%d")
+    if "week" in grans:
+        iso = dt.isocalendar()
+        out["week"] = f"{iso[0]}-W{int(iso[1]):02d}"
+    if "quincena" in grans:
+        out["quincena"] = dt.strftime("%Y-%m") + ("-Q1" if dt.day <= 15 else "-Q2")
+    if "month" in grans:
+        out["month"] = dt.strftime("%Y-%m")
+    return out
+
+
+async def _agg_demand_periods(db, group_field: str, cutoff, grans) -> Dict[tuple, Dict[str, Any]]:
+    """Agrega buyer_signals por (group, granularidad, periodo) en UN barrido: conteo + visitantes distintos +
+    interest_score. Deriva day/week/quincena/month del created_at_dt de cada señal (ya se capta granular en crudo)."""
+    from collections import defaultdict
+    acc: Dict[tuple, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "vis": set(), "score": 0.0})
+    async for s in db.buyer_signals.find(
+        {group_field: {"$ne": None}, "created_at_dt": {"$gte": cutoff}},
+        {"_id": 0, group_field: 1, "created_at_dt": 1, "visitor_id": 1, "type": 1},
+    ):
+        gid = s.get(group_field)
+        dt = s.get("created_at_dt")
+        if not gid or not dt:
+            continue
+        w = _INTEREST_WEIGHTS.get(s.get("type"), 0.0)
+        for gran, period in _periods_of(dt, grans).items():
+            cell = acc[(gid, gran, period)]
+            cell["count"] += 1
+            cell["score"] += w
+            if s.get("visitor_id"):
+                cell["vis"].add(s["visitor_id"])
+    return acc
+
+
 async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[str, Any]:
     """Cierra el ciclo #1 del flywheel: la conducta del comprador (buyer_signals) entra al analitico.
     Materializa facts_buyer_signals por desarrollo y por colonia con K-anonimato (>=3 visitantes). Idempotente."""
@@ -634,17 +675,19 @@ async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[s
     # histórico. read_timeseries dedup por periodo (última corrida del mes gana), así la serie queda limpia.
     try:
         import dmx_snapshots
-        period = started.strftime("%Y-%m")
+        grans = ("day", "week", "quincena", "month")   # granular: diaria/semanal/quincenal/mensual (dims.gran)
         rows: List[Dict[str, Any]] = []
-        for scope, groups in (("development", devs), ("colonia", colonias)):
-            for gid, agg in groups.items():
-                if int(agg.get("distinct", 0)) < _KANON_MIN:
+        for scope, field in (("development", "entity_id"), ("colonia", "colonia")):
+            acc = await _agg_demand_periods(db, field, cutoff, grans)
+            for (gid, gran, period), cell in acc.items():
+                if len(cell["vis"]) < _KANON_MIN:   # K-anon por celda (privacidad)
                     continue
-                sig = agg["signals"]
-                rows.append({"tier": scope, "tier_id": gid, "measure": "demand_interactions", "value": float(sum(sig.values())), "period": period, "source": "demand_cron"})
-                rows.append({"tier": scope, "tier_id": gid, "measure": "demand_visitors", "value": float(int(agg.get("distinct", 0))), "period": period, "source": "demand_cron"})
-                rows.append({"tier": scope, "tier_id": gid, "measure": "interest_score", "value": float(_interest_score(sig)), "period": period, "source": "demand_cron"})
+                base = {"tier": scope, "tier_id": gid, "period": period, "dims": {"gran": gran}, "source": "demand_cron"}
+                rows.append({**base, "measure": "demand_interactions", "value": float(cell["count"])})
+                rows.append({**base, "measure": "demand_visitors", "value": float(len(cell["vis"]))})
+                rows.append({**base, "measure": "interest_score", "value": round(cell["score"], 2)})
         summary["snapshots_written"] = await dmx_snapshots.write_many(db, rows) if rows else 0
+        summary["snapshot_granularities"] = list(grans)
     except Exception as e:  # noqa: BLE001
         log.warning(f"[olap] snapshot write failed: {e}")
     log.info(f"[olap] buyer_signals -> cubo — {summary}")
