@@ -5,6 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
+import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';   // W5.5 · pulso vivo de la zona (antes sin UI)
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
 import InversionV4Calculator from '../../components/investment/InversionV4Calculator';
@@ -581,7 +582,7 @@ function FindePerfecto({ lugares, name }) {
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
                     <select value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(15px,2vw,18px)', color: INK, background: '#fff', cursor: 'pointer', letterSpacing: '-0.01em' }}>
-                      {arr.slice(0, 8).map((x, j) => (<option key={x.name} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>))}
+                      {arr.slice(0, 8).map((x, j) => (<option key={`${x.name}-${j}`} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>))}
                     </select>
                     {p && p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : null}
                   </div>
@@ -1122,6 +1123,11 @@ export default function ZonePageV2() {
                 ))}
               </div>
             )}
+
+            {/* Pulso vivo de la zona (LivePulse W5.5) — score de calor + tendencia 30d. Se auto-oculta si no hay señales. */}
+            <div style={{ marginTop: 18, maxWidth: 300 }}>
+              <LivePulseZoneWidget zone_slug={slug} compact />
+            </div>
 
             {/* La pregunta + las 4 tabs (cada una con micro-promesa) · oculto en descubrimiento (no hay lentes que aplicar) */}
             {S && !descubrimiento && (
