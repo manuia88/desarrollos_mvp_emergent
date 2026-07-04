@@ -2166,6 +2166,14 @@ async def get_development(dev_id: str, request: Request):
             }
     except Exception:
         pass
+    # Memoria de acabados REAL del dev (project_memoria) → la ficha. Antes solo venía del seed (sin write-path del dev). Fail-open.
+    try:
+        mem_doc = await db.project_memoria.find_one({"project_id": dev_id}, {"_id": 0})
+        if mem_doc and isinstance(mem_doc.get("memoria"), list) and mem_doc["memoria"]:
+            out["memoria_acabados"] = [{"area": r.get("area"), "detalle": r.get("detalle")}
+                                       for r in mem_doc["memoria"] if isinstance(r, dict) and r.get("area") and r.get("detalle")]
+    except Exception:
+        pass
     # Ubicación que el dev corrigió (pin del mapa / dirección / colonia) → el comprador ve el dato real, no el del seed. Fail-open.
     try:
         meta = await db.dev_project_meta.find_one({"project_id": dev_id}, {"_id": 0})

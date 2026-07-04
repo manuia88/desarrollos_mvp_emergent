@@ -17,6 +17,7 @@ import GeolocalizacionTab from '../../components/developer/GeolocalizacionTab';
 import ContenidoTab from '../../components/developer/ContenidoTab';
 import UnitPulsePanel from '../../components/developer/UnitPulsePanel';
 import AmenidadesTab from '../../components/developer/AmenidadesTab';
+import MemoriaAcabadosTab from '../../components/developer/MemoriaAcabadosTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
 import CanalesTab from '../../components/developer/CanalesTab';
@@ -196,6 +197,7 @@ const TABS = DEV_V2 ? [
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'contenido',       label: 'Contenido',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
+  { key: 'memoria',         label: 'Acabados',        phase: null },
   { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
 ] : [
@@ -204,6 +206,7 @@ const TABS = DEV_V2 ? [
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
+  { key: 'memoria',         label: 'Acabados',        phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
   { key: 'comercializacion',label: 'Pagos y brokers',phase: null },
   { key: 'insights',        label: 'Insights',        phase: 'B22' },
@@ -665,6 +668,9 @@ export default function ProyectoDetail({ user, onLogout }) {
           )}
           {activeTab === 'amenidades' && (
             <AmenidadesTab devId={slug} user={user} />
+          )}
+          {activeTab === 'memoria' && (
+            <MemoriaAcabadosTab devId={slug} user={user} />
           )}
           {activeTab === 'legal' && (
             <LegalTab devId={slug} user={user} />

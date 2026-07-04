@@ -381,6 +381,9 @@ export const uploadProjectAssets = async (projectId, files, assetType = 'foto_re
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
 export const getAmenitiesCatalog = () => j('/api/dev/amenities-catalog');
 export const patchProjectAmenities = (pid, b) => patch(`/api/dev/projects/${pid}/amenities`, b);
+// Memoria de acabados (el dev la edita → surface en la ficha pública)
+export const getProjectMemoria = (pid) => j(`/api/dev/projects/${pid}/memoria`);
+export const saveProjectMemoria = (pid, memoria) => patch(`/api/dev/projects/${pid}/memoria`, { memoria });
 export const getCommercialization = (pid) => j(`/api/dev/projects/${pid}/commercialization`);
 export const patchCommercialization = (pid, b) => patch(`/api/dev/projects/${pid}/commercialization`, b);
 export const listBrokers = (pid) => j(`/api/dev/projects/${pid}/brokers`);

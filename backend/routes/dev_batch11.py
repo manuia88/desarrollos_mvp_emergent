@@ -306,6 +306,64 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MEMORIA DE ACABADOS  (el dev la edita → surface en la ficha pública)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MemoriaRow(BaseModel):
+    area: str = ""
+    detalle: str = ""
+
+
+class MemoriaPatch(BaseModel):
+    memoria: List[MemoriaRow] = Field(default_factory=list)
+
+
+def _clean_memoria(rows) -> List[Dict[str, str]]:
+    out = []
+    for r in (rows or [])[:30]:
+        area = (getattr(r, "area", None) or (r.get("area") if isinstance(r, dict) else "") or "").strip()[:60]
+        det = (getattr(r, "detalle", None) or (r.get("detalle") if isinstance(r, dict) else "") or "").strip()[:280]
+        if area and det:
+            out.append({"area": area, "detalle": det})
+    return out
+
+
+@router.get("/projects/{project_id}/memoria")
+async def get_memoria(project_id: str, request: Request):
+    """Memoria de acabados para editar. Doc del dev si existe; si no, cae al seed (memoria_acabados)."""
+    user = await _auth(request)
+    db = _db(request)
+    doc = await db.project_memoria.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    if doc and isinstance(doc.get("memoria"), list):
+        return {"project_id": project_id, "memoria": _clean_memoria(doc["memoria"]), "source": "dev"}
+    from data_developments import DEVELOPMENTS
+    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
+    return {"project_id": project_id, "memoria": _clean_memoria((dev or {}).get("memoria_acabados")), "source": "seed"}
+
+
+@router.patch("/projects/{project_id}/memoria")
+async def patch_memoria(project_id: str, payload: MemoriaPatch, request: Request):
+    """Guarda la memoria de acabados del dev → se muestra en la ficha pública (public.py la lee en el overlay)."""
+    user = await _auth(request)
+    if user.role not in ("developer_admin", "superadmin"):
+        raise HTTPException(403, "Solo developer_admin puede editar la memoria de acabados")
+    db = _db(request)
+    if project_id not in _user_dev_ids(user):
+        raise HTTPException(403, "Proyecto no accesible")
+    memoria = _clean_memoria(payload.memoria)
+    now_iso = _now().isoformat()
+    old = await db.project_memoria.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    update = {"project_id": project_id, "dev_org_id": _tenant(user), "memoria": memoria,
+              "updated_at": now_iso, "updated_by": user.user_id}
+    await db.project_memoria.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"$set": update}, upsert=True)
+    await _safe_audit(db, user, "update", "memoria_acabados", project_id,
+                      before=old, after=update, request=request,
+                      ml_event="memoria_changed", ml_context={"project_id": project_id, "count": len(memoria)})
+    return {"ok": True, "memoria": memoria}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COMERCIALIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
 
