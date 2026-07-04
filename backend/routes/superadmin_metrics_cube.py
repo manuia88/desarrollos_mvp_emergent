@@ -259,6 +259,17 @@ async def _audit(db, user, action: str, entity_type: str, entity_id=None, after=
         log.warning("[audit] log_mutation perdido (%s %s %s): %s", action, entity_type, entity_id, _e)
 
 
+# ─── Cubo Unificado · GET /catalog — el CONTRATO que el Hub renderiza (BEFORE /{tier}) ──
+@router.get(PREFIX + "/catalog")
+async def cube_catalog_route(request: Request):
+    """El registro único hipergranular (cube_catalog): cada métrica/score/índice con su familia,
+    granularidad geo+temporal, dimensiones, motor, lineaje, k-anon, formato y estado. El Hub de Mercado
+    renderiza sus lentes/cortes/vista-átomo DESDE este contrato (cero métrica hardcodeada en la UI)."""
+    await _require_superadmin(request)
+    import cube_catalog
+    return cube_catalog.serialize()
+
+
 # ─── 5) POST /refresh — manual recompute (BEFORE /{tier}) ─────────────────────
 @router.post(PREFIX + "/refresh")
 async def refresh_aggregations(request: Request):

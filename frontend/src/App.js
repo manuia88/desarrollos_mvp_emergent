@@ -326,6 +326,7 @@ const LandingPublicPage  = lazy(() => import('./pages/public/LandingPublic'));
 const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/PropertyIntakeForm'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
+const SuperadminHubMercado           = lazy(() => import('./pages/superadmin/SuperadminHubMercado'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
 const SuperadminGemeloDemanda        = lazy(() => import('./pages/superadmin/SuperadminGemeloDemanda')); // moonshot: gemelo de demanda
@@ -984,6 +985,7 @@ function AppRouter() {
       <Route path="/superadmin/ai-cost" element={<SuperadminRoute Page={SuperadminAiCost} />} />
       <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
       <Route path="/superadmin/commercial" element={<SuperadminRoute Page={SuperadminCommercial} />} />
+      <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
       <Route path="/superadmin/metrics-cube" element={<SuperadminRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<SuperadminRoute Page={SuperadminDataLake} />} />
       <Route path="/superadmin/intelligence-hub" element={<SuperadminRoute Page={SuperadminIntelligenceHub} />} />

@@ -128,6 +128,11 @@ export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
 
+// Cubo Unificado — el CONTRATO: catálogo hipergranular (métricas × familia × granularidad × lineaje × k-anon)
+export async function getCubeCatalog() {
+  return _j(await fetch(`${BASE}/catalog`, { headers: h(), credentials: 'include' }));
+}
+
 // N5 Slice 1 — la ACCIÓN desde el cubo: genera y persiste el brief de producto para una colonia
 // (reusa el generador del founder-console; F3 lo despacha al dev).
 export async function createCubeProductBrief(colonia, { terrenoM2 = 1000, tipologia = null } = {}) {
