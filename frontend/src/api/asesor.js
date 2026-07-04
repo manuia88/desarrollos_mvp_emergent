@@ -45,6 +45,16 @@ export async function fetchRecentBriefings(limit = 10) {
   return r.json();
 }
 
+// ─── Oportunidades del asesor (demanda → tus clientes → mensaje) ────────────
+
+export async function fetchAsesorOportunidades(top = 20) {
+  const r = await fetch(`${API}/api/asesor/market/oportunidades?top=${top}`, {
+    credentials: 'include',
+  });
+  if (!r.ok) throw new Error('No se pudieron cargar las oportunidades');
+  return r.json();
+}
+
 // ─── Argumentario AI RAG ───────────────────────────────────────────────────
 
 export async function queryArgumentario({ question, category = null, topK = 5 }) {

@@ -171,6 +171,7 @@ const AsesorRanking     = lazy(() => import('./pages/asesor/AsesorRanking'));
 const StudioDashboard   = lazy(() => import('./pages/asesor/StudioDashboard'));
 const StudioHubPage     = lazy(() => import('./pages/asesor/StudioHubPage')); // B7 F4 · hub Studio (Crear + Marca/Biblioteca)
 const AsesorBriefings   = lazy(() => import('./pages/asesor/AsesorBriefings'));
+const AsesorOportunidades = lazy(() => import('./pages/asesor/AsesorOportunidades'));
 const AsesorCitas       = lazy(() => import('./pages/asesor/AsesorCitas'));
 const AsesorEquipo      = lazy(() => import('./pages/asesor/AsesorEquipo'));
 const AsesorLeadsDev    = lazy(() => import('./pages/asesor/AsesorLeadsDev'));
@@ -839,6 +840,7 @@ function AppRouter() {
       <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/busquedas" element={<AdvisorRoute Page={AsesorBusquedas} />} />
       <Route path="/asesor/proyecto/:id" element={<AdvisorRoute Page={PlaybookProyecto} />} />
+      <Route path="/asesor/oportunidades" element={<AdvisorRoute Page={AsesorOportunidades} />} />
       <Route path="/asesor/captaciones" element={<AdvisorRoute Page={AsesorCaptaciones} />} />
       {/* B7 Fase 3 · Hub Mis Leads (Pipeline + Búsquedas + Captaciones en pestañas) */}
       <Route path="/asesor/mis-leads" element={<AdvisorRoute Page={MisLeadsPage} />} />

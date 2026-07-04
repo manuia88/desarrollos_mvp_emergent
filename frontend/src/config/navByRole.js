@@ -94,6 +94,7 @@ const ASESOR_NAV = [
     tier: 2,
     label: 'Operación',
     items: [
+      { key: 'oportunidades', to: '/asesor/oportunidades',               label: 'Oportunidades',    Icon: Target },
       { key: 'captaciones',  to: '/asesor/captaciones',                  label: 'Captaciones',      Icon: Briefcase },
       { key: 'tareas',       to: '/asesor/tareas',                       label: 'Tareas',           Icon: ClipboardList },
       { key: 'operaciones',  to: '/asesor/operaciones',                  label: 'Operaciones',      Icon: Activity },
