@@ -157,6 +157,9 @@ export default function AtlaxSurface() {
     const patch = (p) => setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, ...p } : m)));
     try {
       const parsed = await aiSearchParse(`${answers.zona || ''} ${answers.presupuesto || ''}`.trim());
+      // Zona fuera de cobertura (fuera de CDMX): el motor estructurado no la maneja → ruta de texto, que SÍ pinta
+      // "Todavía no cubrimos X" + lo más cercano (paridad con el buscador libre · no perder ese caso con #12).
+      if (parsed && parsed.zona_no_disponible) { drop(); setBusy(false); return runSearch(assembleQuery(answers)); }
       const perfil = answersToPerfil(answers, (parsed && parsed.filters) || {});
       const res = await fetch(`${API}/api/perfil/recomendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(perfil) });
       const data = await res.json();
