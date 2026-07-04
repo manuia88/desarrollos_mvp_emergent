@@ -629,6 +629,24 @@ async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[s
         "devs": len(devs), "colonias": len(colonias), "window_days": window_days,
         "elapsed_s": round(elapsed, 2), "completed_at": _iso(),
     }
+    # ESCALA · histórico temporal: por cada corrida hace append-only al store de snapshots (dmx_market_snapshots),
+    # snapshot MENSUAL de la demanda por colonia y por desarrollo (K-anon ya aplicado). Antes: 0 escrituras → sin
+    # histórico. read_timeseries dedup por periodo (última corrida del mes gana), así la serie queda limpia.
+    try:
+        import dmx_snapshots
+        period = started.strftime("%Y-%m")
+        rows: List[Dict[str, Any]] = []
+        for scope, groups in (("development", devs), ("colonia", colonias)):
+            for gid, agg in groups.items():
+                if int(agg.get("distinct", 0)) < _KANON_MIN:
+                    continue
+                sig = agg["signals"]
+                rows.append({"tier": scope, "tier_id": gid, "measure": "demand_interactions", "value": float(sum(sig.values())), "period": period, "source": "demand_cron"})
+                rows.append({"tier": scope, "tier_id": gid, "measure": "demand_visitors", "value": float(int(agg.get("distinct", 0))), "period": period, "source": "demand_cron"})
+                rows.append({"tier": scope, "tier_id": gid, "measure": "interest_score", "value": float(_interest_score(sig)), "period": period, "source": "demand_cron"})
+        summary["snapshots_written"] = await dmx_snapshots.write_many(db, rows) if rows else 0
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[olap] snapshot write failed: {e}")
     log.info(f"[olap] buyer_signals -> cubo — {summary}")
     return summary
 

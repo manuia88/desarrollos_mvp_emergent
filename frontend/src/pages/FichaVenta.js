@@ -703,7 +703,8 @@ const SERVICE_ORDER = ['gas', 'agua', 'cisterna', 'energia', 'agua_caliente', 'd
 const SISTEMA_LABEL = { cajon: 'Cimentación de cajón', losa: 'Losa de cimentación', pilotes: 'Pilotes', zapatas: 'Zapatas', concreto: 'Concreto armado', acero: 'Acero', mixta: 'Mixta', muros: 'Muros de carga', prefabricado: 'Prefabricado' };
 
 // Historial de precios — curva de apreciación desde el lanzamiento (SVG, blanco)
-function PriceHistoryChart({ history }) {
+function PriceHistoryChart({ history, source }) {
+  const real = source === 'real';
   const pts = (history || []).filter((p) => p && p.price);
   if (pts.length < 2) return null;
   const prices = pts.map((p) => p.price);
@@ -719,8 +720,8 @@ function PriceHistoryChart({ history }) {
   return (
     <div className="dmx-card" style={{ ...box, padding: '18px 16px 10px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6, padding: '0 4px' }}>
-        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green, letterSpacing: '-0.02em' }}>+{pct}%</span>
-        <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2, fontWeight: 600 }}>desde el lanzamiento</span>
+        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: pct >= 0 ? C.green : '#DC2626', letterSpacing: '-0.02em' }}>{pct >= 0 ? '+' : ''}{pct}%</span>
+        <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2, fontWeight: 600 }}>desde el lanzamiento{real ? '' : ' (estimado)'}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         <defs><linearGradient id="phA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="rgba(109,74,255,0.20)" /><stop offset="1" stopColor="rgba(109,74,255,0.02)" /></linearGradient></defs>
@@ -732,7 +733,7 @@ function PriceHistoryChart({ history }) {
           <text x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#9aa0ae" fontFamily="DM Sans">{p.date}</text>
         </g>))}
       </svg>
-      <div style={{ fontSize: 10, color: C.faint, fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>○ estimado desde el lanzamiento · se afina con cada cambio de precio registrado</div>
+      <div style={{ fontSize: 10, color: real ? C.green : C.faint, fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>{real ? '● Cambios de precio reales registrados por el desarrollador' : '○ estimado desde el lanzamiento · se afina con cada cambio de precio registrado'}</div>
     </div>
   );
 }
@@ -834,8 +835,8 @@ function TabGeneral({ dev }) {
           <div style={{ background: '#fff', borderRadius: R_CARD - 2, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, letterSpacing: '-0.02em', background: GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{plusv}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Plusvalía desde el lanzamiento</div>
-              <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>El precio ya subió {plusv} desde que abrió preventa — entrar hoy captura esa apreciación.</div>
+              <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Plusvalía desde el lanzamiento{dev.price_history_source === 'real' ? '' : ' (estimada)'}</div>
+              <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>{dev.price_history_source === 'real' ? `El precio ya subió ${plusv} desde que abrió preventa — entrar hoy captura esa apreciación.` : `Estimación: el precio habría subido ~${plusv} desde el lanzamiento; se confirma con cada cambio de precio que registre el desarrollador.`}</div>
             </div>
           </div>
         </div>
@@ -902,7 +903,7 @@ function TabGeneral({ dev }) {
       {/* ── HISTORIAL DE PRECIOS ── */}
       {ph2.length >= 2 && (
         <DataBlock title="Historial de precios">
-          <PriceHistoryChart history={ph2} />
+          <PriceHistoryChart history={ph2} source={dev.price_history_source} />
         </DataBlock>
       )}
 

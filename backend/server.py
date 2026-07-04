@@ -2031,6 +2031,13 @@ async def startup():
         await ensure_cube_consolidated_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] cube consolidated indexes failed: {e}")
+    # ESCALA — histórico temporal (dmx_market_snapshots): índices al arrancar. Antes NUNCA se creaban → el moat
+    # temporal ("el histórico ES el activo") no existía porque no había ni índices ni escrituras.
+    try:
+        import dmx_snapshots
+        await dmx_snapshots.ensure_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] dmx_snapshots indexes failed: {e}")
     # W2.6 SA8 — Founder Console anomaly indexes
     try:
         await ensure_founder_anomaly_indexes(db)

@@ -2211,6 +2211,28 @@ async def get_development(dev_id: str, request: Request):
             out["photos"] = urls + seed_photos
     except Exception:
         pass
+    # #10 · Historial de precios REAL desde price_events (colección viva) cuando exista → deja de presentarse el
+    # sintético como si fuera real. Serie a nivel desarrollo = precio "desde" (mínimo) por fecha de cambio. Fail-open.
+    try:
+        evs = []
+        async for _e in db.price_events.find({"dev_id": dev_id}, {"_id": 0, "old_price": 1, "new_price": 1, "changed_at": 1}):
+            evs.append(_e)
+        if evs:
+            evs.sort(key=lambda x: x.get("changed_at") or "")
+            launch = min((e.get("old_price") for e in evs if e.get("old_price")), default=None)
+            by_date: Dict[str, int] = {}
+            for e in evs:
+                d = (e.get("changed_at") or "")[:10]
+                if e.get("new_price") and d:
+                    by_date[d] = min(int(e["new_price"]), by_date.get(d, 10 ** 15))
+            series = ([{"date": "Lanzamiento", "price": int(launch)}] if launch else [])
+            series += [{"date": d, "price": p} for d, p in sorted(by_date.items())]
+            if len(series) >= 2:
+                out["price_history"] = series
+                out["price_history_source"] = "real"
+        out.setdefault("price_history_source", "estimado")
+    except Exception:
+        out.setdefault("price_history_source", "estimado")
     out["stage"] = _norm_stage(out.get("stage"), out.get("delivery_estimate"))   # por fecha de entrega real
     return out
 
