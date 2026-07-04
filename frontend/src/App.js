@@ -235,6 +235,7 @@ const DesarrolladorValorTerreno      = lazy(() => import('./pages/developer/Desa
 const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/DesarrolladorCashFlow'));
 // Phase 4 Batch 10 — Mis Proyectos + CRM Shell
 const MisProyectos                   = lazy(() => import('./pages/developer/MisProyectos'));
+const DesarrolladorRecomendaciones = lazy(() => import('./pages/developer/DesarrolladorRecomendaciones'));
 const ProyectoDetail                 = lazy(() => import('./pages/developer/ProyectoDetail'));
 const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
 // Phase 4 Batch 21 — Métricas del equipo
@@ -861,6 +862,7 @@ function AppRouter() {
 
       {/* Phase 4 Batch 10 — Mis Proyectos + CRM Shell */}
       <Route path="/desarrollador/proyectos" element={<AdvisorRoute Page={MisProyectos} />} />
+      <Route path="/desarrollador/recomendaciones" element={<AdvisorRoute Page={DesarrolladorRecomendaciones} />} />{/* F3 · inbox de briefs del Hub */}
       <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
       <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
       <Route path="/desarrollador/crm/asesores-metrics" element={<AdvisorRoute Page={AsesoresMetrics} />} />

@@ -418,3 +418,8 @@ export const uploadDevDocument = (devId, formData) => j(`/api/desarrollador/deve
 
 
 
+
+// F3 · Inbox de recomendaciones del superadmin (briefs "qué construir aquí" enviados a las colonias del dev)
+export const getDevRecomendaciones = () => j('/api/dev/market/recomendaciones');
+export const responderRecomendacion = (briefId, status, nota) =>
+  post(`/api/dev/market/recomendaciones/${encodeURIComponent(briefId)}/respond`, { status, nota });

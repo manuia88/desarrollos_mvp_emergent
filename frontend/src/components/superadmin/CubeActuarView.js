@@ -6,8 +6,8 @@
  * Lenguaje humano, tema oscuro del cubo, estados vacíos honestos.
  */
 import React, { useEffect, useState } from 'react';
-import { Sparkles, AlertCircle, FileText, CheckCircle } from 'lucide-react';
-import { getCubeDemandGap, createCubeProductBrief } from '../../api/superadminMetricsCube';
+import { Sparkles, AlertCircle, FileText, CheckCircle, Send } from 'lucide-react';
+import { getCubeDemandGap, createCubeProductBrief, sendCubeProductBrief } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -17,6 +17,7 @@ export default function CubeActuarView({ onToast }) {
   const [err, setErr] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
   const [done, setDone] = useState({});   // key → brief_id (feedback de "ya generado" en esta sesión)
+  const [sent, setSent] = useState({});   // key → true (ya enviado al dev)
 
   useEffect(() => {
     let alive = true;
@@ -35,6 +36,22 @@ export default function CubeActuarView({ onToast }) {
       if (onToast) onToast(`Brief de ${tc(cell.colonia)} generado y guardado ✓`);
     } catch (e) {
       if (onToast) onToast(e?.message || 'No se pudo generar el brief.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const enviar = async (cell) => {
+    const key = `${cell.colonia}|${cell.tipologia}`;
+    const briefId = done[key];
+    if (!briefId) return;
+    setBusyKey(key);
+    try {
+      await sendCubeProductBrief(briefId);
+      setSent((s) => ({ ...s, [key]: true }));
+      if (onToast) onToast(`Enviado a los desarrolladores de ${tc(cell.colonia)} ✓`);
+    } catch (e) {
+      if (onToast) onToast(e?.message || 'No se pudo enviar.');
     } finally {
       setBusyKey(null);
     }
@@ -102,6 +119,23 @@ export default function CubeActuarView({ onToast }) {
                   : busyKey === key ? 'Generando…'
                     : (<><FileText size={13} /> Generar brief</>)}
               </button>
+              {/* F3: una vez generado, se despacha al dev de la colonia (cierra el loop) */}
+              {generado && (
+                <button
+                  onClick={() => enviar(c)}
+                  disabled={busyKey === key || sent[key]}
+                  data-testid={`actuar-send-${key}`}
+                  style={{
+                    marginTop: 6, width: '100%', padding: '7px 0', borderRadius: 9999, border: 'none',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    background: sent[key] ? 'rgba(74,222,128,0.14)' : 'linear-gradient(120deg,#6366F1,#8B5CF6)',
+                    color: sent[key] ? '#4ADE80' : '#fff',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                    cursor: busyKey === key || sent[key] ? 'default' : 'pointer',
+                  }}>
+                  {sent[key] ? (<><CheckCircle size={12} /> Enviado al dev</>) : (<><Send size={12} /> Enviar al desarrollador</>)}
+                </button>
+              )}
             </div>
           );
         })}

@@ -498,6 +498,38 @@ async def create_product_brief_route(body: ProductBriefBody, request: Request):
     return {"ok": True, "brief_id": doc["id"], "brief": brief}
 
 
+@router.post(PREFIX + "/product-brief/{brief_id}/send")
+async def send_product_brief_route(brief_id: str, request: Request):
+    """F3 · despacha el brief a los desarrolladores de esa colonia (status borrador→enviado). El dev lo
+    ve en su inbox /desarrollador/recomendaciones y responde; la respuesta vuelve al Hub. Cierra el loop."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    b = await db.product_briefs.find_one({"id": brief_id}, {"_id": 0, "id": 1})
+    if not b:
+        raise HTTPException(404, "Brief no encontrado")
+    await db.product_briefs.update_one(
+        {"id": brief_id},
+        {"$set": {"status": "enviado", "sent_at": datetime.now(timezone.utc).isoformat(), "sent_by": user.user_id}})
+    await _audit(db, user, "update", "cube_product_brief_send", brief_id, after={"status": "enviado"}, request=request)
+    return {"ok": True, "brief_id": brief_id, "status": "enviado"}
+
+
+@router.get(PREFIX + "/product-briefs")
+async def list_product_briefs_route(request: Request, estado: Optional[str] = Query(None)):
+    """Los briefs generados desde el Hub + su estado y las respuestas de los devs (el retorno del loop)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    q = {"status": estado} if estado else {}
+    out = []
+    async for b in db.product_briefs.find(q, {"_id": 0, "brief": 0}).sort("created_at", -1).limit(100):
+        resp = b.get("respuestas") or {}
+        b["n_respuestas"] = len(resp)
+        b["aceptados"] = sum(1 for r in resp.values() if r.get("status") == "aceptado")
+        b.pop("respuestas", None)
+        out.append(b)
+    return {"ok": True, "briefs": out}
+
+
 @router.post(PREFIX + "/score-close-prob")
 async def score_close_prob_route(request: Request, development_id: Optional[str] = Query(None)):
     """Calcula prob. de venta por unidad disponible y la escribe en el átomo

@@ -28,6 +28,7 @@ const DEV_NAV = [
     items: [
       { key: 'dashboard',    to: '/desarrollador',                   label: 'Dashboard',      Icon: LayoutDashboard, end: true },
       { key: 'proyectos',    to: '/desarrollador/proyectos',         label: 'Mis Proyectos',  Icon: Building2,       badge_source: 'projects_health_below_60' },
+      { key: 'recomendaciones', to: '/desarrollador/recomendaciones',  label: 'Recomendaciones', Icon: Sparkles,   badge_source: 'recomendaciones_nuevas' },
       { key: 'crm',          to: '/desarrollador/crm',               label: 'CRM',            Icon: ClipboardList,   badge_source: 'crm_unread_leads' },
       { key: 'crm-funnel',   to: '/desarrollador/crm/funnel',        label: 'Embudo CRM',     Icon: BarChart3 },
       { key: 'metricas',     to: '/desarrollador/crm/metricas-equipo', label: 'Métricas equipo',Icon: BarChart2 },

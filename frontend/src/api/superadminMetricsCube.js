@@ -133,6 +133,15 @@ export async function getCubeCatalog() {
   return _j(await fetch(`${BASE}/catalog`, { headers: h(), credentials: 'include' }));
 }
 
+// F3 · despachar el brief a los devs de la colonia + ver el retorno (respuestas de los devs)
+export async function sendCubeProductBrief(briefId) {
+  return _j(await fetch(`${BASE}/product-brief/${encodeURIComponent(briefId)}/send`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
+export async function listCubeProductBriefs(estado) {
+  const qs = estado ? `?estado=${encodeURIComponent(estado)}` : '';
+  return _j(await fetch(`${BASE}/product-briefs${qs}`, { headers: h(), credentials: 'include' }));
+}
+
 // N5 Slice 1 — la ACCIÓN desde el cubo: genera y persiste el brief de producto para una colonia
 // (reusa el generador del founder-console; F3 lo despacha al dev).
 export async function createCubeProductBrief(colonia, { terrenoM2 = 1000, tipologia = null } = {}) {

@@ -456,3 +456,66 @@ async def competidor_whatif(b: CompetidorWhatIf, request: Request):
         "recomendaciones": recs, "lectura": lectura,
         "disclaimer": "Estimación: absorción base CDMX 0.40/año + elasticidad por NSE. Se afina con tu histórico de cierres.",
     }
+
+
+# ─── Cubo unificado · Inbox de RECOMENDACIONES del superadmin (F3 · cierra el loop) ──
+# El superadmin genera briefs ("qué construir aquí") desde el Hub de Mercado y los ENVÍA a la zona.
+# El dev los recibe aquí y responde (aceptar/rechazar+nota) → la respuesta vuelve al Hub. Owner-scoped:
+# el dev solo ve briefs de SUS colonias; su respuesta se guarda por tenant (no pisa la de otro dev).
+class BriefRespuesta(BaseModel):
+    status: str            # aceptado | rechazado | en_revision
+    nota: Optional[str] = None
+
+
+def _dev_tenant(user):
+    return getattr(user, "tenant_id", None) or getattr(user, "user_id", None)
+
+
+@router.get("/recomendaciones")
+async def dev_recomendaciones(request: Request):
+    """Briefs de producto que el superadmin envió a las colonias del dev. Cada uno con la respuesta del
+    propio dev (si ya respondió). No filtra respuestas de otros devs."""
+    user = await _auth(request)
+    db = _db(request)
+    cols = await _dev_colonias(db, user)
+    if not cols:
+        return {"ok": True, "vacio": True, "recomendaciones": [],
+                "lectura": "Publica un desarrollo y aquí verás las recomendaciones de producto para tus zonas."}
+    tenant = _dev_tenant(user)
+    out = []
+    try:
+        cursor = db.product_briefs.find(
+            {"status": "enviado", "colonia": {"$in": [c.lower() for c in cols]}}, {"_id": 0},
+        ).sort("created_at", -1).limit(50)
+        async for b in cursor:
+            b["mi_respuesta"] = (b.get("respuestas") or {}).get(tenant)
+            b.pop("respuestas", None)        # privacidad: no exponer respuestas de otros devs
+            b.pop("created_by", None)
+            out.append(b)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[dev recomendaciones] {e}")
+    return {"ok": True, "vacio": len(out) == 0, "recomendaciones": out}
+
+
+@router.post("/recomendaciones/{brief_id}/respond")
+async def dev_responder_recomendacion(brief_id: str, body: BriefRespuesta, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    if body.status not in ("aceptado", "rechazado", "en_revision"):
+        raise HTTPException(400, "status inválido")
+    cols = [c.lower() for c in (await _dev_colonias(db, user))]
+    b = await db.product_briefs.find_one({"id": brief_id}, {"_id": 0, "colonia": 1})
+    if not b or (b.get("colonia") or "").lower() not in cols:
+        raise HTTPException(404, "Recomendación no encontrada en tus zonas")
+    import datetime as _dt
+    tenant = _dev_tenant(user)
+    resp = {"status": body.status, "nota": (body.nota or "")[:500], "at": _dt.datetime.utcnow().isoformat(),
+            "by": user.user_id}
+    await db.product_briefs.update_one({"id": brief_id}, {"$set": {f"respuestas.{tenant}": resp}})
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "update", "product_brief_respuesta", brief_id,
+                           before=None, after={"status": body.status}, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "respuesta": resp}
