@@ -1209,6 +1209,18 @@ function AdvisorRoute({ Page }) {
   if (user.role === 'buyer') {
     return <Navigate to="/marketplace" replace />;
   }
+  // Defensa en profundidad: un pro NO carga el portal de OTRO rol. El backend ya devuelve 403 en el dato
+  // (developer.py/advisor.py/dev_market.py son role-gated), pero esto evita renderizar el cascarón equivocado
+  // y manda al usuario a SU portal. Superadmin ve todo; el studio (/portal) queda compartido entre pros.
+  if (user.role !== 'superadmin') {
+    const home = /^(advisor|asesor_)/.test(user.role) ? '/asesor'
+      : /^developer/.test(user.role) ? '/desarrollador'
+        : /^inmobiliaria/.test(user.role) ? '/inmobiliaria'
+          : null;
+    const owned = ['/asesor', '/desarrollador', '/inmobiliaria'];
+    const cur = owned.find((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
+    if (cur && home && cur !== home) return <Navigate to={home} replace />;
+  }
   return <Page user={user} onLogout={logout} />;
 }
 
