@@ -128,6 +128,11 @@ export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
 
+// Cubo Unificado — el ÁTOMO: una unidad con TODOS sus indicadores por familia (máxima hipergranularidad)
+export async function getCubeAtom(unitId) {
+  return _j(await fetch(`${BASE}/atom/${encodeURIComponent(unitId)}`, { headers: h(), credentials: 'include' }));
+}
+
 // Cubo Unificado — el CONTRATO: catálogo hipergranular (métricas × familia × granularidad × lineaje × k-anon)
 export async function getCubeCatalog() {
   return _j(await fetch(`${BASE}/catalog`, { headers: h(), credentials: 'include' }));

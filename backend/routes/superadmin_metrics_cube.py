@@ -259,6 +259,85 @@ async def _audit(db, user, action: str, entity_type: str, entity_id=None, after=
         log.warning("[audit] log_mutation perdido (%s %s %s): %s", action, entity_type, entity_id, _e)
 
 
+# ─── Cubo Unificado · GET /atom/{unit_id} — la MÁXIMA hipergranularidad (BEFORE /{tier}) ──
+@router.get(PREFIX + "/atom/{unit_id}")
+async def atom_route(unit_id: str, request: Request):
+    """El ÁTOMO: una unidad con TODOS sus indicadores agrupados por familia, según el contrato (cube_catalog).
+    Ensambla: hechos de la unidad (precio/m²/estado + override del dev) + los 44 scores IE de su colonia
+    (ie_scores) + el zone_score compuesto + demanda real. Cada indicador con su valor y lineaje; sin dato →
+    "—" honesto. Es el Modelo del Mundo de la Demanda hasta el último ladrillo."""
+    await _require_superadmin(request)
+    db = _db(request)
+    detail = await unit_detail_route(unit_id, request)   # reusa la resolución de unidad
+    unit = detail.get("unit") or {}
+    dev = detail.get("development") or {}
+    colonia = unit.get("colonia_id") or dev.get("colonia_id") or dev.get("colonia")
+    colonia = str(colonia or "").lower() or None
+
+    # Overrides del dev sobre esta unidad (precio/estado editados)
+    if unit.get("id") or unit.get("unit_id"):
+        ov = await db.developer_unit_overrides.find_one(
+            {"unit_id": unit.get("id") or unit.get("unit_id")}, {"_id": 0})
+        if ov:
+            for k, v in ov.items():
+                if k not in ("unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id") and v is not None:
+                    unit[k] = v
+
+    # Scores IE de la colonia (valor + confianza + stub) indexados por code
+    ie_vals: Dict[str, Any] = {}
+    if colonia:
+        try:
+            async for s in db.ie_scores.find({"zone_id": colonia}, {"_id": 0, "code": 1, "value": 1, "is_stub": 1, "confidence": 1}):
+                if s.get("code"):
+                    ie_vals[s["code"]] = s
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[atom] ie_scores: {e}")
+    zscore = None
+    if colonia:
+        zscore = await db.zone_scores.find_one({"zone_id": colonia}, {"_id": 0, "score_numeric": 1, "score_letter": 1, "subscores_real": 1})
+
+    # Ensambla por familia según el catálogo (cada métrica declara su nivel y motor)
+    import cube_catalog
+    unit_measures = {
+        "avg_price_mxn": unit.get("price") or unit.get("price_mxn"),
+        "avg_m2": unit.get("m2_privative") or unit.get("m2_total") or unit.get("size_m2"),
+        "avg_price_per_m2": ((unit.get("price") or 0) / m) if (m := (unit.get("m2_privative") or unit.get("m2_total") or 0)) else None,
+        "units_available": 1 if unit.get("status") == "disponible" else 0,
+        "units_sold": 1 if unit.get("status") in ("vendido", "sold") else 0,
+        "avm_predios": unit.get("avm_m2"),
+    }
+    fams: Dict[str, List[Dict[str, Any]]] = {}
+    for e in cube_catalog.CATALOG:
+        val, note = None, None
+        if e["key"] in ie_vals:                         # score IE de la colonia
+            val = ie_vals[e["key"]].get("value")
+            if ie_vals[e["key"]].get("is_stub"):
+                note = "en preparación"
+        elif e["key"] in unit_measures and "unidad" in e["geo"]:
+            val = unit_measures[e["key"]]
+        elif e["status"] == "stub":
+            note = "en preparación"
+        # solo incluimos las que aplican a este nivel (colonia o unidad)
+        if "colonia" in e["geo"] or "unidad" in e["geo"]:
+            fams.setdefault(e["family"], []).append({
+                "key": e["key"], "label": e["label"], "value": val, "note": note,
+                "fmt": e["fmt"], "direction": e["direction"], "lineage": e["lineage"], "kanon": e["kanon"],
+            })
+
+    return {
+        "unit": {"id": unit.get("id") or unit.get("unit_id"), "unit_number": unit.get("unit_number"),
+                 "precio": unit.get("price") or unit.get("price_mxn"), "m2": unit_measures["avg_m2"],
+                 "recamaras": unit.get("bedrooms") or unit.get("recamaras"),
+                 "banos": unit.get("bathrooms") or unit.get("banos"), "status": unit.get("status")},
+        "development": {"id": dev.get("id"), "name": dev.get("name")},
+        "colonia": colonia,
+        "zone_score": zscore,
+        "demanda": detail.get("demanda"),
+        "families": [{"key": f, "label": cube_catalog.FAMILY_LABEL.get(f, f), "metrics": fams[f]}
+                     for f in cube_catalog.FAMILIES if fams.get(f)],
+    }
+
+
 # ─── Cubo Unificado · GET /catalog — el CONTRATO que el Hub renderiza (BEFORE /{tier}) ──
 @router.get(PREFIX + "/catalog")
 async def cube_catalog_route(request: Request):
