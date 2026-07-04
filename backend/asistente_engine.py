@@ -481,7 +481,8 @@ PUBLIC_TOOLS = frozenset({
 async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """Ejecuta tool pública. NO accede a data interna de orgs."""
     if tool_name not in PUBLIC_TOOLS:
-        log.warning(f"[atlax] tool NO pública bloqueada en asistente público: {tool_name}")
+        # N4: log con las KEYS de params (sin valores → cero PII) para detectar probing sistemático.
+        log.warning(f"[atlax] tool NO pública bloqueada en asistente público: {tool_name} · params_keys={sorted((params or {}).keys())[:6]}")
         return {"error": "Esa función no está disponible en el asistente público."}
     try:
         if tool_name == "search_developments_public":

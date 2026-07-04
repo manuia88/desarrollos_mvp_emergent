@@ -12,7 +12,6 @@ Privacidad / AUTHZ (modelo canónico · [[AUTHZ_MODEL_LEADS]]):
 """
 import hashlib
 import logging
-import uuid
 from datetime import datetime, timezone
 
 log = logging.getLogger("dmx.advisor_demand_bridge")
@@ -26,7 +25,9 @@ def _anon_doc(bq: dict) -> dict:
     matched = bq.get("matched_dev_ids") or []
     now = datetime.now(timezone.utc)
     created = bq.get("created_at")
-    src_id = str(bq.get("id") or uuid.uuid4().hex)
+    # N4: el id es OBLIGATORIO (el caller filtra docs sin id) — antes un uuid efímero aquí hacía que el
+    # espejo del match (que recalcula el dedup desde bq.id) nunca coincidiera → duplicados.
+    src_id = str(bq["id"])
     dedup = "asesor_" + hashlib.sha256(f"asesor_busq:{src_id}".encode()).hexdigest()[:20]
     return {
         "id": f"mks_{hashlib.sha256(src_id.encode()).hexdigest()[:12]}",
@@ -58,7 +59,10 @@ async def materialize_asesor_busquedas(db, limit: int = MAX_BATCH) -> dict:
     """Idempotente (upsert por dedup_key). Corre a diario antes de la materialización del cubo."""
     n = 0
     try:
-        cursor = db.asesor_busquedas.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
+        # N4: solo docs con id (el shape de create_busqueda siempre lo trae; un doc corrupto sin id
+        # rompería el dedup y el update del match — se salta, no se adivina).
+        cursor = db.asesor_busquedas.find({"id": {"$exists": True, "$nin": [None, ""]}},
+                                          {"_id": 0}).sort("created_at", -1).limit(limit)
         async for bq in cursor:
             doc = _anon_doc(bq)
             await db.marketplace_searches.update_one(
@@ -89,7 +93,9 @@ async def match_asesor_busquedas(db, limit: int = MAX_BATCH) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     try:
         cursor = db.asesor_busquedas.find(
-            {"stage": {"$nin": ["cerrada", "ganada", "perdida", "descartada"]}}, {"_id": 0}).limit(limit)
+            {"stage": {"$nin": ["cerrada", "ganada", "perdida", "descartada"]},
+             "id": {"$exists": True, "$nin": [None, ""]}},   # N4: sin id → update_one({"id": None}) matchearía docs ajenos
+            {"_id": 0}).limit(limit)
         async for bq in cursor:
             s = {  # shape que esperan las primitivas de la casamentera
                 "colonias": bq.get("colonias") or [], "precio_max": bq.get("precio_max"),

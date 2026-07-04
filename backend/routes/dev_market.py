@@ -205,6 +205,10 @@ async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
     ])
     b0 = (brecha or [{}])[0]
     p0 = (perfil or [{}])[0]
+    # K-ANON (auditoría N4 · mismo umbral ≥3 del cubo): con n<3, un "promedio" ES el dato de una persona —
+    # el dev podría inferir el presupuesto/mensualidad de un buscador individual. Se suprimen los agregados
+    # finos hasta juntar masa; los conteos gruesos (total/insatisfechas) sí se muestran.
+    _KANON = 3
     return {
         "ok": True, "vacio": total == 0, "colonias": cols, "ventana_dias": dias,
         "total_busquedas": total,
@@ -214,14 +218,14 @@ async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
         "brecha": ({"personas": b0.get("n", 0),
                     "gap_prom": round(b0["gap_prom"]) if b0.get("gap_prom") else None,
                     "mens_pedida_prom": round(b0["mens_pedida_prom"]) if b0.get("mens_pedida_prom") else None}
-                   if b0.get("n") else None),
+                   if (b0.get("n") or 0) >= _KANON else None),
         "esquema": [{"esquema": e["_id"], "veces": e["n"]} for e in esquema if e.get("_id")],
         "amenidades_pedidas": [{"amenidad": a["_id"], "veces": a["n"]} for a in amen if a.get("_id")],
-        "perfil_buscado": {
+        "perfil_buscado": ({
             "recamaras_prom": round(p0["rec_prom"], 1) if p0.get("rec_prom") else None,
             "precio_prom": round(p0["precio_prom"]) if p0.get("precio_prom") else None,
             "mensualidad_prom": round(p0["mens_prom"]) if p0.get("mens_prom") else None,
-        },
+        } if total >= _KANON else None),
         "lectura": "Lo que la gente busca en tus zonas y no siempre encuentra. Úsalo para decidir dónde construir, a qué precio y con qué esquema de pago.",
     }
 

@@ -74,8 +74,14 @@ async def _apply_dev_overrides(db, units: List[Dict[str, Any]]) -> List[Dict[str
         return units
     _SKIP = {"unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id", "price_change_reason"}
     try:
+        # N4 perf: acotar la query a los DEVS de las unidades en scope (pocos valores distintos) en vez
+        # de cargar TODOS los overrides en cada query del cubo. Si las unidades no traen development_id
+        # (shape viejo), cae al find({}) — la colección de overrides es chica hoy; el filtro evita que
+        # crezca el costo con el catálogo.
+        dev_ids = {u.get("development_id") for u in units if u.get("development_id")}
+        q = {"dev_id": {"$in": sorted(dev_ids)}} if dev_ids else {}
         ov_map: Dict[str, Dict[str, Any]] = {}
-        async for ov in db.developer_unit_overrides.find({}, {"_id": 0}):
+        async for ov in db.developer_unit_overrides.find(q, {"_id": 0}):
             if ov.get("unit_id"):
                 ov_map[ov["unit_id"]] = ov
         if not ov_map:

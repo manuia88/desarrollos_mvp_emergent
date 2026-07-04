@@ -134,8 +134,8 @@ export default function AsesorBusquedas({ user, onLogout, embedded }) {
                             {(b.matched_dev_ids || []).length > 0 && (
                               <span
                                 role="button" tabIndex={0} data-testid={`busq-matches-${b.id}`}
-                                onClick={(e) => { e.stopPropagation(); window.open(`/desarrollo/${b.matched_dev_ids[0]}`, '_blank'); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); window.open(`/desarrollo/${b.matched_dev_ids[0]}`, '_blank'); } }}
+                                onClick={(e) => { e.stopPropagation(); window.open(`/desarrollo/${encodeURIComponent(b.matched_dev_ids[0])}`, '_blank', 'noopener'); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); window.open(`/desarrollo/${encodeURIComponent(b.matched_dev_ids[0])}`, '_blank', 'noopener'); } }}
                                 title={`El sistema encontró ${b.matched_dev_ids.length} desarrollo(s) que encajan — clic para ver el primero`}
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 700, cursor: 'pointer', background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ADE80' }}>
                                 ✨ {b.matched_dev_ids.length} {b.matched_dev_ids.length === 1 ? 'match' : 'matches'}
