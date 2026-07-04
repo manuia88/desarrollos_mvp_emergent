@@ -387,6 +387,9 @@ export const saveProjectMemoria = (pid, memoria) => patch(`/api/dev/projects/${p
 // Ficha técnica (niveles/elevadores/cisterna/estructura/gas/agua…) — el dev la edita → ficha pública
 export const getProjectTecnica = (pid) => j(`/api/dev/projects/${pid}/tecnica`);
 export const saveProjectTecnica = (pid, tecnica) => patch(`/api/dev/projects/${pid}/tecnica`, { tecnica });
+// Créditos aceptados (Contado / bancario / Infonavit / Cofinavit / Fovissste…)
+export const getProjectCreditos = (pid) => j(`/api/dev/projects/${pid}/creditos`);
+export const saveProjectCreditos = (pid, creditos) => patch(`/api/dev/projects/${pid}/creditos`, { creditos });
 export const getCommercialization = (pid) => j(`/api/dev/projects/${pid}/commercialization`);
 export const patchCommercialization = (pid, b) => patch(`/api/dev/projects/${pid}/commercialization`, b);
 export const listBrokers = (pid) => j(`/api/dev/projects/${pid}/brokers`);

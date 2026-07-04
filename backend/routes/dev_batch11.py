@@ -429,6 +429,61 @@ async def patch_tecnica(project_id: str, payload: TecnicaPatch, request: Request
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# CRÉDITOS ACEPTADOS  (Contado / bancario / Infonavit / Cofinavit / Fovissste…)
+# ══════════════════════════════════════════════════════════════════════════════
+
+CREDITOS_OPCIONES = ["Contado", "Crédito hipotecario bancario", "Infonavit", "Cofinavit", "Fovissste", "Cofinanciamiento"]
+
+
+class CreditosPatch(BaseModel):
+    creditos: List[str] = Field(default_factory=list)
+
+
+def _clean_creditos(rows) -> List[str]:
+    out = []
+    for c in (rows or [])[:12]:
+        c = (c or "").strip()[:60] if isinstance(c, str) else ""
+        if c and c not in out:
+            out.append(c)
+    return out
+
+
+@router.get("/projects/{project_id}/creditos")
+async def get_creditos(project_id: str, request: Request):
+    """Créditos que acepta el proyecto (para editar). Doc del dev si existe; si no, cae al seed."""
+    user = await _auth(request)
+    db = _db(request)
+    doc = await db.project_creditos.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    if doc and isinstance(doc.get("creditos"), list):
+        return {"project_id": project_id, "creditos": _clean_creditos(doc["creditos"]), "opciones": CREDITOS_OPCIONES, "source": "dev"}
+    from data_developments import DEVELOPMENTS
+    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
+    return {"project_id": project_id, "creditos": _clean_creditos((dev or {}).get("creditos_aceptados")), "opciones": CREDITOS_OPCIONES, "source": "seed"}
+
+
+@router.patch("/projects/{project_id}/creditos")
+async def patch_creditos(project_id: str, payload: CreditosPatch, request: Request):
+    """Guarda los créditos aceptados del dev → se muestran en la ficha pública (formas de pago)."""
+    user = await _auth(request)
+    if user.role not in ("developer_admin", "superadmin"):
+        raise HTTPException(403, "Solo developer_admin puede editar los créditos aceptados")
+    db = _db(request)
+    if project_id not in _user_dev_ids(user):
+        raise HTTPException(403, "Proyecto no accesible")
+    creditos = _clean_creditos(payload.creditos)
+    now_iso = _now().isoformat()
+    old = await db.project_creditos.find_one({"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0})
+    update = {"project_id": project_id, "dev_org_id": _tenant(user), "creditos": creditos,
+              "updated_at": now_iso, "updated_by": user.user_id}
+    await db.project_creditos.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"$set": update}, upsert=True)
+    await _safe_audit(db, user, "update", "creditos_aceptados", project_id,
+                      before=old, after=update, request=request,
+                      ml_event="creditos_changed", ml_context={"project_id": project_id, "count": len(creditos)})
+    return {"ok": True, "creditos": creditos}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COMERCIALIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
 

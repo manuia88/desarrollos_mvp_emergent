@@ -19,6 +19,7 @@ import UnitPulsePanel from '../../components/developer/UnitPulsePanel';
 import AmenidadesTab from '../../components/developer/AmenidadesTab';
 import MemoriaAcabadosTab from '../../components/developer/MemoriaAcabadosTab';
 import FichaTecnicaTab from '../../components/developer/FichaTecnicaTab';
+import FichaCreditosTab from '../../components/developer/FichaCreditosTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
 import CanalesTab from '../../components/developer/CanalesTab';
@@ -200,6 +201,7 @@ const TABS = DEV_V2 ? [
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
   { key: 'memoria',         label: 'Acabados',        phase: null },
   { key: 'tecnica',         label: 'Ficha técnica',   phase: null },
+  { key: 'creditos',        label: 'Créditos',        phase: null },
   { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
 ] : [
@@ -210,6 +212,7 @@ const TABS = DEV_V2 ? [
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
   { key: 'memoria',         label: 'Acabados',        phase: null },
   { key: 'tecnica',         label: 'Ficha técnica',   phase: null },
+  { key: 'creditos',        label: 'Créditos',        phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
   { key: 'comercializacion',label: 'Pagos y brokers',phase: null },
   { key: 'insights',        label: 'Insights',        phase: 'B22' },
@@ -677,6 +680,9 @@ export default function ProyectoDetail({ user, onLogout }) {
           )}
           {activeTab === 'tecnica' && (
             <FichaTecnicaTab devId={slug} user={user} />
+          )}
+          {activeTab === 'creditos' && (
+            <FichaCreditosTab devId={slug} user={user} />
           )}
           {activeTab === 'legal' && (
             <LegalTab devId={slug} user={user} />

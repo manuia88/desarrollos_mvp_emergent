@@ -2190,6 +2190,13 @@ async def get_development(dev_id: str, request: Request):
                               if isinstance(r, dict) and r.get("campo") and r.get("valor")}
     except Exception:
         pass
+    # #19 · Créditos aceptados REALES del dev (project_creditos) → la ficha (antes solo seed, sin editor). Fail-open.
+    try:
+        cr_doc = await db.project_creditos.find_one({"project_id": dev_id}, {"_id": 0})
+        if cr_doc and isinstance(cr_doc.get("creditos"), list) and cr_doc["creditos"]:
+            out["creditos_aceptados"] = [c for c in cr_doc["creditos"] if isinstance(c, str) and c]
+    except Exception:
+        pass
     # Ubicación que el dev corrigió (pin del mapa / dirección / colonia) → el comprador ve el dato real, no el del seed. Fail-open.
     try:
         meta = await db.dev_project_meta.find_one({"project_id": dev_id}, {"_id": 0})
