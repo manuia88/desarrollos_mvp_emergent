@@ -227,7 +227,8 @@ function RoiMatrixRow({ row, rank }) {
 // Tab 2: Audit Replay
 // ═══════════════════════════════════════════════════════════════════════════════
 function AuditTab() {
-  const [orgId, setOrgId] = useState('agencia_demo');
+  // org_id vacío por default (antes 'agencia_demo': consultaba silencioso al tenant DEMO — que en prod ni existe).
+  const [orgId, setOrgId] = useState('');
   const [targetType, setTargetType] = useState('lead');
   const [targetId, setTargetId] = useState('');
   const [days, setDays] = useState(30);
@@ -236,7 +237,7 @@ function AuditTab() {
   const [error, setError] = useState('');
 
   const search = async () => {
-    if (!targetId) return;
+    if (!targetId || !orgId) return;
     setLoading(true); setError(''); setData(null);
     try {
       const res = await apiFetch(
@@ -515,7 +516,8 @@ function MLFeatureCard({ feature, data }) {
 // Tab 4: Replay Debugger
 // ═══════════════════════════════════════════════════════════════════════════════
 function ReplayTab() {
-  const [orgId, setOrgId] = useState('agencia_demo');
+  // org_id vacío por default (mismo motivo que AuditTab: no consultar al tenant demo en silencio).
+  const [orgId, setOrgId] = useState('');
   const [days, setDays] = useState(7);
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -525,6 +527,7 @@ function ReplayTab() {
   const [error, setError] = useState('');
 
   const loadList = async () => {
+    if (!orgId) return;
     setLoading(true); setError('');
     try {
       const res = await apiFetch(`/api/superadmin/observability/replay/list?org_id=${encodeURIComponent(orgId)}&days=${days}`);

@@ -979,7 +979,9 @@ function AppRouter() {
       <Route path="/superadmin/drive" element={<SuperadminRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<SuperadminRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/phase-y-observability" element={<SuperadminRoute Page={SuperadminPhaseYObservability} />} />
-      <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
+      {/* Panel debug fuentes gov MX (W4.18) — estaba SOMBREADO por la colisión de path con el Hub (línea 971,
+          gana la primera ruta) → invisible por accidente. Des-sombreado con su propio path (= su prefijo de API). */}
+      <Route path="/superadmin/data-sources-gov-mx" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
       <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
       <Route path="/superadmin/audit-log-legacy" element={<SuperadminRoute Page={AuditLogPage} />} />

@@ -250,10 +250,19 @@ async def unit_detail_route(unit_id: str, request: Request):
     }
 
 
+async def _audit(db, user, action: str, entity_type: str, entity_id=None, after=None, request=None):
+    """Auditoría best-effort de mutaciones del cubo (mismo patrón que /backfill). Nunca rompe la operación."""
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, action, entity_type, entity_id, before=None, after=after or {}, request=request)
+    except Exception as _e:  # noqa: BLE001
+        log.warning("[audit] log_mutation perdido (%s %s %s): %s", action, entity_type, entity_id, _e)
+
+
 # ─── 5) POST /refresh — manual recompute (BEFORE /{tier}) ─────────────────────
 @router.post(PREFIX + "/refresh")
 async def refresh_aggregations(request: Request):
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     db = _db(request)
     # W2.8 — invalidate OLAP cache when underlying data changes
     try:
@@ -261,7 +270,10 @@ async def refresh_aggregations(request: Request):
         cube_cache.cache_invalidate_zones([])
     except Exception:
         pass
-    return await cube.aggregate_all(db)
+    res = await cube.aggregate_all(db)
+    await _audit(db, user, "trigger", "cube_refresh", None,
+                 after={"elapsed_s": (res or {}).get("elapsed_s")}, request=request)
+    return res
 
 
 # ─── W2.8 Phase Z.1 — Cross-cut OLAP, Compare, Backfill (BEFORE /{tier}) ──────
@@ -373,10 +385,12 @@ async def backfill_atom_route(request: Request):
     """Puebla el átomo milimétrico (dmx_units) desde el seed. Idempotente. Es la
     fuente de verdad del cubo (cube_olap lee el átomo primero). Se re-corre al
     llegar dato nuevo o tras cambios de schema."""
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     import dmx_cube_feed
-    res = await dmx_cube_feed.backfill_atom(_db(request))
+    db = _db(request)
+    res = await dmx_cube_feed.backfill_atom(db)
     log.info(f"[metrics-cube] backfill-atom: {res}")
+    await _audit(db, user, "trigger", "cube_backfill_atom", None, after=dict(res or {}), request=request)
     return {"ok": True, **res}
 
 
@@ -385,9 +399,11 @@ async def backfill_atom_route(request: Request):
 async def enrich_zone_route(request: Request, zone_id: str = Query(...)):
     """Enriquece una zona con AirROI/GTFS/DENUE/catastro. Conectado pero dormido:
     valores estimados (is_stub) hasta configurar la key → luego autofill real."""
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     import dmx_external_enrich as enr
-    res = await enr.enrich_zone(_db(request), zone_id)
+    db = _db(request)
+    res = await enr.enrich_zone(db, zone_id)
+    await _audit(db, user, "update", "cube_zone_enrich", zone_id, after={"sources": list((res or {}).keys())}, request=request)
     return {"ok": True, "external": res}
 
 
@@ -401,11 +417,15 @@ class AtomFromTextBody(BaseModel):
 async def atom_from_text_route(body: AtomFromTextBody, request: Request):
     """Extrae unidades de texto (brochure/lista de precios) y autollena el átomo
     (fill-only). Dormant-safe: sin LLM key → no rompe, marca dormant."""
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     import dmx_atom_autofill as af
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(body.development_id)
-    return await af.extract_and_autofill(_db(request), body.development_id, body.text, dev)
+    db = _db(request)
+    res = await af.extract_and_autofill(db, body.development_id, body.text, dev)
+    await _audit(db, user, "update", "cube_atom_from_text", body.development_id,
+                 after={"text_len": len(body.text or ""), "result_keys": list((res or {}).keys())[:8]}, request=request)
+    return res
 
 
 # ─── Fase 2.1 · GET /amenity-ranker — hedónico sobre el átomo (BEFORE /{tier}) ──
@@ -434,9 +454,13 @@ async def demand_gap_route(request: Request, top: int = Query(25, ge=1, le=200))
 async def score_close_prob_route(request: Request, development_id: Optional[str] = Query(None)):
     """Calcula prob. de venta por unidad disponible y la escribe en el átomo
     (demand.prob_venta). Heurística v1 · se reemplaza por ML al llegar cierres."""
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     import dmx_demand
-    return await dmx_demand.score_close_probabilities(_db(request), development_id)
+    db = _db(request)
+    res = await dmx_demand.score_close_probabilities(db, development_id)
+    await _audit(db, user, "update", "cube_score_close_prob", development_id or "all",
+                 after={"scored": (res or {}).get("scored") or (res or {}).get("count")}, request=request)
+    return res
 
 
 # ─── Fase 2.3 · self-improving loop + visión (BEFORE /{tier}) ──────────────────
@@ -452,17 +476,27 @@ async def unit_closed_route(body: UnitClosedBody, request: Request):
     (predicho vs real), re-ajusta el hedónico y devuelve calibración. Self-improving."""
     user = await _require_superadmin(request)
     import dmx_self_improving as si
-    return await si.on_unit_closed(_db(request), user, body.unit_id,
-                                   body.precio_cierre_mxn, body.dias_en_mercado)
+    db = _db(request)
+    res = await si.on_unit_closed(db, user, body.unit_id,
+                                  body.precio_cierre_mxn, body.dias_en_mercado)
+    # Cierre REAL de unidad = la mutación más sensible del cubo → siempre con rastro de auditoría.
+    await _audit(db, user, "update", "cube_unit_closed", body.unit_id,
+                 after={"precio_cierre_mxn": body.precio_cierre_mxn, "dias_en_mercado": body.dias_en_mercado},
+                 request=request)
+    return res
 
 
 @router.post(PREFIX + "/atom/from-photos")
 async def atom_from_photos_route(request: Request, development_id: str = Query(...)):
     """Auto-tag de fotos (DL visión) → llena amenidades del átomo. Dormant-safe:
     sin modelo/fotos → marca dormant, listo para activarse con fotos reales."""
-    await _require_superadmin(request)
+    user = await _require_superadmin(request)
     import dmx_self_improving as si
-    return await si.enrich_atom_from_photos(_db(request), development_id)
+    db = _db(request)
+    res = await si.enrich_atom_from_photos(db, development_id)
+    await _audit(db, user, "update", "cube_atom_from_photos", development_id,
+                 after={"result_keys": list((res or {}).keys())[:8]}, request=request)
+    return res
 
 
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
