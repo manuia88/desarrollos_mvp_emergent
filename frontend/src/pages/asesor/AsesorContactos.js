@@ -913,7 +913,9 @@ function AsesorContactosV2({ user, onLogout }) {
       // B7 · si no hay leads reales con score (data sparse) y no se forzó real → demo lleno
       // (se ve completo como el mockup). Al haber leads con score, usa los reales.
       const rich = items.length > 0 && items.some((l) => (l.buyer_score?.value) != null);
-      if (forceDemo !== '0' && !rich) { setAutoDemo(true); setList(DEMO_LEADS); }
+      // DEMO solo con ?demo=1 EXPLÍCITO (antes era opt-out: aparecía un embudo falso sin marca en cuentas vacías/nuevas).
+      // Sin ?demo=1 se muestran los leads REALES aunque estén vacíos — nada de datos sintéticos disfrazados de reales.
+      if (forceDemo === '1' && !rich) { setAutoDemo(true); setList(DEMO_LEADS); }
       else { setAutoDemo(false); setList(items); }
     } catch (e) {
       setLoadErr(true);

@@ -960,6 +960,19 @@ function TabGeneral({ dev }) {
         </DataBlock>
       )}
 
+      {Object.keys(tec).length > 0 && (
+        <DataBlock title="Ficha técnica">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
+            {Object.entries(tec).filter(([k]) => !/estructura|cimentaci/i.test(k)).map(([k, v]) => (
+              <div key={k} className="dmx-card" style={{ ...box, padding: '13px 15px' }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{v}</div>
+                <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, marginTop: 2 }}>{titleCase(k)}</div>
+              </div>
+            ))}
+          </div>
+        </DataBlock>
+      )}
+
       {memoria.length > 0 && (
         <DataBlock title="Memoria de acabados">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
@@ -1271,8 +1284,13 @@ export default function FichaVenta() {
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
                 <DevRating developer={developer} onReviews={() => goTab('resenas')} />
                 {dev.verified && <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>🛡️ Verificado</span>}
-                <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>↻ Actualizado hoy</span>
+                <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 400, color: C.ink2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>↻ Actualizado {dev.updated_at ? new Date(dev.updated_at).toLocaleDateString('es-MX') : 'recientemente'}</span>
               </div>
+              {seals.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                  {seals.map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.green, background: 'rgba(30,158,99,0.08)', border: '1px solid rgba(30,158,99,0.25)', borderRadius: 9999, padding: '5px 12px' }}>✓ {s}</span>)}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <button aria-label="Compartir" onClick={() => { setConv({ type: 'compartir' }); fvSignal('share', { entity_id: dev.id, colonia: dev.colonia, unit_number: unit ? unit.unit_number : null }); }} style={iconBtn}>↗</button>

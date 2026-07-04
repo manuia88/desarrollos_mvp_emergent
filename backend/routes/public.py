@@ -137,6 +137,14 @@ def _dev_public(d: dict, include_units: bool = False) -> dict:
             "founded_year": dev["founded_year"],
             "projects_delivered": dev["projects_delivered"],
             "logo_hue": dev.get("logo_hue", 231),
+            # Sellos de confianza (antes se calculaban en el front y NUNCA llegaban) + años de experiencia:
+            "years_experience": dev.get("years_experience"),
+            "verified_constitution": dev.get("verified_constitution"),
+            "no_judicial_records": dev.get("no_judicial_records"),
+            "no_profeco_complaints": dev.get("no_profeco_complaints"),
+            "website": dev.get("website"), "description": dev.get("description"),
+            # Teléfono del desarrollador → los 3 CTA de "llamar" de la ficha funcionan (fallback al contacto/WhatsApp del proyecto).
+            "phone": dev.get("phone") or d.get("contact_phone") or DMX_FALLBACK_WHATSAPP,
         }
     out["contact_phone"] = d.get("contact_phone") or DMX_FALLBACK_WHATSAPP
     return out
