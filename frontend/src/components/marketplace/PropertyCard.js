@@ -36,6 +36,10 @@ export default function PropertyCard({ property, index = 0, colonia }) {
   const title = i18n.language === 'en' ? property.titulo_en : property.titulo;
   const scoreKeys = ['vida', 'movilidad', 'seguridad'];
 
+  // slug de zona para los badges: colonia_id/zone_id si vienen; si solo hay display name, slugificar
+  const zoneSlug = property.colonia_id || property.zone_id
+    || (property.colonia ? String(property.colonia).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, '-') : null);
+
   const onToggleFav = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -77,16 +81,18 @@ export default function PropertyCard({ property, index = 0, colonia }) {
           <span className={colonia?.momentum_positive ? 'mom-pill mom-up' : 'mom-pill mom-dn'}>
             {colonia?.momentum}
           </span>
-          {/* W3.4B — Risk Score full badge (hover tooltip + click drawer 4 dimensions) */}
-          {(property.colonia || property.zone_id) && (
-            <RiskScoreFullBadge zoneId={property.colonia || property.zone_id} size="sm" />
-          )}
+          {/* W3.4B — Risk Score full badge (hover tooltip + click drawer 4 dimensions).
+              Censo 2026-07-05: antes pasaba property.colonia (nombre display "Roma Norte") y el motor
+              espera SLUG → badge siempre "?". Ahora slug real con fallback slugificado. */}
+          {zoneSlug && <RiskScoreFullBadge zoneId={zoneSlug} size="sm" />}
         </div>
-        {/* W3.1A Zone Score badge — bottom-right of photo; renders only when zone_score_letter is present */}
-        {property.zone_score_letter && (
+        {/* W3.1A Zone Score badge — bottom-right. Censo 2026-07-05: el gate zone_score_letter lo tenía
+            MUERTO (ningún endpoint de propiedades adjunta ese campo); ahora el badge se auto-alimenta
+            del endpoint público, así que se monta siempre que haya zona. */}
+        {zoneSlug && (
           <div style={{ position: 'absolute', bottom: 10, right: 12 }}>
             <ZoneScoreBadge
-              zone_id={property.colonia || property.zone_id}
+              zone_id={zoneSlug}
               score_letter={property.zone_score_letter}
               score_numeric={property.zone_score_numeric}
               zone_name={property.colonia}

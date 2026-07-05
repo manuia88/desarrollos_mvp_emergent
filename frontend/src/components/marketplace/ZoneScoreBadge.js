@@ -1,6 +1,12 @@
 // W3.1A Phase 5 — ZoneScoreBadge: circular A-F badge for marketplace cards
-import React, { useState } from 'react';
+// Censo 2026-07-05: el badge estaba MUERTO en marketplace (ningún endpoint de propiedades adjunta
+// zone_score_letter). Ahora se AUTO-ALIMENTA del endpoint público /api/public/zone-score/{id}
+// (cablea getPublicZoneScore, que estaba huérfano) con cache por zona — sin N requests repetidos.
+import React, { useEffect, useState } from 'react';
 import ZoneScoreBreakdown from '../developer/ZoneScoreBreakdown';
+import { getPublicZoneScore } from '../../api/phase5Foundation';
+
+const _zsCache = new Map();   // zone_id → {score_letter, score_numeric} | null (negativo cacheado)
 
 const LETTER_COLORS = {
   A: '#22C55E',
@@ -28,11 +34,24 @@ export default function ZoneScoreBadge({
   size = 'sm', showBreakdown = true,
 }) {
   const [open, setOpen] = useState(false);
+  const [fetched, setFetched] = useState(() => (_zsCache.has(zone_id) ? _zsCache.get(zone_id) : undefined));
 
-  if (!score_letter) return null;
+  useEffect(() => {
+    if (score_letter || !zone_id) return undefined;          // con prop no hay fetch
+    if (_zsCache.has(zone_id)) { setFetched(_zsCache.get(zone_id)); return undefined; }
+    let alive = true;
+    getPublicZoneScore(zone_id)
+      .then((d) => { const v = d && d.score_letter ? d : null; _zsCache.set(zone_id, v); if (alive) setFetched(v); })
+      .catch(() => { _zsCache.set(zone_id, null); if (alive) setFetched(null); });
+    return () => { alive = false; };
+  }, [zone_id, score_letter]);
 
-  const color  = LETTER_COLORS[score_letter] || 'var(--theme)';
-  const bgFill = LETTER_BG[score_letter] || 'rgba(var(--theme-rgb),0.12)';
+  const letter = score_letter || (fetched && fetched.score_letter);
+  const numeric = score_numeric != null ? score_numeric : (fetched && fetched.score_numeric);
+  if (!letter) return null;
+
+  const color  = LETTER_COLORS[letter] || 'var(--theme)';
+  const bgFill = LETTER_BG[letter] || 'rgba(var(--theme-rgb),0.12)';
   const dim    = size === 'sm' ? 30 : 38;
   const fontSize = size === 'sm' ? 12 : 15;
 
@@ -41,7 +60,7 @@ export default function ZoneScoreBadge({
       <button
         data-testid={`zone-score-badge-${zone_id}`}
         onClick={e => { if (showBreakdown) { e.preventDefault(); e.stopPropagation(); setOpen(true); } }}
-        title={`Calidad de Zona: ${LETTER_WORD[score_letter] || score_letter}${zone_name ? ` · ${zone_name}` : ''}`}
+        title={`Calidad de Zona: ${LETTER_WORD[letter] || letter}${zone_name ? ` · ${zone_name}` : ''}`}
         style={{
           width: dim, height: dim,
           borderRadius: 9999,
@@ -59,7 +78,7 @@ export default function ZoneScoreBadge({
           fontFamily: 'Outfit', fontWeight: 800, fontSize,
           color, lineHeight: 1, letterSpacing: '-0.02em',
         }}>
-          {score_letter}
+          {letter}
         </span>
       </button>
 
@@ -67,8 +86,8 @@ export default function ZoneScoreBadge({
         <ZoneScoreBreakdown
           zone_id={zone_id}
           zone_name={zone_name}
-          score_letter={score_letter}
-          score_numeric={score_numeric}
+          score_letter={letter}
+          score_numeric={numeric}
           onClose={() => setOpen(false)}
         />
       )}

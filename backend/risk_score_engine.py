@@ -175,6 +175,22 @@ async def compute_risk_score_v2(db, zone_id: str) -> Dict[str, Any]:
         _crime_to_score(crime.get("incidents_per_100k"))
         if crime.get("available") else None
     )
+    crime_source = "sesnsp" if crime_score is not None else None
+    if crime_score is None:
+        # Censo 2026-07-05: SESNSP (crime_data_sesnsp) está vacío pero FGJ (crime_zone_colonia, motor
+        # crime_fgj_engine con 2.1M carpetas) tiene safety_score REAL por colonia. Sin este fallback la
+        # dimensión de MAYOR peso (40%) jamás contribuía al compuesto.
+        try:
+            fgj = await db.crime_zone_colonia.find_one(
+                {"zone_id": zone_id, "source": "fgj", "safety_score": {"$ne": None}},
+                {"_id": 0, "safety_score": 1, "incidentes_ponderados": 1, "by_category": 1})
+            if fgj and fgj.get("safety_score") is not None:
+                crime_score = float(fgj["safety_score"])   # ya es score 0-100 (más alto = más seguro)
+                crime_source = "fgj"
+                crime = {**crime, "by_category": fgj.get("by_category"),
+                         "incidentes_ponderados": fgj.get("incidentes_ponderados")}
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[risk] fgj fallback {zone_id}: {e}")
 
     nat = await natural.compute_natural_risk_zone(db, zone_id)
     natural_score = None
@@ -192,7 +208,7 @@ async def compute_risk_score_v2(db, zone_id: str) -> Dict[str, Any]:
         perception_score = round(_clamp(100 - (perc.get("perception_risk_score") or 0)), 1)
 
     sources_active: List[str] = []
-    if crime_score is not None:      sources_active.append("sesnsp")
+    if crime_score is not None:      sources_active.append(crime_source or "sesnsp")
     if natural_score is not None:    sources_active.append("atlas_cdmx")
     if title_score is not None:      sources_active.append("transaction_network")
     if perception_score is not None: sources_active.append("envipe_inegi")
@@ -211,20 +227,16 @@ async def compute_risk_score_v2(db, zone_id: str) -> Dict[str, Any]:
     }
     available_weight = sum(WEIGHTS_V2[k] for k, v in parts.items() if v is not None)
     if available_weight == 0:
-        doc = {
+        # Censo 2026-07-05: antes cada consulta con zone_id desconocido INSERTABA un stub → colección
+        # contaminada con ids basura. El stub se devuelve pero NO se persiste.
+        return {
             "zone_id": zone_id, "available": False,
             "reason": "no_data_any_source",
             "components": {f"{k}_score": v for k, v in parts.items()},
             "placeholder_flags": placeholder_flags,
             "sources_active": [], "formula_version": FORMULA_VERSION,
-            "computed_at": _iso(), "computed_at_dt": _now(),
+            "computed_at": _iso(),
         }
-        try:
-            await db.risk_scores_zone.insert_one(dict(doc))
-        except Exception:
-            pass
-        out = dict(doc); out.pop("_id", None); out.pop("computed_at_dt", None)
-        return out
 
     composite = round(
         sum(WEIGHTS_V2[k] * v for k, v in parts.items() if v is not None) / available_weight,
@@ -417,7 +429,11 @@ async def list_all_scores(
         {"$group": {"_id": "$zone_id", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
         {"$project": {"_id": 0, "computed_at_dt": 0}},
-        {"$sort": {"score_numeric": 1}},   # ascending: high-risk zones first
+        # Censo 2026-07-05: los docs sin score (null) ordenaban PRIMERO y con limit=50 expulsaban a las
+        # zonas con score real. Reales primero (alto riesgo arriba), nulls al final.
+        {"$addFields": {"_has_score": {"$cond": [{"$ifNull": ["$score_numeric", False]}, 1, 0]}}},
+        {"$sort": {"_has_score": -1, "score_numeric": 1}},
+        {"$project": {"_has_score": 0}},
         {"$limit": limit},
     ]
     cursor = db.risk_scores_zone.aggregate(pipeline)

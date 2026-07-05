@@ -819,20 +819,36 @@ async def _gusto_mercado(db, zona=None, segmento=None):
     try:
         tp_n = await db.asesor_taste_profile.count_documents({})
         if tp_n:
+            # Censo 2026-07-05: el schema REAL de asesor_taste_profile es rooms/features=LISTAS,
+            # zone={liked:[...]}, price={typical}, signal_count — el código anterior leía rooms como dict
+            # y campos 'zona'/'precio' inexistentes → perfil siempre vacío pero etiquetado 'swipes-reales'.
             agg_rooms: Dict[str, float] = {}
             agg_feats: Dict[str, float] = {}
             zt: Dict[str, int] = {}
             precios: List[float] = []
+            senales = 0
+            def _acc(dst, items):
+                for it in (items or []):
+                    if isinstance(it, dict):
+                        k = it.get("key") or it.get("value") or it.get("name")
+                        sc = it.get("score") or 1
+                    else:
+                        k, sc = it, 1
+                    if k:
+                        dst[str(k)] = dst.get(str(k), 0) + (sc or 1)
             async for p in db.asesor_taste_profile.find({}, {"_id": 0}):
-                for r, sc in (p.get("rooms") or {}).items():
-                    agg_rooms[r] = agg_rooms.get(r, 0) + (sc or 0)
-                for ft, sc in (p.get("features") or {}).items():
-                    agg_feats[ft] = agg_feats.get(ft, 0) + (sc or 0)
-                if p.get("zona"):
-                    zt[p["zona"]] = zt.get(p["zona"], 0) + 1
-                if p.get("precio"):
-                    precios.append(p["precio"])
-            perfil = {"fuente": "swipes-reales",
+                _acc(agg_rooms, p.get("rooms"))
+                _acc(agg_feats, p.get("features"))
+                for z in ((p.get("zone") or {}).get("liked") or []):
+                    zt[z] = zt.get(z, 0) + 1
+                tp = (p.get("price") or {}).get("typical")
+                if tp:
+                    precios.append(tp)
+                senales += int(p.get("signal_count") or 0)
+            # Honestidad: 'swipes-reales' SOLO si de verdad hubo señales de swipe; si el perfil salió
+            # de leads/precios sin swipes, se dice.
+            fuente = "swipes-reales" if senales > 0 else "perfil de clientes (aún sin swipes)"
+            perfil = {"fuente": fuente,
                       "cuartos": [k for k, _ in sorted(agg_rooms.items(), key=lambda x: -x[1])[:4]],
                       "caracteristicas": [_FEAT_LABEL.get(k, k) for k, _ in sorted(agg_feats.items(), key=lambda x: -x[1])[:4]],
                       "zona_top": (max(zt.items(), key=lambda x: x[1])[0] if zt else None),

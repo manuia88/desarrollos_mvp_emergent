@@ -1,7 +1,7 @@
 // W3.1A Phase 5 — ZoneScoreBreakdown: drawer with 6 dimension cards
 import React, { useEffect, useState } from 'react';
 import { X, Activity } from 'lucide-react';
-import { getZoneScore } from '../../api/phase5Foundation';
+import { getZoneScore, getPublicZoneScore } from '../../api/phase5Foundation';
 import { bandWord } from '../../lib/scoreWord';
 import { Z } from '../../styles/zIndex';
 
@@ -87,9 +87,11 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
 
   useEffect(() => {
     if (!zone_id) return;
+    // Censo 2026-07-05: getZoneScore es endpoint superadmin → para un comprador daba 403 y el drawer
+    // quedaba vacío. Fallback al endpoint PÚBLICO (letra+número, sin desglose interno).
     getZoneScore(zone_id)
       .then(setData)
-      .catch(() => {})
+      .catch(() => getPublicZoneScore(zone_id).then(setData).catch(() => {}))
       .finally(() => setLoading(false));
   }, [zone_id]);
 

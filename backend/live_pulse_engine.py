@@ -65,15 +65,17 @@ async def compute_search_velocity(
         zone_q = {"$or": [
             {"metadata.zone_slug": zone_slug},
             {"context.zone_slug": zone_slug},
-            {"zone_slug": zone_slug},
+            {"zone_id": zone_slug},
             {"intent_zones": zone_slug},
-            {"content": regex},
+            # censo 2026-07-05: el schema real es title/first_message_at (content/created_at NO existen) —
+            # la señal siempre daba 0 aunque hubiera hilos reales.
+            {"title": regex},
         ]}
         cur_count = await db.atlax_threads.count_documents({
-            **zone_q, "created_at": {"$gte": cur_cutoff},
+            **zone_q, "first_message_at": {"$gte": cur_cutoff},
         })
         base_count = await db.atlax_threads.count_documents({
-            **zone_q, "created_at": {"$gte": base_cutoff},
+            **zone_q, "first_message_at": {"$gte": base_cutoff},
         })
         baseline_per_day = (base_count / float(baseline_days)) if baseline_days > 0 else 0.0
         cur_per_day = (cur_count / float(days)) if days > 0 else 0.0
@@ -113,6 +115,7 @@ async def compute_view_volume(
             {"metadata.zone_slug": zone_slug},
             {"metadata.colonia_slug": zone_slug},
             {"page": {"$regex": f"/colonia/{slug_rx}(?:[/?#]|$)", "$options": "i"}},
+            {"page": {"$regex": f"/zona/{slug_rx}(?:[/?#]|$)", "$options": "i"}},   # censo 2026-07-05: la página pública de zona ES /zona/<slug>
             {"page": {"$regex": f"/mapa/[^/]+/{slug_rx}(?:[/?#]|$)", "$options": "i"}},
         ]}
         cur_count = await db.behavioral_events.count_documents({
@@ -202,7 +205,7 @@ async def compute_lead_intent_velocity(
     base_cutoff = (now - timedelta(days=baseline_days)).isoformat()
     try:
         zone_q = {"$or": [
-            {"zone_slug": zone_slug},
+            {"zone_id": zone_slug},
             {"colonia_slug": zone_slug},
             {"interest_zones": zone_slug},
         ]}
@@ -262,7 +265,7 @@ async def compute_price_movement(db, zone_slug: str) -> Dict[str, Any]:
             }
         # Fallback: leer ultimo snapshot drpi_snapshots (no rompe spec ya que sigue siendo "real")
         snap = await db.drpi_snapshots.find_one(
-            {"zone_slug": zone_slug}, {"_id": 0, "delta_pct": 1}, sort=[("computed_at", -1)],
+            {"zone_id": zone_slug}, {"_id": 0, "delta_pct": 1}, sort=[("computed_at", -1)],
         )
         if snap and isinstance(snap.get("delta_pct"), (int, float)):
             drpi_delta = float(snap["delta_pct"])

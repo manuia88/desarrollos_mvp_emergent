@@ -100,6 +100,27 @@ async def compute_fsd(
             sort=[("fit_at_dt", -1)],
         )
     if not model_doc:
+        # Censo 2026-07-05: hedonic_models tiene 0 modelos vivos, pero dmx_hedonic_atom (el hedónico del
+        # átomo, ciudad-wide con one-hot por colonia) tiene 142 fits available con r²≈0.95. Sin este
+        # fallback, FSD/avm_predictions/accuracy jamás arrancaban (cuello de botella de todo el loop).
+        try:
+            import dmx_hedonic_atom
+            fit = await dmx_hedonic_atom.fit_and_rank(db, None, persist=False)
+            if fit.get("available") and fit.get("coefficients"):
+                model_doc = {
+                    "coefficients": fit["coefficients"],
+                    "feature_names": fit.get("feature_names") or [],
+                    "rmse": fit.get("rmse_log") or 0.0,
+                    "sample_size": fit.get("sample_size") or 0,
+                    "source": "dmx_hedonic_atom_citywide",
+                }
+                # activar la dummy de ESTA colonia si el modelo la conoce (sin mutar el dict del caller)
+                colf = f"col::{zone_slug}"
+                if colf in model_doc["feature_names"]:
+                    property_features = {**property_features, colf: 1.0}
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[fsd] fallback dmx hedonic: {e}")
+    if not model_doc:
         return {"available": False, "reason": "no_model_for_zone", "zone_slug": zone_slug}
 
     coefs = model_doc.get("coefficients") or {}
@@ -129,7 +150,8 @@ async def compute_fsd(
     # inflamos fsd_pct para reflejar la incertidumbre.
     missing_critical = (m2 <= 0)
     missing_features = sum(
-        1 for f in feat_names if property_features.get(f) in (None, 0)
+        1 for f in feat_names
+        if not str(f).startswith("col::") and property_features.get(f) in (None, 0)
     )
     if missing_critical:
         fsd_pct = max(fsd_pct, 30.0)

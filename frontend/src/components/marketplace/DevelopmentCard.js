@@ -7,6 +7,7 @@ import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight,
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
+import ZoneScoreBadge from './ZoneScoreBadge';
 import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -202,6 +203,14 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         {/* Compliance + rank (overlays sutiles existentes) */}
         <ComplianceBadgeOverlay devId={dev.id} />
         {rank?.badge_tier && <IERankPill rank={rank} />}
+
+        {/* Calidad de Zona (A-F) — censo 2026-07-05: el zone score computaba pero el comprador nunca lo
+            veía; el badge se auto-alimenta del endpoint público con cache por zona. */}
+        {dev.colonia_id && (
+          <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: Z.BASE }}>
+            <ZoneScoreBadge zone_id={dev.colonia_id} zone_name={dev.colonia} size="sm" />
+          </div>
+        )}
 
         {/* Share / Favorito — esquina superior derecha */}
         <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 7, zIndex: Z.BASE }}>

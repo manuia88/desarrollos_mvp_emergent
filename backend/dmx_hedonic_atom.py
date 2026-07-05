@@ -122,6 +122,8 @@ def _fit(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "available": True, "sample_size": len(rows),
         "r_squared": round(float(model.rsquared), 4),
+        # rmse en log-espacio (para bandas de confianza tipo FSD): sqrt(mean(resid²))
+        "rmse_log": round(float(np.sqrt(np.mean(model.resid ** 2))), 5),
         "coefficients": coefs, "feature_names": feat_names,
         "baseline_colonia": base,
     }
@@ -173,6 +175,7 @@ async def fit_and_rank(db, scope: Optional[Dict[str, Any]] = None,
         # Aditivo: los callers existentes leen amenity_ranker; esto no rompe a nadie.
         "coefficients": fit.get("coefficients"),
         "feature_names": fit.get("feature_names"),
+        "rmse_log": fit.get("rmse_log"),
         "baseline_colonia": fit.get("baseline_colonia"),
         "computed_at": _iso(),
         "cache": "miss",

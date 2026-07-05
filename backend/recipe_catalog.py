@@ -107,6 +107,17 @@ USER_FACING_CODES = [
     "IE_COL_CLIMA_INUNDACION", "IE_COL_CLIMA_SISMO",
 ]
 
+# Censo 2026-07-05: los índices N-series YA cubren varios conceptos user-facing con dato real masivo
+# (N04 seguridad 1034 colonias, N06 escuelas 1324, N07 agua 1051). Sin este mapa, una colonia CON
+# N06 real mostraba "Escuelas: dato en camino" — contradicción visible. Un concepto se considera
+# cubierto si CUALQUIER código equivalente tiene score real en la zona.
+USER_FACING_EQUIVALENTS = {
+    "IE_COL_EDUCACION": ["IE_COL_N06_SCHOOL_PREMIUM"],
+    "IE_COL_AGUA_CONFIABILIDAD": ["IE_COL_N07_WATER_SECURITY", "IE_COL_N05_INFRASTRUCTURE_RESILIENCE"],
+    "IE_COL_SEGURIDAD": ["IE_COL_N04_CRIME_TRAJECTORY"],
+    "IE_COL_SALUD": ["IE_COL_N10_SENIOR_LIVABILITY"],
+}
+
 # Instrucción de conexión por tipo de acceso de la fuente (lenguaje normal).
 COMO_CONECTAR = {
     "ckan_resource": "Pega el ID del recurso (resource_id) del dataset en datos.cdmx.gob.mx y prueba la conexión.",
@@ -242,7 +253,8 @@ def pending_categories_for_zone(real_codes_in_zone: List[str]) -> List[Dict[str,
     seen = set()
     out: List[Dict[str, str]] = []
     for code in USER_FACING_CODES:
-        if code in real:
+        equivalentes = [code] + USER_FACING_EQUIVALENTS.get(code, [])
+        if any(c in real for c in equivalentes):
             continue
         info = RECIPE_INFO.get(code) or {}
         cat = info.get("categoria") or code

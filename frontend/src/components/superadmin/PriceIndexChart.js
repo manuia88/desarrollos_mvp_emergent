@@ -116,7 +116,15 @@ export default function PriceIndexChart({ zone_id }) {
 
       {loading && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Calculando…</div>}
 
-      {!loading && (
+      {/* Censo 2026-07-05: sin cierres reales el chart pintaba "$0k/m²" y sparkline plana como si fuera
+          dato — ahora empty-state honesto hasta que el índice tenga mediana real. */}
+      {!loading && !(current.median_price_per_m2 > 0) && (
+        <div data-testid="price-index-empty" style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)', lineHeight: 1.5 }}>
+          El índice de precios se construye con <b style={{ color: 'var(--cream)' }}>cierres reales</b> — aún no hay transacciones suficientes para publicar una mediana. Se llena solo conforme entren ventas.
+        </div>
+      )}
+
+      {!loading && current.median_price_per_m2 > 0 && (
         <>
           {/* Current KPIs */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
