@@ -128,6 +128,14 @@ export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
 
+// Cubo Unificado — HISTORIA: series de tiempo del histórico materializado (dmx_market_snapshots).
+// Sin tierId lista las entidades con serie disponible; con tierId devuelve la serie [{period,value}].
+export async function getCubeTimeseries({ tier = 'colonia', tierId = '', measure = 'demand_interactions', gran = 'month', limit = 120 } = {}) {
+  const p = new URLSearchParams({ tier, measure, gran, limit: String(limit) });
+  if (tierId) p.set('tier_id', tierId);
+  return _j(await fetch(`${API}/api/superadmin/demand-intel/timeseries?${p.toString()}`, { headers: h(), credentials: 'include' }));
+}
+
 // Cubo Unificado — la LENTE LICENCIABLE: agregados de mercado por colonia (k-anon, sin nombres de dev)
 export async function getCubeLicensable(period = 'current') {
   return _j(await fetch(`${BASE}/licensable?period=${encodeURIComponent(period)}`, { headers: h(), credentials: 'include' }));

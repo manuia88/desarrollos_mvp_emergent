@@ -6,8 +6,9 @@
  * /devmaster/comportamiento. Integra asesor (leads/chats) + dev (objeciones sobre su proyecto) + marketplace.
  */
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Lightbulb, Gauge, Users, Filter, Clock } from 'lucide-react';
+import { MessageSquare, Lightbulb, Gauge, Users, Filter, Clock, Flame } from 'lucide-react';
 import { fetchComportamiento } from '../../api/superadminDevmaster';
+import { getBuyerScoreSummary, getBuyerScorePerUser, triggerBuyerScoreRecompute } from '../../api/buyer_score';
 
 const dim = { color: 'var(--sa-text-dim)' };
 const mute = { color: 'var(--sa-text-mute)' };
@@ -23,6 +24,84 @@ function Panel({ icon: Icon, title, sub, children, accent }) {
       </div>
       {sub && <div style={{ fontSize: 11, ...mute, marginBottom: 12 }}>{sub}</div>}
       {children}
+    </div>
+  );
+}
+
+
+// ── Temperatura de compradores (buyer score) — censo 2026-07-05: backend+api sin UI → visible aquí.
+// Hipergranular: resumen (hot/warm/cold) → tabla POR PERSONA (el átomo del scoring).
+function BuyerScoreSection() {
+  const [sum, setSum] = React.useState(null);
+  const [tier, setTier] = React.useState('');
+  const [rows, setRows] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => {
+    getBuyerScoreSummary().then(setSum).catch(() => setSum({ error: true }));
+    getBuyerScorePerUser({ tier: tier || undefined, limit: 25 }).then((d) => setRows(d.users || d.items || (Array.isArray(d) ? d : []))).catch(() => setRows([]));
+  }, [tier]);
+  React.useEffect(() => { load(); }, [load]);
+  const recompute = async () => {
+    setBusy(true);
+    try { await triggerBuyerScoreRecompute(); load(); } catch { /* fail-open */ }
+    finally { setBusy(false); }
+  };
+  const tiers = (sum && (sum.by_tier || sum.tiers || sum.distribution)) || {};
+  const TIER_META = { hot: ['Caliente', '#F87171'], warm: ['Tibio', '#F5C451'], cold: ['Frío', '#60A5FA'] };
+  return (
+    <div data-testid="buyer-score-section" style={{ gridColumn: '1 / -1', background: 'var(--bg-card)', border: '1px solid var(--sa-border)', borderRadius: 14, padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+        <Flame size={15} style={{ color: 'var(--theme, #6D4AFF)' }} />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>Temperatura de compradores</span>
+        <button onClick={recompute} disabled={busy} style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.04)', color: 'rgba(240,235,224,0.75)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, cursor: busy ? 'wait' : 'pointer' }}>
+          {busy ? 'Recalculando…' : 'Recalcular ahora'}
+        </button>
+      </div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, ...mute, marginBottom: 10 }}>Qué tan listos están los compradores para comprar, según su conducta real — del resumen a cada persona.</div>
+      {sum && !sum.error && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {['hot', 'warm', 'cold'].map((t) => {
+            const [label, color] = TIER_META[t];
+            const n = (tiers[t] && (tiers[t].count ?? tiers[t])) ?? 0;
+            const on = tier === t;
+            return (
+              <button key={t} onClick={() => setTier(on ? '' : t)} data-testid={`buyer-tier-${t}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 11, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
+                  background: on ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)', border: `1px solid ${on ? color : 'rgba(255,255,255,0.08)'}`, color: 'var(--cream)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 9999, background: color }} />
+                {label}: {typeof n === 'number' ? n : 0}
+              </button>
+            );
+          })}
+          {sum.avg_score != null && <span style={{ alignSelf: 'center', fontFamily: 'DM Sans', fontSize: 12, ...mute }}>score promedio: <b style={{ color: 'var(--cream)' }}>{Number(sum.avg_score).toFixed(0)}</b></span>}
+        </div>
+      )}
+      {rows === null && <div style={{ fontFamily: 'DM Sans', fontSize: 12, ...mute }}>Cargando…</div>}
+      {rows !== null && rows.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, ...mute }}>Aún sin compradores puntuados — se llena con conducta real.</div>}
+      {rows !== null && rows.length > 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
+            <thead><tr>
+              {['Comprador', 'Score', 'Temperatura', 'Cambio'].map((hh, i) => (
+                <th key={hh} style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.55)', padding: '6px 10px', textAlign: i === 0 ? 'left' : 'right', borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>{hh}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {rows.slice(0, 20).map((u, i) => {
+                const [tl, tcolor] = TIER_META[u.tier] || ['—', 'rgba(240,235,224,0.4)'];
+                return (
+                  <tr key={u.user_id || u.visitor_id || i} style={{ background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
+                    <td style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', padding: '6px 10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{u.name || u.email || String(u.user_id || '—').slice(0, 22)}</td>
+                    <td style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', padding: '6px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{u.score != null ? Math.round(u.score) : '—'}</td>
+                    <td style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: tcolor, padding: '6px 10px', textAlign: 'right', fontWeight: 700 }}>{tl}</td>
+                    <td style={{ fontFamily: 'DM Sans', fontSize: 11.5, padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: (u.delta_pct || 0) > 0 ? '#34D399' : (u.delta_pct || 0) < 0 ? '#F87171' : 'rgba(240,235,224,0.5)' }}>{u.delta_pct ? `${u.delta_pct > 0 ? '+' : ''}${Number(u.delta_pct).toFixed(0)}%` : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -153,6 +232,9 @@ export default function Comportamiento({ filters }) {
             </div>
           )}
         </Panel>
+
+        {/* Temperatura de compradores (buyer score · antes invisible) */}
+        <BuyerScoreSection />
 
         {/* Sentimiento (stub honesto) */}
         <Panel icon={Gauge} title="Ánimo del comprador">

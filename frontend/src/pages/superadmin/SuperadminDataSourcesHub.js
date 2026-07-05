@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import {
   listConnectors, getConnector, testConnector, retryConnector, replayConnector, listInvocations,
+  getInsightsCronStatus, refreshInsightSource, listInsightCourses, createInsightCourse, deleteInsightCourse,
 } from '../../api/superadminDataHub';
 import { Z } from '../../styles/zIndex';
 
@@ -286,6 +287,98 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
   );
 }
 
+
+// ── Insights externos — frescura por fuente + refresh + cursos (censo 2026-07-05: backend sin pantalla) ──
+function InsightsExternosPanel() {
+  const [st, setSt] = useState(null);
+  const [courses, setCourses] = useState(null);
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+  const [nuevo, setNuevo] = useState({ title: '', description: '' });
+  const load = useCallback(() => {
+    getInsightsCronStatus().then(setSt).catch(() => setSt({ error: true }));
+    listInsightCourses().then((r) => setCourses(r.courses || r.items || (Array.isArray(r) ? r : []))).catch(() => setCourses([]));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const refresh = async (id) => {
+    setBusy(id); setMsg('');
+    try { await refreshInsightSource(id); setMsg(`${id} refrescada ✓`); load(); }
+    catch (e) { setMsg(e?.message || 'Error.'); }
+    finally { setBusy(''); }
+  };
+  const crear = async () => {
+    if (!nuevo.title.trim()) return;
+    setBusy('crear');
+    try { await createInsightCourse({ title: nuevo.title.trim(), description: nuevo.description.trim() || null }); setNuevo({ title: '', description: '' }); load(); }
+    catch (e) { setMsg(e?.message || 'Error al crear.'); }
+    finally { setBusy(''); }
+  };
+  const borrar = async (slug) => {
+    if (!window.confirm('¿Borrar este curso?')) return;
+    setBusy(slug);
+    try { await deleteInsightCourse(slug); load(); } catch (e) { setMsg(e?.message || 'Error.'); }
+    finally { setBusy(''); }
+  };
+  const tone = (status) => status === 'ok' ? '#34D399' : status === 'error' ? '#F87171' : status === 'never_fetched' ? 'rgba(240,235,224,0.4)' : '#F5C451';
+  const sources = (st && st.sources) || (st && st.statuses) || [];
+  return (
+    <div data-testid="insights-externos-panel" style={{ marginTop: 24 }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', marginBottom: 2 }}>Insights externos</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 12 }}>
+        Fuentes de contexto (tasas, noticias, indicadores) que alimentan los insights — frescura por fuente y refresco manual.
+      </div>
+      {st === null && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>Cargando…</div>}
+      {st && st.error && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5' }}>No se pudo cargar el estado de fuentes.</div>}
+      {sources.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 10 }}>
+          {sources.map((f) => (
+            <div key={f.source_id || f.id} style={{ padding: '11px 13px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 9999, background: tone(f.status), flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.source_id || f.id}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.5)' }}>{f.status === 'never_fetched' ? 'nunca consultada' : (f.last_fetched_at || f.updated_at || '').slice(0, 16) || f.status}</div>
+              </div>
+              <button onClick={() => refresh(f.source_id || f.id)} disabled={!!busy} title="Refrescar ahora"
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '5px 8px', cursor: busy ? 'wait' : 'pointer', color: 'rgba(240,235,224,0.7)' }}>
+                <RefreshCw size={12} className={busy === (f.source_id || f.id) ? 'animate-spin' : undefined} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {msg && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)', marginTop: 8 }}>{msg}</div>}
+
+      {/* Cursos educativos (el público los ve en Insights → aquí se administran) */}
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)', margin: '18px 0 8px' }}>Cursos educativos</div>
+      {courses !== null && courses.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>Sin cursos publicados todavía.</div>}
+      {courses !== null && courses.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {courses.map((c) => (
+            <div key={c.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)' }}>{c.title}</span>
+                {c.description && <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.5)', marginLeft: 8 }}>{String(c.description).slice(0, 80)}</span>}
+              </div>
+              <button onClick={() => borrar(c.slug)} disabled={!!busy} title="Borrar curso"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,235,224,0.45)', fontSize: 14 }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={nuevo.title} onChange={(e) => setNuevo((n) => ({ ...n, title: e.target.value }))} placeholder="Título del curso"
+          style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', width: 220 }} />
+        <input value={nuevo.description} onChange={(e) => setNuevo((n) => ({ ...n, description: e.target.value }))} placeholder="Descripción (opcional)"
+          style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', flex: 1, minWidth: 200 }} />
+        <button onClick={crear} disabled={!!busy || !nuevo.title.trim()}
+          style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: (busy || !nuevo.title.trim()) ? 'default' : 'pointer' }}>
+          {busy === 'crear' ? 'Creando…' : 'Crear curso'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SuperadminDataSourcesHub({ user, onLogout }) {
   const [data, setData] = useState({ items: [], counts: {} });
   const [loading, setLoading] = useState(true);
@@ -444,6 +537,8 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
           </div>
         )}
       </div>
+
+      <InsightsExternosPanel />
 
       <ConnectorDrawer connectorId={drawerId} onClose={() => setDrawerId(null)} onAction={handleDrawerAction} />
       {replayConn && <ReplayModal connector={replayConn} onClose={() => setReplayConn(null)} onConfirm={handleReplayConfirm} />}

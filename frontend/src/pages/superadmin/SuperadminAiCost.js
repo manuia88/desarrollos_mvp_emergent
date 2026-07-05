@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import {
   getOverview, getByTenant, getByFeature, getByModel, getTenantTimeseries, getForecast, listCaps,
+  getNarrativasBudget, regenerateNarrativa, batchGenerateNarrativas,
 } from '../../api/superadminAiCost';
 import { Z } from '../../styles/zIndex';
 
@@ -108,6 +109,68 @@ function CapsListModal({ caps, onClose, onEdit }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+// ── Narrativas IE — presupuesto LLM + regeneración (censo 2026-07-05: backend sin pantalla → visible aquí) ──
+function NarrativasPanel() {
+  const [b, setB] = useState(null);
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+  const [regenId, setRegenId] = useState('');
+  const [regenScope, setRegenScope] = useState('colonia');
+  const load = useCallback(() => { getNarrativasBudget().then(setB).catch(() => setB({ error: true })); }, []);
+  useEffect(() => { load(); }, [load]);
+  const run = async (kind) => {
+    setBusy(kind); setMsg('');
+    try {
+      if (kind === 'batch') { const r = await batchGenerateNarrativas('all'); setMsg(`Pre-calentado: ${r.generated ?? r.count ?? 'ok'}`); }
+      else { const r = await regenerateNarrativa(regenId.trim(), regenScope); setMsg(r.ok === false ? 'No se pudo regenerar.' : 'Regenerada ✓'); }
+      load();
+    } catch (e) { setMsg(e?.message || 'Error.'); }
+    finally { setBusy(''); }
+  };
+  const stat = (label, value) => (
+    <div style={{ flex: 1, minWidth: 130 }}>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)', fontWeight: 600 }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+    </div>
+  );
+  return (
+    <div className="dmx-card" data-testid="narrativas-panel" style={{ marginTop: 18, padding: '16px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 2 }}>Narrativas con IA</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 12 }}>Los textos que la IA escribe para colonias y desarrollos: cuánto llevan gastado esta hora y su control.</div>
+      {b === null && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>Cargando…</div>}
+      {b && b.error && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5' }}>No se pudo cargar el presupuesto de narrativas.</div>}
+      {b && !b.error && (
+        <>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
+            {stat('Gastado esta hora', `$${(b.budget_used_1h_usd ?? 0).toFixed(2)} USD`)}
+            {stat('Tope por hora', `$${(b.budget_cap_usd ?? 0).toFixed(2)} USD`)}
+            {stat('Narrativas guardadas', (b.narratives_total ?? 0).toLocaleString('es-MX'))}
+            {stat('Versión del prompt', b.prompt_version ?? '—')}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button onClick={() => run('batch')} disabled={!!busy} data-testid="narrativas-batch"
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer' }}>
+              {busy === 'batch' ? 'Generando…' : 'Pre-calentar todas'}
+            </button>
+            <input value={regenId} onChange={(e) => setRegenId(e.target.value)} placeholder="id (colonia/desarrollo)"
+              style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', width: 190 }} />
+            <select value={regenScope} onChange={(e) => setRegenScope(e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12 }}>
+              <option value="colonia">colonia</option><option value="development">desarrollo</option>
+            </select>
+            <button onClick={() => run('regen')} disabled={!!busy || !regenId.trim()} data-testid="narrativas-regen"
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.04)', color: 'rgba(240,235,224,0.85)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: (busy || !regenId.trim()) ? 'default' : 'pointer' }}>
+              {busy === 'regen' ? 'Regenerando…' : 'Regenerar una'}
+            </button>
+            {msg && <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>{msg}</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -273,6 +336,9 @@ export default function SuperadminAiCost({ user, onLogout }) {
 
         {/* W5.x F1 — User-tier quotas */}
         <UserQuotaPanel />
+
+        {/* Narrativas IE — presupuesto + control (antes invisible) */}
+        <NarrativasPanel />
       </div>
 
       {capModal && (

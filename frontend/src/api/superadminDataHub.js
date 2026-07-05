@@ -52,3 +52,20 @@ export async function listInvocations(id, params = {}) {
     { headers: h(), credentials: 'include' },
   ));
 }
+
+// ── Insights externos (censo 2026-07-05: admin sin UI → cableado en el Hub de Fuentes, su casa natural) ──
+export async function getInsightsCronStatus() {
+  return _j(await fetch(`${API}/api/superadmin/insights/cron-status`, { headers: h(), credentials: 'include' }));
+}
+export async function refreshInsightSource(sourceId) {
+  return _j(await fetch(`${API}/api/superadmin/insights/refresh/${encodeURIComponent(sourceId)}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
+export async function listInsightCourses() {
+  return _j(await fetch(`${API}/api/insights/courses?limit=50`, { headers: h(), credentials: 'include' }));
+}
+export async function createInsightCourse(body) {
+  return _j(await fetch(`${API}/api/superadmin/insights/courses`, { method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(body) }));
+}
+export async function deleteInsightCourse(slug) {
+  return _j(await fetch(`${API}/api/superadmin/insights/courses/${encodeURIComponent(slug)}`, { method: 'DELETE', headers: h(), credentials: 'include' }));
+}

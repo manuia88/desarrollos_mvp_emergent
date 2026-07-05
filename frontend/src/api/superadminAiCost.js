@@ -75,3 +75,14 @@ export async function updateUserTier(userId, tier) {
     body: JSON.stringify({ tier }),
   }));
 }
+
+// ── Narrativas IE (censo 2026-07-05: endpoints sin UI → cableados aquí, su casa natural: presupuesto LLM) ──
+export async function getNarrativasBudget() {
+  return _j(await fetch(`${API}/api/superadmin/narratives/budget`, { headers: h(), credentials: 'include' }));
+}
+export async function regenerateNarrativa(id, scope) {
+  return _j(await fetch(`${API}/api/superadmin/narratives/regenerate?id=${encodeURIComponent(id)}&scope=${encodeURIComponent(scope)}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
+export async function batchGenerateNarrativas(scope = 'all') {
+  return _j(await fetch(`${API}/api/superadmin/narratives/batch-generate?scope=${encodeURIComponent(scope)}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}

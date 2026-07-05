@@ -4,6 +4,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Sparkle, AlertTriangle, BarChart, ArrowRight, RefreshCw } from '../../components/icons';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+const authH = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dmx_token')}` });
 
 function Card({ children, tone = 'default' }) {
   const borders = {
@@ -18,6 +19,106 @@ function Card({ children, tone = 'default' }) {
       background: 'rgba(255,255,255,0.02)', border: `1px solid ${borders[tone]}`,
       display: 'flex', flexDirection: 'column', gap: 10, minHeight: 160,
     }}>{children}</div>
+  );
+}
+
+
+// ── Corridas de subagentes (pricing/marketing/leads) — censo 2026-07-05: backend sin pantalla ──
+function SubagentRunsPanel() {
+  const [tipo, setTipo] = React.useState('pricing');
+  const [runs, setRuns] = React.useState(null);
+  React.useEffect(() => {
+    let alive = true;
+    setRuns(null);
+    fetch(`${API}/api/superadmin/subagents/${tipo}/runs?days=30&limit=15`, { headers: authH(), credentials: 'include' })
+      .then((r) => r.json()).then((d) => { if (alive) setRuns(d.runs || d.items || (Array.isArray(d) ? d : [])); })
+      .catch(() => { if (alive) setRuns([]); });
+    return () => { alive = false; };
+  }, [tipo]);
+  const TIPOS = [['pricing', 'Precios'], ['marketing', 'Marketing'], ['lead', 'Leads']];
+  return (
+    <div data-testid="subagent-runs-panel" style={{ marginTop: 22, padding: 22, borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 2 }}>Agentes que trabajan solos</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 10 }}>Cada corrida de los subagentes de precios, marketing y leads — qué hicieron y cuándo (últimos 30 días).</div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {TIPOS.map(([k, l]) => (
+          <button key={k} onClick={() => setTipo(k)} data-testid={`subagent-tab-${k}`}
+            style={{ padding: '5px 14px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, cursor: 'pointer',
+              background: tipo === k ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${tipo === k ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.08)'}`,
+              color: tipo === k ? 'var(--theme)' : 'rgba(240,235,224,0.6)' }}>{l}</button>
+        ))}
+      </div>
+      {runs === null && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>Cargando…</div>}
+      {runs !== null && runs.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)' }}>Sin corridas en 30 días — este agente aún no se activa.</div>}
+      {runs !== null && runs.length > 0 && runs.slice(0, 10).map((r, i) => (
+        <div key={r.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.8)' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 9999, background: (r.status === 'error' || r.error) ? '#F87171' : '#34D399', flexShrink: 0 }} />
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.5)' }}>{String(r.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+          <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.summary || r.action || r.result_summary || r.org_id || 'corrida'}</span>
+          {r.org_id && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.4)' }}>{r.org_id}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Memoria del Director (agente IA del dev) — stats + inspección (censo 2026-07-05) ──
+function DirectorMemoryPanel() {
+  const [stats, setStats] = React.useState(null);
+  const [q, setQ] = React.useState('');
+  const [orgId, setOrgId] = React.useState('');
+  const [hits, setHits] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => {
+    fetch(`${API}/api/director/memory/stats?days=90`, { headers: authH(), credentials: 'include' })
+      .then((r) => r.json()).then(setStats).catch(() => setStats({ error: true }));
+  }, []);
+  const buscar = async () => {
+    if (!q.trim() || !orgId.trim()) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/director/memory/retrieve`, { method: 'POST', headers: authH(), credentials: 'include',
+        body: JSON.stringify({ query: q.trim(), org_id: orgId.trim(), top_k: 5 }) });
+      const d = await r.json();
+      setHits(d.results || d.memories || (Array.isArray(d) ? d : []));
+    } catch { setHits([]); }
+    finally { setBusy(false); }
+  };
+  const byType = (stats && Array.isArray(stats.by_source_type)) ? stats.by_source_type : [];
+  return (
+    <div data-testid="director-memory-panel" style={{ marginTop: 14, padding: 22, borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 2 }}>Memoria del Director</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 10 }}>Qué recuerda el agente Director de cada cuenta — y qué recuperaría ante una pregunta (inspección al átomo).</div>
+      {stats && !stats.error && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.75)' }}>
+          <span>memorias (90d): <b style={{ color: 'var(--cream)' }}>{stats.total_entries ?? 0}</b></span>
+          {byType.map((t) => <span key={t.source_type}>{t.source_type}: <b style={{ color: 'var(--cream)' }}>{t.count}</b></span>)}
+        </div>
+      )}
+      {stats && stats.error && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5', marginBottom: 8 }}>No se pudo cargar la memoria.</div>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="org_id (cuenta)"
+          style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', width: 160 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()} placeholder="¿Qué recordaría sobre…?"
+          style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', flex: 1, minWidth: 200 }} />
+        <button onClick={buscar} disabled={busy || !q.trim() || !orgId.trim()}
+          style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer' }}>
+          {busy ? 'Buscando…' : 'Inspeccionar'}
+        </button>
+      </div>
+      {hits !== null && (
+        <div style={{ marginTop: 10 }}>
+          {hits.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)' }}>Sin memorias que coincidan.</div>}
+          {hits.slice(0, 5).map((m, i) => (
+            <div key={m.id || i} style={{ padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 6, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.8)' }}>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.45)', marginRight: 8 }}>{m.source_type || m.type || 'memoria'}</span>
+              {String(m.content || m.text || m.summary || '').slice(0, 180)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -173,6 +274,10 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
           </div>
         </div>
       </div>
+
+      {/* Subagentes + Memoria del Director (backend sin pantalla → visibles aquí) */}
+      <SubagentRunsPanel />
+      <DirectorMemoryPanel />
     </SuperadminLayout>
   );
 }
