@@ -1259,21 +1259,39 @@ Tono: analítico, basado en datos, sin marketing vacío. Cierra con el insight a
                         f"de ${avg_price:,} MXN. La demanda se concentró en preventa y entrega inmediata. "
                         f"Insight accionable: consolidar descuentos por pronto pago en la etapa con más días sin cierre.")
 
-    wins = [
-        "Absorción superó benchmark de mercado en +2.4pts",
-        "Ticket promedio incrementó 3.1% mes a mes",
-        "3 leads enterprise cerraron en la semana final del mes",
-    ]
-    alerts = [
-        "2 unidades >90 días sin cierre — candidatas a ajuste de precio",
-        "Demanda Roma Norte creció 28% — considerar reasignar inventario",
-        "Competidor lanzó proyecto a 800m del tuyo a 12% menos/m²",
-    ]
-    recommendations = [
-        "Lanzar esquema descuento 3% pronto pago para etapa entrega 2026-Q4",
-        "Activar ads hiper-segmentados en Polanco + Condesa",
-        "Programar visita VIP para top 10 leads calientes del mes",
-    ]
+    # wins/alerts/recommendations DERIVADOS DE DATOS REALES del portafolio (antes eran 9 strings
+    # hardcodeados —"benchmark +2.4pts", "competidor a 800m"— presentados como inteligencia real).
+    # Regla de honestidad: si no hay señal, la lista queda vacía; nunca inventar.
+    wins: List[str] = []
+    alerts: List[str] = []
+    recommendations: List[str] = []
+    disponibles = sum(1 for u in my_units if (u.get("status") or "").lower() == "disponible")
+    if sold:
+        wins.append(f"Se vendieron {sold} de {total_units} unidades ({absorbed}% de absorción acumulada)")
+    try:   # leads reales del mes sobre TUS desarrollos
+        leads_mes = await db.leads.count_documents(
+            {"development_id": {"$in": list(dev_ids)}, "created_at": {"$regex": f"^{month_key}"}})
+        if leads_mes:
+            wins.append(f"{leads_mes} leads nuevos llegaron a tus desarrollos en {month_key}")
+    except Exception:
+        pass
+    if disponibles:
+        alerts.append(f"{disponibles} unidades siguen disponibles — revisa precio y fotos de las más antiguas")
+    try:   # demanda REAL de tus colonias (motor demand_gap multi-fuente) → recomendación anclada a dato
+        import dmx_demand
+        _dg = await dmx_demand.demand_gap(db, top=40)
+        _mis_cols = {d.get("colonia_id") for d in my_devs if d.get("colonia_id")}
+        for c in (_dg.get("cells") or []):
+            if c.get("colonia") in _mis_cols and (c.get("gap_score") or 0) > 0.3:
+                _tipo = str(c.get("tipologia") or "").replace("_", " ")
+                if _dg.get("es_estimado"):
+                    break   # demanda estimada: no recomendar como si fuera medida
+                recommendations.append(
+                    f"En {str(c['colonia']).replace('-', ' ').title()} la demanda de {_tipo} supera la oferta — prioriza ese inventario")
+                if len(recommendations) >= 3:
+                    break
+    except Exception:
+        pass
     metrics = {
         "absorption_pct": absorbed,
         "avg_price": avg_price,

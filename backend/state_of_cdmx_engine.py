@@ -45,17 +45,18 @@ _FALLBACK_TOP_ROI = [
     {"slug": "pedregal", "name": "Pedregal", "roi_12m_pct": 10.1, "hedonic_change_pct": 6.6, "velocity_months": 11},
 ]
 
+# Datos de EJEMPLO (misma escala 0-100 del índice real; 50 = equilibrado) — siempre marcados es_estimado.
 _FALLBACK_DEMAND = [
-    {"slug": "polanco", "name": "Polanco", "gap_score": 42, "opportunity_label": "Demanda alta"},
-    {"slug": "condesa", "name": "Condesa", "gap_score": 38, "opportunity_label": "Demanda alta"},
-    {"slug": "roma-norte", "name": "Roma Norte", "gap_score": 34, "opportunity_label": "Demanda alta"},
-    {"slug": "del-valle", "name": "Del Valle", "gap_score": 22, "opportunity_label": "Equilibrado"},
-    {"slug": "narvarte", "name": "Narvarte", "gap_score": 18, "opportunity_label": "Equilibrado"},
-    {"slug": "coyoacan", "name": "Coyoacán", "gap_score": 12, "opportunity_label": "Equilibrado"},
-    {"slug": "anzures", "name": "Anzures", "gap_score": 8, "opportunity_label": "Equilibrado"},
-    {"slug": "escandon", "name": "Escandón", "gap_score": -4, "opportunity_label": "Sobreoferta"},
-    {"slug": "pedregal", "name": "Pedregal", "gap_score": -12, "opportunity_label": "Sobreoferta"},
-    {"slug": "satelite", "name": "Satélite", "gap_score": -18, "opportunity_label": "Sobreoferta"},
+    {"slug": "polanco", "name": "Polanco", "gap_score": 72, "opportunity_label": "Demanda alta", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "condesa", "name": "Condesa", "gap_score": 70, "opportunity_label": "Demanda alta", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "roma-norte", "name": "Roma Norte", "gap_score": 67, "opportunity_label": "Demanda alta", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "del-valle", "name": "Del Valle", "gap_score": 61, "opportunity_label": "Equilibrado", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "narvarte", "name": "Narvarte", "gap_score": 58, "opportunity_label": "Equilibrado", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "coyoacan", "name": "Coyoacán", "gap_score": 56, "opportunity_label": "Equilibrado", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "anzures", "name": "Anzures", "gap_score": 53, "opportunity_label": "Equilibrado", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "escandon", "name": "Escandón", "gap_score": 48, "opportunity_label": "Sobreoferta", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "pedregal", "name": "Pedregal", "gap_score": 44, "opportunity_label": "Sobreoferta", "fuente": "ejemplo", "es_estimado": True},
+    {"slug": "satelite", "name": "Satélite", "gap_score": 41, "opportunity_label": "Sobreoferta", "fuente": "ejemplo", "es_estimado": True},
 ]
 
 
@@ -92,6 +93,7 @@ async def _demand_supply_top(db, limit: int = 10) -> List[Dict[str, Any]]:
         from maps_cross_engine import demand_supply_gap_geojson
         geo = await demand_supply_gap_geojson(db)
         feats = (geo or {}).get("features") or []
+        _estimado = bool((geo or {}).get("es_estimado"))   # honestidad: proxy → cada fila lo declara
         scored = []
         for f in feats:
             p = f.get("properties") or {}
@@ -110,6 +112,7 @@ async def _demand_supply_top(db, limit: int = 10) -> List[Dict[str, Any]]:
                     "Demanda alta" if idx > 65 else
                     "Equilibrado" if idx > 50 else "Sobreoferta"
                 ),
+                "es_estimado": _estimado,
             })
         scored.sort(key=lambda x: x["gap_score"], reverse=True)
         if scored:
@@ -150,6 +153,8 @@ async def compute_metrics(db, period: str) -> Dict[str, Any]:
         "period": period,
         "top_10_colonias_roi": top_roi,
         "demand_supply_gap_top10": demand,
+        # honestidad: True si la demanda mostrada es estimada/ejemplo (sin señal real medida)
+        "demanda_es_estimado": bool(demand and all(r.get("es_estimado") or r.get("fuente") == "ejemplo" for r in demand)),
         "velocity_by_category": _velocity_by_category(),
         "predictions_2026": _predictions(top_roi),
         "dmx_index_top_creatives_count": 12,

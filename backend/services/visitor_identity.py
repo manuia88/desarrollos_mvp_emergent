@@ -36,6 +36,20 @@ async def link(db, email, phone, visitor_id):
         log.warning(f"[visitor_identity] link fail: {e}")
 
 
+async def resolve_visitors_by_contact(db, email, phone=None):
+    """visitor_ids de la persona a partir de su CONTACTO (portal logueado) — mismo hash que link().
+    Permite que el portal comprador lea los favoritos/gusto que la persona generó anónima en el marketplace."""
+    k = _key(email, phone)
+    if not k or db is None:
+        return []
+    try:
+        doc = await db.visitor_identity.find_one({"id_key": k}, {"_id": 0, "visitors": 1})
+        return list(doc.get("visitors") or [])[:20] if doc else []
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[visitor_identity] resolve_by_contact fail: {e}")
+        return []
+
+
 async def resolve_visitors(db, visitor_id):
     """TODOS los visitor_ids de la misma persona (el actual + los de sus otros dispositivos registrados). Devuelve
     [visitor_id] si no hay link (anónimo de un solo dispositivo). El actual va primero."""

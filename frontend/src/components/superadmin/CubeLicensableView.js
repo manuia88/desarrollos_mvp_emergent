@@ -64,7 +64,7 @@ export default function CubeLicensableView({ period = 'current' }) {
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>Datos de mercado para licenciar</span>
           </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 6, lineHeight: 1.5 }}>
-            {data.licencia?.producto}. {data.licencia?.nota} {data.suprimidas_kanon > 0 && <b style={{ color: '#4ADE80' }}>{data.suprimidas_kanon} zonas suprimidas por privacidad.</b>}
+            {data.licencia?.producto}. {data.licencia?.nota} {data.suprimidas_kanon > 0 && <b style={{ color: '#4ADE80' }}>{data.suprimidas_kanon} zonas suprimidas por privacidad.</b>} {data.protegidas_ventas > 0 && <b style={{ color: '#4ADE80' }}>{data.protegidas_ventas} con ritmo de venta protegido (pocos desarrolladores).</b>}
           </div>
         </div>
         <button onClick={exportCsv} disabled={!rows.length} data-testid="licensable-export"

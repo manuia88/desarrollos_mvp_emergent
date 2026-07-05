@@ -328,7 +328,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
               </Card>
             )}
 
-            {feat.avanzado && (
+            {feat && !feat._err && feat.avanzado && (
               <Card style={{ marginTop: 14 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Señales avanzadas de tu zona</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Balance oferta-demanda, sweet-spot de precio y dónde se fuga el interés. (Se trabaja a detalle en el rediseño del portal.)</div>
@@ -356,7 +356,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
             )}
 
             {/* EJE DE ATRIBUTOS — qué busca la demanda DENTRO del depa */}
-            {feat.atributos && (
+            {feat && !feat._err && feat.atributos && (
               <Card style={{ marginTop: 14 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Qué busca la demanda dentro del depa</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Balcón, vista, altura del edificio, orientación — los atributos finos que enganchan en tu zona.</div>
@@ -377,7 +377,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
             )}
 
             {/* EJE FINANCIERO — el bolsillo del comprador en tus colonias */}
-            {feat.financiero && (
+            {feat && !feat._err && feat.financiero && (
               <Card style={{ marginTop: 14 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>El bolsillo del comprador</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Presupuesto, intención (vivir/invertir) y rentabilidad de tus zonas.</div>
@@ -400,7 +400,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
             )}
 
             {/* COMPUESTAS — underwriting/pricing/suelo por zona (métricas que cruzan demanda × mercado) */}
-            {feat.compuestas?.por_zona?.length > 0 && (
+            {feat && !feat._err && feat.compuestas?.por_zona?.length > 0 && (
               <Card style={{ marginTop: 14 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Métricas de decisión (cruces demanda × mercado)</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Margen, suelo, absorción y competencia de TUS zonas — cada una cruza el comportamiento del comprador con el mercado.</div>

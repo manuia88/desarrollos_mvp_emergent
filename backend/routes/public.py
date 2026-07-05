@@ -330,10 +330,14 @@ async def zona_pulso(colonia_id: str, request: Request):
             yield_pct = round(yld * 100, 1)
         except Exception:
             pass
-        return {"ok": True, "busquedas_7d": last7, "trend_pct": trend,
+        # Gate k-anon canónico: endpoint PÚBLICO — bajo K_ANON_MIN no exponemos conteo exacto ni
+        # presupuesto/recámaras (identificarían buscadores concretos). El nivel cualitativo sí se publica.
+        from anonymization_engine import K_ANON_MIN as _KANON
+        _ok_k = last7 >= _KANON
+        return {"ok": True, "busquedas_7d": (last7 if _ok_k else None), "trend_pct": (trend if _ok_k else None),
                 "nivel": "alta" if last7 >= 10 else "media" if last7 >= 3 else "baja",
-                "rec_moda": (_C(recs).most_common(1)[0][0] if recs else None),
-                "precio_buscado_prom": (round(sum(precios) / len(precios)) if precios else None),
+                "rec_moda": (_C(recs).most_common(1)[0][0] if (recs and len(recs) >= _KANON) else None),
+                "precio_buscado_prom": (round(sum(precios) / len(precios)) if (precios and len(precios) >= _KANON) else None),
                 "yield_anual_pct": yield_pct}
     except Exception:
         return {"ok": True, "busquedas_7d": 0, "trend_pct": 0, "nivel": "baja"}
@@ -2617,16 +2621,24 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
             precio_m2 = round(_st2.median(_pm))
     except Exception:
         pass
+    # Gate k-anon CANÓNICO (K_ANON_MIN=5): con pocas búsquedas, el conteo exacto + presupuesto mediano de
+    # una zona podría identificar a personas concretas en un endpoint PÚBLICO. Bajo el piso publicamos solo
+    # que "hay señal" (booleano), nunca el valor crudo. Mismo estándar que /api/v1 zone-demand.
+    from anonymization_engine import K_ANON_MIN as _KANON
+    _kanon_ok = demanda >= _KANON
+    _demanda_pub = demanda if _kanon_ok else None
+    if not _kanon_ok:
+        pres = rec = None
     if rol == "asesor":
         visible = [
-            {"k": "Compradores buscando aquí (30 días)", "v": demanda, "fmt": "int"},
+            {"k": "Compradores buscando aquí (30 días)", "v": _demanda_pub, "fmt": "int"},
             {"k": "Presupuesto promedio que buscan", "v": pres, "fmt": "money"},
             {"k": "Recámaras que más buscan", "v": rec, "fmt": "rec"},
         ]
         locked = ["Los leads listos para contactar en tu zona", "Qué amenidades piden (y la zona no tiene)", "A qué zonas se va la demanda que no encuentra", "El reporte completo (precios, plusvalía, lugares cerca)"]
     else:
         visible = [
-            {"k": "Personas buscando aquí (30 días)", "v": demanda, "fmt": "int"},
+            {"k": "Personas buscando aquí (30 días)", "v": _demanda_pub, "fmt": "int"},
             {"k": "Presupuesto promedio que buscan", "v": pres, "fmt": "money"},
             {"k": "Desarrollos compitiendo en tu zona", "v": len(oferta), "fmt": "int"},
         ]

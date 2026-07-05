@@ -4,7 +4,7 @@
  * Conecta la SEÑAL DE DEMANDA (dónde hay compradores y poca oferta) con TUS clientes y un mensaje listo.
  * No es una "campaña" nueva: ordena lo que ya existe en un solo lugar → "zona caliente → tus clientes que
  * calzan → el mensaje". Cada cliente se convierte en un briefing IE (pitch + WhatsApp) reusando BriefingIEModal.
- * Backend: GET /api/asesor/market/oportunidades (owner-scoped por assignee_id · nunca leads ajenos).
+ * Backend: GET /api/asesor/market/oportunidades (owner-scoped por assigned_to/asesor_id/owner_id · nunca leads ajenos).
  */
 import React, { useEffect, useState } from 'react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
@@ -19,6 +19,14 @@ const TIPO_LABEL = {
 // La demanda es "oportunidad" cuando el veredicto empuja a actuar (se agota / ventana / construir).
 const isHot = (verdict) => /agota|ventana|construir|subir/i.test(verdict || '');
 
+// El motor redacta para un DESARROLLADOR ("construir"); el asesor VENDE → traducimos a su acción.
+const VERDICT_ASESOR = {
+  'Demanda sin inventario → construir': 'Mucha demanda y casi nada disponible — consigue inventario aquí',
+  'Se agota rápido → ventana para construir/subir': 'Se agota rápido — buen momento para ofrecer ya',
+  'Sobreoferta de esta tipología': 'Mucha oferta — hay de dónde escoger para tu cliente',
+  'Sostener': 'Mercado estable',
+};
+
 // En modo estimado (proxy, sin búsquedas reales) NUNCA pintamos "caliente" en verde: sería vender como
 // medido algo que no lo es. El color fuerte solo aparece con demanda real (es_estimado=false).
 function VerdictBadge({ verdict, estimado }) {
@@ -31,7 +39,7 @@ function VerdictBadge({ verdict, estimado }) {
       background: hot ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)',
       border: `1px solid ${hot ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`,
       borderRadius: 9999, padding: '3px 10px',
-    }}>{verdict}</span>
+    }}>{VERDICT_ASESOR[verdict] || verdict}</span>
   );
 }
 

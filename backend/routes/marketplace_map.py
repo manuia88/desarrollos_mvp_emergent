@@ -260,10 +260,12 @@ async def get_heatmap(
             events = await db.engagement_events.aggregate(pipeline).to_list(100)
             events_by_colonia = {e["_id"]: e["count"] for e in events if e.get("_id")}
             if events_by_colonia:
-                for c in colonias_data:
-                    if c["id"] in events_by_colonia:
-                        c = dict(c)
-                        c["inventory"] = events_by_colonia[c["id"]]
+                # escribir de vuelta por índice — antes `c = dict(c)` creaba una copia local que se
+                # descartaba, así que el enriquecimiento con eventos reales era código muerto.
+                colonias_data = [
+                    ({**c, "inventory": events_by_colonia[c["id"]]} if c.get("id") in events_by_colonia else c)
+                    for c in colonias_data
+                ]
     except Exception as ex:
         log.debug(f"[heatmap] enrich from DB failed (non-critical): {ex}")
 

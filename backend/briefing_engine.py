@@ -428,6 +428,27 @@ async def create_briefing(payload: BriefingRequest, request: Request):
     return _serialize(doc)
 
 
+async def _tenant_advisor_ids(db, user) -> set:
+    """user_ids de los asesores del TENANT de un asesor_admin — modelo canónico: la inmobiliaria ve SOLO a
+    sus asesores. Fail-CLOSED (patrón AUD-036): admin sin tenant real matchea CERO asesores, no god-view."""
+    tenant = getattr(user, "tenant_id", None) or "__no_tenant_fail_closed__"
+    ids = {user.user_id}   # el admin siempre puede ver lo suyo propio
+    async for u in db.users.find({"tenant_id": tenant}, {"_id": 0, "user_id": 1}):
+        if u.get("user_id"):
+            ids.add(u["user_id"])
+    return ids
+
+
+async def _can_touch_briefing(db, user, doc) -> bool:
+    """Owner → sí. superadmin → sí. asesor_admin → SOLO briefings de asesores de SU tenant. (Antes cualquier
+    asesor_admin leía/escribía briefings de TODAS las inmobiliarias — fuga cross-tenant con PII.)"""
+    if doc.get("advisor_user_id") == user.user_id or user.role == "superadmin":
+        return True
+    if user.role == "asesor_admin":
+        return doc.get("advisor_user_id") in await _tenant_advisor_ids(db, user)
+    return False
+
+
 @router.get("/briefing-ie/{briefing_id}")
 async def get_briefing(briefing_id: str, request: Request):
     from routes.advisor import require_advisor
@@ -436,8 +457,7 @@ async def get_briefing(briefing_id: str, request: Request):
     doc = await db.ie_advisor_briefings.find_one({"id": briefing_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Briefing no existe")
-    # Owner or asesor_admin
-    if doc.get("advisor_user_id") != user.user_id and user.role not in ("asesor_admin", "superadmin"):
+    if not await _can_touch_briefing(db, user, doc):
         raise HTTPException(403, "No tienes acceso a este briefing")
     return _serialize(doc)
 
@@ -452,7 +472,7 @@ async def submit_feedback(briefing_id: str, payload: FeedbackRequest, request: R
     doc = await db.ie_advisor_briefings.find_one({"id": briefing_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Briefing no existe")
-    if doc.get("advisor_user_id") != user.user_id and user.role not in ("asesor_admin", "superadmin"):
+    if not await _can_touch_briefing(db, user, doc):
         raise HTTPException(403, "No autorizado")
     upd = {"feedback": {"result": payload.result, "comments": payload.comments, "ts": datetime.now(timezone.utc)}}
     if payload.result == "marked_used":
@@ -470,8 +490,14 @@ async def list_briefings(request: Request, limit: int = Query(50, ge=1, le=200),
     user = await require_advisor(request)
     db = request.app.state.db
     q: Dict[str, Any] = {}
-    if only_mine or user.role == "advisor":
+    if only_mine or user.role not in ("asesor_admin", "superadmin"):
+        # asesor plano SIEMPRE solo lo suyo (only_mine es irrelevante para él)
         q["advisor_user_id"] = user.user_id
+    elif user.role == "asesor_admin":
+        # inmobiliaria: SOLO los briefings de los asesores de SU tenant (antes only_mine=false → q={} →
+        # todos los briefings de todas las inmobiliarias, con lead_id/contact_id = fuga cross-tenant).
+        q["advisor_user_id"] = {"$in": sorted(await _tenant_advisor_ids(db, user))}
+    # superadmin con only_mine=false → sin filtro (god-view intencional)
     docs = await db.ie_advisor_briefings.find(q, {"_id": 0}).sort("generated_at", -1).limit(limit).to_list(length=limit)
     return [_serialize(d) for d in docs]
 

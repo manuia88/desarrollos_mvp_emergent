@@ -1270,7 +1270,9 @@ export default function FichaVenta() {
   const amen = Array.isArray(dev.amenities) ? dev.amenities : [];
   const nUnits = (dev.units || []).length || dev.units_total || dev.total_units || 0;
   const developer = dev.developer || {};
-  const seals = [developer.verified_constitution && 'Constitución verificada', developer.no_judicial_records && 'Sin antecedentes judiciales', developer.no_profeco_complaints && 'Sin quejas PROFECO', developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`, developer.years_experience && `${developer.years_experience} años de experiencia`].filter(Boolean);
+  // Sellos legales: HOY son flags declarados por el desarrollador (sin verificación externa) → el copy lo
+  // dice ("declara") y abajo va la procedencia. Cuando exista verificación real con fecha, se sube el copy.
+  const seals = [developer.verified_constitution && 'Constitución en regla', developer.no_judicial_records && 'Declara sin antecedentes judiciales', developer.no_profeco_complaints && 'Declara sin quejas PROFECO', developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`, developer.years_experience && `${developer.years_experience} años de experiencia`].filter(Boolean);
   const units = dev.units || [];
   const rangeOf = (arr, suf = '') => { const v = [...new Set(arr.filter((x) => x != null))].sort((a, b) => a - b); return v.length ? (v[0] === v[v.length - 1] ? `${v[0]}${suf}` : `${v[0]}–${v[v.length - 1]}${suf}`) : null; };
   const bedR = rangeOf(units.map((u) => u.bedrooms));
@@ -1302,6 +1304,7 @@ export default function FichaVenta() {
               {seals.length > 0 && (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                   {seals.map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.green, background: 'rgba(30,158,99,0.08)', border: '1px solid rgba(30,158,99,0.25)', borderRadius: 9999, padding: '5px 12px' }}>✓ {s}</span>)}
+                  <span style={{ fontFamily: FONT, fontSize: 11, color: C.faint, alignSelf: 'center' }}>Información declarada por el desarrollador</span>
                 </div>
               )}
             </div>

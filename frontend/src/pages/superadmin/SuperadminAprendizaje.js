@@ -25,12 +25,17 @@ export default function SuperadminAprendizaje({ user, onLogout }) {
 
   useEffect(() => {
     let alive = true;
-    getMetaDashboard().then((d) => { if (alive) setData(d); }).catch((e) => { if (alive) setErr(e?.message || 'Error.'); });
+    // getMetaDashboard devuelve el sobre {ok, status, body} — el payload real vive en .body.
+    // (Antes se guardaba el sobre entero → data.state/mape siempre undefined → panel mudo.)
+    getMetaDashboard()
+      .then((r) => { if (!alive) return; if (r && r.ok) setData(r.body); else setErr('No se pudo cargar la precisión del modelo.'); })
+      .catch((e) => { if (alive) setErr(e?.message || 'Error.'); });
     return () => { alive = false; };
   }, []);
 
   const insufficient = data && data.state === 'insufficient_data';
-  const mape = data && data.mape_pct != null ? Number(data.mape_pct) : null;
+  // el backend expone el MAPE como global_mape_30d (no mape_pct)
+  const mape = data && data.global_mape_30d != null ? Number(data.global_mape_30d) : null;
   const hit = data && (data.hit_rate != null ? Number(data.hit_rate) : null);
   const mapeColor = mape == null ? 'rgba(240,235,224,0.4)' : mape < 8 ? '#4ADE80' : mape < 15 ? '#FCD34D' : '#F87171';
 

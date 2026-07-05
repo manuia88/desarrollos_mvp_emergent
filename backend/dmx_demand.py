@@ -183,6 +183,22 @@ async def demand_gap(db, top: int = 25) -> Dict[str, Any]:
             "cells": out[:top], "total_cells": len(out), "computed_at": _iso()}
 
 
+def mask_small_cells(result: Dict[str, Any], k: int = 3) -> Dict[str, Any]:
+    """Máscara k-anon para EXPONER demand_gap FUERA del superadmin (lentes dev/asesor): en celdas con
+    menos de k unidades totales, sold/absorcion_pct revelarían la velocidad de venta EXACTA de un
+    competidor identificable (1 dev = toda la celda) → se enmascaran a None. El superadmin (god-view)
+    consume el motor sin esta máscara; las lentes externas SÍ la pasan. No muta el dict original."""
+    cells = []
+    enmascaradas = 0
+    for c in (result.get("cells") or []):
+        total = (c.get("available") or 0) + (c.get("sold") or 0)
+        if total < k:
+            c = {**c, "sold": None, "absorcion_pct": None}
+            enmascaradas += 1
+        cells.append(c)
+    return {**result, "cells": cells, "enmascaradas_kanon": enmascaradas}
+
+
 async def _colonia_median_pm2(db) -> Dict[str, float]:
     """Mediana de precio/m² por colonia (desde el átomo) para comparar precio de unidad."""
     by_zone: Dict[str, List[float]] = defaultdict(list)
@@ -215,7 +231,8 @@ def _unit_prob(a: Dict[str, Any], medians: Dict[str, float], demand: Dict[str, f
         ratio = pm2 / medians[z]                 # <1 = más barato que la mediana → más probable
         p += max(-0.25, min(0.25, (1 - ratio) * 0.6))
     if z and dmax:
-        p += (demand.get(z, 0) / dmax) * 0.2     # zona caliente → más probable
+        # lookup case-insensitive (las claves de demand van en minúsculas — mismo criterio que demand_gap)
+        p += (demand.get(str(z).strip().lower(), 0) / dmax) * 0.2     # zona caliente → más probable
     if m2:
         p += 0.1 if m2 < 90 else (-0.05 if m2 > 150 else 0)  # chico = más líquido
     return round(max(0.05, min(0.95, p)), 3)

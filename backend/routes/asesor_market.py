@@ -43,10 +43,11 @@ async def amenity_ranker(request: Request, colonia: Optional[str] = Query(None))
 
 @router.get("/demand-gap")
 async def demand_gap(request: Request, top: int = Query(10, ge=1, le=50)):
-    """Zonas y tipologías con demanda alta y poco inventario — dónde hay compradores."""
+    """Zonas y tipologías con demanda alta y poco inventario — dónde hay compradores.
+    Con máscara k-anon (celdas <3 unidades no exponen sold/absorción de un competidor identificable)."""
     await _auth(request)
     import dmx_demand
-    return await dmx_demand.demand_gap(_db(request), top=top)
+    return dmx_demand.mask_small_cells(await dmx_demand.demand_gap(_db(request), top=top))
 
 
 # Estados de lead que YA no se trabajan (no son oportunidad viva).
@@ -59,7 +60,7 @@ async def oportunidades(request: Request, top: int = Query(20, ge=1, le=60)):
 
     Reúne 3 piezas que ya existen: (1) demand-gap (dónde hay demanda y poca oferta, por colonia×tipología),
     (2) los desarrollos de esa colonia que el asesor puede ofrecer, (3) los leads del PROPIO asesor en esa
-    zona (owner-scoped por assignee_id — nunca leads ajenos). Cada lead se puede convertir en un briefing IE
+    zona (owner-scoped por assigned_to/asesor_id/owner_id — nunca leads ajenos). Cada lead se convierte en briefing IE
     (pitch + WhatsApp) desde el front reusando BriefingIEModal. No inventa una entidad 'campaña': ordena lo
     existente en 'zona caliente → tus clientes que calzan → el mensaje'."""
     user = await _auth(request)
@@ -96,10 +97,14 @@ async def oportunidades(request: Request, top: int = Query(20, ge=1, le=60)):
         if dcol:
             devs_by_col.setdefault(dcol, []).append({"id": did, "name": d.get("name")})
 
-    # Leads del PROPIO asesor (owner-scoped por assignee_id), vivos, mapeados a colonia vía su desarrollo.
+    # Leads del PROPIO asesor, vivos, mapeados a colonia vía su desarrollo. Owner-scoping con los MISMOS
+    # campos canónicos que tenant_scope.assert_lead_owner (owner_id/assigned_to/asesor_id) + assignee_id
+    # (seed demo). Antes solo assignee_id (que producción nunca escribe) → "tus clientes" salía siempre vacío.
     leads_by_col: Dict[str, List[Dict[str, Any]]] = {}
     try:
-        cursor = db.leads.find({"assignee_id": user.user_id},
+        _uid = user.user_id
+        cursor = db.leads.find({"$or": [{"assigned_to": _uid}, {"asesor_id": _uid},
+                                        {"owner_id": _uid}, {"assignee_id": _uid}]},
                                {"_id": 0, "id": 1, "name": 1, "development_id": 1, "status": 1, "status_v2": 1, "activo": 1})
         async for lead in cursor:
             if lead.get("activo") is False:

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, ArrowRight, Leaf, Route, Shield, Store } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import ZoneScoreBadge from './ZoneScoreBadge';
 import RiskScoreFullBadge from './RiskScoreFullBadge';
 
@@ -40,6 +41,9 @@ export default function PropertyCard({ property, index = 0, colonia }) {
     e.stopPropagation();
     const nowSaved = toggleFavorite(property.id);
     setSaved(nowSaved);
+    // Señal canónica (auditoría 2026-07-04): antes este ♥ solo vivía en localStorage → nunca llegaba a
+    // buyer_signals (invisible para /favoritos, el gusto y la demanda). Mismo patrón que DevelopmentCard.
+    sendBuyerSignal(nowSaved ? 'like' : 'unlike', { entity_id: property.id, colonia: property.colonia || property.zone_id });
   };
 
   return (

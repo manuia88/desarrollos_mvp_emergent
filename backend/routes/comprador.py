@@ -252,6 +252,27 @@ async def list_favorites(request: Request, item_type: Optional[str] = None, user
     db = _db(request)
     from services.buyer_history import get_favorites
     favs = await get_favorites(db, user.user_id, item_type)
+    # CONSOLIDACIÓN (auditoría 2026-07-04): los ♥ del marketplace viven en buyer_signals (fuente canónica,
+    # por visitor_id) — el portal logueado antes solo leía buyer_favorites, colección que NADA escribe →
+    # página siempre vacía. Unimos: resolvemos los visitor_ids de la persona por su contacto (hash
+    # email/teléfono de visitor_identity) y traemos sus like/save activos como favoritos. Fail-open.
+    try:
+        from services.visitor_identity import resolve_visitors_by_contact
+        _vids = await resolve_visitors_by_contact(db, getattr(user, "email", None), getattr(user, "phone", None))
+        if _vids and item_type in (None, "project"):
+            _seen = {f.get("item_id") for f in favs}
+            async for _s in db.buyer_signals.find(
+                    {"visitor_id": {"$in": _vids}, "type": {"$in": ["like", "save"]}, "active": True},
+                    {"_id": 0, "entity_id": 1, "created_at_dt": 1}, sort=[("created_at_dt", -1)]):
+                _eid = _s.get("entity_id")
+                if _eid and _eid not in _seen:
+                    _seen.add(_eid)
+                    _dt = _s.get("created_at_dt")
+                    favs.append({"id": f"sig_{_eid}", "item_type": "project", "item_id": _eid,
+                                 "source": "marketplace",
+                                 "added_at": (_dt.isoformat() if hasattr(_dt, "isoformat") else None)})
+    except Exception:
+        pass
     # enrich projects desde DEVELOPMENTS_BY_ID (in-memory)
     try:
         from data_developments import DEVELOPMENTS_BY_ID
@@ -287,6 +308,21 @@ async def post_favorite(body: FavoriteAdd, request: Request, user=Depends(_requi
 @router.delete("/api/comprador/favorites/{fav_id}")
 async def delete_favorite(fav_id: str, request: Request, user=Depends(_require_buyer)):
     db = _db(request)
+    if fav_id.startswith("sig_"):
+        # Favorito canónico del marketplace (buyer_signals): quitar = desactivar el like/save de LA PERSONA
+        # (scoped a sus propios visitor_ids resueltos por contacto — nunca los de otro).
+        try:
+            from services.visitor_identity import resolve_visitors_by_contact
+            _vids = await resolve_visitors_by_contact(db, getattr(user, "email", None), getattr(user, "phone", None))
+            if _vids:
+                await db.buyer_signals.update_many(
+                    {"visitor_id": {"$in": _vids}, "entity_id": fav_id[4:], "type": {"$in": ["like", "save", "unit_save"]}},
+                    {"$set": {"active": False}})
+                await db.comprador_dashboards.delete_one({"user_id": user.user_id})
+                return {"deleted": True}
+        except Exception:
+            pass
+        raise HTTPException(404, "Favorito no encontrado")
     from services.buyer_history import remove_favorite
     ok = await remove_favorite(db, user.user_id, fav_id)
     if not ok:

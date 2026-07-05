@@ -90,8 +90,9 @@ export function DemandSupplyBars({ data, height = 380 }) {
         />
         <Bar dataKey="gap_score" radius={[0, 8, 8, 0]}>
           {data.map((d, i) => {
-            const fill = d.gap_score > 30 ? PALETTE.good
-                       : d.gap_score > 0 ? PALETTE.neutral
+            // Escala del motor: índice 0-100 centrado en 50 (>65 demanda alta · >50 equilibrado).
+            const fill = d.gap_score > 65 ? PALETTE.good
+                       : d.gap_score > 50 ? PALETTE.neutral
                        : PALETTE.bad;
             return <Cell key={i} fill={fill} />;
           })}

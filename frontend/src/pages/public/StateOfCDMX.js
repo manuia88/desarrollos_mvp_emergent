@@ -83,7 +83,7 @@ export default function StateOfCDMX() {
       sub: top[0] ? `+${top[0].roi_12m_pct.toFixed(1)}%` : '' },
     { id: 'demand-leader', label: 'Demanda más caliente',
       value: demand[0]?.name || '—',
-      sub: demand[0] ? `Índice de demanda ${demand[0].gap_score.toFixed(0)}/100` : '' },
+      sub: demand[0] ? `Índice de demanda ${demand[0].gap_score.toFixed(0)}/100${metrics.demanda_es_estimado ? ' · estimado' : ''}` : '' },
     { id: 'velocity-champion', label: 'Velocity champion',
       value: `${metrics.velocity_by_category?.social ?? 7} meses`,
       sub: 'segmento Social' },
@@ -157,7 +157,7 @@ export default function StateOfCDMX() {
       </Section>
 
       {/* Section 3 · Demand-Supply */}
-      <Section testid="state-section-3" title="Demand–Supply Gap por colonia" sub="Verde = demanda alta · ámbar = equilibrado · rojo = sobreoferta.">
+      <Section testid="state-section-3" title="Demand–Supply Gap por colonia" sub={`Verde = demanda alta · ámbar = equilibrado · rojo = sobreoferta.${metrics.demanda_es_estimado ? ' Datos estimados — se afinan con señal real de compradores.' : ''}`}>
         <div style={chartCard}>
           <DemandSupplyBars data={demand} />
         </div>

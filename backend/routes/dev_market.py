@@ -51,10 +51,14 @@ async def amenity_ranker(request: Request, colonia: Optional[str] = Query(None))
 
 @router.get("/demand-gap")
 async def demand_gap(request: Request, top: int = Query(15, ge=1, le=100)):
-    """Dónde hay demanda y poco/cero inventario de una tipología = dónde construir."""
+    """Dónde hay demanda y poco/cero inventario de una tipología = dónde construir.
+    Alcance INTENCIONAL: intel de mercado CDMX completa (anónima, agregada) — no owner-scoped, igual que
+    amenity-ranker. Con máscara k-anon: en celdas de <3 unidades, sold/absorción revelarían la velocidad
+    de venta exacta de UN competidor identificable (auditoría 2026-07-04)."""
     await _auth(request)
     import dmx_demand
-    return await dmx_demand.demand_gap(_db(request), top=top)
+    r = await dmx_demand.demand_gap(_db(request), top=top)
+    return {**dmx_demand.mask_small_cells(r), "alcance": "mercado_cdmx"}
 
 
 async def _dev_colonias(db, user) -> list:
@@ -214,13 +218,15 @@ async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
         "total_busquedas": total,
         "insatisfechas": insatisfechas,
         "insatisfechas_pct": round(insatisfechas / total * 100) if total else 0,
-        "sustitucion": [{"zona": s["_id"], "veces": s["n"]} for s in sust if s.get("_id")],
+        # facetas categóricas TAMBIÉN con piso k-anon: una faceta con 1-2 menciones ES la búsqueda de una
+        # persona concreta (auditoría 2026-07-04 — antes solo los promedios tenían el gate).
+        "sustitucion": [{"zona": s["_id"], "veces": s["n"]} for s in sust if s.get("_id") and s.get("n", 0) >= _KANON],
         "brecha": ({"personas": b0.get("n", 0),
                     "gap_prom": round(b0["gap_prom"]) if b0.get("gap_prom") else None,
                     "mens_pedida_prom": round(b0["mens_pedida_prom"]) if b0.get("mens_pedida_prom") else None}
                    if (b0.get("n") or 0) >= _KANON else None),
-        "esquema": [{"esquema": e["_id"], "veces": e["n"]} for e in esquema if e.get("_id")],
-        "amenidades_pedidas": [{"amenidad": a["_id"], "veces": a["n"]} for a in amen if a.get("_id")],
+        "esquema": [{"esquema": e["_id"], "veces": e["n"]} for e in esquema if e.get("_id") and e.get("n", 0) >= _KANON],
+        "amenidades_pedidas": [{"amenidad": a["_id"], "veces": a["n"]} for a in amen if a.get("_id") and a.get("n", 0) >= _KANON],
         "perfil_buscado": ({
             "recamaras_prom": round(p0["rec_prom"], 1) if p0.get("rec_prom") else None,
             "precio_prom": round(p0["precio_prom"]) if p0.get("precio_prom") else None,

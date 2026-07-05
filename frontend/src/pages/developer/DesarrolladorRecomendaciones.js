@@ -45,12 +45,21 @@ function BriefCard({ b, onRespond, busy }) {
           <b>Lo que la gente busca y no encuentra:</b> {b.falta.slice(0, 4).map(tc).join(' · ')}
         </div>
       )}
-      {brief.resumen && <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 13, color: '#4B4F66', lineHeight: 1.5 }}>{brief.resumen}</div>}
+      {(brief.resumen || (Array.isArray(brief.rationale) && brief.rationale.length > 0)) && (
+        <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 13, color: '#4B4F66', lineHeight: 1.5 }}>
+          {brief.resumen || brief.rationale.slice(0, 2).join(' ')}
+        </div>
+      )}
+      {brief.es_estimado && (
+        <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: '#B4791F', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 9999, padding: '3px 10px' }}>
+          Estimado — aún sin búsquedas suficientes en la zona; se afina con demanda real
+        </div>
+      )}
       {Array.isArray(mezcla) && mezcla.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {mezcla.slice(0, 6).map((m, i) => (
             <span key={i} style={{ fontFamily: 'DM Sans', fontSize: 11.5, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', borderRadius: 9999, padding: '4px 11px', color: '#4B4F66' }}>
-              {typeof m === 'string' ? m : `${m.tipo || m.tipologia || ''} ${m.n ? `×${m.n}` : ''} ${m.precio ? money(m.precio) : ''}`.trim()}
+              {typeof m === 'string' ? m : `${m.tipologia || m.tipo || ''} ${m.unidades ? `×${m.unidades}` : ''} ${m.precio_tipico ? money(m.precio_tipico) : ''}`.trim()}
             </span>
           ))}
         </div>

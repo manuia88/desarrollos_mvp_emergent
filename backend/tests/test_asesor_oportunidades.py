@@ -45,15 +45,18 @@ def _patch_demand(monkeypatch):
 
 
 async def _seed_leads(db):
+    # Campos de dueño MIXTOS a propósito: producción escribe assigned_to (lead_capture/journey),
+    # otros caminos usan asesor_id/owner_id (tenant_scope.assert_lead_owner), el seed demo assignee_id.
+    # El endpoint debe encontrar los leads del asesor por CUALQUIERA de los 4 (antes solo assignee_id → vacío).
     await db.leads.insert_many([
         # míos (asr_test) — polanco (2) + roma-norte (1)
-        {"id": "L1", "name": "Cliente A", "development_id": "altavista-polanco", "assignee_id": "asr_test", "status": "nuevo"},
-        {"id": "L2", "name": "Cliente B", "development_id": "altavista-polanco", "assignee_id": "asr_test", "status": "contactado"},
+        {"id": "L1", "name": "Cliente A", "development_id": "altavista-polanco", "assigned_to": "asr_test", "status": "nuevo"},
+        {"id": "L2", "name": "Cliente B", "development_id": "altavista-polanco", "asesor_id": "asr_test", "status": "contactado"},
         {"id": "L3", "name": "Cliente C", "development_id": "roma-norte-85", "assignee_id": "asr_test", "status": "cita"},
         # cerrado (no debe aparecer)
-        {"id": "L4", "name": "Cerrado", "development_id": "altavista-polanco", "assignee_id": "asr_test", "status": "cerrado_ganado"},
+        {"id": "L4", "name": "Cerrado", "development_id": "altavista-polanco", "assigned_to": "asr_test", "status": "cerrado_ganado"},
         # de OTRO asesor (jamás debe verse)
-        {"id": "L9", "name": "Ajeno", "development_id": "altavista-polanco", "assignee_id": "otro_asesor", "status": "nuevo"},
+        {"id": "L9", "name": "Ajeno", "development_id": "altavista-polanco", "assigned_to": "otro_asesor", "status": "nuevo"},
     ])
 
 
