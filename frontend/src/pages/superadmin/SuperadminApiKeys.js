@@ -8,7 +8,7 @@ import StripeSubscriptionPanel from '../../components/superadmin/StripeSubscript
 import { listKeys, createKey, revokeKey, fetchUsage } from '../../api/superadminApiKeys';
 import { Z } from '../../styles/zIndex';
 
-export default function SuperadminApiKeys() {
+export default function SuperadminApiKeys({ embedded }) {
   const [items, setItems] = useState([]);
   const [kpis, setKpis] = useState({});
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function SuperadminApiKeys() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.5 · API Keys + Stripe Billing"
         title="Public API · llaves y suscripciones"

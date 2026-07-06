@@ -301,11 +301,7 @@ const SUPERADMIN_NAV = [
   {
     tier: 5, label: 'Monetización', section_key: 'monetizacion',
     items: [
-      { key: 'ai-cost',           to: '/superadmin/ai-cost',               label: 'AI Cost',            Icon: DollarSign },
-      { key: 'commercial',        to: '/superadmin/commercial',            label: 'Comercial',          Icon: TrendingUp },
-      { key: 'api-keys',          to: '/superadmin/api-keys',              label: 'API Keys',           Icon: Key },
-      { key: 'vertical-products', to: '/superadmin/vertical-products',     label: 'Productos verticales', Icon: Boxes },
-      { key: 'data-licensing',    to: '/superadmin/data-licensing',        label: 'Data Licensing',     Icon: Briefcase },
+      { key: 'monetizacion',      to: '/superadmin/monetizacion',          label: 'Monetización & API', Icon: Briefcase },
       { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell',         Icon: HeartHandshake },
       // ─ W6.MOV.1 · SOC Franchise (Sistema Operación Certificado) ─
       { key: 'soc-franchise',     to: '/superadmin/soc-franchise',         label: 'SOC Franchise',      Icon: Trophy },

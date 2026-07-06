@@ -358,6 +358,7 @@ const SuperadminFraudAlerts          = lazy(() => import('./pages/superadmin/Sup
 const SuperadminRiskScore            = lazy(() => import('./pages/superadmin/SuperadminRiskScore'));
 const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/SuperadminRiskAlerts'));
 // W3.5 — Public API + Stripe
+const SuperadminMonetizacionHub      = lazy(() => import('./pages/superadmin/SuperadminMonetizacionHub'));
 const SuperadminApiKeys              = lazy(() => import('./pages/superadmin/SuperadminApiKeys'));
 const ApiDocsPage                    = lazy(() => import('./pages/public/ApiDocsPage'));
 // W3.6 — Vertical Data Products + Data Licensing (Phase Z.4)
@@ -989,10 +990,11 @@ function AppRouter() {
       <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
       <Route path="/superadmin/audit-log-legacy" element={<Navigate to="/superadmin/audit-log" replace />} />{/* legacy → audit-log nuevo */}
-      <Route path="/superadmin/ai-cost" element={<SuperadminRoute Page={SuperadminAiCost} />} />
+      <Route path="/superadmin/ai-cost" element={<Navigate to="/superadmin/monetizacion?tab=costos" replace />} />
       <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
-      <Route path="/superadmin/commercial" element={<SuperadminRoute Page={SuperadminCommercial} />} />
+      <Route path="/superadmin/commercial" element={<Navigate to="/superadmin/monetizacion?tab=comercial" replace />} />
       <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
+      <Route path="/superadmin/monetizacion" element={<SuperadminRoute Page={SuperadminMonetizacionHub} />} />{/* Hub de Monetización & API */}
       <Route path="/superadmin/aprendizaje" element={<SuperadminRoute Page={SuperadminAprendizaje} />} />{/* F5 · Dashboard de Aprendizaje */}
       <Route path="/superadmin/metrics-cube" element={<SuperadminRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<SuperadminRoute Page={SuperadminDataLake} />} />
@@ -1014,11 +1016,11 @@ function AppRouter() {
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
       {/* W3.5 — Public API + Stripe routes */}
-      <Route path="/superadmin/api-keys" element={<SuperadminRoute Page={SuperadminApiKeys} />} />
+      <Route path="/superadmin/api-keys" element={<Navigate to="/superadmin/monetizacion?tab=keys" replace />} />
       <Route path="/docs/api" element={<ApiDocsPage />} />
       {/* W3.6 — Vertical Data Products + Data Licensing */}
-      <Route path="/superadmin/vertical-products" element={<SuperadminRoute Page={SuperadminVerticalProducts} />} />
-      <Route path="/superadmin/data-licensing" element={<SuperadminRoute Page={SuperadminDataLicensing} />} />
+      <Route path="/superadmin/vertical-products" element={<Navigate to="/superadmin/monetizacion?tab=probar" replace />} />
+      <Route path="/superadmin/data-licensing" element={<Navigate to="/superadmin/monetizacion?tab=bundles" replace />} />
       {/* W3.7 — Phase Z.5 Compliance */}
       <Route path="/superadmin/compliance" element={<SuperadminRoute Page={SuperadminCompliance} />} />
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />

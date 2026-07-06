@@ -19,7 +19,7 @@ function sectionFromPath(p) {
   return 'principal';
 }
 
-export default function SuperadminLayout({ user: propUser, onLogout: propOnLogout, children }) {
+export default function SuperadminLayout({ user: propUser, onLogout: propOnLogout, children, bare }) {
   const loc = useLocation();
   const ctx = useAuth();
   const user = propUser || ctx.user;
@@ -54,6 +54,10 @@ export default function SuperadminLayout({ user: propUser, onLogout: propOnLogou
       </div>
     );
   }
+
+  // bare = renderiza SOLO el contenido (sin sidebar/chrome) — para embeber la página como
+  // pestaña dentro de un Hub (metodología Hub de Mercado: el hub pone el layout una vez).
+  if (bare) return <>{children}</>;
 
   return (
     <div className="portal-superadmin" data-section={section}>

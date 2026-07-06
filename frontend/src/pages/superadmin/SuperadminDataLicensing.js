@@ -10,7 +10,7 @@ import {
 } from '../../api/dataLicensing';
 import { Z } from '../../styles/zIndex';
 
-export default function SuperadminDataLicensing() {
+export default function SuperadminDataLicensing({ embedded }) {
   const [bundles, setBundles] = useState([]);
   const [subs, setSubs] = useState([]);
   const [kpis, setKpis] = useState({});
@@ -35,7 +35,7 @@ export default function SuperadminDataLicensing() {
   useEffect(() => { refresh(); }, []);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.6 · Phase Z.4"
         title="Data Licensing Bundles"

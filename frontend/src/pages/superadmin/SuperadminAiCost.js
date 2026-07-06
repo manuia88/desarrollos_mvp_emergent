@@ -175,7 +175,7 @@ function NarrativasPanel() {
   );
 }
 
-export default function SuperadminAiCost({ user, onLogout }) {
+export default function SuperadminAiCost({ user, onLogout, embedded }) {
   const [period, setPeriod] = useState('month');
   const [overview, setOverview] = useState(null);
   const [tenants, setTenants] = useState([]);
@@ -239,7 +239,7 @@ export default function SuperadminAiCost({ user, onLogout }) {
   const trendColor = trend >= 0 ? '#F87171' : '#4ADE80';
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-ai-cost">
         {toast && (
           <div data-testid="ai-cost-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>

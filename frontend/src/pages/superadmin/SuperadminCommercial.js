@@ -246,7 +246,7 @@ function TrialAlertsModal({ items, onClose }) {
   );
 }
 
-export default function SuperadminCommercial({ user, onLogout }) {
+export default function SuperadminCommercial({ user, onLogout, embedded }) {
   const [tab, setTab] = useState('tenants');
   const [catalog, setCatalog] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -288,7 +288,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
   const TABS = [['tenants', 'Por tenant', Users], ['templates', 'Templates', FileText], ['snapshots', 'Snapshots', Camera]];
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-commercial">
         {toast && (
           <div data-testid="commercial-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>

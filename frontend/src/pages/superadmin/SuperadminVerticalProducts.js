@@ -43,7 +43,7 @@ const VERTICALS = [
   },
 ];
 
-export default function SuperadminVerticalProducts() {
+export default function SuperadminVerticalProducts({ embedded }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [drawer, setDrawer] = useState(null);
@@ -62,7 +62,7 @@ export default function SuperadminVerticalProducts() {
   const activeKeys = stats?.kpis?.active || 0;
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.6 · Phase Z.4"
         title="Productos Verticales"
