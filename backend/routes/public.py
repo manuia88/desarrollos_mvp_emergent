@@ -2695,6 +2695,7 @@ async def registro_interes(payload: RegistroInteresIn, request: Request):
 # ─── CUBO F4.1 · ESPEJO PERSONAL DEL COMPRADOR ────────────────────────────────
 class EspejoCorteIn(BaseModel):
     filters: Dict[str, Any] = {}
+    visitor_id: Optional[str] = None   # para capturar la señal 'vio corte caliente' (flywheel)
 
 
 @router.post("/api/properties/espejo-corte")
@@ -2744,6 +2745,24 @@ async def espejo_corte_publico(payload: EspejoCorteIn, request: Request):
     if len(_ESPEJO_CACHE) > 512:
         _ESPEJO_CACHE.clear()
     _ESPEJO_CACHE[_ck] = (now_h, res)
+    # FLYWHEEL (auditoría cross-fase): un comprador viendo un corte CALIENTE es la señal de
+    # intención más pura — se captura de vuelta al Modelo del Mundo (alimenta demand_cut y le
+    # da al asesor/dev "este corte no solo se busca, se mira bajo presión"). Fire-and-forget.
+    try:
+        esp = res.get("espejo") or {}
+        if esp.get("caliente") and (payload.visitor_id or (request.client and request.client.host)):
+            vid = payload.visitor_id or ""
+            ip_hash = None
+            if not vid and request.client:
+                import hashlib as _h
+                ip_hash = _h.sha256(request.client.host.encode()).hexdigest()[:16]
+            await db.buyer_signals.insert_one({
+                "type": "espejo_caliente_visto", "visitor_id": vid or None, "ip_hash": ip_hash,
+                "corte": corte, "banda": esp.get("personas_banda"),
+                "unidades_disponibles": n_disp, "created_at_dt": datetime.now(timezone.utc),
+            })
+    except Exception:  # noqa: BLE001 — la señal jamás rompe la respuesta
+        pass
     return res
 
 

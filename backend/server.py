@@ -268,6 +268,8 @@ app.include_router(superadmin_health_router)
 from routes.bulk_ingest import router as bulk_ingest_router
 from bulk_ingest_engine import ensure_bulk_ingest_indexes
 app.include_router(bulk_ingest_router)
+from routes.superadmin_alta import router as superadmin_alta_router   # F: alta manual de dev+proyecto
+app.include_router(superadmin_alta_router)
 
 # W2.1 SA2 — Data Sources Hub (unified connectors)
 from routes.superadmin_data_hub import router as data_hub_router
