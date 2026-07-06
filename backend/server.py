@@ -2584,6 +2584,13 @@ async def startup():
             advisor_demand_bridge.register_advisor_bridge_job(sched, db)
         except Exception as e:
             logging.warning(f"[advisor_demand_bridge] startup register failed: {e}")
+        # CUBO TOTAL F1 — átomo financiero por unidad (corridas + escenarios hipotecarios, tasa viva)
+        try:
+            import dmx_finance_atom
+            await dmx_finance_atom.ensure_indexes(db)
+            dmx_finance_atom.register_finance_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[finance_atom] startup register failed: {e}")
         # W5.15 Parte 1 — Accuracy indexes + 3 crons (MAPE / drift / weights)
         try:
             import fsd_engine

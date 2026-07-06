@@ -153,6 +153,12 @@ def flatten_atom(a: Dict[str, Any]) -> Dict[str, Any]:
         # medidas ricas (transaccional)
         "precio_cierre": com.get("precio_cierre_mxn"),
         "dias_en_mercado": com.get("dias_en_mercado"),
+        # CUBO TOTAL F1 · dimensiones FINANCIERAS del átomo (dmx_finance_atom materializa finance.*)
+        "banda_mensualidad": ((a.get("finance") or {}).get("banda_mensualidad") or "sin_dato"),
+        "banda_enganche": ((a.get("finance") or {}).get("banda_enganche") or "sin_dato"),
+        "mens_80_20": (a.get("finance") or {}).get("mens_80_20"),
+        "enganche_min_pct": (a.get("finance") or {}).get("enganche_min_pct"),
+        "ticket_entrada_min": (a.get("finance") or {}).get("ticket_entrada_min"),
     }
 
 

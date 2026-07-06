@@ -393,6 +393,16 @@ async def atom_route(unit_id: str, request: Request):
         except Exception as e:  # noqa: BLE001
             log.warning(f"[atom] colonia pm2: {e}")
 
+    # CUBO TOTAL F1 — bloque FINANCIERO del átomo (dmx_units.finance, materializado por dmx_finance_atom):
+    # escalera dinero completa: enganche mínimo → ticket de entrada → mensualidad por escenario.
+    fin: Dict[str, Any] = {}
+    try:
+        _fd = await db.dmx_units.find_one(
+            {"unit_id": unit.get("id") or unit.get("unit_id")}, {"_id": 0, "finance": 1})
+        fin = (_fd or {}).get("finance") or {}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[atom] finance: {e}")
+
     _TIPO_LABEL = {"estudio": "Estudio", "1_recamara": "1 recámara", "2_recamaras": "2 recámaras",
                    "3_recamaras": "3 recámaras", "4_mas_recamaras": "4+ recámaras"}
     _tipo = _tipo_from_beds(_beds)
@@ -422,6 +432,12 @@ async def atom_route(unit_id: str, request: Request):
         # Estacionamiento / acabados
         ("Estacionamiento", "Cajones", _park, "n_parking", None, "n_parking"),
         ("Acabados", "Nivel de acabado", unit.get("nivel_acabado") or unit.get("acabado"), "acabado", None, None),
+        # Financiero (CUBO TOTAL F1) — con qué dinero se entra y cuánto cuesta al mes
+        ("Financiero", "Enganche mínimo", (f"{fin['enganche_min_pct']:.0f}%" if fin.get("enganche_min_pct") is not None else None), "enganche_min", None, None),
+        ("Financiero", "Ticket de entrada", fin.get("ticket_entrada_min"), "ticket_entrada", "pesos", None),
+        ("Financiero", "Mensualidad hipoteca (80% · 20a)", fin.get("mens_80_20"), "mens_80_20", "pesos", None),
+        ("Financiero", "Mensualidad hipoteca (90% · 20a)", fin.get("mens_90_20"), "mens_90_20", "pesos", None),
+        ("Financiero", "Ingreso para calificar (80/20)", next((e.get("ingreso_requerido") for e in (fin.get("escenarios") or []) if e.get("aforo_pct") == 80 and e.get("plazo_anios") == 20), None), "ingreso_req", "pesos", None),
     ]
     # Impacto hedónico por atributo (%$/m²) ciudad-wide (el modelo YA controla por colonia vía one-hot,
     # así el impacto es estructural y robusto; slicing a 1 colonia rompería el control y encogería muestra).
@@ -500,6 +516,10 @@ async def atom_route(unit_id: str, request: Request):
         "demanda": detail.get("demanda"),
         # Granularidad de features: la unidad descompuesta, con cuánto vale cada extra (hedónico)
         "caracteristicas": [{"grupo": g, "features": caracteristicas[g]} for g in caracteristicas],
+        # CUBO TOTAL F1 · la corrida completa (esquemas + escenarios hipotecarios) con fuente de tasa
+        "finance": ({"tasa_anual": fin.get("tasa_anual"), "tasa_fuente": fin.get("tasa_fuente"),
+                     "tasa_es_estimado": fin.get("tasa_es_estimado"), "esquemas": fin.get("esquemas"),
+                     "escenarios": fin.get("escenarios")} if fin else None),
         "hedonico_disponible": hedonico_disp,
         "families": [{"key": f, "label": cube_catalog.FAMILY_LABEL.get(f, f), "metrics": fams[f]}
                      for f in cube_catalog.FAMILIES if fams.get(f)],
@@ -514,7 +534,9 @@ async def cube_catalog_route(request: Request):
     renderiza sus lentes/cortes/vista-átomo DESDE este contrato (cero métrica hardcodeada en la UI)."""
     await _require_superadmin(request)
     import cube_catalog
-    return cube_catalog.serialize()
+    import cube_dictionary
+    # CUBO TOTAL F1: el catálogo (MEDIDAS) viaja junto con el diccionario (FAMILIAS de segmentación)
+    return {**cube_catalog.serialize(), "diccionario": cube_dictionary.serialize()}
 
 
 # ─── 5) POST /refresh — manual recompute (BEFORE /{tier}) ─────────────────────

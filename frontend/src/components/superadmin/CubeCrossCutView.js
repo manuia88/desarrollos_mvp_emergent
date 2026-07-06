@@ -23,6 +23,9 @@ const DIMS = [
   { key: 'parking_type', label: 'Estacionamiento' },
   { key: 'has_roof', label: 'Roof garden' },
   { key: 'has_bodega', label: 'Bodega' },
+  // CUBO TOTAL F1 · dims financieras (mensualidad hipotecaria 80/20 · enganche mínimo del esquema)
+  { key: 'banda_mensualidad', label: 'Mensualidad' },
+  { key: 'banda_enganche', label: 'Enganche' },
 ];
 const DIM_LABEL = Object.fromEntries(DIMS.map((d) => [d.key, d.label]));
 const MAX_DIMS = 3;

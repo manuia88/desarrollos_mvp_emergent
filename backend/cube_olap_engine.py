@@ -336,7 +336,9 @@ async def query_cross_cut(
     if not dimensions or len(dimensions) > MAX_DIMENSIONS:
         raise ValueError(f"dimensions debe tener 1-{MAX_DIMENSIONS} elementos")
     valid_dims = ("zone", "property_type", "price_tier", "period", "year_built_decade",
-                  "tipologia", "recamaras", "banda_m2", "has_roof", "has_bodega", "parking_type")
+                  "tipologia", "recamaras", "banda_m2", "has_roof", "has_bodega", "parking_type",
+                  # CUBO TOTAL F1 · dims financieras (materializadas por dmx_finance_atom)
+                  "banda_mensualidad", "banda_enganche")
     for d in dimensions:
         if d not in valid_dims:
             raise ValueError(f"dimension inválida: {d} (válidas: {valid_dims})")

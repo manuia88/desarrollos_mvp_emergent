@@ -61,6 +61,28 @@ export default function CubeCatalogView() {
         Cada indicador declara de dónde sale (lineaje), a qué detalle baja (unidad → ciudad), cada cuándo se mide y si protege privacidad. Es el Modelo del Mundo de la Demanda: la fuente única que alimenta todas las vistas.
       </div>
 
+      {/* CUBO TOTAL · Diccionario v2 — las FAMILIAS de segmentación y su estado (la spec viva) */}
+      {data.diccionario && (
+        <div data-testid="diccionario-strip" style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.55)', marginBottom: 8 }}>
+            Diccionario de segmentación · {data.diccionario.total} familias — {data.diccionario.por_estado?.vivo ?? 0} vivas · {data.diccionario.por_estado?.parcial ?? 0} parciales · {data.diccionario.por_estado?.en_captura ?? 0} en captura
+          </div>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {(data.diccionario.familias || []).map((f) => {
+              const tone = f.estado === 'vivo' ? { c: '#4ADE80', b: 'rgba(74,222,128,0.10)' }
+                : f.estado === 'parcial' ? { c: '#FCD34D', b: 'rgba(251,191,36,0.10)' }
+                : { c: 'rgba(240,235,224,0.45)', b: 'rgba(255,255,255,0.03)' };
+              return (
+                <span key={f.key} title={`${f.nombre} · átomo: ${f.atomo} · fuente: ${f.fuente} · ${f.estado}`}
+                  style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, color: tone.c, background: tone.b, border: `1px solid ${tone.c}33`, borderRadius: 9999, padding: '3px 10px', cursor: 'default' }}>
+                  {f.nombre}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
         <button onClick={() => setFam('todas')} style={pill(fam === 'todas')}>Todas</button>
         {(data.families || []).map((f) => (
