@@ -13,7 +13,7 @@ function sectionFromPath(p) {
   if (/^\/superadmin\/(bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|metrics-cube|lead-sources|catalog-pulse)/.test(p)) return 'datos';
   if (/^\/superadmin\/(scores|drpi|indices|risk-score|investment-explorer|intelligence-hub|trends|phase5-foundation|transactions|avm-accuracy|forecast-accuracy|knowledge-graph|live-pulse|grafo-comprador|cerebro-mercado|terminal-mercado|construction-quality|reviews-residents|conversations|copilot|calibracion|kb-gaps|ab-testing|conversation-drift)/.test(p)) return 'inteligencia';
   if (/^\/superadmin\/(health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor)/.test(p)) return 'operacion';
-  if (/^\/superadmin\/(ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|conversation-cost)/.test(p)) return 'monetizacion';
+  if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|conversation-cost)/.test(p)) return 'monetizacion';
   if (/^\/superadmin\/(whatsapp|newsletter|bulletins|landing-leads|partners|onboarding-analytics|free-audit-funnel|social-cards|marketing-mcp)/.test(p)) return 'crecimiento';
   if (/^\/superadmin\/primitives-demo/.test(p)) return 'devtools';
   return 'principal';
@@ -29,13 +29,16 @@ export default function SuperadminLayout({ user: propUser, onLogout: propOnLogou
   // Sync body class + data-attribute so cursor custom (position:fixed at body
   // root) can pick up the section --theme. Cleaned up on unmount.
   useEffect(() => {
+    // en modo bare (página embebida como pestaña de un Hub) NO tocamos body: el layout OUTER
+    // del hub ya lo maneja. Evita la carrera cleanup/setup al cambiar de pestaña.
+    if (bare) return undefined;
     document.body.classList.add('superadmin-active');
     document.body.setAttribute('data-superadmin-section', section);
     return () => {
       document.body.classList.remove('superadmin-active');
       document.body.removeAttribute('data-superadmin-section');
     };
-  }, [section]);
+  }, [section, bare]);
 
   if (!user) return <Navigate to={`/?login=1&next=${encodeURIComponent(loc.pathname)}`} replace />;
   if (!ROLES_OK.has(user.role)) {

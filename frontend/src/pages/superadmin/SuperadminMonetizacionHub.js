@@ -5,16 +5,19 @@
  * metering→Stripe · data_licensing bundles · vertical_products playground), así que estas 5
  * pantallas son LENTES de la misma máquina. Cada pestaña embebe la página existente (bare) —
  * cero duplicación, cada página sigue viva por su ruta directa (redirige aquí con ?tab=).
+ * La URL es la fuente de verdad del tab (deep-link + back/forward siempre sincronizados).
+ * Cada pestaña carga su JS SOLO al abrirla (lazy) — el hub arranca ligero.
  */
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { KeyRound, Package, FlaskConical, Cpu, Briefcase } from 'lucide-react';
-import SuperadminApiKeys from './SuperadminApiKeys';
-import SuperadminDataLicensing from './SuperadminDataLicensing';
-import SuperadminVerticalProducts from './SuperadminVerticalProducts';
-import SuperadminAiCost from './SuperadminAiCost';
-import SuperadminCommercial from './SuperadminCommercial';
+
+const SuperadminApiKeys = lazy(() => import('./SuperadminApiKeys'));
+const SuperadminDataLicensing = lazy(() => import('./SuperadminDataLicensing'));
+const SuperadminVerticalProducts = lazy(() => import('./SuperadminVerticalProducts'));
+const SuperadminAiCost = lazy(() => import('./SuperadminAiCost'));
+const SuperadminCommercial = lazy(() => import('./SuperadminCommercial'));
 
 const TABS = [
   { k: 'keys', label: 'API Keys & Uso', Icon: KeyRound, grupo: 'API Pública', Page: SuperadminApiKeys },
@@ -26,8 +29,11 @@ const TABS = [
 
 export default function SuperadminMonetizacionHub() {
   const [sp, setSp] = useSearchParams();
-  const [tab, setTab] = useState(sp.get('tab') && TABS.some((t) => t.k === sp.get('tab')) ? sp.get('tab') : 'keys');
-  useEffect(() => { if (sp.get('tab') !== tab) { const n = new URLSearchParams(sp); n.set('tab', tab); setSp(n, { replace: true }); } /* eslint-disable-next-line */ }, [tab]);
+  // La URL es la ÚNICA fuente de verdad del tab → back/forward del navegador y deep-links quedan
+  // siempre sincronizados (antes: useState solo leía el searchParam en el mount → desync).
+  const raw = sp.get('tab');
+  const tab = TABS.some((t) => t.k === raw) ? raw : 'keys';
+  const setTab = (k) => { const n = new URLSearchParams(sp); n.set('tab', k); setSp(n); };
 
   const tabBtn = (on) => ({
     display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 11,
@@ -41,26 +47,28 @@ export default function SuperadminMonetizacionHub() {
 
   return (
     <SuperadminLayout>
-      <div style={{ marginBottom: 4 }}>
-        <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0 }}>Monetización & API</h1>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)', marginTop: 3 }}>
-          Vender el cubo: emite y cobra el acceso a la API, empaqueta bundles B2B, prueba los productos, y vigila el P&amp;L interno de IA y planes.
-        </p>
+      {/* encabezado COMPACTO (eyebrow) — el título grande lo pone cada pestaña, sin doble headline */}
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--theme)', marginBottom: 2 }}>
+        Monetización & API
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '14px 0 18px' }}>
+      <div role="tablist" aria-label="Monetización & API" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '8px 0 18px' }}>
         {TABS.map((t) => {
           const sep = t.grupo !== grupoActual; grupoActual = t.grupo;
           return (
             <React.Fragment key={t.k}>
-              {sep && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.4)', marginLeft: t.grupo === 'Interno' ? 8 : 0 }}>{t.grupo}</span>}
-              <button data-testid={`monet-tab-${t.k}`} onClick={() => setTab(t.k)} style={tabBtn(tab === t.k)}>
+              {sep && <span aria-hidden="true" style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.4)', marginLeft: t.grupo === 'Interno' ? 8 : 0 }}>{t.grupo}</span>}
+              <button role="tab" aria-selected={tab === t.k} data-testid={`monet-tab-${t.k}`} onClick={() => setTab(t.k)} style={tabBtn(tab === t.k)}>
                 <t.Icon size={13} /> {t.label}
               </button>
             </React.Fragment>
           );
         })}
       </div>
-      <Active embedded />
+      <div role="tabpanel">
+        <Suspense fallback={<div style={{ padding: 40, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.6)' }}>Cargando…</div>}>
+          <Active embedded />
+        </Suspense>
+      </div>
     </SuperadminLayout>
   );
 }
