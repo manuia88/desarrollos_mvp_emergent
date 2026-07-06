@@ -820,6 +820,8 @@ async def create_product_brief_route(body: ProductBriefBody, request: Request):
         "id": f"brief_{_uuid.uuid4().hex[:12]}",
         "colonia": col, "terreno_m2": body.terreno_m2, "tipologia": body.tipologia,
         "brief": brief, "status": "borrador",           # F3: borrador → enviado → aceptado/rechazado
+        # F4 (auditoría): el brief viaja con el número del moat — la tensión del corte que lo justifica
+        "espejo_corte": await _espejo_del_brief(db, col),
         "developer_id": None, "viewed_at": None,
         "created_by": user.user_id, "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -828,6 +830,19 @@ async def create_product_brief_route(body: ProductBriefBody, request: Request):
                  after={"colonia": col, "tipologia": body.tipologia}, request=request)
     doc.pop("_id", None)
     return {"ok": True, "brief_id": doc["id"], "brief": brief}
+
+
+async def _espejo_del_brief(db, colonia: str) -> Optional[Dict[str, Any]]:
+    """La tensión del corte de la colonia del brief (espejo exacto — viaja a un dev autenticado)."""
+    try:
+        import demand_intelligence as di
+        r = await di.espejo_de_corte(db, [{"campo": "colonia", "op": "eq", "valor": colonia}])
+        if r.get("espejo_total_mercado"):
+            return None
+        return {"personas": r.get("personas"), "busquedas": r.get("busquedas"),
+                "momentum_pct": r.get("momentum_pct"), "desde_dias": r.get("desde_dias")}
+    except Exception:  # noqa: BLE001
+        return None
 
 
 @router.post(PREFIX + "/product-brief/{brief_id}/send")

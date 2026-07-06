@@ -126,6 +126,53 @@ def register_vistas_corte_cron(scheduler, db) -> None:
     """Cron 07:30 MX — evalúa los cortes guardados antes de que empiece el día del founder."""
     from apscheduler.triggers.cron import CronTrigger
     from cron_heartbeat import wrap_apscheduler_job
-    wrapped = wrap_apscheduler_job(evaluar_alertas_corte, "cube_view_alerts")
+    async def _evaluar_todo(db):
+        r1 = await evaluar_alertas_corte(db)
+        r2 = await evaluar_cortes_asesor(db)
+        return {"superadmin": r1.get("lectura"), "asesores": r2.get("lectura")}
+
+    wrapped = wrap_apscheduler_job(_evaluar_todo, "cube_view_alerts")
     scheduler.add_job(wrapped, CronTrigger(hour=7, minute=30, timezone="America/Mexico_City"),
                       id="cube_view_alerts", replace_existing=True, kwargs={"db": db})
+
+
+async def evaluar_cortes_asesor(db) -> Dict[str, Any]:
+    """CUBO F4 (auditoría) — el asesor también merece la campana: re-corre el corte de cada
+    búsqueda guardada de sus clientes, compara vs el snapshot en el doc y notifica AL DUEÑO
+    ('al cliente de la búsqueda X le entraron 3 unidades / se calentó su corte').
+    Reusa _delta_corte + emit_notification. Primera corrida = línea base (sin disparo)."""
+    import cube_lens
+    from routes.advisor import _busqueda_a_corte
+    disparadas = []
+    revisadas = 0
+    async for b in db.asesor_busquedas.find({}, {"_id": 0}):
+        corte = _busqueda_a_corte(b)
+        if not corte or not b.get("owner_id"):
+            continue
+        revisadas += 1
+        try:
+            lente = await cube_lens.consulta_con_lente(db, "asesor", corte)
+        except Exception:  # noqa: BLE001
+            continue
+        if not lente.get("ok") or lente.get("suprimido"):
+            continue
+        k = lente.get("kpis") or {}
+        nuevo = {"n": lente.get("n_disponibles"), "precio_prom": k.get("precio_prom"),
+                 "absorcion_pct": k.get("absorcion_pct")}
+        cambios = _delta_corte(b.get("corte_snapshot"), nuevo, 10.0)
+        await db.asesor_busquedas.update_one({"id": b["id"]}, {"$set": {
+            "corte_snapshot": nuevo, "corte_checked_at": dt.datetime.utcnow()}})
+        if cambios:
+            disparadas.append({"busqueda": b["id"], "cambios": cambios})
+            try:
+                from notifications_engine import emit_notification
+                await emit_notification(
+                    db, user_id=b["owner_id"], type="cube_view_alert", severity="normal",
+                    title="El corte de tu cliente cambió",
+                    body=" · ".join(cambios),
+                    payload={"busqueda_id": b["id"], "contacto_id": b.get("contacto_id")},
+                    action_url="/asesor/busquedas")
+            except Exception:  # noqa: BLE001
+                pass
+    return {"revisadas": revisadas, "disparadas": disparadas,
+            "lectura": f"{len(disparadas)} cortes de clientes cambiaron de {revisadas} vigilados"}

@@ -2462,6 +2462,9 @@ class AISearchIn(BaseModel):
 
 
 _AI_RATE: Dict[str, list] = {}
+_ESPEJO_RATE: Dict[str, list] = {}                                       # bucket PROPIO del espejo (no LLM)
+_ESPEJO_RATE_MAX = int(os.environ.get("ESPEJO_CORTE_MAX_PER_HOUR", "120"))
+_ESPEJO_CACHE: Dict[str, tuple] = {}                                     # (ts, respuesta) por hash del corte
 _AI_RATE_MAX = int(os.environ.get("AI_SEARCH_MAX_PER_HOUR", "40"))      # por IP/hora
 _AI_RATE_MAX_DAY = int(os.environ.get("AI_SEARCH_MAX_PER_DAY", "2000"))  # TECHO GLOBAL diario (todas las IPs)
 _AI_GLOBAL: list = []
@@ -2697,11 +2700,18 @@ async def espejo_corte_publico(payload: EspejoCorteIn, request: Request):
     demanda con k-anon K_ANON_MIN — jamás conteos exactos — y supresión bajo K. Urgencia
     HONESTA: si no hay demanda que publicar, se dice 'demanda aún chica', no se inventa."""
     db = request.app.state.db
-    # SEGURIDAD (review F4): endpoint público que escanea colecciones → MISMO gate de costo
-    # que search-ai (40/IP/h + techo global diario). Sin auth no hay barra libre de scans.
+    # SEGURIDAD: rate-limit PROPIO (auditoría F4: compartir _ai_rate_ok quemaba la cuota del
+    # LLM del buscador con un count barato de Mongo — 120/IP/h sin tocar el techo global del LLM).
     _ip = (request.client.host if request.client else "?")
-    if not _ai_rate_ok(_ip):
+    import time as _tm
+    now_h = _tm.time()
+    bucket = _ESPEJO_RATE.setdefault(_ip, [])
+    bucket[:] = [t for t in bucket if now_h - t < 3600]
+    if len(bucket) >= _ESPEJO_RATE_MAX:
         return {"ok": False, "error": "rate_limited"}
+    bucket.append(now_h)
+    if len(_ESPEJO_RATE) > 4096:   # anti-crecimiento del dict
+        _ESPEJO_RATE.clear()
     if len(payload.filters or {}) > 24:   # cap defensivo del dict público
         return {"ok": False, "error": "demasiados filtros"}
     from cube_marketplace_bridge import filtros_marketplace_a_corte
@@ -2709,17 +2719,28 @@ async def espejo_corte_publico(payload: EspejoCorteIn, request: Request):
     corte, no_mapeados = filtros_marketplace_a_corte(payload.filters)
     if not corte:
         return {"ok": True, "espejable": False, "motivo": "sin filtros con cara en el cubo"}
+    # cache corto por corte (el debounce del banner multiplica requests idénticos)
+    import hashlib as _hl
+    import json as _j2
+    _ck = _hl.sha256(_j2.dumps(corte, sort_keys=True, default=str).encode()).hexdigest()[:20]
+    _hit = _ESPEJO_CACHE.get(_ck)
+    if _hit and now_h - _hit[0] < 90:
+        return _hit[1]
     lente = await cube_lens.consulta_con_lente(db, "comprador", corte)
     # HONESTIDAD (review F4): el número público son las DISPONIBLES — contar vendidas
     # inflaba la urgencia y filtraba la absorción de un dev identificable.
     n_disp = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
     espejo = await cube_lens.espejo_con_lente(db, "comprador", corte, n_oferta=n_disp)
-    return {
+    res = {
         "ok": True, "espejable": True,
         "unidades_disponibles": n_disp,               # None = muestra chica (suprimido)
         "espejo": espejo,                             # bandas + caliente + momentum + lectura
         "no_mapeados": no_mapeados,                   # honesto: qué filtro no tiene cara en el cubo
     }
+    if len(_ESPEJO_CACHE) > 512:
+        _ESPEJO_CACHE.clear()
+    _ESPEJO_CACHE[_ck] = (now_h, res)
+    return res
 
 
 @router.post("/api/properties/search-ai")

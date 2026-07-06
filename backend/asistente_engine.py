@@ -151,9 +151,9 @@ TOOLS Y PARAMS:
    devuelve: visión general agregada de CDMX (colonias, alcaldías, precio m² promedio, momentum 24m, desarrollos por etapa)
 
 4b. demanda_del_corte
-   params: {{ "colonia": str opcional (slug, ej "roma-norte"), "alcaldia": str opcional, "recamaras": int opcional, "mensualidad_max": number opcional (pesos), "precio_max": number opcional, "feature": str opcional ("balcon"|"terraza"|"roof") }}
-   devuelve: cuánta gente busca ese mismo corte (banda k-anónima, ej "10-24 personas"), si el corte está caliente, unidades disponibles que cumplen, y momentum
-   usar cuando: pregunten "¿cuánta gente busca esto?", "¿hay competencia por este depa?", "¿está caliente esta zona/corte?", o para dar urgencia HONESTA al recomendar
+   params: {{ "texto": str RECOMENDADO (la petición en español tal cual, ej "depas con alberca y 2 baños en del valle bajo 30 mil de mensualidad" — el compilador del cubo la convierte al corte con TODOS los campos y declara lo que no pudo filtrar) · alternativos estructurados: "colonia", "alcaldia", "recamaras", "mensualidad_max", "precio_max", "feature" ("balcon"|"terraza"|"roof"|"bodega"), "amenidad" (alberca|gym|spa|jardines|asadores|cancha_padel|pet|concierge|coworking) }}
+   devuelve: cuánta gente busca ese mismo corte (banda k-anónima, ej "10-24 personas"), si el corte está caliente, unidades disponibles que cumplen, momentum y qué filtros se descartaron
+   usar cuando: pregunten "¿cuánta gente busca esto?", "¿hay competencia?", "¿está caliente esta zona/corte?", o para dar urgencia HONESTA al recomendar. COMBINA bien: primero search_developments_public/reverse_search para opciones, luego demanda_del_corte con el MISMO texto para la urgencia. PREFIERE el param texto — jamás fuerces una amenidad a otra ("alberca" NO es "roof").
 
 5. get_zone_top_growth
    params: {{ "limit": int (default 5, max 10) }}
@@ -811,32 +811,59 @@ async def _tool_demanda_del_corte(db, params: Dict[str, Any]) -> Dict[str, Any]:
     (patrón _KG_TOOL_ALLOWED: whitelist de campos, no pasa-todo). Output compacto (el
     tool_result entra al prompt entero — nada de listas largas)."""
     import cube_lens
+    from anonymization_engine import K_ANON_MIN as _K
     corte = []
-    if params.get("colonia"):
-        corte.append({"campo": "colonia", "op": "eq", "valor": str(params["colonia"])[:60]})
-    if params.get("alcaldia"):
-        corte.append({"campo": "alcaldia", "op": "eq", "valor": str(params["alcaldia"])[:60]})
-    try:
-        if params.get("recamaras"):
-            corte.append({"campo": "recamaras", "op": "gte", "valor": int(params["recamaras"])})
-        if params.get("mensualidad_max"):
-            corte.append({"campo": "mens_80_20", "op": "lte", "valor": float(params["mensualidad_max"])})
-        if params.get("precio_max"):
-            corte.append({"campo": "precio", "op": "lte", "valor": float(params["precio_max"])})
-    except (TypeError, ValueError):
-        pass
-    feat_map = {"balcon": "has_balcon", "terraza": "has_terraza", "roof": "has_roof"}
-    f = str(params.get("feature") or "").lower().strip()
-    if f in feat_map:
-        corte.append({"campo": feat_map[f], "op": "eq", "valor": True})
+    descartados = []
+    universo = "unidades"
+    # CAMINO RECOMENDADO (auditoría F4: el mapeo manual forzaba 'alberca'→'roof'): el texto pasa
+    # por el compilador REAL del cubo (cube_query_nl valida contra el registro y DECLARA descartes).
+    texto = str(params.get("texto") or "").strip()
+    if texto:
+        try:
+            import cube_query_nl as _nl
+            p = await _nl.parsear_pregunta(db, texto[:300])
+            if p.get("ok"):
+                corte = p.get("filtros") or []
+                descartados = p.get("descartados") or []
+                universo = p.get("universo") or "unidades"
+        except Exception:  # noqa: BLE001 — cae al camino estructurado
+            pass
     if not corte:
-        return {"error": "describe al menos un criterio (zona, recámaras, mensualidad, precio o feature)"}
-    lente = await cube_lens.consulta_con_lente(db, "comprador", corte)
-    n_disp = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
-    esp = await cube_lens.espejo_con_lente(db, "comprador", corte, n_oferta=n_disp)
+        if params.get("colonia"):
+            corte.append({"campo": "colonia", "op": "eq", "valor": str(params["colonia"])[:60]})
+        if params.get("alcaldia"):
+            corte.append({"campo": "alcaldia", "op": "eq", "valor": str(params["alcaldia"])[:60]})
+        try:
+            if params.get("recamaras"):
+                corte.append({"campo": "recamaras", "op": "gte", "valor": int(params["recamaras"])})
+            if params.get("mensualidad_max"):
+                corte.append({"campo": "mens_80_20", "op": "lte", "valor": float(params["mensualidad_max"])})
+            if params.get("precio_max"):
+                corte.append({"campo": "precio", "op": "lte", "valor": float(params["precio_max"])})
+        except (TypeError, ValueError):
+            pass
+        feat_map = {"balcon": "has_balcon", "terraza": "has_terraza", "roof": "has_roof", "bodega": "has_bodega"}
+        f = str(params.get("feature") or "").lower().strip()
+        if f in feat_map:
+            corte.append({"campo": feat_map[f], "op": "eq", "valor": True})
+        _AMEN_OK = {"alberca", "gym", "spa", "jardines", "asadores", "cancha_padel", "pet", "concierge", "coworking"}
+        am = str(params.get("amenidad") or "").lower().strip().replace(" ", "_")
+        if am in _AMEN_OK:
+            corte.append({"campo": "amenidades_edificio", "op": "eq", "valor": am})
+        elif am:
+            descartados.append(f"amenidad desconocida: {am}")
+    if not corte:
+        return {"error": "describe al menos un criterio (zona, recámaras, mensualidad, precio, feature o amenidad)"}
+    lente = await cube_lens.consulta_con_lente(db, "comprador", corte, universo=universo)
+    if not lente.get("ok"):
+        return {"error": "no pude consultar el cubo con ese corte"}
+    n_disp = lente.get("n_disponibles") if not lente.get("suprimido") else None
+    esp = await cube_lens.espejo_con_lente(db, "comprador", corte, universo=universo, n_oferta=n_disp)
     return {
         "corte": [f"{c['campo']} {c['op']} {c['valor']}" for c in corte],
-        "unidades_disponibles": n_disp if n_disp is not None else "muy pocas para publicar (menos de 5)",
+        "universo": universo,
+        "no_pude_filtrar": descartados or None,
+        "unidades_disponibles": n_disp if n_disp is not None else f"muy pocas para publicar (menos de {_K})",
         "demanda": esp.get("lectura"),
         "caliente": esp.get("caliente", False),
         "momentum": esp.get("momentum"),

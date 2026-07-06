@@ -45,3 +45,20 @@ activos, trigger manual del dev/founder.
 Backend completo: 120 compuestas · 4 escalas · 16 atributos · financiero · AirROI · riesgo natural+crimen.
 **Diferido:** mejorar mucho la UI/UX (founder: "hay que mejorar mucho la UI/UX, lo revisamos en el módulo de superadmin").
 Construida funcional, no pulida — el rediseño visual va cuando toque el portal superadmin.
+
+## Auditoría F4 (2026-07-06) — diferidos conscientes
+Aplicados en el commit de auditoría: bucket+cache espejo · copilot (disponibles/nombres/prompt/caps) · Atlax raíz (texto→compilador+amenidades+K canónico) · email alertas (caliente real + claves nuevas en matcher/descripción) · CTA banner + señal espejo_view · quick actions · alertas de corte del asesor · brief con tensión · copilot dev con tensión.
+Diferidos (~1-3h c/u, orden sugerido):
+- **Ficha pública**: espejo del corte del desarrollo + likes k-anon (GET /interes es huérfano; cablear en DataBlock Disponibilidad de FichaVenta).
+- **/zona**: migrar demanda_zona (conteo EXACTO sin k-anon, routes/public.py:471) a espejo_con_lente bandas — deuda de doctrina.
+- **SimuladorEnganche componente compartido** → montar también en ComercializacionTab (donde el dev decide el enganche).
+- **CorteLeadCard compartida** → drawer de AsesorBusquedas (por búsqueda, no solo busquedas[0] de Ficha360) + selector multi-búsqueda en Ficha360.
+- **Universo zonas público**: campo universo en EspejoCorteIn (la tool Atlax ya lo pasa vía texto).
+- **buyer_alerts tipo corte_caliente** (logueados) + cablear register_match_handler (huérfano) desde send_alert.
+- **Espejo baseline al guardar búsqueda** ('tu corte SE calentó' = delta, no estado) + alerta standalone sin new_props.
+- **Permalink corte**: ?corte=b64 en Explorador + aiFilters/mensualidad en URL del marketplace.
+- **Lentes faltantes**: inmobiliaria (admin ve cortes de SUS asesores — hoy owner-only) + partner/licencia (k≥5 solo agregados).
+- **GET /api/dev/market/consulta**: corte libre con lente dev (la lente existe sin consumidor).
+- **Smoke-tests HTTP** de los 4 endpoints F4 (401/403/owner-scope/rate-limit) con TestClient.
+- **Espejo de zona en panel colonia** del marketplace (gancho para llenar los 4 campos al llegar del mapa).
+- **describeFilters compartido**: deduplicar SaveSearchModal/CompradorSavedSearches/_describe_filters en un solo helper.

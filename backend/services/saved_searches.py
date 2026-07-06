@@ -161,17 +161,27 @@ def _alert_html(
 
 
 def _describe_filters(filters: Dict) -> str:
+    # claves del marketplace REAL (max_price/beds/min_sqm, colonia str|lista) + compat con las
+    # viejas (price_max/recamaras_min) — antes todo email decía "Todos los desarrollos"
     parts = []
-    if filters.get("colonia"):
-        parts.append(f"Colonia: {filters['colonia']}")
+    cols = filters.get("colonia")
+    cols = [cols] if isinstance(cols, str) else (cols or [])
+    if cols:
+        parts.append(f"Zona{'s' if len(cols) > 1 else ''}: {', '.join(str(c) for c in cols)}")
     if filters.get("zona"):
         parts.append(f"Zona: {filters['zona']}")
     if filters.get("tipo"):
         parts.append(f"Tipo: {filters['tipo']}")
-    if filters.get("price_max"):
-        parts.append(f"Hasta ${int(filters['price_max'] / 1_000_000):.1f}M")
-    if filters.get("recamaras_min"):
-        parts.append(f"{filters['recamaras_min']}+ recámaras")
+    pmax = filters.get("max_price") or filters.get("price_max")
+    if pmax:
+        parts.append(f"Hasta ${int(pmax) / 1_000_000:.1f}M")
+    if filters.get("mensualidad_max"):
+        parts.append(f"Mens. hasta ${int(filters['mensualidad_max'] / 1000)}k")
+    beds = filters.get("beds") or filters.get("recamaras_min")
+    if beds:
+        parts.append(f"{beds}+ recámaras")
+    if filters.get("min_sqm"):
+        parts.append(f"{filters['min_sqm']}+ m²")
     return " · ".join(parts) if parts else "Todos los desarrollos"
 
 
@@ -273,14 +283,17 @@ async def find_new_matches(
 
     # Query en DB
     query: Dict[str, Any] = {"published_at": {"$gte": cutoff}}
-    if filters.get("colonia"):
-        query["colonia"] = {"$regex": filters["colonia"], "$options": "i"}
+    cols = filters.get("colonia")
+    cols = [cols] if isinstance(cols, str) else (cols or [])
+    if cols:   # lista o string — antes el $regex sobre lista rompía y la búsqueda jamás alertaba
+        query["$or"] = [{"colonia": {"$regex": str(c), "$options": "i"}} for c in cols]                        + [{"colonia_id": {"$in": [str(c) for c in cols]}}]
     if filters.get("zona"):
         query["zona"] = {"$regex": filters["zona"], "$options": "i"}
     if filters.get("tipo"):
         query["tipo"] = filters["tipo"]
-    if filters.get("price_max"):
-        query["price_from"] = {"$lte": filters["price_max"]}
+    _pmax = filters.get("max_price") or filters.get("price_max")
+    if _pmax:
+        query["price_from"] = {"$lte": _pmax}
 
     try:
         db_matches = await db.developments.find(query, {"_id": 0}).limit(10).to_list(10)
@@ -292,9 +305,16 @@ async def find_new_matches(
     if not db_matches:
         static = []
         for d in DEVELOPMENTS:
-            if filters.get("colonia") and filters["colonia"].lower() not in (d.get("colonia", "")).lower():
+            _cols = filters.get("colonia")
+            _cols = [_cols] if isinstance(_cols, str) else (_cols or [])
+            if _cols and not any(str(c).lower() in (d.get("colonia", "") + " " + d.get("colonia_id", "")).lower() for c in _cols):
                 continue
-            if filters.get("price_max") and d.get("price_from", 0) > filters["price_max"]:
+            _pmax = filters.get("max_price") or filters.get("price_max")
+            if _pmax and d.get("price_from", 0) > _pmax:
+                continue
+            if filters.get("beds") and (d.get("bedrooms_range") or [0, 0])[1] < filters["beds"]:
+                continue
+            if filters.get("min_sqm") and (d.get("m2_range") or [0, 0])[1] < filters["min_sqm"]:
                 continue
             static.append(d)
         db_matches = static[:6]
@@ -319,7 +339,9 @@ async def send_alert(db, search: Dict) -> bool:
         import cube_lens
         corte, _fuera = filtros_marketplace_a_corte(search.get("filters", {}))
         if corte:
-            esp = await cube_lens.espejo_con_lente(db, "comprador", corte)
+            _lente = await cube_lens.consulta_con_lente(db, "comprador", corte)
+            _n = _lente.get("n_disponibles") if _lente.get("ok") and not _lente.get("suprimido") else None
+            esp = await cube_lens.espejo_con_lente(db, "comprador", corte, n_oferta=_n)
             if esp.get("hay_demanda"):
                 fuego = "🔥 Tu corte está caliente — " if esp.get("caliente") else ""
                 espejo_linea = (

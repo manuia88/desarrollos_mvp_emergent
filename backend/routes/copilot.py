@@ -69,6 +69,8 @@ async def delete_conv(conversation_id: str, request: Request) -> Dict[str, Any]:
 
 QUICK_ACTIONS_BY_ROLE: Dict[str, List[Dict[str, str]]] = {
     "developer_admin": [
+        {"id": "tension_inventario", "label": "¿Qué corte de mi inventario está caliente?",
+         "prompt": "Revisa tension_de_mis_cortes del contexto: ¿qué celda (colonia × recámaras) tiene mayor tensión y cuál está fría (candidata a recorte de precio)?"},
         {"id": "pipeline_summary",
          "label": "Resume mi pipeline esta semana",
          "prompt": "Dame un resumen ejecutivo de mi pipeline esta semana: leads activos, conversiones, y proyectos con mejor desempeño. Usa viñetas."},
@@ -89,6 +91,8 @@ QUICK_ACTIONS_BY_ROLE: Dict[str, List[Dict[str, str]]] = {
          "prompt": "Redacta un reporte semanal en tono ejecutivo (≤200 palabras) con KPIs, riesgos y siguiente semana."},
     ],
     "advisor": [
+        {"id": "cortes_calientes", "label": "¿Qué cliente tiene el corte más peleado?",
+         "prompt": "Revisa cortes_de_mis_clientes: ¿qué búsqueda tiene mayor tension_por_unidad, de qué cliente es, y qué le digo HOY con esos números (unidades que le quedan + compradores compitiendo)?"},
         {"id": "my_pipeline",
          "label": "Mi pipeline esta semana",
          "prompt": "Resume mi pipeline activo esta semana: cantidad de leads por stage, valor estimado y próximas citas. Sé breve."},

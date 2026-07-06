@@ -115,6 +115,18 @@ async def _developer_context(db, user) -> Dict[str, Any]:
             "bookings_total": bookings,
         })
 
+    # CUBO F4 (auditoría): la tensión de SUS cortes también en el Copilot (antes solo el Director).
+    tension_cortes: List[Dict[str, Any]] = []
+    try:
+        from tenant_scope import user_dev_ids
+        import demand_intelligence as di
+        _ids = list(user_dev_ids(user) or [])
+        if _ids:
+            _t = await di.tension_cortes_dev(db, _ids, max_celdas=3)
+            tension_cortes = _t.get("celdas", [])
+    except Exception:  # noqa: BLE001 — el bloque del cubo jamás tumba el Copilot
+        pass
+
     return {
         "role": user.role,
         "name": getattr(user, "name", None),
@@ -122,6 +134,7 @@ async def _developer_context(db, user) -> Dict[str, Any]:
         "alerts_count": alerts_count,
         "team_summary": team_summary,
         "funnel_top5_projects": funnel_top5,
+        "tension_de_mis_cortes": tension_cortes,
     }
 
 
@@ -135,7 +148,7 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
     leads: List[Dict[str, Any]] = []
     async for ld in db.leads.find(leads_q,
                                   {"_id": 0, "id": 1, "name": 1, "lead_stage": 1,
-                                   "project_id": 1, "score": 1, "last_contact_at": 1}).limit(15):
+                                   "project_id": 1, "score": 1, "last_contact_at": 1}).limit(8):
         leads.append({
             "id": ld.get("id"),
             "nombre": ld.get("name"),
@@ -195,7 +208,7 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
             {"owner_id": aid, "archived": {"$ne": True}},
             {"_id": 0, "first_name": 1, "last_name": 1, "etapa": 1, "fuente": 1,
              "temperatura": 1, "origin": 1},
-        ).sort("created_at", -1).limit(15):
+        ).sort("created_at", -1).limit(8):
             crm.append({
                 "nombre": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip() or "Lead",
                 "etapa": c.get("etapa", "nuevo"),
@@ -218,10 +231,25 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
             if not corte:
                 continue
             lente = await cube_lens.consulta_con_lente(db, "asesor", corte)
-            n = lente.get("n") if lente.get("ok") and not lente.get("suprimido") else None
+            # DISPONIBLES, no el total (auditoría F4: contar vendidas mentía el inventario del pitch)
+            n = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
             esp = await cube_lens.espejo_con_lente(db, "asesor", corte, n_oferta=n)
+            # nombre del cliente + resumen del corte: sin esto el LLM solo ve ids opacos
+            cliente = None
+            try:
+                c = await db.asesor_contactos.find_one({"id": b.get("contacto_id")},
+                                                       {"_id": 0, "first_name": 1, "last_name": 1})
+                if c:
+                    cliente = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip() or None
+            except Exception:  # noqa: BLE001
+                pass
+            resumen = " · ".join(filter(None, [
+                ", ".join(b.get("colonias") or []) or None,
+                f"{b['recamaras_min']}+ rec" if b.get("recamaras_min") else None,
+                f"hasta ${b['precio_max']:,.0f}" if b.get("precio_max") else None]))
             cortes_clientes.append({
                 "busqueda_id": b.get("id"), "contacto_id": b.get("contacto_id"),
+                "cliente": cliente, "corte_resumen": resumen or None,
                 "unidades_que_le_quedan": n,
                 "compradores_buscando_lo_mismo": esp.get("personas"),
                 "tension_por_unidad": esp.get("tension_por_unidad"),

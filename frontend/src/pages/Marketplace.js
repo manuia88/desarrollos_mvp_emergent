@@ -287,11 +287,24 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // CUBO F4.1 — espejo personal: con búsqueda completa, pregunta al cubo cuánta gente busca
   // este mismo corte (bandas k-anon, jamás conteos exactos) + si el corte está caliente.
   const [espejoData, setEspejoData] = useState(null);
+  const espejoVistos = useRef(new Set());   // señal espejo_view: 1 por corte, no por re-render
   useEffect(() => {
     if (!canSearch) { setEspejoData(null); return undefined; }
     const merged = { ...filters, ...(coloniaFilter ? { colonia: coloniaFilter } : {}), ...(aiFilters || {}) };
+    const corteKey = JSON.stringify(merged);
     const tid = setTimeout(() => {
-      fetchEspejoCorte(merged).then((d) => setEspejoData(d?.ok && d.espejable ? d : null)).catch(() => setEspejoData(null));
+      fetchEspejoCorte(merged).then((d) => {
+        const ok = d?.ok && d.espejable ? d : null;
+        setEspejoData(ok);
+        // FLYWHEEL (auditoría F4): el espejo mostrado ES una señal — sin esto el sensor era ciego
+        if (ok && (ok.espejo?.hay_demanda || ok.unidades_disponibles != null) && !espejoVistos.current.has(corteKey)) {
+          espejoVistos.current.add(corteKey);
+          import('../lib/buyerSignal').then(({ sendBuyerSignal }) => sendBuyerSignal && sendBuyerSignal('espejo_view', {
+            meta: { banda: ok.espejo?.personas_banda || null, caliente: !!ok.espejo?.caliente,
+                    unidades: ok.unidades_disponibles, filtros: Object.keys(merged) },
+          })).catch(() => {});
+        }
+      }).catch(() => setEspejoData(null));
     }, 600);   // debounce: no un POST por tecla
     return () => clearTimeout(tid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -706,6 +719,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                       {espejoData.espejo.caliente && <b style={{ color: '#DC582A' }}> Este corte está caliente.</b>}
                       {espejoData.espejo.momentum === 'subiendo' && <span style={{ color: '#1FA06A', fontWeight: 700 }}> La demanda va subiendo.</span>}
                     </span>
+                    {/* cero-callejones: la urgencia SIEMPRE ofrece la acción */}
+                    <button data-testid="mkp-espejo-cta" onClick={() => setSaveSearchOpen(true)}
+                      style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, background: espejoData.espejo.caliente ? 'rgba(220,88,42,0.12)' : 'rgba(31,160,106,0.1)', border: `1.5px solid ${espejoData.espejo.caliente ? 'rgba(220,88,42,0.4)' : 'rgba(31,160,106,0.35)'}`, color: espejoData.espejo.caliente ? '#DC582A' : '#1FA06A' }}>
+                      🔔 Avísame de este corte
+                    </button>
                   </div>
                 )}
                 {!showResults ? (
