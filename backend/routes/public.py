@@ -467,8 +467,12 @@ async def zona_inversion(colonia_id: str, request: Request):
             try:
                 dem = await db.marketplace_searches.count_documents({"colonias": colonia_id})
                 if dem:
-                    dem_alerta = await db.marketplace_searches.count_documents({"colonias": colonia_id, "alert": True})
-                    out["demanda_zona"] = {"busquedas": int(dem), "con_alerta": int(dem_alerta)}
+                    # F6 (auditoría): banda k-anon, NO el conteo exacto (misma doctrina que /api/v1/cuts)
+                    from cube_lens import _banda_personas, K_ANON_MIN
+                    banda = _banda_personas(int(dem), K_ANON_MIN)
+                    if banda:
+                        dem_alerta = await db.marketplace_searches.count_documents({"colonias": colonia_id, "alert": True})
+                        out["demanda_zona"] = {"banda": banda, "hay_alertas": bool(dem_alerta)}
             except Exception:
                 pass
             # RETORNO NETO DE IMPUESTOS (régimen de arrendamiento · deducción ciega 35% × tasa marginal ~30% ≈ 19.5%

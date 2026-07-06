@@ -131,6 +131,7 @@ async def v1_timeseries(
 ):
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "zone_scores")
     started = time.perf_counter()
     db = _db(request)
     cutoff = (_now() - timedelta(days=days)).date().isoformat()
@@ -207,6 +208,9 @@ async def v1_drpi(
 ):
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "drpi")
+    auth.require_scope(ctx, "risk_scores")
+    auth.require_scope(ctx, "zone_scores")
     started = time.perf_counter()
     db = _db(request)
     import drpi_engine as drpi
@@ -238,6 +242,7 @@ async def v1_comparables(
 ):
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "comparables")
     started = time.perf_counter()
     db = _db(request)
     # Simple bounding-box prefilter (radius_km ≈ 0.009° per km)
@@ -286,6 +291,7 @@ async def v1_market_indices(request: Request, response: Response):
     """F5.2 · Los 3 índices DMX (Obra · Absorción · Gestión) + maestro. Bundle indices_dmx_suite (pro+)."""
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "indices_dmx")
     started = time.perf_counter()
     db = _db(request)
     from terminal_mercado_engine import terminal_mercado
@@ -313,6 +319,7 @@ async def v1_market_indices_history(request: Request, response: Response,
     """F5.3 · Curva histórica de los 3 índices DMX. Bundle indices_dmx_suite (pro+)."""
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "indices_dmx")
     started = time.perf_counter()
     db = _db(request)
     from terminal_mercado_engine import historial_indices
@@ -327,6 +334,7 @@ async def v1_zone_demand(zone_id: str, request: Request, response: Response):
     """F5.2 · Grafo del Comprador (demanda anónima por colonia · k-anon). Bundle grafo_demanda_suite (enterprise)."""
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "grafo_demanda")
     started = time.perf_counter()
     db = _db(request)
     from grafo_comprador_engine import build_grafo
@@ -356,6 +364,7 @@ async def v1_zone_bancabilidad(zone_id: str, request: Request, response: Respons
     """F5.2 · Score de Bancabilidad agregado por zona (sin nombres de proyecto). Enterprise."""
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "grafo_demanda")
     started = time.perf_counter()
     db = _db(request)
     from bancabilidad_engine import bancabilidad_por_zona
@@ -368,6 +377,7 @@ async def v1_zone_bancabilidad(zone_id: str, request: Request, response: Respons
 async def v1_valuation(property_id: str, request: Request, response: Response):
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "valuations")
     started = time.perf_counter()
     db = _db(request)
     # Stub AVM: lookup transaction + run hedonic predict if possible
@@ -410,50 +420,72 @@ async def v1_valuation(property_id: str, request: Request, response: Response):
 _TENSION_NIVEL = lambda t: None if t is None else ("alta" if t >= 1 else "media" if t >= 0.5 else "baja")
 
 
+# F6 (auditoría): campos del corte que revelan la identidad de un desarrollador — un corte
+# publicado sobre ellos NUNCA se sirve a partners (development_id eq X = dossier de un dev).
+_CAMPOS_IDENTIFICABLES = {"development_id", "desarrolladora"}
+
+
 @router.get("/api/v1/cuts/{slug}")
-async def v1_cut(slug: str, request: Request):
+async def v1_cut(slug: str, request: Request, response: Response):
     """F6 · EL CORTE COMO PRODUCTO: un corte publicado desde el Hub, servido con la lente
     PARTNER (k≥5, cero unidades, cero identidad de devs, demanda en BANDAS) + su línea de
-    tiempo diaria bandaizada. Tier enterprise · scope 'cuts'."""
+    tiempo diaria bandaizada. Tier enterprise · scope 'cuts'. Gate de contribuyentes: <3 devs
+    → se suprime el ritmo de venta (disponibles/absorción) en KPIs Y en la historia."""
     import public_api_auth as auth
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "enterprise")
     auth.require_scope(ctx, "cuts")
+    started = time.perf_counter()
     db = request.app.state.db
     v = await db.saved_views.find_one({"slug": slug, "publicado": True, "tipo": "explorador"}, {"_id": 0})
     if not v:
         raise HTTPException(404, "Corte no publicado")
     d = v.get("definicion") or {}
+    # doble candado (además del de publicar): un corte identificable jamás se sirve
+    if any(str(f.get("campo")) in _CAMPOS_IDENTIFICABLES for f in (d.get("filtros") or [])):
+        raise HTTPException(403, "Corte no licenciable (filtra por identidad de desarrollador)")
     import cube_lens
     lente = await cube_lens.consulta_con_lente(db, "partner", d.get("filtros") or [],
                                                d.get("agrupar_por") or [],
                                                universo=d.get("universo") or "unidades")
     if not lente.get("ok"):
         raise HTTPException(422, "Corte no ejecutable")
+    pocos = bool(lente.get("pocos_contribuyentes"))
     espejo = await cube_lens.espejo_con_lente(db, "partner", d.get("filtros") or [],
                                               universo=d.get("universo") or "unidades",
                                               n_oferta=lente.get("n_disponibles"))
-    # historia bandaizada: n/precio agregados viajan; personas exactas y tensión NO (bandas/nivel)
+    # historia bandaizada: n/precio agregados viajan; personas exactas y tensión NO (bandas/nivel).
+    # Con <3 devs el ritmo de venta diario (disponibles/absorción) se SUPRIME (revelaría ventas
+    # unitarias de un dev identificable día a día).
     from cube_lens import _banda_personas, K_ANON_MIN
     historia = []
     async for p in db.cube_corte_snapshots.find({"ref_tipo": "vista", "ref_id": v["id"]},
                                                 {"_id": 0, "at": 0}).sort("fecha", 1).limit(400):
         if (p.get("n") or 0) < K_ANON_MIN:
             continue   # punto chico: suprimido también en la historia
-        historia.append({"fecha": p["fecha"], "n": p.get("n"), "disponibles": p.get("disponibles"),
-                         "precio_prom": p.get("precio_prom"), "absorcion_pct": p.get("absorcion_pct"),
-                         "demanda_banda": _banda_personas(p.get("personas") or 0, K_ANON_MIN),
-                         "tension_nivel": _TENSION_NIVEL(p.get("tension"))})
-    await auth.track_api_call(db, ctx, request, status_code=200, latency_ms=0)
-    return {"corte": {"nombre": v.get("nombre"), "slug": slug, "definicion": d},
-            "actual": {k2: lente.get(k2) for k2 in ("n", "n_disponibles", "suprimido", "kpis", "grupos", "colonias")},
-            "espejo": espejo, "historia": historia,
-            "meta": {"lente": "partner", "k_anon": K_ANON_MIN, "nota": "agregados k-anónimos; sin unidades ni identidad de desarrolladores"}}
+        punto = {"fecha": p["fecha"], "n": p.get("n"), "precio_prom": p.get("precio_prom"),
+                 "demanda_banda": _banda_personas(p.get("personas") or 0, K_ANON_MIN),
+                 "tension_nivel": None if pocos else _TENSION_NIVEL(p.get("tension"))}
+        if not pocos:
+            punto["disponibles"] = p.get("disponibles")
+            punto["absorcion_pct"] = p.get("absorcion_pct")
+        historia.append(punto)
+    out = {"corte": {"nombre": v.get("nombre"), "slug": slug},   # SIN 'definicion' cruda (filtros internos)
+           "actual": {k2: lente.get(k2) for k2 in ("n", "n_disponibles", "suprimido", "kpis", "grupos", "colonias")},
+           "espejo": espejo, "historia": historia,
+           "meta": {"lente": "partner", "k_anon": K_ANON_MIN,
+                    "pocos_contribuyentes": pocos,
+                    "nota": ("agregados k-anónimos; sin unidades ni identidad de desarrolladores"
+                             + (" · ritmo de venta suprimido: menos de 3 desarrolladores en el corte" if pocos else ""))}}
+    return await _deliver(db, ctx, request, response, f"/api/v1/cuts/{slug}", out,
+                          records=len(historia) or 1, started=started)
+
 
 @router.get("/api/v1/demand-pulse")
 async def v1_demand_pulse(request: Request, response: Response):
     ctx = await auth.validate_api_key(request)
     auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "grafo_demanda")
     started = time.perf_counter()
     db = _db(request)
     cutoff = (_now() - timedelta(days=7)).isoformat()

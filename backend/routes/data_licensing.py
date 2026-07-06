@@ -335,7 +335,8 @@ async def create_subscription(body: CreateSubscriptionBody, request: Request):
             "tenant_id": body.tenant_id, "tier": "enterprise",
             "scopes": list(scope or []) + ["cuts"], "status": "active",
             "monthly_quota_calls": 100_000, "calls_this_month": 0, "calls_total": 0,
-            "created_at": _iso(), "source": "data_licensing_subscription",
+            "created_at": _iso(), "expires_at": ends.isoformat(),   # F6: muere con la suscripción
+            "source": "data_licensing_subscription",
             "subscription_id": doc["id"],
         })
         out["api_key"] = _k["full_key"]   # visible UNA sola vez, en esta respuesta al superadmin
@@ -445,7 +446,7 @@ async def _send_welcome_email(sub: Dict[str, Any]) -> str:
           Próximos pasos:
         </p>
         <ol style="font-family:sans-serif;color:#3a3a3a">
-          <li>Recibirás tu API key vía canal seguro en las próximas 24h</li>
+          <li>Tu API key fue entregada al activar la suscripción (guárdala: solo se muestra una vez)</li>
           <li>Onboarding deck (PDF) será compartido en la sesión kickoff</li>
           <li>Slack channel privado para soporte enterprise</li>
         </ol>

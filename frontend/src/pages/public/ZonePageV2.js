@@ -734,9 +734,9 @@ function WizardVivir({ name, devs, allDevs, zoneId, lugares, onCTA, onProfile })
 
 // Banda de "interés real" (prueba social · arco Hormozi). Datos CONCRETOS y verificados: búsquedas reales de la zona
 // (buyer_signals/demanda_zona de superadmin) + desarrollos en venta + precio desde. NO scores subjetivos. Solo si hay señal.
-function PulsoZona({ name, busquedas, nDevs, precioDesde }) {
+function PulsoZona({ name, banda, nDevs, precioDesde }) {
   const items = [];
-  if (busquedas >= 5) items.push(['👀', <>{busquedas} personas exploraron <b style={{ color: '#fff' }}>{name}</b> estos días</>]);
+  if (banda) items.push(['👀', <>{banda} personas exploraron <b style={{ color: '#fff' }}>{name}</b> estos días</>]);
   if (nDevs > 0) items.push(['🏗️', <>{nDevs} desarrollo{nDevs > 1 ? 's' : ''} en venta</>]);
   if (precioDesde) items.push(['🏷️', <>desde <b style={{ color: '#fff' }}>{m1(precioDesde)}</b></>]);
   if (items.length < 2) return null;
@@ -1026,7 +1026,7 @@ export default function ZonePageV2() {
     if (enObra >= 1) out.push(['🏗️', `${enObra} ${enObra === 1 ? 'desarrollo nuevo' : 'desarrollos nuevos'} en marcha`, 'Obra nueva = capital apostando por la zona. La oferta de calidad jala precio.']);
     if (inv && inv.plusvalia_anual_pct >= 5) out.push(['📈', `Precios subiendo ~${inv.plusvalia_anual_pct}% al año`, 'La zona ya trae inercia de plusvalía, no apuesta a futuro.']);
     if ((lugares && lugares.metro) || (vida && vida.fuente === 'google' && (vida.amenidades || {}).transporte >= 10)) out.push(['🚇', 'Bien conectada al transporte', 'La conectividad sostiene la demanda de renta y el valor.']);
-    if (inv && inv.demanda_zona && inv.demanda_zona.busquedas >= 10) out.push(['🔥', 'Zona muy buscada', `${inv.demanda_zona.busquedas} personas la buscaron aquí mismo.`]);
+    if (inv && inv.demanda_zona && inv.demanda_zona.banda) out.push(['🔥', 'Zona muy buscada', `${inv.demanda_zona.banda} personas la buscaron aquí mismo.`]);
     return out;
   })();
 
@@ -1249,7 +1249,7 @@ export default function ZonePageV2() {
         ) : (
         <div key={`body-${profile}`}>
         {/* PULSO · interés real de la zona (prueba social · datos concretos) arriba del arco */}
-        {tieneMercado && inv && <PulsoZona name={name} busquedas={(inv.demanda_zona && inv.demanda_zona.busquedas) || 0} nDevs={devs.length} precioDesde={inv.precio_min || (sortedDevs[0] && sortedDevs[0].price_from)} />}
+        {tieneMercado && inv && <PulsoZona name={name} banda={inv.demanda_zona && inv.demanda_zona.banda} nDevs={devs.length} precioDesde={inv.precio_min || (sortedDevs[0] && sortedDevs[0].price_from)} />}
         {/* ════════ MUESTRA REDISEÑO (estilo Dividenz/GBM) · arco full-bleed, fondos alternados, números enormes ════════ */}
         {profile === 'invertir' && S && (() => {
           const plus = inv.plusvalia_anual_pct;
@@ -1357,8 +1357,8 @@ export default function ZonePageV2() {
                       ))}
                     </div>
                   )}
-                  {(inv.demanda_zona && inv.demanda_zona.busquedas >= 3) && (
-                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 24, lineHeight: 1.6 }}>Y no eres el único que la mira: <b style={{ color: INK }}>{inv.demanda_zona.busquedas} personas</b> buscaron propiedad en {name} aquí mismo{inv.demanda_zona.con_alerta > 0 ? `, y ${inv.demanda_zona.con_alerta} dejaron una alerta esperando que entre algo` : ''}. Donde hay quién la quiera, hay con quién rentar y a quién vender mañana.</p>
+                  {(inv.demanda_zona && inv.demanda_zona.banda) && (
+                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 24, lineHeight: 1.6 }}>Y no eres el único que la mira: <b style={{ color: INK }}>{inv.demanda_zona.banda} personas</b> buscaron propiedad en {name} aquí mismo{inv.demanda_zona.hay_alertas ? ', y varias dejaron una alerta esperando que entre algo' : ''}. Donde hay quién la quiera, hay con quién rentar y a quién vender mañana.</p>
                   )}
                   {inv.vs_ciudad && (() => {
                     const p = inv.vs_ciudad.precio_vs_ciudad_pct; const caro = p >= 0;
@@ -1767,7 +1767,7 @@ export default function ZonePageV2() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, marginTop: 28 }}>
                 {[
                   ['💧', 'No es dinero inmediato', 'Una propiedad no se vende en un día. La idea es tenerla unos años — por eso rinde.'],
-                  ['🏠', 'Puede haber meses vacíos', `A veces tarda en rentarse. Por eso cuidamos que de verdad haya quién la quiera${inv.demanda_zona && inv.demanda_zona.busquedas ? ` — aquí ${inv.demanda_zona.busquedas} la buscaron` : ''}.`],
+                  ['🏠', 'Puede haber meses vacíos', `A veces tarda en rentarse. Por eso cuidamos que de verdad haya quién la quiera${inv.demanda_zona && inv.demanda_zona.banda ? ` — aquí ${inv.demanda_zona.banda} la buscaron` : ''}.`],
                   ['📉', 'El precio se mueve', 'A corto plazo puede bajar. A varios años, la tendencia aquí es subir.'],
                   ['🏦', 'Si pides crédito, la tasa pesa', 'Hoy está alta; cuando baje, lo tuyo rinde todavía más.'],
                 ].map(([e, t, d]) => (

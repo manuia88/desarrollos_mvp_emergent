@@ -294,8 +294,9 @@ async def licensable_route(request: Request, period: PeriodLit = "current"):
         if n < K:                       # k-anon: no publicar zonas con muy poca oferta
             suprimidas += 1
             continue
-        n_devs = len(devs_por_col.get(str(c.get("zone") or "").lower(), set()))
-        ventas_ok = n_devs >= K or not devs_por_col   # fail-open solo si no pudimos contar devs
+        # F6: gate de contribuyentes compartido (anonymization_engine) — misma doctrina en un solo lugar
+        from anonymization_engine import ventas_publicables
+        ventas_ok = ventas_publicables(str(c.get("zone") or ""))
         if not ventas_ok:
             protegidas += 1
         rows.append({
@@ -625,9 +626,16 @@ async def vista_publicar_route(view_id: str, request: Request):
     db = _db(request)
     body = await request.json()
     publicar = bool(body.get("publicado", True))
-    v = await db.saved_views.find_one({"id": view_id, "tipo": "explorador"}, {"_id": 0, "id": 1, "nombre": 1, "slug": 1})
+    v = await db.saved_views.find_one({"id": view_id, "tipo": "explorador"}, {"_id": 0})
     if not v:
         raise HTTPException(404, "Vista no encontrada")
+    # F6 (auditoría): un corte que filtra por identidad de dev NO se publica a partners (sería
+    # un dossier de UN competidor con nombre). El gate de <3 contribuyentes lo aplica la lente
+    # al servir; esto bloquea el caso explícito en el origen.
+    if publicar:
+        _ident = {"development_id", "desarrolladora"}
+        if any(str(f.get("campo")) in _ident for f in ((v.get("definicion") or {}).get("filtros") or [])):
+            raise HTTPException(422, "Este corte filtra por un desarrollador — no es licenciable a partners")
     import re as _re
     import uuid as _uuid
     slug = v.get("slug") or (_re.sub(r"[^a-z0-9]+", "-", (v.get("nombre") or "corte").lower()).strip("-")[:40]

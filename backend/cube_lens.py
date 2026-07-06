@@ -53,8 +53,13 @@ LENTES: Dict[str, Dict[str, Any]] = {
         "campos_ocultos": ["prob_venta", "dias_en_mercado", "development_id", "unit_id"],
         "espejo_exacto": False,
         "grupos_en_banda": True,
+        "gate_contribuyentes": True,   # <3 devs distintos → suprime ritmo de venta (no re-identificable)
     },
 }
+
+MIN_CONTRIBUYENTES = 3   # doctrina licensable: absorción/vendidas de <3 devs = performance de UN competidor
+# KPIs que revelan el ritmo de venta de un desarrollador identificable (se suprimen bajo el gate)
+_KPIS_RITMO = ("vendidas", "disponibles", "absorcion_pct")
 
 _BANDAS_PERSONAS = [(5, 9, "5-9"), (10, 24, "10-24"), (25, 49, "25-49"), (50, 10**9, "50+")]
 
@@ -95,11 +100,23 @@ async def consulta_con_lente(db, rol: str, filtros: List[Dict[str, Any]],
                    mensaje=f"El corte tiene menos de {k} {'colonias' if universo == 'zonas' else 'unidades'} — "
                            f"no publicable a este nivel de detalle. Amplía el corte.")
         return out
-    kpis = r.get("kpis") or {}
+    kpis = dict(r.get("kpis") or {})
+    # GATE DE CONTRIBUYENTES (auditoría F6): si el corte tiene <3 desarrolladores distintos, los
+    # KPIs de ritmo de venta (vendidas/disponibles/absorción) son la performance de UN competidor
+    # identificable — se suprimen. Se cuentan devs sobre la muestra materializada (fail-safe:
+    # sub-conteo → más supresión). El precio de LISTA se mantiene (es público en el marketplace).
+    pocos_contribuyentes = False
+    if lente.get("gate_contribuyentes") and universo == "unidades":
+        n_devs = len({u.get("development_id") for u in (r.get("unidades") or []) if u.get("development_id")})
+        if n_devs < MIN_CONTRIBUYENTES:
+            pocos_contribuyentes = True
+            for _kk in _KPIS_RITMO:
+                kpis.pop(_kk, None)
     # HONESTIDAD: el headline público es DISPONIBLES (lo que de verdad queda), no el total del
     # corte — contar vendidas+reservadas infla urgencia Y filtra absorción de un dev identificable.
     out.update(n=r["n"], suprimido=False, kpis=kpis,
-               n_disponibles=kpis.get("disponibles") if universo == "unidades" else None)
+               n_disponibles=(None if pocos_contribuyentes else kpis.get("disponibles")) if universo == "unidades" else None,
+               pocos_contribuyentes=pocos_contribuyentes)
 
     # grupos: celda chica → enmascarada (cuenta que existe, sin números)
     grupos = []

@@ -17,6 +17,46 @@ log = logging.getLogger("dmx.anonymization_engine")
 # Cualquier gate de privacidad por zona debe importar K_ANON_MIN, no hardcodear el número.
 K_ANON_MIN = 5
 
+
+# ─── F6 · gate de contribuyentes por zona (una métrica de ritmo de venta de <N devs es la
+# performance de UN competidor identificable). Doctrina compartida: cualquier gate por zona
+# importa de aquí, no lo hardcodea. Mapa estático (DEVELOPMENTS) con doble clave id + nombre
+# (el cube keyea por colonia_id, dmx_indices por nombre).
+MIN_CONTRIBUYENTES = 3
+_DEVS_POR_ZONA: Optional[dict] = None
+
+
+def _build_devs_por_zona() -> dict:
+    m: dict = {}
+    try:
+        from data_developments import DEVELOPMENTS
+        for d in DEVELOPMENTS:
+            dev = d.get("developer_id") or d.get("id")
+            for key in (d.get("colonia_id"), d.get("colonia")):
+                if key:
+                    m.setdefault(str(key).lower().strip(), set()).add(dev)
+    except Exception:  # noqa: BLE001
+        pass
+    return m
+
+
+def devs_en_zona(zona: str) -> Optional[int]:
+    """Nº de desarrolladores distintos con oferta en la zona (colonia_id o nombre). None si no
+    se pudo construir el mapa (→ fail-open en el consumidor)."""
+    global _DEVS_POR_ZONA
+    if _DEVS_POR_ZONA is None:
+        _DEVS_POR_ZONA = _build_devs_por_zona()
+    if not _DEVS_POR_ZONA:
+        return None
+    return len(_DEVS_POR_ZONA.get(str(zona or "").lower().strip(), set()))
+
+
+def ventas_publicables(zona: str, k: int = MIN_CONTRIBUYENTES) -> bool:
+    """¿Se puede publicar el ritmo de venta (absorción/vendidas) de esta zona? Solo con ≥k devs.
+    Fail-open si no se pudo contar (mismo contrato que el licensable existente)."""
+    n = devs_en_zona(zona)
+    return n is None or n >= k
+
 # ─── PII field definitions ────────────────────────────────────────────────────
 
 # Raw PII that must NEVER appear in public responses

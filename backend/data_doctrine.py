@@ -33,6 +33,14 @@ async def has_real_sales(db) -> bool:
     if _real_sales_cache["val"] is not None and (now - _real_sales_cache["ts"]) < 300:
         return _real_sales_cache["val"]
     val = False
+    # F6 (auditoría): en dev/local/preview/staging las colecciones se llenan con cierres de PRUEBA
+    # (1 tx demo encendía la frase "según ventas reales"). Reusa la convención de env de server.py.
+    import os as _os
+    _env = (_os.environ.get("DMX_ENV") or "").lower()
+    _is_dev = _env in ("dev", "local", "preview", "staging") or str(_os.environ.get("DMX_DEV_MODE", "")).lower() in ("1", "true", "yes")
+    if _is_dev:
+        _real_sales_cache.update(val=False, ts=now)
+        return False
     try:
         if await db.units_history.estimated_document_count() > 0:
             val = True

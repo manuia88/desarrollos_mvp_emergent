@@ -79,7 +79,11 @@ def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]]) -> Dic
     a = abs_map.get(colonia.get("name")) or {}
     ctx: Dict[str, Any] = {}
     if a.get("total"):
-        ctx["absorcion_pct"] = round(a["sold"] / a["total"] * 100, 1)
+        # F6 (auditoría): la absorción alimenta el IAB público; con <3 devs sería el ritmo de
+        # venta de UN competidor identificable → se omite y el IAB degrada a 'estimado'.
+        from anonymization_engine import ventas_publicables
+        if ventas_publicables(colonia.get("name") or colonia.get("id") or ""):
+            ctx["absorcion_pct"] = round(a["sold"] / a["total"] * 100, 1)
     return ctx
 
 
