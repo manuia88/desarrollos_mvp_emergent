@@ -180,6 +180,40 @@ Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_
 Responde EXCLUSIVAMENTE con JSON, sin markdown."""
 
 
+def _extract_text_from_bytes(b: bytes, mime: str, fname: str) -> str:
+    """Texto legible de bytes: PDF (pdfplumber), XLS/XLSX (openpyxl), CSV/TXT (decode). '' para
+    imágenes (van por visión) o binarios. Best-effort, nunca lanza."""
+    import io
+    name = (fname or "").lower()
+    try:
+        if name.endswith((".csv", ".txt")) or mime in ("text/csv", "text/plain"):
+            return b.decode("utf-8", errors="ignore")[:30000]
+        if name.endswith(".pdf") or mime == "application/pdf":
+            try:
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(b)) as pdf:
+                    return "\n".join((pg.extract_text() or "") for pg in pdf.pages[:20])[:30000]
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[bulk_ingest] pdf text extract falló ({fname}): {e}")
+                return ""
+        if name.endswith((".xlsx", ".xls")) or "spreadsheet" in mime or mime == "application/vnd.ms-excel":
+            try:
+                from openpyxl import load_workbook
+                wb = load_workbook(io.BytesIO(b), data_only=True, read_only=True)
+                parts = []
+                for ws in wb.worksheets:
+                    parts.append(f"[Hoja: {ws.title}]")
+                    for row in ws.iter_rows(values_only=True):
+                        parts.append("\t".join(str(c) if c is not None else "" for c in row))
+                return "\n".join(parts)[:30000]
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[bulk_ingest] xlsx text extract falló ({fname}): {e}")
+                return ""
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
 async def extract_bulk_project(
     project_name_hint: str,
     file_payloads: List[Tuple[bytes, str, str]],  # (bytes, mime, filename)
@@ -197,17 +231,33 @@ async def extract_bulk_project(
             log.warning("[bulk_ingest] no LLM key, returning stub")
             return _stub_extraction(project_name_hint), 0.0
 
-        # For PDFs/images, attach as user message; otherwise just use filename hints
-        content_parts = [f"Carpeta del proyecto: {project_name_hint}\n"]
-        for _b, mime, fname in file_payloads:
-            content_parts.append(f"- Archivo: {fname} ({mime})")
-        user_text = "\n".join(content_parts) + "\n\nDevuelve el JSON estructurado."
+        # Lee el CONTENIDO real de cada archivo (no solo el nombre): texto de PDF/XLS/CSV +
+        # imágenes por visión. Antes solo mandaba filenames → la IA no podía llenar los campos.
+        content_parts = [f"Proyecto (hint): {project_name_hint}\n"]
+        imagenes = []
+        for b, mime, fname in file_payloads:
+            texto = _extract_text_from_bytes(b, mime, fname)
+            if texto:
+                content_parts.append(f"\n=== {fname} ===\n{texto[:8000]}")
+            elif mime.startswith("image/") or (fname or "").lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                try:
+                    from llm_client import ImageContent  # type: ignore
+                    import base64 as _b64
+                    imagenes.append(ImageContent(image_base64=_b64.b64encode(b).decode(),
+                                                 media_type=mime if mime.startswith("image/") else "image/jpeg"))
+                    content_parts.append(f"\n=== {fname} (imagen adjunta) ===")
+                except Exception:  # noqa: BLE001
+                    content_parts.append(f"- Archivo: {fname} ({mime})")
+            else:
+                content_parts.append(f"- Archivo: {fname} ({mime}) [sin texto legible]")
+        user_text = "\n".join(content_parts) + "\n\nDevuelve el JSON estructurado con lo que encuentres en estos documentos."
 
         try:
             session_id = f"bulk-ingest-{secrets.token_urlsafe(8)}"
             chat = LlmChat(api_key=api_key, session_id=session_id, system_message=EXTRACTION_PROMPT)
-            chat = chat.with_model("anthropic", "claude-haiku-4-5")
-            resp = await chat.send_message(UserMessage(text=user_text))
+            chat = chat.with_model("anthropic", "claude-haiku-4-5").with_max_tokens(2000)
+            _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
+            resp = await chat.send_message(_msg)
             raw = (resp or "").strip()
             # Strip code fences
             if raw.startswith("```"):
@@ -797,3 +847,57 @@ async def ensure_bulk_ingest_indexes(db) -> None:
         await db.bulk_ingest_items.create_index([("job_id", 1), ("decision", 1)])
     except Exception as e:
         log.warning(f"[bulk_ingest] indexes failed: {e}")
+
+
+async def ingest_uploaded_files(db, job_id: str, project_name_hint: str,
+                                payloads, target_org=None) -> None:
+    """Ingesta por UPLOAD DIRECTO (PDF/XLS/imágenes de la compu, sin Drive) → MISMA tubería:
+    Claude Haiku extrae y llena los campos → dedup → cola de revisión (auto-approve o pending).
+    payloads = List[Tuple[bytes, mime, filename]]. Un batch = un proyecto."""
+    try:
+        try:
+            extracted, cost_mxn = await extract_bulk_project(project_name_hint, payloads)
+        except Exception as e:  # noqa: BLE001
+            extracted, cost_mxn = _stub_extraction(project_name_hint), 0.0
+            log.warning(f"[bulk_ingest] upload extract failed: {e}")
+        if cost_mxn > 0:
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, target_org or "bulk_ingest", "claude-haiku-4-5", 0,
+                                    "bulk_ingest_haiku", tokens_in=2000, tokens_out=400,
+                                    feature_key="bulk_ingest_haiku")
+            except Exception:  # noqa: BLE001
+                pass
+        try:
+            dedup = await find_dedup_matches(db, extracted, target_org)
+        except Exception:  # noqa: BLE001
+            dedup = {"best_match_dev_id": None, "score": None, "similar_matches": []}
+        score = dedup.get("score")
+        decision = "auto_approve" if (score is None or score < 0.65 or score >= 0.85) else "pending_review"
+        item_id = f"bii_{secrets.token_urlsafe(10)}"
+        item_doc = {
+            "id": item_id, "job_id": job_id, "target_dev_org_id": target_org,
+            "source_files": [{"file_id": None, "name": fn, "mime": mm} for (_b, mm, fn) in payloads[:50]],
+            "project_folder_name": project_name_hint, "extracted": extracted, "dedup": dedup,
+            "decision": decision, "inserted_dev_id": None, "ai_cost_mxn": cost_mxn,
+            "source": "upload", "created_at": _iso(),
+        }
+        items_auto = items_pending = items_failed = 0
+        if decision == "auto_approve":
+            try:
+                new_dev_id = await insert_extracted_project(db, item_doc)
+                item_doc.update(decision="approved", inserted_dev_id=new_dev_id, decision_at=_iso())
+                items_auto = 1
+            except Exception as e:  # noqa: BLE001
+                item_doc.update(decision="failed", error=str(e)[:500]); items_failed = 1
+        else:
+            items_pending = 1
+        await db.bulk_ingest_items.insert_one(dict(item_doc))
+        await db.bulk_ingest_jobs.update_one({"id": job_id}, {"$set": {
+            "status": "completed", "completed_at": _iso(), "items_total": 1,
+            "items_auto_approved": items_auto, "items_pending_review": items_pending,
+            "items_failed": items_failed}})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] upload job {job_id} failed: {e}")
+        await db.bulk_ingest_jobs.update_one({"id": job_id}, {"$set": {
+            "status": "failed", "completed_at": _iso(), "error_log": [str(e)[:300]]}})

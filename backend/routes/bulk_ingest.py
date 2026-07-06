@@ -10,10 +10,20 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Literal
 
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 
 import bulk_ingest_engine as bie
+
+# tipos que la IA puede leer (PDF/XLS/imágenes) — mismo set que la ingesta Drive
+_UPLOAD_MIMES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel", "text/csv",
+    "image/jpeg", "image/png", "image/webp",
+}
+_UPLOAD_MAX_FILES = 12
+_UPLOAD_MAX_MB = 25
 
 log = logging.getLogger("dmx.routes_bulk_ingest")
 
@@ -102,6 +112,43 @@ async def start_job(body: StartBody, request: Request):
 
     # Best-effort estimate (don't list synchronously here; let pipeline discover)
     return {"job_id": job_id, "estimated_files_count": None, "status": "pending"}
+
+
+@router.post(PREFIX + "/upload")
+async def upload_job(request: Request,
+                     files: list[UploadFile] = File(...),
+                     project_name: str = Form(""),
+                     target_dev_org_id: str = Form("")):
+    """UPLOAD DIRECTO (sin Drive): sube PDF/XLS/imágenes de la ficha de UN proyecto → la IA
+    extrae y llena los campos → cola de revisión (misma que la ingesta Drive). Un batch = un
+    proyecto. Reusa toda la tubería (extract_bulk_project + dedup + insert_extracted_project)."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    if not files:
+        raise HTTPException(400, "Sube al menos un archivo")
+    if len(files) > _UPLOAD_MAX_FILES:
+        raise HTTPException(400, f"Máximo {_UPLOAD_MAX_FILES} archivos por proyecto")
+    payloads = []
+    for f in files:
+        data = await f.read()
+        if len(data) > _UPLOAD_MAX_MB * 1024 * 1024:
+            raise HTTPException(400, f"'{f.filename}' pasa de {_UPLOAD_MAX_MB}MB")
+        mime = f.content_type or ""
+        if mime not in _UPLOAD_MIMES and not (f.filename or "").lower().endswith((".pdf", ".xlsx", ".xls", ".csv", ".jpg", ".jpeg", ".png", ".webp")):
+            continue   # ignora tipos que la IA no lee (no revienta el batch)
+        payloads.append((data, mime or "application/octet-stream", f.filename or "archivo"))
+    if not payloads:
+        raise HTTPException(400, "Ningún archivo legible (usa PDF, XLS/CSV o imágenes)")
+
+    job_id = f"bij_{secrets.token_urlsafe(10)}"
+    hint = (project_name or "").strip() or (files[0].filename or "Proyecto").rsplit(".", 1)[0]
+    await db.bulk_ingest_jobs.insert_one({
+        "id": job_id, "source": "upload", "project_name": hint,
+        "target_dev_org_id": target_dev_org_id or None, "status": "extracting",
+        "items_total": 0, "started_at": _now_iso(), "started_by": user.user_id, "error_log": [],
+    })
+    asyncio.create_task(bie.ingest_uploaded_files(db, job_id, hint, payloads, target_dev_org_id or None))
+    return {"job_id": job_id, "files": len(payloads), "status": "extracting"}
 
 
 # ─── 2) GET /jobs ─────────────────────────────────────────────────────────────

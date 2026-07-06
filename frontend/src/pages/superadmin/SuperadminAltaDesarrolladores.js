@@ -6,8 +6,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { UserPlus, Building2, Sparkles, ArrowRight, Check } from 'lucide-react';
-import { altaDesarrollador, listarDesarrolladores, altaProyecto } from '../../api/superadminAlta';
+import { UserPlus, Building2, Sparkles, ArrowRight, Check, UploadCloud } from 'lucide-react';
+import { altaDesarrollador, listarDesarrolladores, altaProyecto, uploadIngesta, ingestaJob } from '../../api/superadminAlta';
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '18px 20px' };
 const inp = { width: '100%', padding: '9px 11px', borderRadius: 9, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', marginTop: 4 };
@@ -29,6 +29,34 @@ export default function SuperadminAltaDesarrolladores() {
   const [dev, setDev] = useState({ name: '', email: '', password: '', plan_tier: 'pro' });
   // form proyecto
   const [proj, setProj] = useState({ dev_org_id: '', name: '', colonia: '', alcaldia: '', total_units: '', price_from: '', tipo_proyecto: 'vertical', stage: 'preventa' });
+  // upload IA (PDF/XLS/imágenes → la IA llena los campos)
+  const [upFiles, setUpFiles] = useState([]);
+  const [upName, setUpName] = useState('');
+  const [upDev, setUpDev] = useState('');
+  const [upJob, setUpJob] = useState(null);   // {status, extracted, ...}
+
+  const correrUpload = async () => {
+    if (upFiles.length === 0) { setMsg({ tipo: 'err', txt: 'Arrastra o elige al menos un PDF/XLS/imagen.' }); return; }
+    setBusy(true); setMsg(null); setUpJob({ status: 'extracting' });
+    try {
+      const r = await uploadIngesta(upFiles, upName, upDev);
+      // poll el job hasta que termine (la IA extrae en background)
+      let done = null;
+      for (let i = 0; i < 30 && !done; i++) {
+        await new Promise((res) => setTimeout(res, 1500));
+        const j = await ingestaJob(r.job_id);
+        if (j && ['completed', 'failed'].includes(j.status)) done = j;
+      }
+      setUpJob(done || { status: 'timeout' });
+      if (done && done.status === 'completed') {
+        setMsg({ tipo: 'ok', txt: 'La IA extrajo y llenó los campos. Revisa/aprueba en Ingesta masiva.' });
+        setUpFiles([]); setUpName(''); cargar();
+      } else {
+        setMsg({ tipo: 'err', txt: 'No se pudo extraer (revisa que el archivo tenga la info del proyecto).' });
+      }
+    } catch (e) { setMsg({ tipo: 'err', txt: e.message || 'Falló la subida.' }); setUpJob(null); }
+    finally { setBusy(false); }
+  };
 
   const cargar = useCallback(() => {
     listarDesarrolladores().then((d) => setDevs(d.desarrolladores || [])).catch(() => setDevs([]));
@@ -132,18 +160,63 @@ export default function SuperadminAltaDesarrolladores() {
         )}
 
         {tab === 'automatizado' && (
-          <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <Sparkles size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 16, color: 'var(--cream)' }}>Ingesta masiva desde Google Drive</b>
+          <div style={{ display: 'grid', gap: 14 }}>
+            {/* UPLOAD DIRECTO — sube PDF/XLS/imágenes, la IA llena los campos sola */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <UploadCloud size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 16, color: 'var(--cream)' }}>Subir archivos (la IA llena todo)</b>
+              </div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.65)', lineHeight: 1.55, marginBottom: 12 }}>
+                Sube la ficha del proyecto (PDF, Excel/CSV o imágenes). Claude extrae nombre, ubicación, unidades, precios
+                y amenidades, y los deja en la cola de revisión para aprobar.
+              </p>
+              <label htmlFor="up-files" data-testid="up-drop"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); setUpFiles(Array.from(e.dataTransfer.files || [])); }}
+                style={{ display: 'block', padding: '26px 18px', borderRadius: 12, border: '1.5px dashed rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.04)', textAlign: 'center', cursor: 'pointer', marginBottom: 10 }}>
+                <UploadCloud size={22} color="var(--theme)" style={{ marginBottom: 6 }} />
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>
+                  {upFiles.length ? `${upFiles.length} archivo(s): ${upFiles.map((f) => f.name).join(', ').slice(0, 80)}` : 'Arrastra aquí o haz clic — PDF, XLS/CSV, JPG/PNG'}
+                </div>
+                <input id="up-files" type="file" multiple accept=".pdf,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
+                  onChange={(e) => setUpFiles(Array.from(e.target.files || []))} data-testid="up-input" />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <Field label="Nombre del proyecto (opcional)"><input style={inp} value={upName} onChange={(e) => setUpName(e.target.value)} placeholder="lo detecta la IA si lo dejas vacío" /></Field>
+                <Field label="Asignar a desarrollador (opcional)">
+                  <select style={inp} value={upDev} onChange={(e) => setUpDev(e.target.value)}>
+                    <option value="">— sin asignar —</option>
+                    {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <button onClick={correrUpload} disabled={busy || upFiles.length === 0} style={btn(!busy && upFiles.length > 0)} data-testid="up-correr">
+                {busy ? 'La IA está leyendo…' : 'Subir y extraer con IA'}
+              </button>
+              {upJob && upJob.status === 'completed' && upJob.items_auto_approved > 0 && (
+                <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 12.5, color: '#6EE7B7' }}>
+                  ✓ Proyecto creado y publicado en el catálogo.
+                </div>
+              )}
+              {upJob && upJob.status === 'completed' && upJob.items_pending_review > 0 && (
+                <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 12.5, color: '#FCD34D' }}>
+                  Extraído — quedó en revisión (posible duplicado). <span onClick={() => nav('/superadmin/bulk-ingest')} style={{ color: 'var(--theme)', cursor: 'pointer', textDecoration: 'underline' }}>Revisar</span>
+                </div>
+              )}
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)', lineHeight: 1.6, marginBottom: 14 }}>
-              Pega la URL de una carpeta de Drive (una subcarpeta por proyecto). El sistema descarga las fichas/PDFs,
-              extrae con IA el nombre, ubicación, unidades y precios, y te deja una cola de revisión para aprobar o corregir
-              antes de publicar. Es la vía para dar de alta muchos proyectos de golpe.
-            </p>
-            <button onClick={() => nav('/superadmin/bulk-ingest')} style={btn()} data-testid="ir-ingesta">
-              Ir a Ingesta masiva <ArrowRight size={14} style={{ verticalAlign: -2 }} />
-            </button>
+
+            {/* Drive — para lotes grandes */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Sparkles size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>…o carga masiva desde Google Drive</b>
+              </div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.65)', lineHeight: 1.55, marginBottom: 12 }}>
+                Una carpeta con una subcarpeta por proyecto = muchos proyectos de golpe (misma extracción IA + revisión).
+              </p>
+              <button onClick={() => nav('/superadmin/bulk-ingest')} style={{ ...btn(), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }} data-testid="ir-ingesta">
+                Ir a Ingesta masiva (Drive) <ArrowRight size={14} style={{ verticalAlign: -2 }} />
+              </button>
+            </div>
           </div>
         )}
 
