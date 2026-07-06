@@ -21,7 +21,7 @@ const GLOBAL = {
   ajustar:   { color: '#ef4444', label: 'Por ajustar' },
 };
 
-export default function SuperadminCalibracion() {
+export default function SuperadminCalibracion({ embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -47,7 +47,7 @@ export default function SuperadminCalibracion() {
   const hayAjustes = data && (data.sugerencias || []).length > 0;
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="Calidad · Calibración de Motores"
         title="¿Nuestras fórmulas reproducen la realidad?"

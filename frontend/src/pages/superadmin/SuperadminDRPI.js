@@ -13,7 +13,7 @@ function fmtPct(v) {
   return `${sign}${Number(v).toFixed(2)}%`;
 }
 
-export default function SuperadminDRPI() {
+export default function SuperadminDRPI({ embedded }) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export default function SuperadminDRPI() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.3 · DRPI"
         title="Índice de precios DRPI"

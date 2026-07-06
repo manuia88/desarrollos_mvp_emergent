@@ -35,7 +35,7 @@ const btnGhost = { padding: '9px 16px', borderRadius: 9999, background: 'rgba(va
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' };
 const td = { padding: '9px 12px', fontFamily: 'DM Sans', fontSize: 12, color: '#F0EBE0', borderTop: '1px solid rgba(255,255,255,0.05)' };
 
-export default function SuperadminForecastAccuracy() {
+export default function SuperadminForecastAccuracy({ embedded }) {
   const [summary, setSummary] = useState(null);
   const [perZone, setPerZone] = useState([]);
   const [horizon, setHorizon] = useState(12);
@@ -86,7 +86,7 @@ export default function SuperadminForecastAccuracy() {
   const mapeH = (k) => summary?.mape_by_horizon?.[k] || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
     <div data-testid="superadmin-forecast-accuracy" style={{ minHeight: '100vh', color: 'var(--cream)', padding: '32px 24px 60px', fontFamily: 'DM Sans' }}>
       <header style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
         <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 6 }}>

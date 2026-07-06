@@ -330,6 +330,7 @@ const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/Proper
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 const SuperadminHubMercado           = lazy(() => import('./pages/superadmin/SuperadminHubMercado'));
+const SuperadminModeloHub            = lazy(() => import('./pages/superadmin/SuperadminModeloHub'));
 const SuperadminAprendizaje           = lazy(() => import('./pages/superadmin/SuperadminAprendizaje'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
@@ -805,7 +806,7 @@ function AppRouter() {
       {/* W7.AS.3.I — Round 3 · Drift Dashboard */}
       <Route path="/superadmin/conversation-drift" element={<SuperadminRoute Page={SuperadminConversationDrift} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
-      <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
+      <Route path="/superadmin/fsd-accuracy" element={<Navigate to="/superadmin/modelo?tab=fsd" replace />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}
       <Route path="/superadmin/virtual-staging" element={<SuperadminRoute Page={SuperadminVirtualStaging} />} />
       {/* W5.x F11 wire — Asesor Marketplace (fit-score per card) */}
@@ -979,7 +980,7 @@ function AppRouter() {
       <Route path="/superadmin/ie-engine-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
       {/* Legacy detail still reachable via old path */}
       <Route path="/superadmin/data-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
-      <Route path="/superadmin/scores" element={<SuperadminRoute Page={ScoresPage} />} />
+      <Route path="/superadmin/scores" element={<Navigate to="/superadmin/modelo?tab=scores" replace />} />
       <Route path="/superadmin/documents" element={<SuperadminRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<SuperadminRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<SuperadminRoute Page={SuperadminObservabilityPage} />} />
@@ -995,7 +996,8 @@ function AppRouter() {
       <Route path="/superadmin/commercial" element={<Navigate to="/superadmin/monetizacion?tab=comercial" replace />} />
       <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
       <Route path="/superadmin/monetizacion" element={<SuperadminRoute Page={SuperadminMonetizacionHub} />} />{/* Hub de Monetización & API */}
-      <Route path="/superadmin/aprendizaje" element={<SuperadminRoute Page={SuperadminAprendizaje} />} />{/* F5 · Dashboard de Aprendizaje */}
+      <Route path="/superadmin/modelo" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* Hub de Modelo & Aprendizaje */}
+      <Route path="/superadmin/aprendizaje" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* F5 · Dashboard de Aprendizaje */}
       <Route path="/superadmin/metrics-cube" element={<SuperadminRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<SuperadminRoute Page={SuperadminDataLake} />} />
       <Route path="/superadmin/intelligence-hub" element={<SuperadminRoute Page={SuperadminIntelligenceHub} />} />
@@ -1003,15 +1005,15 @@ function AppRouter() {
       <Route path="/superadmin/phase5-foundation" element={<SuperadminRoute Page={SuperadminPhase5Foundation} />} />
       <Route path="/superadmin/transactions" element={<SuperadminRoute Page={SuperadminTransactionNetwork} />} />
       {/* W3.3 ZZ.3 — DRPI / Bulletins / Investment Explorer */}
-      <Route path="/superadmin/drpi" element={<SuperadminRoute Page={SuperadminDRPI} />} />
-      <Route path="/superadmin/indices" element={<SuperadminRoute Page={SuperadminIndices} />} />
-      <Route path="/superadmin/calibracion" element={<SuperadminRoute Page={SuperadminCalibracion} />} />
+      <Route path="/superadmin/drpi" element={<Navigate to="/superadmin/modelo?tab=drpi" replace />} />
+      <Route path="/superadmin/indices" element={<Navigate to="/superadmin/modelo?tab=indices" replace />} />
+      <Route path="/superadmin/calibracion" element={<Navigate to="/superadmin/modelo?tab=calibracion" replace />} />
       <Route path="/superadmin/recipes-coverage" element={<SuperadminRoute Page={SuperadminRecipesCoverage} />} />
       <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
       <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
       <Route path="/superadmin/fraud-alerts" element={<SuperadminRoute Page={SuperadminFraudAlerts} />} />
-      <Route path="/superadmin/risk-score" element={<SuperadminRoute Page={SuperadminRiskScore} />} />
+      <Route path="/superadmin/risk-score" element={<Navigate to="/superadmin/modelo?tab=risk" replace />} />
       <Route path="/superadmin/risk-alerts" element={<SuperadminRoute Page={SuperadminRiskAlerts} />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
@@ -1049,7 +1051,7 @@ function AppRouter() {
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
       <Route path="/superadmin/inmobiliaria-leads" element={<SuperadminRoute Page={SuperadminInmobiliariaLeads} />} />
-      <Route path="/superadmin/cerebro-mercado" element={<SuperadminRoute Page={SuperadminCerebroMercado} />} />
+      <Route path="/superadmin/cerebro-mercado" element={<Navigate to="/superadmin/modelo?tab=cerebro" replace />} />
       <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<SuperadminRoute Page={SuperadminFreeAuditFunnel} />} />
@@ -1059,8 +1061,8 @@ function AppRouter() {
       {/* W5.1 — AVM widget embeddable + landing SEO + accuracy dashboard */}
       <Route path="/widgets/avm/:slug" element={<AvmWidgetPage />} />
       <Route path="/valor/:slug" element={<ValorColonia />} />
-      <Route path="/superadmin/avm-accuracy" element={<SuperadminRoute Page={SuperadminAvmAccuracy} />} />
-      <Route path="/superadmin/forecast-accuracy" element={<SuperadminRoute Page={SuperadminForecastAccuracy} />} />
+      <Route path="/superadmin/avm-accuracy" element={<Navigate to="/superadmin/modelo?tab=avm" replace />} />
+      <Route path="/superadmin/forecast-accuracy" element={<Navigate to="/superadmin/modelo?tab=forecast" replace />} />
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<SuperadminRoute Page={SuperadminPartners} />} />

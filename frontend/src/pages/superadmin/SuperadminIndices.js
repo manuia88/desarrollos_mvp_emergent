@@ -11,7 +11,7 @@ const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
 const mmx = (n) => (n == null ? '—' : `$${Math.round(n).toLocaleString('es-MX')}`);
 
-export default function SuperadminIndices() {
+export default function SuperadminIndices({ embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('');
@@ -189,7 +189,7 @@ export default function SuperadminIndices() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="I04 · ÍNDICES DMX"
         title="Índices DMX"

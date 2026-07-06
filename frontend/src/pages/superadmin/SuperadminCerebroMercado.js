@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { getCerebroMercado } from '../../api/superadmin';
 
-export default function SuperadminCerebroMercado({ user, onLogout }) {
+export default function SuperadminCerebroMercado({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(false);
 
@@ -24,7 +24,7 @@ export default function SuperadminCerebroMercado({ user, onLogout }) {
   const pal = data?.palancas || {};
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div style={{ padding: '8px 0 12px' }}>
         <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>Inteligencia · Aprendizaje</div>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '4px 0 2px' }}>Cómo Aprende El Mercado</h1>

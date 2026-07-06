@@ -134,7 +134,7 @@ function BatchProgressBar({ task }) {
   );
 }
 
-export default function ScoresPage({ user, onLogout }) {
+export default function ScoresPage({ user, onLogout, embedded }) {
   const [scores, setScores] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +211,7 @@ export default function ScoresPage({ user, onLogout }) {
   }, [toast]);
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
             <div>

@@ -224,19 +224,11 @@ const SUPERADMIN_NAV = [
     tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
     items: [
       // ─ Accuracy & ML (W5.x) ─
-      { key: 'aprendizaje',       to: '/superadmin/aprendizaje',       label: 'Aprendizaje del modelo', Icon: Activity },
-      { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
-      { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
-      { key: 'fsd-accuracy',      to: '/superadmin/fsd-accuracy',      label: 'Precisión FSD',     Icon: Gauge },
+      { key: 'modelo',            to: '/superadmin/modelo',            label: 'Modelo & Aprendizaje', Icon: Activity },
       // ─ Intelligence layer (W3.x legacy) ─
-      { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
       { key: 'granularidad',      to: '/superadmin/granularidad',      label: 'Granularidad',      Icon: Target },
       { key: 'demanda-mercado',   to: '/superadmin/demanda-mercado',   label: 'Demanda de mercado', Icon: Target },
       { key: 'terminal-zona',     to: '/superadmin/terminal-zona',     label: 'Terminal de Zona',   Icon: Target },
-      { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
-      { key: 'indices-dmx',       to: '/superadmin/indices',           label: 'Índices DMX',       Icon: LineChart },
-      { key: 'calibracion',       to: '/superadmin/calibracion',       label: 'Calibración',       Icon: Gauge },
-      { key: 'risk-score',        to: '/superadmin/risk-score',        label: 'Risk Score',        Icon: AlertTriangle },
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer', Icon: DollarSign },
       { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },
       { key: 'trends',            to: '/superadmin/trends',            label: 'Google Trends',     Icon: BarChart3 },
@@ -247,7 +239,6 @@ const SUPERADMIN_NAV = [
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
       { key: 'grafo-comprador',   to: '/superadmin/grafo-comprador',   label: 'Grafo del Comprador', Icon: Users },
       { key: 'gemelo-demanda',    to: '/superadmin/gemelo-demanda',    label: 'Gemelo de Demanda', Icon: TrendingUp },
-      { key: 'cerebro-mercado',   to: '/superadmin/cerebro-mercado',   label: 'Cómo Aprende el Mercado', Icon: Sparkles },
       { key: 'terminal-mercado',  to: '/superadmin/terminal-mercado',  label: 'Terminal de Mercado CDMX', Icon: Layers },
       // ─ W6.MOV.5 · Construction Quality Index ─
       { key: 'construction-quality', to: '/superadmin/construction-quality', label: 'Construction Quality', Icon: ShieldCheck },

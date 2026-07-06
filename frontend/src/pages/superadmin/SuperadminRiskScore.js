@@ -14,7 +14,7 @@ function fmt(v, dec = 1) {
   return Number(v).toFixed(dec);
 }
 
-export default function SuperadminRiskScore() {
+export default function SuperadminRiskScore({ embedded }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -36,7 +36,7 @@ export default function SuperadminRiskScore() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.4A · Risk Score V1"
         title="Risk Score por colonia"

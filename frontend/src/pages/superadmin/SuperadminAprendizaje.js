@@ -140,7 +140,7 @@ function PropertyInspector() {
   );
 }
 
-export default function SuperadminAprendizaje({ user, onLogout }) {
+export default function SuperadminAprendizaje({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
 
@@ -169,7 +169,7 @@ export default function SuperadminAprendizaje({ user, onLogout }) {
   );
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-aprendizaje">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <Brain size={20} color="var(--theme)" />
