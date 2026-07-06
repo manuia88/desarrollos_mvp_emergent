@@ -268,53 +268,14 @@ async def licensable_route(request: Request, period: PeriodLit = "current"):
     contrato de privacidad puesto para exposición externa."""
     await _require_superadmin(request)
     db = _db(request)
-    K = 3
     try:
-        cc = await olap.query_cross_cut(db, dimensions=["zone"], filters={}, period=period)
+        r = await olap.licensable_market_rows(db, period=period, k=3)   # F6: fuente única compartida
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"cross-cut falló: {str(e)[:120]}")
-    # k-anon de CONTRIBUYENTES: en una colonia con <K DESARROLLADORES distintos, el DESEMPEÑO de venta
-    # (absorción, y vendidas = unidades−disponibles) es el ritmo EXACTO de un competidor identificable →
-    # se protege. El precio de LISTA no: ya es público unidad por unidad en el marketplace (agregarlo no
-    # revela nada que no esté publicado). Protegemos lo privado, no lo público.
-    devs_por_col: Dict[str, set] = {}
-    try:
-        from data_developments import DEVELOPMENTS
-        for d in DEVELOPMENTS:
-            if d.get("colonia_id"):
-                devs_por_col.setdefault(str(d["colonia_id"]).lower(), set()).add(d.get("developer_id") or d.get("id"))
-    except Exception as e:  # noqa: BLE001
-        log.warning(f"[licensable] devs por colonia: {e}")
-    rows = []
-    suprimidas = 0
-    protegidas = 0
-    for c in (cc.get("matrix") or []):
-        k = c.get("kpis") or {}
-        n = k.get("units_total") or 0
-        if n < K:                       # k-anon: no publicar zonas con muy poca oferta
-            suprimidas += 1
-            continue
-        # F6: gate de contribuyentes compartido (anonymization_engine) — misma doctrina en un solo lugar
-        from anonymization_engine import ventas_publicables
-        ventas_ok = ventas_publicables(str(c.get("zone") or ""))
-        if not ventas_ok:
-            protegidas += 1
-        rows.append({
-            "colonia": c.get("zone"),
-            # con <K devs: unidades totales ocultas (unidades − disponibles delataría las vendidas del único dev)
-            "unidades": n if ventas_ok else None,
-            "disponibles": k.get("units_available"),
-            "precio_m2": round(k.get("avg_price_per_m2")) if k.get("avg_price_per_m2") else None,
-            "precio_prom": round(k.get("avg_price_mxn")) if k.get("avg_price_mxn") else None,
-            "m2_prom": round(k.get("avg_m2"), 1) if k.get("avg_m2") else None,
-            "absorcion_pct": k.get("absorcion_pct") if ventas_ok else None,
-            "ventas_protegidas": (not ventas_ok) or None,   # None = no ensuciar filas normales
-        })
-    rows.sort(key=lambda r: (r.get("precio_m2") is not None, r.get("precio_m2") or 0), reverse=True)
     return {
-        "ok": True, "period": period, "k_anon": K,
-        "colonias": rows, "n_colonias": len(rows), "suprimidas_kanon": suprimidas,
-        "protegidas_ventas": protegidas,
+        "ok": True, "period": period, "k_anon": r["k_anon"],
+        "colonias": r["colonias"], "n_colonias": r["n_colonias"],
+        "suprimidas_kanon": r["suprimidas_kanon"], "protegidas_ventas": r["protegidas_ventas"],
         "licencia": {
             "producto": "DMX Market Data · CDMX residencial",
             "nota": "Agregados de mercado por colonia. Sin identidad de desarrollo ni datos personales. "

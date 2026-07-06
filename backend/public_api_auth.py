@@ -32,6 +32,10 @@ DEFAULT_QUOTA = {
     "pro":        100_000,
     "enterprise": 1_000_000,
 }
+
+# F6 · costo por llamada en centavos USD (derivado de PLAN_PRICES_USD / DEFAULT_QUOTA: para COGS
+# y para el rollup mensual de facturación por uso). free = 0.
+COST_PER_CALL_CENTS = {"free": 0.0, "pro": 0.5, "enterprise": 0.3}
 DEFAULT_EXPIRY_DAYS = 365
 KEY_PREFIX_ENV = os.environ.get("DMX_API_KEY_PREFIX", "dmx_test")
 
@@ -186,7 +190,7 @@ async def track_api_call(
             "ip": ip,
             "response_size_bytes": response_size,
             "billable": billable,
-            "cost_usd_cents": 0,
+            "cost_usd_cents": (COST_PER_CALL_CENTS.get(ctx.tier, 0.0) if billable else 0.0),
         })
         # SEGURIDAD (pentest 2026-06-27): el incremento de cuota ya se hace ATÓMICO en validate_api_key (al inicio del
         # request). Aquí solo se registra el log de la llamada — NO se vuelve a incrementar (sería doble conteo y

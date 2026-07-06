@@ -2591,6 +2591,12 @@ async def startup():
             dmx_finance_atom.register_finance_cron(sched, db)
         except Exception as e:
             logging.warning(f"[finance_atom] startup register failed: {e}")
+        # CUBO TOTAL F6 — facturación por uso de la API (rollup mensual de api_call_logs → Stripe)
+        try:
+            import stripe_billing_engine
+            stripe_billing_engine.register_billing_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[usage_billing] startup register failed: {e}")
         # CUBO TOTAL F3 — alertas por corte guardado del Explorador (re-corre y notifica cambios)
         try:
             import vistas_guardadas

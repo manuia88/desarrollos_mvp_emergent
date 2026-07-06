@@ -144,6 +144,59 @@ async def cancel_subscription(db, tenant_id: str) -> Dict[str, Any]:
         return {"ok": False, "reason": "stripe_error", "error": str(e)[:200]}
 
 
+async def report_usage_invoice_item(db, tenant_id: str, amount_usd_cents: int, description: str) -> Dict[str, Any]:
+    """F6 · adjunta un cargo por USO a la próxima factura de la suscripción del tenant. Se llama
+    desde el cron mensual de facturación (rollup de api_call_logs)."""
+    if not STRIPE_KEY:
+        return {"ok": False, "reason": "stripe_key_missing"}
+    if not amount_usd_cents or amount_usd_cents <= 0:
+        return {"ok": True, "skipped": "sin_uso"}
+    cust = await db.stripe_subscriptions.find_one(
+        {"tenant_id": tenant_id}, {"_id": 0, "stripe_customer_id": 1})
+    if not cust or not cust.get("stripe_customer_id"):
+        return {"ok": False, "reason": "no_customer"}
+    try:
+        stripe = _stripe()
+        stripe.InvoiceItem.create(customer=cust["stripe_customer_id"],
+                                  amount=int(amount_usd_cents), currency="usd", description=description)
+        return {"ok": True, "amount_usd_cents": int(amount_usd_cents)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[stripe] usage invoice item failed: {e}")
+        return {"ok": False, "reason": "stripe_error", "error": str(e)[:200]}
+
+
+async def run_usage_billing(db) -> Dict[str, Any]:
+    """F6 · rollup mensual: suma cost_usd_cents de api_call_logs por tenant y lo factura. Informativo
+    si no hay overage (el 429 duro corta en cuota); útil para COGS/valor por cliente igualmente."""
+    import datetime as _dt
+    inicio = _dt.datetime.now(_dt.timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    facturados = []
+    try:
+        pipe = [{"$match": {"billable": True, "ts": {"$gte": inicio}}},
+                {"$group": {"_id": "$tenant_id", "cents": {"$sum": "$cost_usd_cents"}, "calls": {"$sum": 1}}}]
+        async for r in db.api_call_logs.aggregate(pipe):
+            tenant = r["_id"]
+            cents = round(r.get("cents") or 0)
+            if not tenant or cents <= 0:
+                continue
+            res = await report_usage_invoice_item(db, tenant, cents,
+                                                  f"DMX API · uso {inicio.strftime('%Y-%m')} · {r['calls']} llamadas")
+            facturados.append({"tenant": tenant, "cents": cents, "calls": r["calls"], "stripe": res.get("ok")})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[stripe] run_usage_billing: {e}")
+    return {"facturados": facturados, "n": len(facturados),
+            "lectura": f"{len(facturados)} tenants con uso facturado este mes"}
+
+
+def register_billing_cron(scheduler, db) -> None:
+    """Cron día 1 · 08:00 MX — factura el uso del mes anterior."""
+    from apscheduler.triggers.cron import CronTrigger
+    from cron_heartbeat import wrap_apscheduler_job
+    wrapped = wrap_apscheduler_job(run_usage_billing, "usage_billing")
+    scheduler.add_job(wrapped, CronTrigger(day=1, hour=8, minute=0, timezone="America/Mexico_City"),
+                      id="usage_billing", replace_existing=True, kwargs={"db": db})
+
+
 async def get_subscription_status(db, tenant_id: str) -> Dict[str, Any]:
     sub = await db.stripe_subscriptions.find_one(
         {"tenant_id": tenant_id}, {"_id": 0},

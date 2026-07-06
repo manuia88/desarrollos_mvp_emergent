@@ -72,3 +72,11 @@ Shipped: lente partner + publicar corte (🌐) + /api/v1/cuts/{slug} + scopes en
 - **IAB público sin gate ≥3 devs** (dmx_indices.py:104 — extraer devs_por_col a helper compartido).
 - **Digest semanal partner**: segmento 'partner' en newsletter_pulse + bloque 'tu corte esta semana' (delta 7d de cube_corte_snapshots).
 - **Historia retro de demanda** para cortes solo-colonia (dmx_market_snapshots, etiquetada 'solo demanda, retroactiva').
+
+
+## F6 hardening + pendientes (2026-07-06) — APLICADOS
+- ✅ Seguridad: gate de contribuyentes (≥3 devs) en lente partner + /cuts + historia · scopes en 12 endpoints v1 · publicar/servir rechazan cortes identificables · key expira con la suscripción.
+- ✅ has_real_sales env-gate (DMX_DEV_MODE) · demanda_zona en banda k-anon · IAB gate ≥3 devs (helper anonymization_engine.ventas_publicables).
+- ✅ /api/v1/market/cube (K=5, licensable_market_rows compartido) · /api/v1/zones/{id}/indices (por ctx.tier) · scopes en bodies superadmin · OpenAPI backfill.
+- ✅ Metering: COST_PER_CALL_CENTS + cost_usd_cents en el log + report_usage_invoice_item + run_usage_billing + cron día 1 · usage endpoint muestra $.
+Quedan (horas-días, sin urgencia sin clientes activos): overage real (flag overage_enabled, hoy 429 duro corta en cuota) · digest partner (segmento newsletter_pulse + view_ids en la suscripción) · historia retro de demanda para cortes solo-colonia · congelar published_definicion al publicar · confirm al borrar vista publicada.

@@ -105,38 +105,41 @@ def _qualitative(result: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ── Público (tier-gated) ──
-@router.get("/api/indices/zona/{zone_id}")
-async def public_zone_indices(zone_id: str, request: Request):
+async def compute_zone_indices(db, zone_id: str, tier_label: str) -> Dict[str, Any]:
+    """F6 · el índice de zona por TIER, agnóstico del origen del tier (sesión O API key).
+    free = cualitativo; pro/enterprise = completo + jugada. 404 si la zona no existe."""
     from data_seed import COLONIAS
     colonia = next((c for c in COLONIAS if c.get("id") == zone_id or c.get("name") == zone_id), None)
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
-    # Banda por percentil real: compara esta zona contra TODA la ciudad (lazy · idempotente).
     ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
     ctx = _ctx_for(colonia, abs_map)
-    # MOM · Momentum vivo (reusa live_pulse). Sin pulso → MOM cae a neutral estimado (honesto).
     try:
         from live_pulse_engine import compute_pulse
-        pulse = await compute_pulse(request.app.state.db, colonia.get("id") or zone_id)
+        pulse = await compute_pulse(db, colonia.get("id") or zone_id)
         if isinstance(pulse, dict) and pulse.get("score") is not None:
             ctx["momentum_score"] = pulse["score"]
             ctx["momentum_estimado"] = (pulse.get("data_quality") or {}).get("es_estimado", True)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
     result = ix.compute_indices(colonia, ctx)
-    # LIV · Livability por perfil (familia/joven/senior/inversión) — reusa subscores reales.
     try:
         import liv_engine
-        result["liv"] = await liv_engine.compute_liv(request.app.state.db, colonia.get("id") or zone_id)
-    except Exception:
+        result["liv"] = await liv_engine.compute_liv(db, colonia.get("id") or zone_id)
+    except Exception:  # noqa: BLE001
         pass
     result["senal_leyenda"] = ix.signal_leyenda(result.get("city") or "CDMX")
-    tier_label = await _user_tier(request)
     if tier_label == "free":
         return {"tier_label": "free", "source": "via DMX Índices", "liv": result.get("liv"), **_qualitative(result)}
     result["jugada"] = ix.indices_play(result)
     return {"tier_label": tier_label, "source": "via DMX Índices", **result}
+
+
+@router.get("/api/indices/zona/{zone_id}")
+async def public_zone_indices(zone_id: str, request: Request):
+    tier_label = await _user_tier(request)
+    return await compute_zone_indices(request.app.state.db, zone_id, tier_label)
 
 
 # ── Superadmin (terminal vendible) ──

@@ -425,6 +425,40 @@ _TENSION_NIVEL = lambda t: None if t is None else ("alta" if t >= 1 else "media"
 _CAMPOS_IDENTIFICABLES = {"development_id", "desarrolladora"}
 
 
+@router.get("/api/v1/market/cube")
+async def v1_market_cube(request: Request, response: Response, period: str = "current"):
+    """F6 · DMX Market Cube: agregados de mercado por colonia (precio/m², absorción, inventario)
+    con k-anon K_ANON_MIN + gate de contribuyentes. Bundle market_cube (enterprise · scope market_cube)."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "market_cube")
+    started = time.perf_counter()
+    db = _db(request)
+    import cube_olap_engine as olap
+    r = await olap.licensable_market_rows(db, period=period, k=anon.K_ANON_MIN)   # K=5 para externos
+    out = {"producto": "DMX Market Cube · CDMX", "period": r["period"], "k_anon": r["k_anon"],
+           "colonias": r["colonias"], "n_colonias": r["n_colonias"],
+           "suprimidas_kanon": r["suprimidas_kanon"], "protegidas_ventas": r["protegidas_ventas"],
+           "nota": "agregados k-anónimos; sin identidad de desarrolladores; absorción solo con ≥3 contribuyentes"}
+    return await _deliver(db, ctx, request, response, "/api/v1/market/cube", out,
+                          records=r["n_colonias"], started=started)
+
+
+@router.get("/api/v1/zones/{zone_id}/indices")
+async def v1_zone_indices(zone_id: str, request: Request, response: Response):
+    """F6 · Índices DMX de la zona (Obra · Absorción · Gestión + jugada), por el TIER de la key.
+    Bundle indices_dmx_suite (pro+ · scope indices_dmx). El IAB respeta el gate de ≥3 devs."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "pro")
+    auth.require_scope(ctx, "indices_dmx")
+    started = time.perf_counter()
+    db = _db(request)
+    from routes.dmx_indices import compute_zone_indices
+    out = await compute_zone_indices(db, zone_id, ctx.tier)
+    return await _deliver(db, ctx, request, response, f"/api/v1/zones/{zone_id}/indices", out,
+                          records=1, started=started)
+
+
 @router.get("/api/v1/cuts/{slug}")
 async def v1_cut(slug: str, request: Request, response: Response):
     """F6 · EL CORTE COMO PRODUCTO: un corte publicado desde el Hub, servido con la lente
@@ -537,6 +571,7 @@ class ApiKeyCreateBody(BaseModel):
     contact_email: str = ""
     expires_at: Optional[str] = None
     monthly_quota_calls: Optional[int] = None
+    scopes: Optional[list] = None   # F6: productos que la key abre; None = todo su tier (compat)
 
 
 class ApiKeyPatchBody(BaseModel):
@@ -544,6 +579,7 @@ class ApiKeyPatchBody(BaseModel):
     expires_at: Optional[str] = None
     status: Optional[str] = None
     monthly_quota_calls: Optional[int] = None
+    scopes: Optional[list] = None
 
 
 @router.get("/api/superadmin/api-keys")
@@ -600,6 +636,7 @@ async def create_api_key(body: ApiKeyCreateBody, request: Request):
         "month_bucket": _now().strftime("%Y-%m"),
         "expires_at": expires,
         "status": "active",
+        "scopes": list(body.scopes) if body.scopes else [],
         "contact_email": body.contact_email,
         "created_by": getattr(user, "user_id", None),
         "created_at": _iso(),
@@ -631,6 +668,7 @@ async def patch_api_key(key_id: str, body: ApiKeyPatchBody, request: Request):
     if body.expires_at is not None:           update["expires_at"] = body.expires_at
     if body.status is not None:               update["status"] = body.status
     if body.monthly_quota_calls is not None:  update["monthly_quota_calls"] = body.monthly_quota_calls
+    if body.scopes is not None:               update["scopes"] = list(body.scopes)
     if not update:
         raise HTTPException(400, "Sin campos a actualizar")
     res = await db.public_api_keys.update_one({"id": key_id}, {"$set": update})
@@ -677,6 +715,7 @@ async def api_key_usage(
             "calls": {"$sum": 1},
             "errors": {"$sum": {"$cond": [{"$gte": ["$status_code", 400]}, 1, 0]}},
             "avg_latency": {"$avg": "$latency_ms"},
+            "cost_cents": {"$sum": "$cost_usd_cents"},
         }},
         {"$sort": {"_id": 1}},
     ]
@@ -690,8 +729,10 @@ async def api_key_usage(
     return {
         "key_id": key_id, "days": days,
         "series": [{"date": r["_id"], "calls": r["calls"],
-                    "errors": r["errors"], "avg_latency_ms": round(r["avg_latency"] or 0, 1)}
+                    "errors": r["errors"], "avg_latency_ms": round(r["avg_latency"] or 0, 1),
+                    "cost_usd": round((r.get("cost_cents") or 0) / 100, 2)}   # F6: $ por día
                    for r in series],
+        "costo_total_usd": round(sum((r.get("cost_cents") or 0) for r in series) / 100, 2),
         "by_endpoint": [{"endpoint": r["_id"], "calls": r["calls"]} for r in by_endpoint],
     }
 
@@ -809,8 +850,15 @@ async def public_openapi(request: Request):
             {"path": "/zones/{zone_id}/zone-score", "method": "GET", "tier": "free"},
             {"path": "/zones/{zone_id}/risk-score", "method": "GET", "tier": "free"},
             {"path": "/zones/{zone_id}/drpi", "method": "GET", "tier": "pro"},
-            {"path": "/comparables", "method": "GET", "tier": "pro"},
-            {"path": "/valuations/{property_id}", "method": "GET", "tier": "enterprise"},
-            {"path": "/demand-pulse", "method": "GET", "tier": "enterprise"},
+            {"path": "/comparables", "method": "GET", "tier": "pro", "scope": "comparables"},
+            {"path": "/market/indices", "method": "GET", "tier": "pro", "scope": "indices_dmx"},
+            {"path": "/market/indices/history", "method": "GET", "tier": "pro", "scope": "indices_dmx"},
+            {"path": "/market/cube", "method": "GET", "tier": "enterprise", "scope": "market_cube"},
+            {"path": "/zones/{zone_id}/indices", "method": "GET", "tier": "pro", "scope": "indices_dmx"},
+            {"path": "/zones/{zone_id}/demand", "method": "GET", "tier": "enterprise", "scope": "grafo_demanda"},
+            {"path": "/zones/{zone_id}/bancabilidad", "method": "GET", "tier": "enterprise", "scope": "grafo_demanda"},
+            {"path": "/valuations/{property_id}", "method": "GET", "tier": "enterprise", "scope": "valuations"},
+            {"path": "/demand-pulse", "method": "GET", "tier": "enterprise", "scope": "grafo_demanda"},
+            {"path": "/cuts/{slug}", "method": "GET", "tier": "enterprise", "scope": "cuts"},
         ],
     }

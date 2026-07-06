@@ -844,3 +844,35 @@ async def ensure_consolidated_indexes(db) -> None:
         )
     except Exception as e:
         log.warning(f"[olap] facts_buyer_signals indexes failed: {e}")
+
+
+async def licensable_market_rows(db, period: str = "current", k: int = 3) -> Dict[str, Any]:
+    """F6 · las filas licenciables de MERCADO por colonia (precio/m², absorción, inventario) con
+    doble gate: k-anon de UNIDADES (celda <k suprimida) + gate de CONTRIBUYENTES (colonia con
+    <3 devs → absorción/vendidas ocultas, solo precio de lista público). Fuente única para el
+    superadmin (K=3) y para /api/v1/market/cube (K=K_ANON_MIN=5)."""
+    from anonymization_engine import ventas_publicables
+    cc = await query_cross_cut(db, dimensions=["zone"], filters={}, period=period)
+    rows, suprimidas, protegidas = [], 0, 0
+    for c in (cc.get("matrix") or []):
+        kp = c.get("kpis") or {}
+        n = kp.get("units_total") or 0
+        if n < k:
+            suprimidas += 1
+            continue
+        ventas_ok = ventas_publicables(str(c.get("zone") or ""))
+        if not ventas_ok:
+            protegidas += 1
+        rows.append({
+            "colonia": c.get("zone"),
+            "unidades": n if ventas_ok else None,
+            "disponibles": kp.get("units_available"),
+            "precio_m2": round(kp.get("avg_price_per_m2")) if kp.get("avg_price_per_m2") else None,
+            "precio_prom": round(kp.get("avg_price_mxn")) if kp.get("avg_price_mxn") else None,
+            "m2_prom": round(kp.get("avg_m2"), 1) if kp.get("avg_m2") else None,
+            "absorcion_pct": kp.get("absorcion_pct") if ventas_ok else None,
+            "ventas_protegidas": (not ventas_ok) or None,
+        })
+    rows.sort(key=lambda r: (r.get("precio_m2") is not None, r.get("precio_m2") or 0), reverse=True)
+    return {"colonias": rows, "n_colonias": len(rows), "suprimidas_kanon": suprimidas,
+            "protegidas_ventas": protegidas, "k_anon": k, "period": period}

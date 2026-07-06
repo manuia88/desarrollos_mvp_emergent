@@ -169,3 +169,30 @@ def test_require_scope():
     from fastapi import HTTPException
     with _pt.raises(HTTPException):
         pa.require_scope(ctx_scoped, "cuts")                 # producto ajeno → 403
+
+
+# ─── F6 hardening (auditoría) ─────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_partner_gate_contribuyentes(db):
+    """[FUGA] corte de <3 devs → ritmo de venta (vendidas/disponibles/absorción) SUPRIMIDO."""
+    # 8 unidades de UN solo dev
+    await db.dmx_units.insert_many([
+        {"unit_id": f"u{i}", "development_id": "dev-solo",
+         "commercial": {"precio_lista_mxn": 3_000_000, "status": "vendido" if i == 0 else "disponible"},
+         "areas": {"m2_privativo": 55}, "interior": {"recamaras": 2},
+         "geo": {"colonia_id": "narvarte"}} for i in range(8)])
+    r = await cl.consulta_con_lente(db, "partner", [])
+    assert r["pocos_contribuyentes"] is True
+    assert "vendidas" not in r["kpis"] and "disponibles" not in r["kpis"] and "absorcion_pct" not in r["kpis"]
+    assert r["kpis"].get("precio_prom")                      # precio de LISTA se mantiene (público)
+    assert r["n_disponibles"] is None
+    # con ≥3 devs: el ritmo SÍ viaja
+    await db.dmx_units.insert_many([
+        {"unit_id": f"a{i}", "development_id": f"dev-{i}",
+         "commercial": {"precio_lista_mxn": 3_000_000, "status": "disponible"},
+         "areas": {"m2_privativo": 55}, "interior": {"recamaras": 2},
+         "geo": {"colonia_id": "narvarte"}} for i in range(3)])
+    r2 = await cl.consulta_con_lente(db, "partner", [])
+    assert r2["pocos_contribuyentes"] is False
+    assert "disponibles" in r2["kpis"]
