@@ -526,6 +526,37 @@ async def atom_route(unit_id: str, request: Request):
     }
 
 
+# ─── CUBO TOTAL F2 · CONSULTA LIBRE — cualquier pregunta = un corte (BEFORE /{tier}) ──
+class ConsultaFiltro(BaseModel):
+    campo: str
+    op: str
+    valor: Any = None
+
+
+class ConsultaBody(BaseModel):
+    filtros: List[ConsultaFiltro] = []
+    agrupar_por: List[str] = []
+
+
+@router.post(PREFIX + "/consulta")
+async def consulta_libre_route(body: ConsultaBody, request: Request):
+    """El MOTOR LIBRE del Cubo Total: filtros arbitrarios sobre cualquier campo del átomo (registro
+    cerrado: físicos + financieros + geo + mercado) + agrupar por lo que sea. Toda respuesta declara
+    n y bandera k-anon por celda (god-view etiquetado). Es el corazón del Explorador."""
+    await _require_superadmin(request)
+    import cube_query_libre
+    return await cube_query_libre.consulta(
+        _db(request), [f.model_dump() for f in body.filtros], body.agrupar_por)
+
+
+@router.get(PREFIX + "/consulta/campos")
+async def consulta_campos_route(request: Request):
+    """El registro de campos consultables (para que la UI/Atlax rendericen opciones)."""
+    await _require_superadmin(request)
+    import cube_query_libre
+    return cube_query_libre.campos_disponibles()
+
+
 # ─── Cubo Unificado · GET /catalog — el CONTRATO que el Hub renderiza (BEFORE /{tier}) ──
 @router.get(PREFIX + "/catalog")
 async def cube_catalog_route(request: Request):

@@ -128,6 +128,17 @@ export async function getCubeDemandGap(top = 10) {
   return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
 }
 
+// CUBO TOTAL F2 — CONSULTA LIBRE: filtros arbitrarios + agrupación (el motor del Explorador)
+export async function runConsulta(filtros, agruparPor = []) {
+  return _j(await fetch(`${BASE}/consulta`, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ filtros, agrupar_por: agruparPor }),
+  }));
+}
+export async function getConsultaCampos() {
+  return _j(await fetch(`${BASE}/consulta/campos`, { headers: h(), credentials: 'include' }));
+}
+
 // Cubo Unificado — HISTORIA: series de tiempo del histórico materializado (dmx_market_snapshots).
 // Sin tierId lista las entidades con serie disponible; con tierId devuelve la serie [{period,value}].
 export async function getCubeTimeseries({ tier = 'colonia', tierId = '', measure = 'demand_interactions', gran = 'month', limit = 120 } = {}) {
