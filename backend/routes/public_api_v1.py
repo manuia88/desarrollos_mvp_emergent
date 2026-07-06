@@ -406,6 +406,50 @@ async def v1_valuation(property_id: str, request: Request, response: Response):
     return out
 
 
+
+_TENSION_NIVEL = lambda t: None if t is None else ("alta" if t >= 1 else "media" if t >= 0.5 else "baja")
+
+
+@router.get("/api/v1/cuts/{slug}")
+async def v1_cut(slug: str, request: Request):
+    """F6 · EL CORTE COMO PRODUCTO: un corte publicado desde el Hub, servido con la lente
+    PARTNER (k≥5, cero unidades, cero identidad de devs, demanda en BANDAS) + su línea de
+    tiempo diaria bandaizada. Tier enterprise · scope 'cuts'."""
+    import public_api_auth as auth
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "enterprise")
+    auth.require_scope(ctx, "cuts")
+    db = request.app.state.db
+    v = await db.saved_views.find_one({"slug": slug, "publicado": True, "tipo": "explorador"}, {"_id": 0})
+    if not v:
+        raise HTTPException(404, "Corte no publicado")
+    d = v.get("definicion") or {}
+    import cube_lens
+    lente = await cube_lens.consulta_con_lente(db, "partner", d.get("filtros") or [],
+                                               d.get("agrupar_por") or [],
+                                               universo=d.get("universo") or "unidades")
+    if not lente.get("ok"):
+        raise HTTPException(422, "Corte no ejecutable")
+    espejo = await cube_lens.espejo_con_lente(db, "partner", d.get("filtros") or [],
+                                              universo=d.get("universo") or "unidades",
+                                              n_oferta=lente.get("n_disponibles"))
+    # historia bandaizada: n/precio agregados viajan; personas exactas y tensión NO (bandas/nivel)
+    from cube_lens import _banda_personas, K_ANON_MIN
+    historia = []
+    async for p in db.cube_corte_snapshots.find({"ref_tipo": "vista", "ref_id": v["id"]},
+                                                {"_id": 0, "at": 0}).sort("fecha", 1).limit(400):
+        if (p.get("n") or 0) < K_ANON_MIN:
+            continue   # punto chico: suprimido también en la historia
+        historia.append({"fecha": p["fecha"], "n": p.get("n"), "disponibles": p.get("disponibles"),
+                         "precio_prom": p.get("precio_prom"), "absorcion_pct": p.get("absorcion_pct"),
+                         "demanda_banda": _banda_personas(p.get("personas") or 0, K_ANON_MIN),
+                         "tension_nivel": _TENSION_NIVEL(p.get("tension"))})
+    await auth.track_api_call(db, ctx, request, status_code=200, latency_ms=0)
+    return {"corte": {"nombre": v.get("nombre"), "slug": slug, "definicion": d},
+            "actual": {k2: lente.get(k2) for k2 in ("n", "n_disponibles", "suprimido", "kpis", "grupos", "colonias")},
+            "espejo": espejo, "historia": historia,
+            "meta": {"lente": "partner", "k_anon": K_ANON_MIN, "nota": "agregados k-anónimos; sin unidades ni identidad de desarrolladores"}}
+
 @router.get("/api/v1/demand-pulse")
 async def v1_demand_pulse(request: Request, response: Response):
     ctx = await auth.validate_api_key(request)

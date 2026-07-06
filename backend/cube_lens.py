@@ -44,6 +44,16 @@ LENTES: Dict[str, Dict[str, Any]] = {
         "campos_ocultos": ["prob_venta", "dias_en_mercado"],
         "espejo_exacto": False,         # bandas, nunca conteos exactos en público
     },
+    # F6 · el cliente de DATA (licencia): solo agregados k≥5, CERO unidades, CERO identidad de
+    # devs, demanda en bandas, grupos también en banda de n. Nunca: unit_ids, nombres de dev,
+    # celdas chicas, absorción de colonias con pocos contribuyentes.
+    "partner": {
+        "k": K_ANON_MIN,
+        "unidades": "ninguna",
+        "campos_ocultos": ["prob_venta", "dias_en_mercado", "development_id", "unit_id"],
+        "espejo_exacto": False,
+        "grupos_en_banda": True,
+    },
 }
 
 _BANDAS_PERSONAS = [(5, 9, "5-9"), (10, 24, "10-24"), (25, 49, "25-49"), (50, 10**9, "50+")]
@@ -96,13 +106,23 @@ async def consulta_con_lente(db, rol: str, filtros: List[Dict[str, Any]],
     for g in r.get("grupos") or []:
         if g["n"] < k:
             grupos.append({"valores": g["valores"], "n": None, "enmascarado": True})
+        elif lente.get("grupos_en_banda"):
+            # partner: ni el n del grupo viaja exacto — banda + kpis de promedio (no conteos)
+            kp = g.get("kpis") or {}
+            grupos.append({"valores": g["valores"], "n_banda": _banda_personas(g["n"], k),
+                           "enmascarado": False,
+                           "kpis": {kk: vv for kk, vv in kp.items()
+                                    if kk in ("precio_prom", "precio_m2_prom", "mens_80_20_prom")}})
         else:
             grupos.append({**g, "enmascarado": False})
     if grupos:
         out["grupos"] = grupos
 
     # unidades exactas según la política del rol
-    if universo == "unidades":
+    if universo == "unidades" and lente["unidades"] == "ninguna":
+        out["unidades"] = []
+        out["unidades_nota"] = "sin unidades individuales (lente de agregados)"
+    elif universo == "unidades":
         propias = set(own_development_ids or [])
         unidades = []
         for u in r.get("unidades") or []:

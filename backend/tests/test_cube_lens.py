@@ -135,3 +135,37 @@ async def test_espejo_total_mercado_no_se_presenta_como_corte(db):
     interno = await cl.espejo_con_lente(db, "dev", corte)
     assert interno["espejo_total_mercado"] is True and interno["personas"] is None
     assert interno["tension_por_unidad"] is None
+
+
+# ─── F6 · lente PARTNER (el cliente de data) ──────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_partner_cero_unidades_grupos_en_banda(db):
+    """F6: el partner recibe agregados k≥5, CERO unidades individuales y grupos en BANDA de n."""
+    await db.dmx_units.insert_many(
+        [_unidad(f"u{i}", "dev-x", "narvarte") for i in range(7)]
+        + [_unidad(f"v{i}", "dev-y", "polanco") for i in range(2)])   # polanco chico
+    r = await cl.consulta_con_lente(db, "partner", [], ["colonia"])
+    assert r["ok"] and r["unidades"] == []                   # jamás unidades individuales
+    grupos = {tuple(g["valores"].values()): g for g in r["grupos"]}
+    assert grupos[("narvarte",)]["n_banda"] == "5-9"         # banda, no el 7 exacto
+    assert "n" not in grupos[("narvarte",)] or grupos[("narvarte",)].get("n") is None
+    assert grupos[("polanco",)]["enmascarado"] is True       # celda chica suprimida
+    assert cl.LENTES["partner"]["k"] == K_ANON_MIN
+
+
+def test_require_scope():
+    """F6: una key CON scopes solo consume sus productos; sin scopes = compat total."""
+    import public_api_auth as pa
+    ctx_scoped = pa.ApiKeyContext(id="k1", tenant_id="t", tier="enterprise",
+                                  monthly_quota_calls=10, calls_this_month=1, calls_remaining=9,
+                                  status="active", scopes=("drpi",))
+    ctx_open = pa.ApiKeyContext(id="k2", tenant_id="t", tier="enterprise",
+                                monthly_quota_calls=10, calls_this_month=1, calls_remaining=9,
+                                status="active")
+    pa.require_scope(ctx_open, "cuts")                       # sin scopes → pasa (compat)
+    pa.require_scope(ctx_scoped, "drpi")                     # su producto → pasa
+    import pytest as _pt
+    from fastapi import HTTPException
+    with _pt.raises(HTTPException):
+        pa.require_scope(ctx_scoped, "cuts")                 # producto ajeno → 403

@@ -617,6 +617,27 @@ async def _eventos_de_unidad(db, unit_id: str) -> list:
     return eventos[:100]
 
 
+@router.post(PREFIX + "/consulta/vistas/{view_id}/publicar")
+async def vista_publicar_route(view_id: str, request: Request):
+    """F6 · publica/despublica un corte guardado como PRODUCTO licenciable: le da slug estable
+    y lo vuelve consumible vía /api/v1/cuts/{slug} (lente partner, k-anon, bandas). Auditado."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    body = await request.json()
+    publicar = bool(body.get("publicado", True))
+    v = await db.saved_views.find_one({"id": view_id, "tipo": "explorador"}, {"_id": 0, "id": 1, "nombre": 1, "slug": 1})
+    if not v:
+        raise HTTPException(404, "Vista no encontrada")
+    import re as _re
+    import uuid as _uuid
+    slug = v.get("slug") or (_re.sub(r"[^a-z0-9]+", "-", (v.get("nombre") or "corte").lower()).strip("-")[:40]
+                             + "-" + _uuid.uuid4().hex[:6])
+    await db.saved_views.update_one({"id": view_id}, {"$set": {"publicado": publicar, "slug": slug}})
+    await _audit(db, user, "update", "cube_corte_publicado", view_id,
+                 after={"publicado": publicar, "slug": slug}, request=request)
+    return {"ok": True, "view_id": view_id, "publicado": publicar, "slug": slug}
+
+
 @router.get(PREFIX + "/atom/{unit_id}/eventos")
 async def atom_eventos_route(unit_id: str, request: Request):
     """F5 · la línea de tiempo del átomo — unión de developer_audit + audit_log central +

@@ -159,6 +159,11 @@ export async function runEspejo(filtros, universo = 'unidades', nOferta = null) 
 export async function getVistaHistoria(viewId) {
   return _j(await fetch(`${BASE}/consulta/vistas/${encodeURIComponent(viewId)}/historia`, { headers: h(), credentials: 'include' }));
 }
+export async function publicarVista(viewId, publicado = true) {
+  return _j(await fetch(`${BASE}/consulta/vistas/${encodeURIComponent(viewId)}/publicar`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify({ publicado }),
+  }));
+}
 export async function getAtomEventos(unitId) {
   return _j(await fetch(`${BASE}/atom/${encodeURIComponent(unitId)}/eventos`, { headers: h(), credentials: 'include' }));
 }

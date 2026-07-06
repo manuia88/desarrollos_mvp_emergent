@@ -62,3 +62,13 @@ Diferidos (~1-3h c/u, orden sugerido):
 - **Smoke-tests HTTP** de los 4 endpoints F4 (401/403/owner-scope/rate-limit) con TestClient.
 - **Espejo de zona en panel colonia** del marketplace (gancho para llenar los 4 campos al llegar del mapa).
 - **describeFilters compartido**: deduplicar SaveSearchModal/CompradorSavedSearches/_describe_filters en un solo helper.
+
+## F6 (2026-07-06) — diferidos conscientes
+Shipped: lente partner + publicar corte (🌐) + /api/v1/cuts/{slug} + scopes en keys + suscripción auto-emite key. Diferidos:
+- **Metering→Stripe**: cost_usd_cents=0 hardcodeado (public_api_auth.py:179) + cron rollup mensual api_call_logs → invoice item (Stripe engine solo cobra flat).
+- **/api/v1/market/cube**: wrap del licensable del Hub con re-gate K=5 (hoy solo superadmin lo ve; bundle $120k sin endpoint).
+- **/api/v1/zones/{id}/indices**: bundle indices_dmx_suite ($80k) sin endpoint v1 (motor dmx_indices listo, es wrapper).
+- **Seed derrota a has_real_sales**: bundles auto-marcados sellable con datos demo (data_doctrine.py:30 — marcar seeds source:'seed' y excluir).
+- **IAB público sin gate ≥3 devs** (dmx_indices.py:104 — extraer devs_por_col a helper compartido).
+- **Digest semanal partner**: segmento 'partner' en newsletter_pulse + bloque 'tu corte esta semana' (delta 7d de cube_corte_snapshots).
+- **Historia retro de demanda** para cortes solo-colonia (dmx_market_snapshots, etiquetada 'solo demanda, retroactiva').

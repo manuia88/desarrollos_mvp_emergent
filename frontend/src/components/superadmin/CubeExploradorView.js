@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SlidersHorizontal, Plus, X, AlertCircle, Box, Sparkles, Users, Bookmark, Bell } from 'lucide-react';
 import {
-  getConsultaCampos, runConsulta, parsePregunta, runEspejo, listVistas, saveVista, deleteVista, getVistaHistoria,
+  getConsultaCampos, runConsulta, parsePregunta, runEspejo, listVistas, saveVista, deleteVista, getVistaHistoria, publicarVista,
 } from '../../api/superadminMetricsCube';
 
 const OP_LABEL = {
@@ -251,6 +251,9 @@ export default function CubeExploradorView({ onDrillUnit }) {
               {v.alerta?.tipo === 'corte' && v.alerta?.activa && <Bell size={10} color="var(--theme)" title="Te avisa si el corte cambia" />}
               {v.disparada && <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#FCD34D' }} title="Este corte cambió en la última revisión" />}
             </span>
+            <span title={v.publicado ? `PUBLICADO como producto (slug: ${v.slug}) — clic para despublicar` : 'Publicar este corte como producto licenciable (API partners)'}
+              style={{ cursor: 'pointer', opacity: v.publicado ? 1 : 0.5 }} data-testid={`exp-vista-pub-${v.id}`}
+              onClick={() => publicarVista(v.id, !v.publicado).then(cargarVistas).catch(() => {})}>🌐</span>
             <span title="Ver la historia de este corte" style={{ cursor: 'pointer' }} data-testid={`exp-vista-hist-${v.id}`}
               onClick={() => getVistaHistoria(v.id).then((r) => setHistVista({ id: v.id, nombre: v.nombre, puntos: r?.puntos || [] })).catch(() => setHistVista({ id: v.id, nombre: v.nombre, puntos: [] }))}>📈</span>
             <X size={10} style={{ cursor: 'pointer' }} onClick={() => borrarVista(v.id)} />

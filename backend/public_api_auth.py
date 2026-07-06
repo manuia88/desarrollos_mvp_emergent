@@ -76,6 +76,7 @@ class ApiKeyContext:
     calls_this_month: int
     calls_remaining: int
     status: str
+    scopes: tuple = ()   # F6: productos que la key puede consumir; vacío = sin restricción (compat)
 
 
 # ─── Validate ─────────────────────────────────────────────────────────────────
@@ -136,7 +137,16 @@ async def validate_api_key(request: Request) -> ApiKeyContext:
         monthly_quota_calls=quota, calls_this_month=used,
         calls_remaining=max(0, quota - used),
         status=doc.get("status", "active"),
+        scopes=tuple(doc.get("scopes") or ()),
     )
+
+
+def require_scope(ctx: ApiKeyContext, scope: str) -> None:
+    """F6 · una key CON scopes solo consume sus productos (el bundle de $90k ya no abre todo
+    enterprise). Key sin scopes = comportamiento previo (compat con las emitidas a mano)."""
+    if ctx.scopes and scope not in ctx.scopes:
+        raise HTTPException(403, detail={"error": "scope_insufficient", "required_scope": scope,
+                                         "key_scopes": list(ctx.scopes)})
 
 
 def require_tier(ctx: ApiKeyContext, minimum: str) -> None:

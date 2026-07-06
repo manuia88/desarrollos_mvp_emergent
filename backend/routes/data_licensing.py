@@ -321,6 +321,28 @@ async def create_subscription(body: CreateSubscriptionBody, request: Request):
     out = dict(doc)
     out.pop("_id", None)
 
+    # F6 (auditoría): la suscripción EMITE su API key con los scopes del bundle + 'cuts' — antes
+    # el welcome email prometía la key "en 24h" manual y una key enterprise abría TODO.
+    try:
+        from public_api_auth import generate_api_key as _gen_pa
+        _k = _gen_pa()
+    except ImportError:
+        from routes.public_api_v1 import generate_api_key as _gen_pa   # el generador vive en el router
+        _k = _gen_pa()
+    try:
+        await db.public_api_keys.insert_one({
+            "id": f"key_{_k['key_prefix']}", "key_hash": _k["key_hash"], "key_prefix": _k["key_prefix"],
+            "tenant_id": body.tenant_id, "tier": "enterprise",
+            "scopes": list(scope or []) + ["cuts"], "status": "active",
+            "monthly_quota_calls": 100_000, "calls_this_month": 0, "calls_total": 0,
+            "created_at": _iso(), "source": "data_licensing_subscription",
+            "subscription_id": doc["id"],
+        })
+        out["api_key"] = _k["full_key"]   # visible UNA sola vez, en esta respuesta al superadmin
+        out["api_key_scopes"] = list(scope or []) + ["cuts"]
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[dls] auto-key falló (emitir manual): {e}")
+
     # Send Resend welcome email (placeholder onboarding deck)
     email_status = "skipped"
     try:
