@@ -2591,6 +2591,12 @@ async def startup():
             dmx_finance_atom.register_finance_cron(sched, db)
         except Exception as e:
             logging.warning(f"[finance_atom] startup register failed: {e}")
+        # CUBO TOTAL F3 — alertas por corte guardado del Explorador (re-corre y notifica cambios)
+        try:
+            import vistas_guardadas
+            vistas_guardadas.register_vistas_corte_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[cube_view_alerts] startup register failed: {e}")
         # W5.15 Parte 1 — Accuracy indexes + 3 crons (MAPE / drift / weights)
         try:
             import fsd_engine

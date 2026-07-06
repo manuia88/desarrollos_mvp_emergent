@@ -558,6 +558,35 @@ async def consulta_campos_route(request: Request):
     return cube_query_libre.campos_disponibles()
 
 
+# ─── CUBO TOTAL F3 · Atlax compilador de preguntas + espejo de demanda (BEFORE /{tier}) ──
+class PreguntaBody(BaseModel):
+    texto: str
+
+
+@router.post(PREFIX + "/consulta/pregunta")
+async def consulta_pregunta_route(body: PreguntaBody, request: Request):
+    """Español → corte validado (LLM con fallback heurístico determinista, cache 24h). El front
+    aplica los filtros devueltos y corre la consulta normal — el parser nunca ejecuta el corte."""
+    await _require_superadmin(request)
+    import cube_query_nl as nl
+    return await nl.parsear_pregunta(_db(request), body.texto)
+
+
+class EspejoBody(BaseModel):
+    filtros: List[ConsultaFiltro] = []
+    universo: str = "unidades"
+
+
+@router.post(PREFIX + "/consulta/espejo")
+async def consulta_espejo_route(body: EspejoBody, request: Request):
+    """El MISMO corte visto del lado del COMPRADOR: cuánta gente buscó algo compatible
+    (marketplace_searches, 180d). Declara qué filtros no tienen cara de demanda (espejo parcial)."""
+    await _require_superadmin(request)
+    import demand_intelligence as di
+    return await di.espejo_de_corte(_db(request), [f.model_dump() for f in body.filtros],
+                                    universo=body.universo)
+
+
 # ─── Cubo Unificado · GET /catalog — el CONTRATO que el Hub renderiza (BEFORE /{tier}) ──
 @router.get(PREFIX + "/catalog")
 async def cube_catalog_route(request: Request):

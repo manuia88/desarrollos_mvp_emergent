@@ -139,6 +139,37 @@ export async function getConsultaCampos() {
   return _j(await fetch(`${BASE}/consulta/campos`, { headers: h(), credentials: 'include' }));
 }
 
+// CUBO TOTAL F3 — Atlax compilador: pregunta en español → corte validado {filtros, agrupar_por, universo}
+export async function parsePregunta(texto) {
+  return _j(await fetch(`${BASE}/consulta/pregunta`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify({ texto }),
+  }));
+}
+
+// CUBO TOTAL F3 — espejo de demanda: el mismo corte del lado comprador (personas/búsquedas compatibles)
+export async function runEspejo(filtros, universo = 'unidades') {
+  return _j(await fetch(`${BASE}/consulta/espejo`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify({ filtros, universo }),
+  }));
+}
+
+// CUBO TOTAL F3 — vistas guardadas del Explorador (REUSA el CRUD de demand-intel, tipo 'explorador')
+const VISTAS = `${API}/api/superadmin/demand-intel/vistas`;
+export async function listVistas() {
+  return _j(await fetch(VISTAS, { headers: h(), credentials: 'include' }));
+}
+export async function saveVista(nombre, definicion, alerta = null) {
+  return _j(await fetch(VISTAS, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ nombre, tipo: 'explorador', definicion, alerta }),
+  }));
+}
+export async function deleteVista(viewId) {
+  return _j(await fetch(`${VISTAS}/${encodeURIComponent(viewId)}`, {
+    method: 'DELETE', headers: h(), credentials: 'include',
+  }));
+}
+
 // Cubo Unificado — HISTORIA: series de tiempo del histórico materializado (dmx_market_snapshots).
 // Sin tierId lista las entidades con serie disponible; con tierId devuelve la serie [{period,value}].
 export async function getCubeTimeseries({ tier = 'colonia', tierId = '', measure = 'demand_interactions', gran = 'month', limit = 120 } = {}) {

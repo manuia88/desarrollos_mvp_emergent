@@ -8,8 +8,10 @@
  * Backend: POST /metrics-cube/consulta · GET /metrics-cube/consulta/campos (registro cerrado).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { SlidersHorizontal, Plus, X, AlertCircle, Box } from 'lucide-react';
-import { getConsultaCampos, runConsulta } from '../../api/superadminMetricsCube';
+import { SlidersHorizontal, Plus, X, AlertCircle, Box, Sparkles, Users, Bookmark, Bell } from 'lucide-react';
+import {
+  getConsultaCampos, runConsulta, parsePregunta, runEspejo, listVistas, saveVista, deleteVista,
+} from '../../api/superadminMetricsCube';
 
 const OP_LABEL = {
   eq: '=', ne: '≠', lt: '<', lte: '≤', gt: '>', gte: '≥', in: 'en', between: 'entre', exists: 'tiene dato',
@@ -70,16 +72,70 @@ export default function CubeExploradorView({ onDrillUnit }) {
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  // F3 · Atlax compilador + espejo de demanda + vistas guardadas
+  const [pregunta, setPregunta] = useState('');
+  const [interp, setInterp] = useState(null);
+  const [parsing, setParsing] = useState(false);
+  const [espejo, setEspejo] = useState(null);
+  const [vistas, setVistas] = useState([]);
+  const [nombreVista, setNombreVista] = useState('');
+  const [alertaOn, setAlertaOn] = useState(true);
 
   useEffect(() => {
     getConsultaCampos().then((d) => setCampos(d.campos || [])).catch(() => setCampos([]));
   }, []);
 
   const correr = async (fs = filtros, gs = agrupar, uni = universo) => {
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setEspejo(null);
     try { setRes(await runConsulta(fs, gs, uni)); }
     catch (e) { setErr(e?.message || 'No se pudo consultar.'); }
     finally { setBusy(false); }
+    // el espejo (lado demanda del MISMO corte) carga aparte — nunca bloquea el corte
+    runEspejo(fs, uni).then(setEspejo).catch(() => setEspejo(null));
+  };
+
+  // Pregunta en español → corte (Atlax compilador; LLM con fallback heurístico en el back)
+  const preguntar = async () => {
+    const t = pregunta.trim();
+    if (!t || parsing) return;
+    setParsing(true); setInterp(null);
+    try {
+      const r = await parsePregunta(t);
+      if (r.ok) {
+        const uni = r.universo || 'unidades';
+        const gs = (r.agrupar_por || []).length ? r.agrupar_por : (uni === 'zonas' ? ['alcaldia'] : ['colonia']);
+        setUniverso(uni); setFiltros(r.filtros || []); setAgrupar(gs); setInterp(r);
+        correr(r.filtros || [], gs, uni);
+      } else {
+        setInterp({ interpretacion: (r.errores || []).join(' · ') || 'No entendí la pregunta.', fuente: 'error' });
+      }
+    } catch (e) { setInterp({ interpretacion: e?.message || 'No se pudo interpretar.', fuente: 'error' }); }
+    finally { setParsing(false); }
+  };
+
+  // Vistas guardadas (tipo 'explorador' — REUSA saved_views de demand-intel)
+  const cargarVistas = () => {
+    listVistas().then((d) => setVistas((d.vistas || []).filter((v) => v.tipo === 'explorador'))).catch(() => {});
+  };
+  useEffect(cargarVistas, []);
+  const aplicarVista = (v) => {
+    const d = v.definicion || {};
+    const uni = d.universo || 'unidades';
+    const fs = d.filtros || [];
+    const gs = (d.agrupar_por || []).length ? d.agrupar_por : ['colonia'];
+    setUniverso(uni); setFiltros(fs); setAgrupar(gs); correr(fs, gs, uni);
+  };
+  const guardarVista = async () => {
+    const nombre = nombreVista.trim();
+    if (!nombre) return;
+    try {
+      await saveVista(nombre, { filtros, agrupar_por: agrupar, universo },
+        alertaOn ? { tipo: 'corte', activa: true, umbral_pct: 10 } : null);
+      setNombreVista(''); cargarVistas();
+    } catch (e) { setErr(e?.message || 'No se pudo guardar la vista.'); }
+  };
+  const borrarVista = async (id) => {
+    try { await deleteVista(id); cargarVistas(); } catch { /* la lista se recarga igual */ }
   };
   // al cambiar de universo: en zonas solo campos de zona; limpia filtros que no apliquen
   const cambiarUniverso = (uni) => {
@@ -126,6 +182,32 @@ export default function CubeExploradorView({ onDrillUnit }) {
         Combina los filtros que quieras (físicos, financieros, de zona) y agrupa por lo que sea. Cada respuesta dice cuántas unidades hay detrás.
       </div>
 
+      {/* F3 · Pregúntale al cubo en español — Atlax compila la pregunta a un corte */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, padding: '10px 12px', borderRadius: 13, background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
+        <Sparkles size={14} color="var(--theme)" style={{ flexShrink: 0 }} />
+        <input value={pregunta} onChange={(e) => setPregunta(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && preguntar()} data-testid="exp-pregunta"
+          placeholder="Pregúntale al cubo en español… ej: depas con balcón bajo $30 mil de mensualidad en Benito Juárez, por colonia"
+          style={{ ...inputS, flex: 1, background: 'transparent', border: 'none' }} />
+        <button onClick={preguntar} disabled={parsing} data-testid="exp-preguntar"
+          style={{ ...pill, background: 'rgba(var(--theme-rgb),0.16)', border: '1px solid rgba(var(--theme-rgb),0.45)', color: 'var(--theme)', opacity: parsing ? 0.6 : 1 }}>
+          {parsing ? 'Interpretando…' : 'Preguntar'}
+        </button>
+      </div>
+      {interp && (
+        <div data-testid="exp-interpretacion" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10, fontFamily: 'DM Sans', fontSize: 11.5, color: interp.fuente === 'error' ? '#fecaca' : 'rgba(240,235,224,0.75)' }}>
+          <span>{interp.interpretacion}</span>
+          {interp.fuente !== 'error' && (
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 8px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.55)' }}>
+              {interp.fuente === 'llm' ? 'IA' : 'sin IA (reglas)'}{interp.cached ? ' · cache' : ''}
+            </span>
+          )}
+          {(interp.descartados || []).length > 0 && (
+            <span style={{ color: '#FCD34D' }}>No pude filtrar: {interp.descartados.join(' · ')}</span>
+          )}
+        </div>
+      )}
+
       {/* Toggle de UNIVERSO: oferta (unidades con inventario) vs el Modelo del Mundo (2,400+ colonias) */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
         {[['unidades', 'Unidades (oferta)'], ['zonas', 'Zonas (2,400+ colonias)']].map(([u, l]) => (
@@ -153,6 +235,32 @@ export default function CubeExploradorView({ onDrillUnit }) {
         <button onClick={() => { setFiltros([]); setAgrupar(['colonia']); correr([], ['colonia']); }}
           style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, borderRadius: 9999, padding: '4px 12px', cursor: 'pointer', background: 'none', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(240,235,224,0.5)' }}>
           Limpiar todo
+        </button>
+      </div>
+
+      {/* F3 · Mis cortes guardados: vuelve a cualquier corte con un clic; la campana = te avisa si cambia */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Mis cortes:</span>
+        {vistas.map((v) => (
+          <span key={v.id} data-testid={`exp-vista-${v.id}`} style={{ ...pill, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.8)' }}>
+            <span onClick={() => aplicarVista(v)} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <Bookmark size={10} /> {v.nombre}
+              {v.alerta?.tipo === 'corte' && v.alerta?.activa && <Bell size={10} color="var(--theme)" title="Te avisa si el corte cambia" />}
+              {v.disparada && <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#FCD34D' }} title="Este corte cambió en la última revisión" />}
+            </span>
+            <X size={10} style={{ cursor: 'pointer' }} onClick={() => borrarVista(v.id)} />
+          </span>
+        ))}
+        <input value={nombreVista} onChange={(e) => setNombreVista(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && guardarVista()} data-testid="exp-vista-nombre"
+          placeholder="nombre del corte…" style={{ ...inputS, width: 150, padding: '4px 10px', fontSize: 11 }} />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.6)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={alertaOn} onChange={(e) => setAlertaOn(e.target.checked)} style={{ accentColor: 'var(--theme)' }} />
+          avisarme si cambia
+        </label>
+        <button onClick={guardarVista} data-testid="exp-vista-guardar"
+          style={{ ...pill, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }}>
+          Guardar corte
         </button>
       </div>
 
@@ -230,6 +338,31 @@ export default function CubeExploradorView({ onDrillUnit }) {
               </div>
             )}
           </div>
+
+          {/* F3 · Espejo de demanda: el MISMO corte del lado comprador (el moat) */}
+          {espejo && (
+            <div data-testid="exp-espejo" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: '11px 14px', borderRadius: 13, background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.2)', marginBottom: 12 }}>
+              <Users size={14} color="#93C5FD" style={{ flexShrink: 0 }} />
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.85)' }}>
+                <b style={{ color: '#BFDBFE' }}>Espejo de demanda:</b>{' '}
+                {espejo.espejo_total_mercado
+                  ? <>ningún filtro de este corte tiene cara de demanda — las {espejo.busquedas} búsquedas ({espejo.desde_dias}d) son TODO el mercado, no este corte.</>
+                  : espejo.busquedas > 0
+                    ? <>{espejo.personas} persona{espejo.personas === 1 ? '' : 's'} ({espejo.busquedas} búsqueda{espejo.busquedas === 1 ? '' : 's'}, últimos {espejo.desde_dias} días) buscaron con su pedido declarado dentro de este corte.</>
+                    : <>sin búsquedas con pedido dentro del corte en {espejo.desde_dias} días — honesto: nadie lo ha pedido todavía.</>}
+              </span>
+              {!espejo.espejo_total_mercado && espejo.espejo_parcial && (
+                <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.5)' }}>
+                  Espejo parcial: {(espejo.no_espejables || []).join(', ')} no tienen cara de demanda.
+                </span>
+              )}
+              {espejo.busquedas_sin_identidad > 0 && (
+                <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.5)' }}>
+                  +{espejo.busquedas_sin_identidad} búsquedas sin identidad (no cuentan como personas).
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Grupos */}
           {(res.grupos || []).length > 0 && (

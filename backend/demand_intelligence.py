@@ -2510,3 +2510,144 @@ async def killer_query(db, feature: str, colonia: str, period: str = "month") ->
             "frescura_pct": (row or {}).get("frescura_pct", 0),
             "senales_precisas": (row or {}).get("senales_precisas", 0),
             "lectura": f"'{feature}' en '{colonia}': demanda total, momentum, recencia, vivir/invertir y su posición vs otras features"}
+
+
+# ─── CUBO TOTAL F3 · ESPEJO DE DEMANDA POR CORTE ──────────────────────────────
+# El mismo corte del Explorador, visto del lado del COMPRADOR. Fuente única:
+# db.marketplace_searches (buscador IA + chips + picker + bridge del asesor).
+# SEMÁNTICA DECLARADA (consistente en todos los campos): "el pedido DECLARADO de la
+# búsqueda cabe dentro del corte" — tope de mensualidad/precio/m² ≤ X, feature pedida,
+# recámaras mínimas ≥ X. No es "quién podría comprarlo" (eso exigiría inferir capacidad).
+
+_ESPEJO_FEATURES = {"has_balcon": "balcon", "has_terraza": "terraza", "has_roof": "roof_garden"}
+_ESPEJO_MAX_FILTROS = 12          # mismo tope que el motor de consulta (anti fan-out por request)
+_ESPEJO_MAX_IN = 200              # tope de valores por $in
+
+
+def _espejo_slug(s: Any) -> str:
+    """Canonicaliza al slug que marketplace_searches guarda (via data_developments.colonia_slug,
+    que aplica el alias map real; fallback: slug simple). 'Roma Norte' → 'roma-norte'."""
+    try:
+        from data_developments import colonia_slug
+        return colonia_slug(s)
+    except Exception:  # noqa: BLE001
+        import re as _re
+        import unicodedata
+        s = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().lower()
+        return _re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+
+
+async def demand_cut(db, colonias: Optional[List[str]] = None, features: Optional[List[str]] = None,
+                     mensualidad_max: Optional[float] = None, precio_max: Optional[float] = None,
+                     recamaras_min: Optional[int] = None, m2_max: Optional[float] = None,
+                     since_days: int = 180) -> Dict[str, Any]:
+    """El corte CONJUNTIVO sobre las búsquedas reales. personas = distinct visitor_id (fallback
+    ip_hash). HONESTO: una búsqueda SIN identidad alguna (p.ej. las anónimas del bridge del asesor)
+    NO acuña una persona — se cuenta aparte en busquedas_sin_identidad y se declara."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    q: Dict[str, Any] = {"created_at_dt": {"$gte": cutoff}}
+    if colonias:
+        q["colonias"] = {"$in": colonias[:_ESPEJO_MAX_IN]}
+    if features:
+        q["features_pedidos"] = {"$all": features}
+    if mensualidad_max:
+        q["mensualidad_max"] = {"$gt": 0, "$lte": mensualidad_max}
+    if precio_max:
+        q["precio_max"] = {"$gt": 0, "$lte": precio_max}
+    if recamaras_min:
+        q["recamaras_min"] = {"$gte": recamaras_min}
+    if m2_max:
+        # consistente con mens/precio: el TOPE declarado de m² cabe dentro del corte
+        q["m2_max"] = {"$gt": 0, "$lte": m2_max}
+    busquedas = 0
+    sin_identidad = 0
+    personas: set = set()
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "visitor_id": 1, "ip_hash": 1}):
+        busquedas += 1
+        pid = s.get("visitor_id") or s.get("ip_hash")
+        if pid:
+            personas.add(pid)
+        else:
+            sin_identidad += 1
+    return {"busquedas": busquedas, "personas": len(personas),
+            "busquedas_sin_identidad": sin_identidad, "desde_dias": since_days}
+
+
+async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "unidades",
+                          since_days: int = 180) -> Dict[str, Any]:
+    """Mapea los filtros del Explorador a demand_cut. HONESTO: (1) un filtro sin cara de demanda,
+    con valor inválido o cuya geografía no resuelve → no_espejables (nunca 500, nunca infla);
+    (2) si NINGÚN filtro se pudo espejar, el número es la demanda TOTAL del mercado y se declara
+    como tal (espejo_total_mercado) — espejo parcial > espejo inventado."""
+    filtros = list(filtros or [])[:_ESPEJO_MAX_FILTROS]
+    colonias: List[str] = []
+    features: List[str] = []
+    mens = precio = m2 = None
+    recamaras = None
+    espejados: List[str] = []
+    no_espejables: List[str] = []
+    alc_map: Optional[Dict[str, List[str]]] = None   # catálogo alcaldía→colonias: se resuelve UNA vez
+    for f in filtros:
+        campo, op, valor = f.get("campo"), f.get("op"), f.get("valor")
+        try:
+            if campo == "colonia" and op in ("eq", "in"):
+                vals = [valor] if isinstance(valor, str) else list(valor or [])
+                vals = [_espejo_slug(v) for v in vals if v][:_ESPEJO_MAX_IN]
+                if vals:
+                    colonias.extend(vals)
+                    espejados.append(campo)
+                else:
+                    no_espejables.append(campo)
+            elif campo == "alcaldia" and op == "eq":
+                if alc_map is None:
+                    alc_map = {}
+                    async for c in db.colonias.find({}, {"_id": 0, "id": 1, "alcaldia": 1}):
+                        alc_map.setdefault(_espejo_slug(c.get("alcaldia")), []).append(c.get("id"))
+                key = _espejo_slug(valor)
+                cols = alc_map.get(key) or []
+                if not cols:   # grafías largas/cortas conviven ('cuajimalpa' vs 'cuajimalpa-de-morelos')
+                    for kk, vv in alc_map.items():
+                        if kk and key and (kk.startswith(key) or key.startswith(kk)):
+                            cols = vv
+                            break
+                if cols:
+                    colonias.extend(cols)
+                    espejados.append(campo)
+                else:
+                    no_espejables.append(campo)   # geografía sin resolver → NO se finge el espejo
+            elif campo in _ESPEJO_FEATURES and valor is True:
+                features.append(_ESPEJO_FEATURES[campo])
+                espejados.append(campo)
+            elif campo in ("mens_80_20", "mens_90_20") and op in ("lt", "lte"):
+                mens = float(valor)
+                espejados.append(campo)
+            elif campo == "precio" and op in ("lt", "lte"):
+                precio = float(valor)
+                espejados.append(campo)
+            elif campo == "m2" and op in ("lt", "lte"):
+                m2 = float(valor)
+                espejados.append(campo)
+            elif campo == "recamaras" and op in ("gte", "eq"):
+                recamaras = int(valor)
+                espejados.append(campo)
+            else:
+                no_espejables.append(campo)
+        except (TypeError, ValueError):
+            no_espejables.append(campo)           # valor no coercible → declarado, nunca 500
+    r = await demand_cut(db, colonias=colonias or None, features=features or None,
+                         mensualidad_max=mens, precio_max=precio, recamaras_min=recamaras,
+                         m2_max=m2, since_days=since_days)
+    espejo_total = bool(filtros) and not espejados
+    if espejo_total:
+        lectura = (f"ningún filtro del corte tiene cara de demanda — este número es la demanda TOTAL "
+                   f"del mercado ({r['busquedas']} búsquedas, {since_days}d), NO la del corte")
+    else:
+        lectura = (f"{r['personas']} personas con pedido declarado dentro del corte "
+                   f"({r['busquedas']} búsquedas, {since_days}d)")
+        if no_espejables:
+            lectura += f" · espejo parcial: {len(no_espejables)} filtros sin cara de demanda"
+        if r["busquedas_sin_identidad"]:
+            lectura += f" · +{r['busquedas_sin_identidad']} búsquedas sin identidad (no cuentan como personas)"
+    return {**r, "espejados": espejados, "no_espejables": no_espejables,
+            "espejo_parcial": bool(no_espejables), "espejo_total_mercado": espejo_total,
+            "lectura": lectura}
