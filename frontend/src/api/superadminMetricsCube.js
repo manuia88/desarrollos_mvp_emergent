@@ -155,6 +155,14 @@ export async function runEspejo(filtros, universo = 'unidades', nOferta = null) 
   }));
 }
 
+// CUBO TOTAL F5 — el tiempo del cubo: historia del corte guardado + eventos del átomo
+export async function getVistaHistoria(viewId) {
+  return _j(await fetch(`${BASE}/consulta/vistas/${encodeURIComponent(viewId)}/historia`, { headers: h(), credentials: 'include' }));
+}
+export async function getAtomEventos(unitId) {
+  return _j(await fetch(`${BASE}/atom/${encodeURIComponent(unitId)}/eventos`, { headers: h(), credentials: 'include' }));
+}
+
 // CUBO TOTAL F3 — vistas guardadas del Explorador (REUSA el CRUD de demand-intel, tipo 'explorador')
 const VISTAS = `${API}/api/superadmin/demand-intel/vistas`;
 export async function listVistas() {

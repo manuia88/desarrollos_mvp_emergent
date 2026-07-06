@@ -6,7 +6,7 @@
  */
 import React, { useState } from 'react';
 import { Box, Search, Database, Shield, AlertCircle, Layers } from 'lucide-react';
-import { getCubeAtom } from '../../api/superadminMetricsCube';
+import { getCubeAtom, getAtomEventos } from '../../api/superadminMetricsCube';
 
 const FAMILY_COLOR = {
   oferta: '#6366F1', demanda: '#EC4899', dinero: '#10B981', riesgo: '#EF4444',
@@ -70,12 +70,16 @@ export default function CubeAtomView({ initialUnitId = '' }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [eventos, setEventos] = useState([]);   // F5 · línea de tiempo de la unidad
 
   const load = async (uid) => {
     const id = (uid ?? q).trim();
     if (!id) return;
     setBusy(true); setErr(null);
-    try { setData(await getCubeAtom(id)); }
+    try {
+      setData(await getCubeAtom(id));
+      getAtomEventos(id).then((r) => setEventos(r?.eventos || [])).catch(() => setEventos([]));
+    }
     catch (e) { setErr(e?.status === 404 ? `No se encontró la unidad "${id}".` : (e?.message || 'Error.')); setData(null); }
     finally { setBusy(false); }
   };
@@ -180,6 +184,20 @@ export default function CubeAtomView({ initialUnitId = '' }) {
             );
           })}
         </>
+      )}
+      {/* F5 · el TIEMPO del átomo: qué le ha pasado a esta unidad (developer_audit) */}
+      {u && eventos.length > 0 && (
+        <div data-testid="atom-eventos" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 13, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.55)', marginBottom: 8 }}>
+            Historial de la unidad ({eventos.length})
+          </div>
+          {eventos.slice(0, 12).map((e, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none', fontFamily: 'DM Sans', fontSize: 12 }}>
+              <span style={{ color: 'rgba(240,235,224,0.45)', whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 10.5 }}>{String(e.ts || '').slice(0, 10)}</span>
+              <span style={{ color: 'var(--cream)' }}>{e.descripcion}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

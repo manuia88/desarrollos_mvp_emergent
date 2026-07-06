@@ -558,6 +558,40 @@ async def consulta_campos_route(request: Request):
     return cube_query_libre.campos_disponibles()
 
 
+# ─── CUBO TOTAL F5 · el TIEMPO del cubo (BEFORE /{tier}) ─────────────────────
+@router.get(PREFIX + "/consulta/vistas/{view_id}/historia")
+async def vista_historia_route(view_id: str, request: Request):
+    """La historia del corte guardado: 1 punto/día (n, disponibles, precio, absorción, personas,
+    tensión) desde que el corte existe. El corte deja de ser una foto — gana línea de tiempo."""
+    await _require_superadmin(request)
+    db = _db(request)
+    puntos = []
+    async for p in db.cube_corte_snapshots.find({"ref_tipo": "vista", "ref_id": view_id},
+                                                {"_id": 0, "at": 0}).sort("fecha", 1).limit(400):
+        puntos.append(p)
+    return {"view_id": view_id, "puntos": puntos, "n": len(puntos)}
+
+
+@router.get(PREFIX + "/atom/{unit_id}/eventos")
+async def atom_eventos_route(unit_id: str, request: Request):
+    """F5 · la línea de tiempo del átomo: qué le ha pasado a ESTA unidad (cambios de estado y de
+    campos del dev, con antes→después). Fuente: developer_audit (el camino canónico de edición)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    eventos = []
+    async for e in db.developer_audit.find({"unit_id": unit_id}, {"_id": 0}).sort("ts", -1).limit(100):
+        p = e.get("payload") or {}
+        antes = e.get("antes") or {}
+        if e.get("action") == "unit_status_change":
+            desc = f"estado → {p.get('status')}" + (f" (era {antes.get('status')})" if antes.get("status") else "")
+        else:
+            cambios = [f"{k}: {antes.get(k, '—')} → {v}" for k, v in p.items() if k not in ("unit_id", "dev_id")]
+            desc = "campos: " + ", ".join(cambios[:5]) if cambios else "edición"
+        eventos.append({"ts": e.get("ts"), "accion": e.get("action"), "descripcion": desc,
+                        "por": e.get("user_id")})
+    return {"unit_id": unit_id, "eventos": eventos, "n": len(eventos)}
+
+
 # ─── CUBO TOTAL F3 · Atlax compilador de preguntas + espejo de demanda (BEFORE /{tier}) ──
 class PreguntaBody(BaseModel):
     texto: str

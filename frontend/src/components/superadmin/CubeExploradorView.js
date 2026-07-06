@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SlidersHorizontal, Plus, X, AlertCircle, Box, Sparkles, Users, Bookmark, Bell } from 'lucide-react';
 import {
-  getConsultaCampos, runConsulta, parsePregunta, runEspejo, listVistas, saveVista, deleteVista,
+  getConsultaCampos, runConsulta, parsePregunta, runEspejo, listVistas, saveVista, deleteVista, getVistaHistoria,
 } from '../../api/superadminMetricsCube';
 
 const OP_LABEL = {
@@ -80,6 +80,7 @@ export default function CubeExploradorView({ onDrillUnit }) {
   const [vistas, setVistas] = useState([]);
   const [nombreVista, setNombreVista] = useState('');
   const [alertaOn, setAlertaOn] = useState(true);
+  const [histVista, setHistVista] = useState(null);   // F5 · {id, nombre, puntos} de la vista consultada
 
   useEffect(() => {
     getConsultaCampos().then((d) => setCampos(d.campos || [])).catch(() => setCampos([]));
@@ -250,6 +251,8 @@ export default function CubeExploradorView({ onDrillUnit }) {
               {v.alerta?.tipo === 'corte' && v.alerta?.activa && <Bell size={10} color="var(--theme)" title="Te avisa si el corte cambia" />}
               {v.disparada && <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#FCD34D' }} title="Este corte cambió en la última revisión" />}
             </span>
+            <span title="Ver la historia de este corte" style={{ cursor: 'pointer' }} data-testid={`exp-vista-hist-${v.id}`}
+              onClick={() => getVistaHistoria(v.id).then((r) => setHistVista({ id: v.id, nombre: v.nombre, puntos: r?.puntos || [] })).catch(() => setHistVista({ id: v.id, nombre: v.nombre, puntos: [] }))}>📈</span>
             <X size={10} style={{ cursor: 'pointer' }} onClick={() => borrarVista(v.id)} />
           </span>
         ))}
@@ -260,6 +263,19 @@ export default function CubeExploradorView({ onDrillUnit }) {
           <input type="checkbox" checked={alertaOn} onChange={(e) => setAlertaOn(e.target.checked)} style={{ accentColor: 'var(--theme)' }} />
           avisarme si cambia
         </label>
+        {histVista && (
+          <div data-testid="exp-vista-historia" style={{ width: '100%', padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.8)' }}>
+            <b style={{ color: 'var(--cream)' }}>Historia de “{histVista.nombre}”</b>{' '}
+            {histVista.puntos.length === 0
+              ? <span style={{ color: 'rgba(240,235,224,0.5)' }}>— aún sin puntos (el cron de las 7:30 deja 1 huella diaria; guárdala hoy y mañana ya tiene línea).</span>
+              : histVista.puntos.slice(-14).map((pt) => (
+                  <span key={pt.fecha} style={{ marginRight: 10, fontFamily: 'DM Mono, monospace', fontSize: 10.5 }}>
+                    {pt.fecha.slice(5)}: n={pt.n ?? '—'}{pt.tension != null ? ` t=${pt.tension}` : ''}
+                  </span>
+                ))}
+            <span onClick={() => setHistVista(null)} style={{ cursor: 'pointer', marginLeft: 8, color: 'rgba(240,235,224,0.5)' }}>✕</span>
+          </div>
+        )}
         <button onClick={guardarVista} data-testid="exp-vista-guardar"
           style={{ ...pill, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }}>
           Guardar corte

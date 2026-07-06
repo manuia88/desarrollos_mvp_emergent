@@ -241,3 +241,46 @@ async def test_momentum_de_demanda(db):
     await db.marketplace_searches.delete_many({"ip_hash": "ip3"})
     r2 = await di.demand_cut(db, colonias=["narvarte"])
     assert r2["momentum_pct"] is None
+
+
+# ─── F5 · el TIEMPO del cubo ──────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_huella_diaria_idempotente_con_espejo(db):
+    """F5: cada corrida del cron deja 1 punto/día por corte (re-correr NO duplica) y la huella
+    lleva el espejo (personas/tensión) — el corte gana línea de tiempo."""
+    await db.users.insert_one({"id": "sa1", "role": "superadmin"})
+    await vg.guardar(db, "Corte hist", "explorador",
+                     {"filtros": [{"campo": "colonia", "op": "eq", "valor": "narvarte"}],
+                      "agrupar_por": [], "universo": "unidades"},
+                     alerta={"tipo": "corte", "activa": True, "umbral_pct": 10})
+    await db.dmx_units.insert_many([
+        {"unit_id": f"u{i}", "development_id": "d1",
+         "commercial": {"precio_lista_mxn": 2_000_000, "status": "disponible"},
+         "areas": {"m2_privativo": 50}, "geo": {"colonia_id": "narvarte"}} for i in range(4)])
+    await db.marketplace_searches.insert_many([
+        {"ip_hash": f"ip{i}", "visitor_id": None, "colonias": ["narvarte"], "features_pedidos": [],
+         "created_at_dt": dt.datetime.utcnow()} for i in range(6)])
+    await vg.evaluar_alertas_corte(db)
+    await vg.evaluar_alertas_corte(db)                       # 2a corrida el MISMO día
+    huellas = [h async for h in db.cube_corte_snapshots.find({"ref_tipo": "vista"}, {"_id": 0})]
+    assert len(huellas) == 1                                 # idempotente por (corte, día)
+    h = huellas[0]
+    assert h["n"] == 4 and h["disponibles"] == 4
+    assert h["personas"] == 6 and h["tension"] == 1.5        # 6 personas / 4 disponibles
+
+
+@pytest.mark.asyncio
+async def test_huella_de_busqueda_asesor(db):
+    """F5: las búsquedas de clientes del asesor también dejan huella diaria."""
+    await db.asesor_busquedas.insert_one({"id": "b1", "owner_id": "as1", "contacto_id": "c1",
+                                          "colonias": ["narvarte"], "recamaras_min": 1})
+    await db.dmx_units.insert_many([
+        {"unit_id": f"u{i}", "development_id": "d1",
+         "commercial": {"precio_lista_mxn": 2_000_000, "status": "disponible"},
+         "areas": {"m2_privativo": 50}, "interior": {"recamaras": 2},
+         "geo": {"colonia_id": "narvarte"}} for i in range(3)])
+    r = await vg.evaluar_cortes_asesor(db)
+    assert r["revisadas"] == 1
+    h = await db.cube_corte_snapshots.find_one({"ref_tipo": "busqueda", "ref_id": "b1"}, {"_id": 0})
+    assert h and h["n"] == 3                                 # disponibles del corte del cliente

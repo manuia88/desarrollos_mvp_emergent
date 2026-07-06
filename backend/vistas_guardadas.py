@@ -82,6 +82,18 @@ def _delta_corte(viejo: Optional[Dict], nuevo: Dict, umbral_pct: float) -> list:
     return cambios
 
 
+async def _huella_corte(db, ref_tipo: str, ref_id: str, medidas: Dict[str, Any]) -> None:
+    """F5 · un punto de historia por (corte, día) — idempotente (re-correr el cron no duplica)."""
+    try:
+        fecha = dt.datetime.utcnow().strftime("%Y-%m-%d")
+        await db.cube_corte_snapshots.update_one(
+            {"ref_tipo": ref_tipo, "ref_id": ref_id, "fecha": fecha},
+            {"$set": {**{k: v for k, v in medidas.items()}, "at": dt.datetime.utcnow()}},
+            upsert=True)
+    except Exception:  # noqa: BLE001 — la historia jamás tumba la alerta
+        pass
+
+
 async def evaluar_alertas_corte(db) -> Dict[str, Any]:
     """Re-corre cada corte guardado con alerta activa, compara vs snapshot y notifica cambios."""
     import cube_query_libre as ql
@@ -103,6 +115,19 @@ async def evaluar_alertas_corte(db) -> Dict[str, Any]:
         cambios = _delta_corte(v.get("snapshot"), nuevo, float(v["alerta"].get("umbral_pct", 10)))
         await db.saved_views.update_one({"id": v["id"]}, {"$set": {
             "snapshot": nuevo, "ultimo_check": dt.datetime.utcnow(), "disparada": bool(cambios)}})
+        # F5 · HISTORIA: cada corrida deja huella (1 punto/día por corte) — el corte gana tiempo.
+        # El espejo viaja en la historia (¿la demanda de este corte sube?), no en la alerta.
+        try:
+            import demand_intelligence as _di
+            esp = await _di.espejo_de_corte(db, d.get("filtros") or [],
+                                            universo=d.get("universo") or "unidades",
+                                            n_oferta=k.get("disponibles"))
+            personas = None if esp.get("espejo_total_mercado") else esp.get("personas")
+            tension = None if esp.get("espejo_total_mercado") else esp.get("tension_por_unidad")
+        except Exception:  # noqa: BLE001
+            personas = tension = None
+        await _huella_corte(db, "vista", v["id"], {**nuevo, "disponibles": k.get("disponibles"),
+                                                   "personas": personas, "tension": tension})
         if cambios:
             disparadas.append({"vista": v["nombre"], "id": v["id"], "cambios": cambios})
             try:
@@ -162,6 +187,7 @@ async def evaluar_cortes_asesor(db) -> Dict[str, Any]:
         cambios = _delta_corte(b.get("corte_snapshot"), nuevo, 10.0)
         await db.asesor_busquedas.update_one({"id": b["id"]}, {"$set": {
             "corte_snapshot": nuevo, "corte_checked_at": dt.datetime.utcnow()}})
+        await _huella_corte(db, "busqueda", b["id"], nuevo)   # F5 · historia también para el asesor
         if cambios:
             disparadas.append({"busqueda": b["id"], "cambios": cambios})
             try:

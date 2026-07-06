@@ -1130,6 +1130,10 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     fields = _build_unit_fields(payload)
     if not fields:
         raise HTTPException(400, "Nada que actualizar")
+    # F5 · event-sourcing: capturar el ANTES (override previo) — sin él la historia del átomo
+    # solo sabía el después (el cambio de precio quedaba sin delta).
+    prev_ov = await db.developer_unit_overrides.find_one(
+        {"unit_id": payload.unit_id}, {"_id": 0, **{k: 1 for k in fields}}) or {}
     set_doc = {"unit_id": payload.unit_id, "dev_id": payload.dev_id,
                "updated_by": user.user_id, "updated_at": _now(), **fields}
     await db.developer_unit_overrides.update_one(
@@ -1138,7 +1142,7 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
         "user_id": user.user_id, "action": "unit_fields_change",
-        "payload": fields, "ts": _now(),
+        "payload": fields, "antes": {k: prev_ov.get(k) for k in fields}, "ts": _now(),
     })
     # CROSS-PORTAL: el superadmin VE la edición de campos (precio/m²/…) del dev en el audit_log central. Fail-open.
     try:
