@@ -186,3 +186,58 @@ def test_delta_corte_absorcion_desde_cero():
     cambios2 = v._delta_corte({"n": 40, "precio_prom": 5_000_000, "absorcion_pct": 50},
                               {"n": 40, "precio_prom": 5_000_000, "absorcion_pct": 0}, 10)
     assert any("absorción bajó" in c for c in cambios2)
+
+
+# ─── Ampliación post-feedback del founder ("¿ampliaste la mirada?") ───────────
+
+@pytest.mark.asyncio
+async def test_espejo_ancho_banos_etapa_amenidades(db):
+    """El espejo cubre TODO lo que las búsquedas declaran: baños, etapa y amenidades."""
+    await db.marketplace_searches.insert_many([
+        {**_busqueda("ip1", ["narvarte"]), "banos_min": 2, "stage_pedido": "preventa",
+         "amenidades_pedidas": ["alberca", "gym"]},
+        {**_busqueda("ip2", ["narvarte"]), "banos_min": 1, "stage_pedido": None,
+         "amenidades_pedidas": []},
+    ])
+    filtros = [
+        {"campo": "banos", "op": "gte", "valor": 2},
+        {"campo": "etapa", "op": "eq", "valor": "preventa"},
+        {"campo": "amenidades_edificio", "op": "eq", "valor": "alberca"},
+    ]
+    r = await di.espejo_de_corte(db, filtros)
+    assert r["busquedas"] == 1                                        # solo ip1 cumple los 3
+    assert set(r["espejados"]) == {"banos", "etapa", "amenidades_edificio"}
+    assert r["no_espejables"] == []
+
+
+@pytest.mark.asyncio
+async def test_tension_por_unidad(db):
+    """TENSIÓN = personas del corte / unidades del corte (el número del moat)."""
+    await db.marketplace_searches.insert_many([
+        _busqueda("ip1", ["narvarte"]), _busqueda("ip2", ["narvarte"]),
+        _busqueda("ip3", ["narvarte"]), _busqueda("ip4", ["narvarte"]),
+    ])
+    r = await di.espejo_de_corte(db, [{"campo": "colonia", "op": "eq", "valor": "narvarte"}],
+                                 n_oferta=2)
+    assert r["tension_por_unidad"] == 2.0                             # 4 personas / 2 unidades
+    assert "tensión" in r["lectura"]
+    # sin n_oferta o espejo total → no se inventa tensión
+    r2 = await di.espejo_de_corte(db, [{"campo": "colonia", "op": "eq", "valor": "narvarte"}])
+    assert r2["tension_por_unidad"] is None
+
+
+@pytest.mark.asyncio
+async def test_momentum_de_demanda(db):
+    """MOMENTUM: mitad reciente vs mitad previa de la ventana (¿la demanda sube o baja?)."""
+    await db.marketplace_searches.insert_many([
+        _busqueda("ip1", ["narvarte"], dias=5),                       # reciente (ventana 180: mitad=90)
+        _busqueda("ip2", ["narvarte"], dias=10),                      # reciente
+        _busqueda("ip3", ["narvarte"], dias=120),                     # previa
+    ])
+    r = await di.demand_cut(db, colonias=["narvarte"])
+    assert r["busquedas_recientes"] == 2 and r["busquedas_previas"] == 1
+    assert r["momentum_pct"] == 100.0                                 # 2 vs 1 = +100%
+    # sin previas → momentum None (no se inventa una tendencia con base 0)
+    await db.marketplace_searches.delete_many({"ip_hash": "ip3"})
+    r2 = await di.demand_cut(db, colonias=["narvarte"])
+    assert r2["momentum_pct"] is None

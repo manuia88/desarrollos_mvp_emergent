@@ -2540,11 +2540,15 @@ def _espejo_slug(s: Any) -> str:
 async def demand_cut(db, colonias: Optional[List[str]] = None, features: Optional[List[str]] = None,
                      mensualidad_max: Optional[float] = None, precio_max: Optional[float] = None,
                      recamaras_min: Optional[int] = None, m2_max: Optional[float] = None,
+                     banos_min: Optional[int] = None, etapa: Optional[str] = None,
+                     amenidades: Optional[List[str]] = None,
                      since_days: int = 180) -> Dict[str, Any]:
     """El corte CONJUNTIVO sobre las búsquedas reales. personas = distinct visitor_id (fallback
     ip_hash). HONESTO: una búsqueda SIN identidad alguna (p.ej. las anónimas del bridge del asesor)
-    NO acuña una persona — se cuenta aparte en busquedas_sin_identidad y se declara."""
+    NO acuña una persona — se cuenta aparte en busquedas_sin_identidad y se declara.
+    MOMENTUM: parte la ventana a la mitad y compara búsquedas recientes vs previas (¿sube o baja?)."""
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    mitad = dt.datetime.utcnow() - dt.timedelta(days=since_days / 2)
     q: Dict[str, Any] = {"created_at_dt": {"$gte": cutoff}}
     if colonias:
         q["colonias"] = {"$in": colonias[:_ESPEJO_MAX_IN]}
@@ -2559,31 +2563,48 @@ async def demand_cut(db, colonias: Optional[List[str]] = None, features: Optiona
     if m2_max:
         # consistente con mens/precio: el TOPE declarado de m² cabe dentro del corte
         q["m2_max"] = {"$gt": 0, "$lte": m2_max}
+    if banos_min:
+        q["banos_min"] = {"$gte": banos_min}
+    if etapa:
+        q["stage_pedido"] = etapa
+    if amenidades:
+        q["amenidades_pedidas"] = {"$all": amenidades}
     busquedas = 0
     sin_identidad = 0
+    recientes = 0
     personas: set = set()
-    async for s in db.marketplace_searches.find(q, {"_id": 0, "visitor_id": 1, "ip_hash": 1}):
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "visitor_id": 1, "ip_hash": 1,
+                                                    "created_at_dt": 1}):
         busquedas += 1
+        if (s.get("created_at_dt") or cutoff) >= mitad:
+            recientes += 1
         pid = s.get("visitor_id") or s.get("ip_hash")
         if pid:
             personas.add(pid)
         else:
             sin_identidad += 1
+    previas = busquedas - recientes
+    momentum_pct = round((recientes - previas) / previas * 100, 1) if previas > 0 else None
     return {"busquedas": busquedas, "personas": len(personas),
-            "busquedas_sin_identidad": sin_identidad, "desde_dias": since_days}
+            "busquedas_sin_identidad": sin_identidad, "desde_dias": since_days,
+            "busquedas_recientes": recientes, "busquedas_previas": previas,
+            "momentum_pct": momentum_pct}
 
 
 async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "unidades",
-                          since_days: int = 180) -> Dict[str, Any]:
+                          since_days: int = 180, n_oferta: Optional[int] = None) -> Dict[str, Any]:
     """Mapea los filtros del Explorador a demand_cut. HONESTO: (1) un filtro sin cara de demanda,
     con valor inválido o cuya geografía no resuelve → no_espejables (nunca 500, nunca infla);
     (2) si NINGÚN filtro se pudo espejar, el número es la demanda TOTAL del mercado y se declara
-    como tal (espejo_total_mercado) — espejo parcial > espejo inventado."""
+    como tal (espejo_total_mercado) — espejo parcial > espejo inventado.
+    Con n_oferta (las unidades del corte) calcula la TENSIÓN: personas por unidad disponible."""
     filtros = list(filtros or [])[:_ESPEJO_MAX_FILTROS]
     colonias: List[str] = []
     features: List[str] = []
+    amenidades: List[str] = []
     mens = precio = m2 = None
-    recamaras = None
+    recamaras = banos = None
+    etapa = None
     espejados: List[str] = []
     no_espejables: List[str] = []
     alc_map: Optional[Dict[str, List[str]]] = None   # catálogo alcaldía→colonias: se resuelve UNA vez
@@ -2618,6 +2639,10 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
             elif campo in _ESPEJO_FEATURES and valor is True:
                 features.append(_ESPEJO_FEATURES[campo])
                 espejados.append(campo)
+            elif campo == "amenidades_edificio" and op == "eq" and valor:
+                # mismo vocabulario en ambos lados (gym/alberca/roof/spa…): espejo directo
+                amenidades.append(_espejo_slug(valor).replace("-", "_"))
+                espejados.append(campo)
             elif campo in ("mens_80_20", "mens_90_20") and op in ("lt", "lte"):
                 mens = float(valor)
                 espejados.append(campo)
@@ -2630,24 +2655,40 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
             elif campo == "recamaras" and op in ("gte", "eq"):
                 recamaras = int(valor)
                 espejados.append(campo)
+            elif campo == "banos" and op in ("gte", "eq"):
+                banos = int(valor)
+                espejados.append(campo)
+            elif campo == "etapa" and op == "eq" and valor:
+                etapa = str(valor)
+                espejados.append(campo)
             else:
                 no_espejables.append(campo)
         except (TypeError, ValueError):
             no_espejables.append(campo)           # valor no coercible → declarado, nunca 500
     r = await demand_cut(db, colonias=colonias or None, features=features or None,
                          mensualidad_max=mens, precio_max=precio, recamaras_min=recamaras,
-                         m2_max=m2, since_days=since_days)
+                         m2_max=m2, banos_min=banos, etapa=etapa, amenidades=amenidades or None,
+                         since_days=since_days)
     espejo_total = bool(filtros) and not espejados
+    # TENSIÓN oferta↔demanda: el número del moat. Solo cuando el espejo es del corte (no total).
+    tension = None
+    if not espejo_total and n_oferta and n_oferta > 0 and r["personas"] > 0:
+        # 3 decimales: con demanda chica real (1 persona / 322 unidades) 0.003 NO debe leerse como 0
+        tension = round(r["personas"] / n_oferta, 3)
     if espejo_total:
         lectura = (f"ningún filtro del corte tiene cara de demanda — este número es la demanda TOTAL "
                    f"del mercado ({r['busquedas']} búsquedas, {since_days}d), NO la del corte")
     else:
         lectura = (f"{r['personas']} personas con pedido declarado dentro del corte "
                    f"({r['busquedas']} búsquedas, {since_days}d)")
+        if tension is not None:
+            lectura += f" · tensión: {tension} personas por unidad"
+        if r["momentum_pct"] is not None:
+            lectura += f" · demanda {'subiendo' if r['momentum_pct'] > 0 else 'bajando'} {abs(r['momentum_pct'])}%"
         if no_espejables:
             lectura += f" · espejo parcial: {len(no_espejables)} filtros sin cara de demanda"
         if r["busquedas_sin_identidad"]:
             lectura += f" · +{r['busquedas_sin_identidad']} búsquedas sin identidad (no cuentan como personas)"
     return {**r, "espejados": espejados, "no_espejables": no_espejables,
             "espejo_parcial": bool(no_espejables), "espejo_total_mercado": espejo_total,
-            "lectura": lectura}
+            "tension_por_unidad": tension, "lectura": lectura}

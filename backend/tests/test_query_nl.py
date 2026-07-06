@@ -111,3 +111,29 @@ def test_heuristico_pregunta_mixta_no_pierde_indices():
     assert r["universo"] == "unidades"
     campos = {f["campo"] for f in r["filtros"]}
     assert {"has_balcon", "walkability", "alcaldia"} <= campos
+
+
+def test_heuristico_colonias_reales():
+    """Con el catálogo real, el heurístico reconoce colonias (match largo primero)."""
+    catalogo = ["roma-norte", "roma-sur", "narvarte", "del-valle-centro"]
+    catalogo.sort(key=len, reverse=True)
+    r = nl._heuristico("depas en roma norte con 2 baños y alberca", catalogo)
+    campos = {f["campo"]: f for f in r["filtros"]}
+    assert campos["colonia"]["valor"] == "roma-norte"
+    assert campos["banos"]["op"] == "gte" and campos["banos"]["valor"] == 2
+    assert campos["amenidades_edificio"]["valor"] == "alberca"
+
+
+def test_heuristico_etapa_estado_y_rango():
+    r = nl._heuristico("depas disponibles en preventa entre 3 millones y 5 millones")
+    campos = {f["campo"]: f for f in r["filtros"]}
+    assert campos["status"]["valor"] == "disponible"
+    assert campos["etapa"]["valor"] == "preventa"
+    assert campos["precio"]["op"] == "between" and campos["precio"]["valor"] == [3_000_000, 5_000_000]
+
+
+def test_heuristico_amenidad_gym_token():
+    """'gimnasio' mapea al token real del vocabulario compartido ('gym')."""
+    r = nl._heuristico("departamentos con gimnasio y spa")
+    valores = {f["valor"] for f in r["filtros"] if f["campo"] == "amenidades_edificio"}
+    assert valores == {"gym", "spa"}

@@ -146,10 +146,12 @@ export async function parsePregunta(texto) {
   }));
 }
 
-// CUBO TOTAL F3 — espejo de demanda: el mismo corte del lado comprador (personas/búsquedas compatibles)
-export async function runEspejo(filtros, universo = 'unidades') {
+// CUBO TOTAL F3 — espejo de demanda: el mismo corte del lado comprador. Con nOferta (unidades
+// del corte) el back calcula la TENSIÓN oferta↔demanda (personas por unidad) + momentum.
+export async function runEspejo(filtros, universo = 'unidades', nOferta = null) {
   return _j(await fetch(`${BASE}/consulta/espejo`, {
-    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify({ filtros, universo }),
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ filtros, universo, n_oferta: nOferta }),
   }));
 }
 

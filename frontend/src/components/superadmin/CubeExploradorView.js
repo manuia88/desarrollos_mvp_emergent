@@ -87,11 +87,13 @@ export default function CubeExploradorView({ onDrillUnit }) {
 
   const correr = async (fs = filtros, gs = agrupar, uni = universo) => {
     setBusy(true); setErr(null); setEspejo(null);
-    try { setRes(await runConsulta(fs, gs, uni)); }
+    let data = null;
+    try { data = await runConsulta(fs, gs, uni); setRes(data); }
     catch (e) { setErr(e?.message || 'No se pudo consultar.'); }
     finally { setBusy(false); }
-    // el espejo (lado demanda del MISMO corte) carga aparte — nunca bloquea el corte
-    runEspejo(fs, uni).then(setEspejo).catch(() => setEspejo(null));
+    // el espejo (lado demanda del MISMO corte) carga aparte — nunca bloquea el corte.
+    // Con n del corte el back calcula la tensión (personas por unidad = el número del moat).
+    runEspejo(fs, uni, data?.ok ? data.n : null).then(setEspejo).catch(() => setEspejo(null));
   };
 
   // Pregunta en español → corte (Atlax compilador; LLM con fallback heurístico en el back)
@@ -351,6 +353,16 @@ export default function CubeExploradorView({ onDrillUnit }) {
                     ? <>{espejo.personas} persona{espejo.personas === 1 ? '' : 's'} ({espejo.busquedas} búsqueda{espejo.busquedas === 1 ? '' : 's'}, últimos {espejo.desde_dias} días) buscaron con su pedido declarado dentro de este corte.</>
                     : <>sin búsquedas con pedido dentro del corte en {espejo.desde_dias} días — honesto: nadie lo ha pedido todavía.</>}
               </span>
+              {espejo.tension_por_unidad != null && (
+                <span data-testid="exp-tension" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, padding: '3px 12px', borderRadius: 9999, background: espejo.tension_por_unidad >= 1 ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${espejo.tension_por_unidad >= 1 ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.12)'}`, color: espejo.tension_por_unidad >= 1 ? '#6EE7B7' : 'rgba(240,235,224,0.7)' }}>
+                  Tensión: {espejo.tension_por_unidad > 0 && espejo.tension_por_unidad < 0.01 ? '<0.01' : espejo.tension_por_unidad} personas/unidad
+                </span>
+              )}
+              {espejo.momentum_pct != null && !espejo.espejo_total_mercado && (
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: espejo.momentum_pct > 0 ? '#6EE7B7' : '#FCA5A5' }}>
+                  demanda {espejo.momentum_pct > 0 ? '↑' : '↓'} {Math.abs(espejo.momentum_pct)}% (90d vs 90d previos)
+                </span>
+              )}
               {!espejo.espejo_total_mercado && espejo.espejo_parcial && (
                 <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.5)' }}>
                   Espejo parcial: {(espejo.no_espejables || []).join(', ')} no tienen cara de demanda.

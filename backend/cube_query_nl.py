@@ -51,6 +51,8 @@ REGLAS:
 - Colonias y alcaldías en slug minúsculas con guiones (ej. "Benito Juárez"→"benito-juarez", "Roma Norte"→"roma-norte").
 - Índices de zona son 0-100: "caminable"→walkability gt 70 · "segura"→seguridad_zona gt 60 ·
   "buenas escuelas"→escuelas_zona gt 60 · "gentrificación baja/temprana"→gentrificacion_zona lt 30.
+- Amenidades del edificio usan estos tokens exactos: alberca, gym, spa, roof, jardines, asadores,
+  cancha_padel, pet, concierge, coworking ("con alberca y gym" → 2 filtros amenidades_edificio eq).
 - agrupar_por solo con campos agrupables. "por colonia"→["colonia"], "por alcaldía"→["alcaldia"].
 - interpretacion: UNA frase en español natural de lo que entendiste.
 - NO inventes campos fuera del catálogo. Si algo no se puede filtrar, omítelo y menciónalo en interpretacion.
@@ -67,6 +69,31 @@ _ALCALDIAS = ["alvaro-obregon", "azcapotzalco", "benito-juarez", "coyoacan", "cu
 
 _FEATURES = {"balcon": "has_balcon", "balcón": "has_balcon", "terraza": "has_terraza",
              "roof": "has_roof", "bodega": "has_bodega"}
+
+# amenidades del edificio: MISMO vocabulario que developments.amenities / amenidades_pedidas
+_AMENIDADES = {"alberca": "alberca", "gimnasio": "gym", "gym": "gym", "spa": "spa",
+               "asadores": "asadores", "padel": "cancha_padel", "pádel": "cancha_padel",
+               "jardines": "jardines", "coworking": "coworking", "pet friendly": "pet",
+               "concierge": "concierge"}
+
+# cache módulo del catálogo de colonias (2,788 ids) — se lee de la db 1 vez por hora
+_COLONIAS_CACHE: Dict[str, Any] = {"at": None, "ids": []}
+
+
+async def _colonias_conocidas(db) -> List[str]:
+    now = dt.datetime.utcnow()
+    if _COLONIAS_CACHE["at"] and (now - _COLONIAS_CACHE["at"]).total_seconds() < 3600:
+        return _COLONIAS_CACHE["ids"]
+    ids: List[str] = []
+    try:
+        async for c in db.colonias.find({}, {"_id": 0, "id": 1}):
+            if c.get("id"):
+                ids.append(c["id"])
+        ids.sort(key=len, reverse=True)   # match más largo primero ('roma-norte' antes que 'roma')
+        _COLONIAS_CACHE.update(at=now, ids=ids)
+    except Exception:  # noqa: BLE001
+        pass
+    return _COLONIAS_CACHE["ids"] or ids
 
 _INDICES_ZONA = [
     (re.compile(r"caminabl|walkab|a pie", re.I), ("walkability", "gt", 70)),
@@ -101,8 +128,9 @@ def _dinero(txt: str) -> Optional[float]:
     return None
 
 
-def _heuristico(texto: str) -> Dict[str, Any]:
-    """Parser determinista: cubre los patrones más comunes en español sin LLM. Nunca lanza."""
+def _heuristico(texto: str, colonias_catalogo: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Parser determinista: cubre los patrones más comunes en español sin LLM. Nunca lanza.
+    Con colonias_catalogo (las 2,788 reales, orden largo→corto) también reconoce colonias."""
     t = texto.lower()
     filtros: List[Dict[str, Any]] = []
     partes: List[str] = []
@@ -113,12 +141,24 @@ def _heuristico(texto: str) -> Dict[str, Any]:
     indices_hits = [(rx, spec) for rx, spec in _INDICES_ZONA if rx.search(t)]
     universo = "zonas" if (habla_zonas and indices_hits and not habla_unidades) else "unidades"
 
+    t_slug_esp = " " + _slug(t).replace("-", " ") + " "
+
     # alcaldías por nombre
     for a in _ALCALDIAS:
         nombre = a.replace("-", " ")
-        if nombre in _slug(t).replace("-", " "):
+        if f" {nombre} " in t_slug_esp or t_slug_esp.strip().endswith(nombre):
             filtros.append({"campo": "alcaldia", "op": "eq", "valor": a})
             partes.append(f"alcaldía {nombre}")
+            break
+
+    # colonias REALES del catálogo (match más largo primero; ≥5 chars para evitar ruido)
+    for cid in (colonias_catalogo or []):
+        if len(cid) < 5:
+            continue
+        nombre = cid.replace("-", " ")
+        if f" {nombre} " in t_slug_esp or t_slug_esp.strip().endswith(nombre):
+            filtros.append({"campo": "colonia", "op": "eq", "valor": cid})
+            partes.append(f"colonia {nombre}")
             break
 
     if universo == "zonas":
@@ -137,13 +177,41 @@ def _heuristico(texto: str) -> Dict[str, Any]:
                 vistos.add(campo)
                 filtros.append({"campo": campo, "op": "eq", "valor": True})
                 partes.append(f"con {kw}")
-        # mensualidad tope
-        if "mensualidad" in t:
+        # amenidades del edificio (alberca/gym/spa… mismo vocabulario que la oferta)
+        am_vistas: set = set()
+        for kw, token in _AMENIDADES.items():
+            if kw in t and token not in am_vistas:
+                am_vistas.add(token)
+                filtros.append({"campo": "amenidades_edificio", "op": "eq", "valor": token})
+                partes.append(f"con {kw}")
+        # etapa y estado
+        if "preventa" in t:
+            filtros.append({"campo": "etapa", "op": "eq", "valor": "preventa"})
+            partes.append("en preventa")
+        if re.search(r"\bdisponibles?\b", t):
+            filtros.append({"campo": "status", "op": "eq", "valor": "disponible"})
+            partes.append("disponibles")
+        elif re.search(r"\bvendid[ao]s?\b", t):
+            filtros.append({"campo": "status", "op": "eq", "valor": "vendido"})
+            partes.append("vendidas")
+        # rango 'entre X y Y' (precio o mensualidad según contexto); grupo 2 greedy para
+        # que '5 millones' no se corte en '5'
+        m = re.search(r"entre\s+(.{1,30}?)\s+y\s+(.{1,30})", t)
+        rango = None
+        if m:
+            lo, hi = _dinero(m.group(1)), _dinero(m.group(2))
+            if lo and hi and lo < hi:
+                campo = "mens_80_20" if "mensualidad" in t else "precio"
+                filtros.append({"campo": campo, "op": "between", "valor": [lo, hi]})
+                partes.append(f"{campo} entre ${lo:,.0f} y ${hi:,.0f}")
+                rango = campo
+        # mensualidad tope (si no se capturó ya como rango)
+        if "mensualidad" in t and rango != "mens_80_20":
             v = _dinero(t)
             if v:
                 filtros.append({"campo": "mens_80_20", "op": "lt", "valor": v})
                 partes.append(f"mensualidad < ${v:,.0f}")
-        elif re.search(r"menos de|bajo|hasta|m[aá]ximo", t):
+        elif rango is None and re.search(r"menos de|bajo|hasta|m[aá]ximo", t):
             v = _dinero(t)
             if v:
                 campo = "precio" if v >= 300_000 else "mens_80_20"
@@ -157,6 +225,10 @@ def _heuristico(texto: str) -> Dict[str, Any]:
         if m:
             filtros.append({"campo": "recamaras", "op": "gte", "valor": int(m.group(1))})
             partes.append(f"{m.group(1)}+ recámaras")
+        m = re.search(r"(\d+)\s*baños?", t)
+        if m:
+            filtros.append({"campo": "banos", "op": "gte", "valor": int(m.group(1))})
+            partes.append(f"{m.group(1)}+ baños")
 
     agrupar: List[str] = []
     m = re.search(r"por\s+(colonia|alcald[ií]a|desarrollo|tipolog[ií]a)", t)
@@ -250,7 +322,7 @@ async def parsear_pregunta(db, texto: str) -> Dict[str, Any]:
             return {**hit["res"], "cached": True}
     except Exception:  # noqa: BLE001
         pass
-    propuesta = await _llm(texto) or _heuristico(texto)
+    propuesta = await _llm(texto) or _heuristico(texto, await _colonias_conocidas(db))
     res = _validar_propuesta(propuesta)
     try:
         await db.cube_nl_cache.update_one({"key": key}, {"$set": {"key": key, "res": res, "at": dt.datetime.utcnow()}},

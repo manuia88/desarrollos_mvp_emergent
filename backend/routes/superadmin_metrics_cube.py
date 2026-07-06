@@ -575,16 +575,18 @@ async def consulta_pregunta_route(body: PreguntaBody, request: Request):
 class EspejoBody(BaseModel):
     filtros: List[ConsultaFiltro] = []
     universo: str = "unidades"
+    n_oferta: Optional[int] = None   # unidades del corte → tensión (personas por unidad)
 
 
 @router.post(PREFIX + "/consulta/espejo")
 async def consulta_espejo_route(body: EspejoBody, request: Request):
-    """El MISMO corte visto del lado del COMPRADOR: cuánta gente buscó algo compatible
-    (marketplace_searches, 180d). Declara qué filtros no tienen cara de demanda (espejo parcial)."""
+    """El MISMO corte visto del lado del COMPRADOR: personas cuyo pedido declarado cabe en el
+    corte (marketplace_searches, 180d) + TENSIÓN oferta↔demanda + momentum. Declara qué filtros
+    no tienen cara de demanda (espejo parcial) y cuándo el número es demanda total del mercado."""
     await _require_superadmin(request)
     import demand_intelligence as di
     return await di.espejo_de_corte(_db(request), [f.model_dump() for f in body.filtros],
-                                    universo=body.universo)
+                                    universo=body.universo, n_oferta=body.n_oferta)
 
 
 # ─── Cubo Unificado · GET /catalog — el CONTRATO que el Hub renderiza (BEFORE /{tier}) ──
