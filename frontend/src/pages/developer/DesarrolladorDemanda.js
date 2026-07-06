@@ -14,10 +14,32 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
   const [selectedColonia, setSelectedColonia] = useState(null);
   const [intel, setIntel] = useState(null);   // demanda insatisfecha en TUS zonas (el moat)
   const [feat, setFeat] = useState(null);     // demanda a nivel FEATURE en tus colonias (cierra loop demanda→dev)
+  // CUBO F4.3 — tensión de TUS cortes + simulador de enganche→compradores
+  const [tension, setTension] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [simProj, setSimProj] = useState('');
+  const [simPct, setSimPct] = useState(5);
+  const [simRes, setSimRes] = useState(null);
+  const [simBusy, setSimBusy] = useState(false);
 
   useEffect(() => { api.getDemand().then(setLegacy).catch(() => setLegacy({ _err: true })); }, []);
   useEffect(() => { api.getDemandIntel(60).then(setIntel).catch(() => setIntel({ _err: true })); }, []);
   useEffect(() => { api.getDemandFeatures(90).then(setFeat).catch(() => setFeat({ _err: true })); }, []);
+  useEffect(() => { api.getTensionCortes().then(setTension).catch(() => setTension({ _err: true })); }, []);
+  useEffect(() => {
+    api.listProjects().then((r) => {
+      const list = Array.isArray(r) ? r : (r?.items || r?.projects || []);
+      setProjects(list);
+      if (list[0]?.id) setSimProj(list[0].id);
+    }).catch(() => setProjects([]));
+  }, []);
+  const correrSim = async () => {
+    if (!simProj || simBusy) return;
+    setSimBusy(true);
+    try { setSimRes(await api.simularEnganche(simProj, Number(simPct))); }
+    catch { setSimRes({ ok: false, motivo: 'No se pudo simular.' }); }
+    finally { setSimBusy(false); }
+  };
 
   useEffect(() => {
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
@@ -32,6 +54,70 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
         title="Demanda de mercado"
         sub="Búsquedas reales en DesarrollosMX, demanda no atendida y pronóstico a 30/60/90 días con IA."
       />
+
+      {/* CUBO F4.3 — TENSIÓN DE TUS CORTES: qué se pelea el mercado y qué nadie pide (recorte quirúrgico) */}
+      {tension && !tension._err && (tension.celdas || []).length > 0 && (
+        <Card data-testid="dev-tension-cortes" style={{ marginBottom: 20, border: '1px solid rgba(96,165,250,0.3)' }}>
+          <div className="eyebrow" style={{ marginBottom: 4, color: '#93C5FD' }}>⚖️ TENSIÓN DE TUS CORTES — compradores buscando por unidad disponible</div>
+          <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10 }}>
+            Cada fila = un corte de TU inventario (colonia × recámaras) con su otra cara: cuánta gente lo pide. Arriba lo caliente; abajo, candidato a recorte quirúrgico.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+            {tension.celdas.slice(0, 8).map((cel) => (
+              <div key={`${cel.colonia}-${cel.recamaras}`} style={{ padding: '10px 12px', borderRadius: 11, background: (cel.tension || 0) >= 1 ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${(cel.tension || 0) >= 1 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3, textTransform: 'capitalize' }}>{String(cel.colonia).replace(/-/g, ' ')} · {cel.recamaras}+ rec</div>
+                <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>
+                  {cel.disponibles} disponibles · {cel.personas != null ? `${cel.personas} buscando` : 'sin señal de demanda'}
+                  {cel.tension != null && <b style={{ color: cel.tension >= 1 ? '#22c55e' : 'var(--cream-3)' }}> · tensión {cel.tension}</b>}
+                </div>
+                {cel.momentum_pct != null && (
+                  <div style={{ fontSize: 11, color: cel.momentum_pct > 0 ? '#22c55e' : '#f87171', marginTop: 2 }}>
+                    demanda {cel.momentum_pct > 0 ? '↑' : '↓'} {Math.abs(cel.momentum_pct)}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* CUBO F4.3 — SIMULADOR: ¿y si pido menos enganche? (compradores reales que alcanzan tu entrada) */}
+      {projects.length > 0 && (
+        <Card data-testid="dev-simulador-enganche" style={{ marginBottom: 20, border: '1px solid rgba(232,147,12,0.3)' }}>
+          <div className="eyebrow" style={{ marginBottom: 4, color: '#E8930C' }}>🎚️ SIMULADOR — ¿y si pides menos enganche?</div>
+          <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10 }}>
+            Cuenta compradores REALES (búsquedas con enganche declarado en tus zonas) que alcanzan tu entrada con cada esquema. Sin dato, no hay proyección — honesto.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+            <select value={simProj} onChange={(e) => setSimProj(e.target.value)} data-testid="sim-proj"
+              style={{ padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontSize: 13 }}>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name || p.id}</option>)}
+            </select>
+            <label style={{ fontSize: 12.5, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              enganche <input type="range" min={1} max={30} value={simPct} onChange={(e) => setSimPct(e.target.value)} data-testid="sim-pct" />
+              <b style={{ color: 'var(--cream)', width: 38 }}>{simPct}%</b>
+            </label>
+            <button onClick={correrSim} disabled={simBusy} data-testid="sim-correr"
+              style={{ padding: '8px 16px', borderRadius: 9999, background: 'rgba(232,147,12,0.15)', border: '1px solid rgba(232,147,12,0.4)', color: '#E8930C', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+              {simBusy ? 'Simulando…' : 'Simular'}
+            </button>
+          </div>
+          {simRes && (simRes.ok ? (
+            <div data-testid="sim-resultado" style={{ fontSize: 13, color: 'var(--cream)', lineHeight: 1.6 }}>
+              {simRes.suficiente_dato ? (
+                <>Hoy ({simRes.actual.enganche_pct}% = ${fmt0(simRes.actual.enganche_mxn)}): <b>{simRes.actual.compradores_alcanzan}</b> compradores alcanzan tu entrada.
+                Con <b>{simRes.nuevo.enganche_pct}%</b> (${fmt0(simRes.nuevo.enganche_mxn)}): <b>{simRes.nuevo.compradores_alcanzan}</b>
+                <b style={{ color: simRes.delta_compradores > 0 ? '#22c55e' : '#f87171' }}> ({simRes.delta_compradores >= 0 ? '+' : ''}{simRes.delta_compradores})</b>.
+                <span style={{ color: 'var(--cream-3)', fontSize: 11.5 }}> Base: {simRes.n_busquedas_con_enganche} búsquedas con enganche declarado, {simRes.desde_dias}d.</span></>
+              ) : (
+                <span style={{ color: 'var(--cream-3)' }}>{simRes.lectura}</span>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>{simRes.motivo || 'Sin datos para simular.'}</div>
+          ))}
+        </Card>
+      )}
 
       {/* JUGADAS PROACTIVAS: qué construir YA (presión + tendencia). Lo proactivo — el dev lo ve sin escarbar. */}
       {feat && feat.alertas && (feat.alertas.jugadas || []).length > 0 && (

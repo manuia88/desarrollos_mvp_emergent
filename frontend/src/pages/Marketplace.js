@@ -14,7 +14,7 @@ import AtlaxBubble from '../components/landing/AtlaxBubble';
 import OportunidadPanel from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell } from '../components/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
+import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple, fetchEspejoCorte } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
@@ -284,6 +284,18 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // Al ENTRAR se ven los proyectos (no pantalla vacía). La búsqueda guiada es ayuda, no muro. "Nueva búsqueda" la reabre.
   const [browseAll, setBrowseAll] = useState(true);
   const showResults = canSearch || browseAll;
+  // CUBO F4.1 — espejo personal: con búsqueda completa, pregunta al cubo cuánta gente busca
+  // este mismo corte (bandas k-anon, jamás conteos exactos) + si el corte está caliente.
+  const [espejoData, setEspejoData] = useState(null);
+  useEffect(() => {
+    if (!canSearch) { setEspejoData(null); return undefined; }
+    const merged = { ...filters, ...(coloniaFilter ? { colonia: coloniaFilter } : {}), ...(aiFilters || {}) };
+    const tid = setTimeout(() => {
+      fetchEspejoCorte(merged).then((d) => setEspejoData(d?.ok && d.espejable ? d : null)).catch(() => setEspejoData(null));
+    }, 600);   // debounce: no un POST por tecla
+    return () => clearTimeout(tid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSearch, JSON.stringify(filters), JSON.stringify(aiFilters), coloniaFilter]);
   // ¿Hay una colonia activa en la búsqueda? → muestra su panel de inteligencia (si no, grid full-width, sin sidebar).
   const coloniaActiva = coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia)) || null;
   const coloniaNombre = coloniaActiva ? ((colonias.find((c) => c.id === coloniaActiva) || {}).name || coloniaActiva) : null;
@@ -677,6 +689,25 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 </aside>
               )}
               <div>
+                {/* CUBO F4.1 — espejo personal: la otra cara de TU búsqueda (bandas k-anon, honesto) */}
+                {canSearch && espejoData?.espejo && (espejoData.espejo.hay_demanda || espejoData.unidades_disponibles != null) && (
+                  <div data-testid="mkp-espejo-corte" style={{
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
+                    padding: '12px 16px', marginBottom: 16, borderRadius: 14,
+                    background: espejoData.espejo.caliente ? 'rgba(220,88,42,0.07)' : 'rgba(31,160,106,0.06)',
+                    border: `1.5px solid ${espejoData.espejo.caliente ? 'rgba(220,88,42,0.30)' : 'rgba(31,160,106,0.22)'}`,
+                    fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)',
+                  }}>
+                    <span style={{ fontSize: 16 }}>{espejoData.espejo.caliente ? '🔥' : '👀'}</span>
+                    <span>
+                      {espejoData.espejo.hay_demanda
+                        ? <><b>{espejoData.espejo.personas_banda} personas</b> buscaron algo como esto en los últimos {espejoData.espejo.desde_dias} días{espejoData.unidades_disponibles != null ? <> · quedan <b>{espejoData.unidades_disponibles} unidades</b> que cumplen todo</> : null}.</>
+                        : <>Quedan <b>{espejoData.unidades_disponibles} unidades</b> que cumplen todo lo que pediste.</>}
+                      {espejoData.espejo.caliente && <b style={{ color: '#DC582A' }}> Este corte está caliente.</b>}
+                      {espejoData.espejo.momentum === 'subiendo' && <span style={{ color: '#1FA06A', fontWeight: 700 }}> La demanda va subiendo.</span>}
+                    </span>
+                  </div>
+                )}
                 {!showResults ? (
                   <div data-testid="mkp-needs-zona-precio" style={{
                     padding: '52px 32px', textAlign: 'center',
@@ -918,6 +949,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         onClose={() => setSaveSearchOpen(false)}
         filters={{ ...filters, ...(coloniaFilter ? { colonia: coloniaFilter } : {}) }}
         aiFilters={aiFilters}
+        espejo={espejoData}
       />
 
       {/* Batch 26 — Quiz Modal */}

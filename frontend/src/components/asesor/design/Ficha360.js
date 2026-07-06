@@ -346,7 +346,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [tareas, setTareas] = useState([]);
   const [busquedas, setBusquedas] = useState([]);
   const [profBusy, setProfBusy] = useState(false); // E2 · guardando perfil de compra
-  const [matches, setMatches] = useState({});      // bid → [matches]
+  const [matches, setMatches] = useState({});
+  const [corteLead, setCorteLead] = useState(null);   // CUBO F4.2 — el corte del cliente en el cubo      // bid → [matches]
   const [overview, setOverview] = useState(null);
   const [convos, setConvos] = useState(null);
   const [convIntel, setConvIntel] = useState(null);   // B2 · ánimo/sentiment real (client_insights)
@@ -410,6 +411,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
     setEtapaVida(null); setMemo(null); setEnrich(null);
+    setCorteLead(null);   // review F4: sin esto, el corte del lead ANTERIOR se mostraba con el nombre del nuevo
     // Guard demo robusto: un contacto demo (prop `demo` O id 'demo-…') NUNCA llama la API real (evita 404 en consola
     // si se abre por URL directa sin el objeto demo).
     if (demo || (typeof cid === 'string' && cid.startsWith('demo-'))) return;
@@ -462,6 +464,10 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
       )).then((pairs) => {
         setMatches(Object.fromEntries(pairs));
       }).finally(() => setPropsLoading(false));
+    }
+    if (tab === 'props' && busquedas.length > 0 && corteLead === null) {
+      // CUBO F4.2 — el corte de la 1a búsqueda del cliente (unidades que le quedan + tensión)
+      api.getBusquedaCorte(busquedas[0].id).then((r) => setCorteLead(r?.ok ? r : { ok: false })).catch(() => setCorteLead({ ok: false }));
     }
   }, [tab, open, cid, busquedas]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1281,6 +1287,23 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   )}
 
+                  {/* CUBO F4.2 — el corte del cliente: su búsqueda vista en el cubo (verdad para cerrar) */}
+                  {corteLead?.ok && corteLead.espejable && (
+                    <div data-testid="asr-corte-lead" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 12, padding: '11px 14px', marginBottom: 13, fontSize: 12.5, color: 'var(--cream-2)' }}>
+                      <span style={{ fontSize: 15 }}>🎯</span>
+                      <span>
+                        <b style={{ color: 'var(--cream)' }}>El corte de {c.first_name}:</b>{' '}
+                        {corteLead.suprimido
+                          ? 'quedan MUY pocas unidades que cumplen todo (menos de 3) — úsalo con cuidado, es real.'
+                          : <>quedan <b style={{ color: 'var(--cream)' }}>{corteLead.unidades_disponibles} unidades</b> que cumplen todo lo que pide.</>}
+                        {corteLead.espejo?.personas > 1 && (
+                          <> · <b style={{ color: '#93C5FD' }}>{corteLead.espejo.personas} compradores más</b> buscan lo mismo
+                          {corteLead.espejo.tension_por_unidad != null && <> (tensión {corteLead.espejo.tension_por_unidad}/unidad)</>}.</>
+                        )}
+                        {corteLead.espejo?.momentum_pct > 0 && <span style={{ color: '#6EE7B7', fontWeight: 700 }}> Demanda subiendo {corteLead.espejo.momentum_pct}%.</span>}
+                      </span>
+                    </div>
+                  )}
                   {/* B5.2-D · Resumen prescriptivo: qué propiedades están atoradas */}
                   {(() => {
                     const nd = (board?.items || []).map((it) => STAGE_NUDGE(it)).filter(Boolean);

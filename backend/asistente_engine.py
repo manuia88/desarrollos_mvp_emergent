@@ -150,6 +150,11 @@ TOOLS Y PARAMS:
    params: {{}}
    devuelve: visión general agregada de CDMX (colonias, alcaldías, precio m² promedio, momentum 24m, desarrollos por etapa)
 
+4b. demanda_del_corte
+   params: {{ "colonia": str opcional (slug, ej "roma-norte"), "alcaldia": str opcional, "recamaras": int opcional, "mensualidad_max": number opcional (pesos), "precio_max": number opcional, "feature": str opcional ("balcon"|"terraza"|"roof") }}
+   devuelve: cuánta gente busca ese mismo corte (banda k-anónima, ej "10-24 personas"), si el corte está caliente, unidades disponibles que cumplen, y momentum
+   usar cuando: pregunten "¿cuánta gente busca esto?", "¿hay competencia por este depa?", "¿está caliente esta zona/corte?", o para dar urgencia HONESTA al recomendar
+
 5. get_zone_top_growth
    params: {{ "limit": int (default 5, max 10) }}
    devuelve: top zonas por momentum 24m y por score de plusvalía DMX
@@ -475,6 +480,7 @@ PUBLIC_TOOLS = frozenset({
     "query_climate_migration", "query_construction_quality", "query_reviews_residents",
     "query_gov_data_mx", "generate_narrative", "compare_properties", "reverse_search",
     "query_mood_recommendations",
+    "demanda_del_corte",   # CUBO F4.4 — el espejo k-anon del corte que el comprador describe
 })
 
 
@@ -494,6 +500,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W4.11a · 3 macro tools (Atlax home extension)
         if tool_name == "get_market_overview_cdmx":
             return await _tool_get_market_overview_cdmx(db)
+        if tool_name == "demanda_del_corte":
+            return await _tool_demanda_del_corte(db, params)
         if tool_name == "get_zone_top_growth":
             return await _tool_get_zone_top_growth(db, params.get("limit", 5))
         if tool_name == "get_price_trends_macro":
@@ -797,6 +805,45 @@ async def _tool_get_market_pulse_public(db) -> Dict[str, Any]:
 
 
 # ─── W4.11a · Macro tools (Atlax home extension) ──────────────────────────────
+async def _tool_demanda_del_corte(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """CUBO F4.4 — el espejo del corte en el chat, con la lente PÚBLICA (bandas k-anon,
+    jamás conteos exactos). Params acotados a un sub-espacio seguro del registro del cubo
+    (patrón _KG_TOOL_ALLOWED: whitelist de campos, no pasa-todo). Output compacto (el
+    tool_result entra al prompt entero — nada de listas largas)."""
+    import cube_lens
+    corte = []
+    if params.get("colonia"):
+        corte.append({"campo": "colonia", "op": "eq", "valor": str(params["colonia"])[:60]})
+    if params.get("alcaldia"):
+        corte.append({"campo": "alcaldia", "op": "eq", "valor": str(params["alcaldia"])[:60]})
+    try:
+        if params.get("recamaras"):
+            corte.append({"campo": "recamaras", "op": "gte", "valor": int(params["recamaras"])})
+        if params.get("mensualidad_max"):
+            corte.append({"campo": "mens_80_20", "op": "lte", "valor": float(params["mensualidad_max"])})
+        if params.get("precio_max"):
+            corte.append({"campo": "precio", "op": "lte", "valor": float(params["precio_max"])})
+    except (TypeError, ValueError):
+        pass
+    feat_map = {"balcon": "has_balcon", "terraza": "has_terraza", "roof": "has_roof"}
+    f = str(params.get("feature") or "").lower().strip()
+    if f in feat_map:
+        corte.append({"campo": feat_map[f], "op": "eq", "valor": True})
+    if not corte:
+        return {"error": "describe al menos un criterio (zona, recámaras, mensualidad, precio o feature)"}
+    lente = await cube_lens.consulta_con_lente(db, "comprador", corte)
+    n_disp = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
+    esp = await cube_lens.espejo_con_lente(db, "comprador", corte, n_oferta=n_disp)
+    return {
+        "corte": [f"{c['campo']} {c['op']} {c['valor']}" for c in corte],
+        "unidades_disponibles": n_disp if n_disp is not None else "muy pocas para publicar (menos de 5)",
+        "demanda": esp.get("lectura"),
+        "caliente": esp.get("caliente", False),
+        "momentum": esp.get("momentum"),
+        "nota_honesta": "la banda de personas es k-anónima; nunca damos conteos exactos en público",
+    }
+
+
 async def _tool_get_market_overview_cdmx(db) -> Dict[str, Any]:
     """Visión general agregada CDMX: precio m² promedio, total colonias, alcaldías,
     desarrollos publicados y momentum agregado. Públicas, sin org_id."""

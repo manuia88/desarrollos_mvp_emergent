@@ -61,6 +61,33 @@ async def demand_gap(request: Request, top: int = Query(15, ge=1, le=100)):
     return {**dmx_demand.mask_small_cells(r), "alcance": "mercado_cdmx"}
 
 
+# ─── CUBO F4.3 · la lente del dev: tensión por corte + simulador de enganche ──
+@router.get("/tension-cortes")
+async def tension_cortes(request: Request):
+    """La tensión oferta↔demanda de TUS cortes (colonia × recámaras de tus unidades
+    disponibles): arriba lo que el mercado pelea, abajo lo que nadie pide."""
+    user = await _auth(request)
+    from tenant_scope import user_dev_ids
+    import demand_intelligence as di
+    return await di.tension_cortes_dev(_db(request), list(user_dev_ids(user) or []))
+
+
+class SimEngancheBody(BaseModel):
+    project_id: str
+    enganche_pct: float = Field(ge=0, le=90)
+
+
+@router.post("/simulador-enganche")
+async def simulador_enganche_ep(body: SimEngancheBody, request: Request):
+    """'¿Y si pido 5% en vez de 10%?' — compradores reales que ALCANZAN tu entrada con cada
+    esquema (búsquedas con enganche declarado en tus zonas). Honesto: sin dato no hay proyección."""
+    user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, body.project_id)
+    import demand_intelligence as di
+    return await di.simulador_enganche(_db(request), body.project_id, body.enganche_pct)
+
+
 async def _dev_colonias(db, user) -> list:
     """Las colonias de los desarrollos del dev (multi-tenant) — su 'zona' para acotar la demanda."""
     from tenant_scope import user_dev_ids

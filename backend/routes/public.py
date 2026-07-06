@@ -2685,6 +2685,43 @@ async def registro_interes(payload: RegistroInteresIn, request: Request):
     return {"ok": True, "mensaje": "¡Listo! Te enviaremos el reporte completo de tu zona en breve."}
 
 
+# ─── CUBO F4.1 · ESPEJO PERSONAL DEL COMPRADOR ────────────────────────────────
+class EspejoCorteIn(BaseModel):
+    filters: Dict[str, Any] = {}
+
+
+@router.post("/api/properties/espejo-corte")
+async def espejo_corte_publico(payload: EspejoCorteIn, request: Request):
+    """El corte del comprador visto desde el otro lado: '10-24 personas buscaron algo así ·
+    quedan N unidades'. TODO pasa por la lente pública (cube_lens rol comprador): bandas de
+    demanda con k-anon K_ANON_MIN — jamás conteos exactos — y supresión bajo K. Urgencia
+    HONESTA: si no hay demanda que publicar, se dice 'demanda aún chica', no se inventa."""
+    db = request.app.state.db
+    # SEGURIDAD (review F4): endpoint público que escanea colecciones → MISMO gate de costo
+    # que search-ai (40/IP/h + techo global diario). Sin auth no hay barra libre de scans.
+    _ip = (request.client.host if request.client else "?")
+    if not _ai_rate_ok(_ip):
+        return {"ok": False, "error": "rate_limited"}
+    if len(payload.filters or {}) > 24:   # cap defensivo del dict público
+        return {"ok": False, "error": "demasiados filtros"}
+    from cube_marketplace_bridge import filtros_marketplace_a_corte
+    import cube_lens
+    corte, no_mapeados = filtros_marketplace_a_corte(payload.filters)
+    if not corte:
+        return {"ok": True, "espejable": False, "motivo": "sin filtros con cara en el cubo"}
+    lente = await cube_lens.consulta_con_lente(db, "comprador", corte)
+    # HONESTIDAD (review F4): el número público son las DISPONIBLES — contar vendidas
+    # inflaba la urgencia y filtraba la absorción de un dev identificable.
+    n_disp = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
+    espejo = await cube_lens.espejo_con_lente(db, "comprador", corte, n_oferta=n_disp)
+    return {
+        "ok": True, "espejable": True,
+        "unidades_disponibles": n_disp,               # None = muestra chica (suprimido)
+        "espejo": espejo,                             # bandas + caliente + momentum + lectura
+        "no_mapeados": no_mapeados,                   # honesto: qué filtro no tiene cara en el cubo
+    }
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json

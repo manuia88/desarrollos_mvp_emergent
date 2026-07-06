@@ -110,6 +110,18 @@ export async function aiSearchParse(query) {
   return r.json();
 }
 
+// CUBO F4.1 — espejo personal del corte: bandas de demanda k-anon ("10-24 personas buscan esto")
+// + unidades disponibles del corte. Nunca conteos exactos (lente pública del cubo).
+export async function fetchEspejoCorte(filters) {
+  const r = await fetch(`${API}/api/properties/espejo-corte`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filters }),
+  });
+  if (!r.ok) return { ok: false };
+  return r.json();
+}
+
 // ─── Colonias / legacy Phase 3 properties (kept for existing detail page) ────
 
 export async function fetchColonias() {

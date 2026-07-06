@@ -2734,6 +2734,67 @@ async def register_offer(bid: str, request: Request):
     return {"ok": True}
 
 
+# ─── CUBO F4.2 · EL CORTE DEL LEAD — la búsqueda del cliente como corte del cubo ──
+def _busqueda_a_corte(b: dict) -> list:
+    """Traduce la búsqueda guardada del asesor (asesor_busquedas) al corte del cubo.
+    TODO el vocabulario de la fuente se mapea o se ignora consciente (mascotas/no_negociables/
+    urgencia no son campos del cubo — viven en el matcher, no aquí)."""
+    corte = []
+    if b.get("colonias"):
+        cols = list(b["colonias"])
+        corte.append({"campo": "colonia", "op": "in" if len(cols) > 1 else "eq",
+                      "valor": cols if len(cols) > 1 else cols[0]})
+    if b.get("precio_max"):
+        corte.append({"campo": "precio", "op": "lte", "valor": b["precio_max"]})
+    if b.get("precio_min"):
+        corte.append({"campo": "precio", "op": "gte", "valor": b["precio_min"]})
+    if b.get("recamaras_min"):
+        corte.append({"campo": "recamaras", "op": "gte", "valor": b["recamaras_min"]})
+    if b.get("banos_min"):
+        corte.append({"campo": "banos", "op": "gte", "valor": b["banos_min"]})
+    if b.get("estacionamientos_min"):
+        corte.append({"campo": "n_parking", "op": "gte", "valor": b["estacionamientos_min"]})
+    if b.get("m2_min"):
+        corte.append({"campo": "m2", "op": "gte", "valor": b["m2_min"]})
+    for a in (b.get("amenidades") or []):
+        corte.append({"campo": "amenidades_edificio", "op": "eq", "valor": a})
+    return corte
+
+
+@router.get("/busquedas/{bid}/corte")
+async def busqueda_corte(bid: str, request: Request):
+    """El corte del cliente en el cubo: cuántas unidades le quedan HOY + la otra cara
+    (cuántos compradores más piden lo mismo = tensión, tu palanca honesta de cierre).
+    Pasa por la lente asesor (k≥3, solo disponibles, sin scores internos)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    b = await db.asesor_busquedas.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
+    if not b:
+        raise HTTPException(404, "No encontrada")
+    import cube_lens
+    corte = _busqueda_a_corte(b)
+    if not corte:
+        return {"ok": True, "espejable": False, "motivo": "la búsqueda no tiene criterios que corten el cubo"}
+    lente = await cube_lens.consulta_con_lente(db, "asesor", corte)
+    # disponibles, no el total del corte (review F4: contar vendidas mentía la urgencia)
+    n_disp = lente.get("n_disponibles") if lente.get("ok") and not lente.get("suprimido") else None
+    espejo = await cube_lens.espejo_con_lente(db, "asesor", corte, n_oferta=n_disp)
+    return {
+        "ok": True, "espejable": True, "corte": corte,
+        "unidades_disponibles": n_disp, "suprimido": bool(lente.get("suprimido")),
+        "kpis": lente.get("kpis") or {},
+        "unidades_muestra": (lente.get("unidades") or [])[:6],
+        "espejo": {   # exacto (lente interna): personas, tensión, momentum — el pitch honesto
+            "personas": espejo.get("personas"), "busquedas": espejo.get("busquedas"),
+            "tension_por_unidad": espejo.get("tension_por_unidad"),
+            "momentum_pct": espejo.get("momentum_pct"),
+            "desde_dias": espejo.get("desde_dias"),
+            "publicable": espejo.get("publicable"),
+            "lectura": espejo.get("lectura"),
+        },
+    }
+
+
 @router.get("/busquedas/{bid}/matches")
 async def busqueda_matches(bid: str, request: Request):
     """Matcher determinista: precio 28 + zona 22 + amenidades 16 + recámaras 12 + baños 8

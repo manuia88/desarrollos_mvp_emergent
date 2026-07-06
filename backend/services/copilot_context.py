@@ -205,6 +205,30 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # CUBO F4.4 — los cortes de tus clientes vistos en el cubo (unidades que les quedan +
+    # tensión = tu palanca honesta de cierre). Solo las 3 búsquedas más recientes: el bloque
+    # entra al prompt entero, compacto o nada.
+    cortes_clientes: List[Dict[str, Any]] = []
+    try:
+        import cube_lens
+        from routes.advisor import _busqueda_a_corte
+        async for b in db.asesor_busquedas.find({"owner_id": aid}, {"_id": 0}).sort(
+                "created_at", -1).limit(3):
+            corte = _busqueda_a_corte(b)
+            if not corte:
+                continue
+            lente = await cube_lens.consulta_con_lente(db, "asesor", corte)
+            n = lente.get("n") if lente.get("ok") and not lente.get("suprimido") else None
+            esp = await cube_lens.espejo_con_lente(db, "asesor", corte, n_oferta=n)
+            cortes_clientes.append({
+                "busqueda_id": b.get("id"), "contacto_id": b.get("contacto_id"),
+                "unidades_que_le_quedan": n,
+                "compradores_buscando_lo_mismo": esp.get("personas"),
+                "tension_por_unidad": esp.get("tension_por_unidad"),
+            })
+    except Exception:  # noqa: BLE001 — el bloque del cubo jamás tumba el Copilot
+        pass
+
     return {
         "role": "asesor",
         "name": getattr(user, "name", None),
@@ -216,6 +240,7 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
         "my_health_score": int(hs.get("score", 0)),
         "my_crm_contactos": crm,
         "my_crm_count": crm_count,
+        "cortes_de_mis_clientes": cortes_clientes,
     }
 
 

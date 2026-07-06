@@ -101,6 +101,7 @@ def _alert_html(
     filters_desc: str,
     properties: List[Dict],
     unsubscribe_url: str,
+    espejo_linea: str = "",
 ) -> str:
     cards = ""
     for p in properties[:6]:
@@ -139,6 +140,7 @@ def _alert_html(
     <p style="color:rgba(240,235,224,0.60);font-size:14px;margin:0 0 24px;">
       Búsqueda: <strong style="color:#F0EBE0;">{filters_desc}</strong>
     </p>
+    {espejo_linea}
     {cards}
     <div style="text-align:center;margin:28px 0;">
       <a href="https://desarrollosmx.io/marketplace"
@@ -309,7 +311,24 @@ async def send_alert(db, search: Dict) -> bool:
     email = search["email"]
     filters_desc = _describe_filters(search.get("filters", {}))
     unsub_url = f"{BASE_URL}/api/public/saved-search/unsubscribe/{search['unsubscribe_token']}"
-    html = _alert_html(email, filters_desc, new_props, unsub_url)
+    # CUBO F4.1 — el espejo del corte guardado viaja en la alerta (bandas k-anon; si está
+    # caliente se dice; si no hay banda publicable, la línea simplemente no va — honesto)
+    espejo_linea = ""
+    try:
+        from cube_marketplace_bridge import filtros_marketplace_a_corte
+        import cube_lens
+        corte, _fuera = filtros_marketplace_a_corte(search.get("filters", {}))
+        if corte:
+            esp = await cube_lens.espejo_con_lente(db, "comprador", corte)
+            if esp.get("hay_demanda"):
+                fuego = "🔥 Tu corte está caliente — " if esp.get("caliente") else ""
+                espejo_linea = (
+                    f'<p style="color:#F59E0B;font-size:13px;margin:0 0 20px;">'
+                    f'{fuego}{esp.get("personas_banda")} personas buscan algo como lo tuyo.</p>'
+                )
+    except Exception:  # noqa: BLE001 — el espejo jamás tumba la alerta
+        pass
+    html = _alert_html(email, filters_desc, new_props, unsub_url, espejo_linea=espejo_linea)
     sent = await _send_email(
         email,
         f"{len(new_props)} nuevas propiedades para ti · DesarrollosMX",

@@ -33,6 +33,9 @@ export const getDashboard = () => j('/api/desarrollador/dashboard');
 export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dias=${dias}`);
 // Demanda a nivel FEATURE en TUS colonias (terraza/gym/...) + qué construir + tendencias (cierra el loop demanda→dev).
 export const getDemandFeatures = (dias = 90) => j(`/api/dev/market/demand-features?dias=${dias}`);
+// CUBO F4.3 — tensión de TUS cortes + simulador de enganche→compradores
+export const getTensionCortes = () => j('/api/dev/market/tension-cortes');
+export const simularEnganche = (projectId, pct) => post('/api/dev/market/simulador-enganche', { project_id: projectId, enganche_pct: pct });
 // BUZÓN DEL CUBO — lo que el superadmin (el cubo) te mandó construir/ajustar (cierra el flywheel agéntico). Relevantes (tus colonias) primero.
 export const getCubeActions = () => j('/api/desarrollador/cube-actions');
 export const setCubeActionEstado = (id, estado) => post(`/api/desarrollador/cube-actions/${id}/estado`, { estado });

@@ -10,12 +10,21 @@ import { X, ArrowRight, Search, Bell } from '../../components/icons';
 import { tc } from '../../lib/titleCase';
 
 function describeFilters(filters = {}) {
+  // Mismas claves que usa el marketplace (max_price/beds/min_sqm) — antes leía claves viejas
+  // (price_max/recamaras_min) y toda búsqueda se describía como "Todos los desarrollos".
   const parts = [];
-  if (filters.colonia) parts.push(`Colonia: ${filters.colonia}`);
-  if (filters.zona) parts.push(`Zona: ${filters.zona}`);
+  const cols = filters.colonia;
+  if (Array.isArray(cols) && cols.length) parts.push(`Zona${cols.length > 1 ? 's' : ''}: ${cols.map(tc).join(', ')}`);
+  else if (typeof cols === 'string' && cols) parts.push(`Zona: ${tc(cols)}`);
+  if (filters.zona) parts.push(`Zona: ${tc(filters.zona)}`);
   if (filters.tipo) parts.push(`Tipo: ${filters.tipo}`);
-  if (filters.price_max) parts.push(`Hasta $${(filters.price_max / 1_000_000).toFixed(1)}M`);
-  if (filters.recamaras_min) parts.push(`${filters.recamaras_min}+ rec`);
+  if (filters.max_price || filters.price_max) parts.push(`Hasta $${((filters.max_price || filters.price_max) / 1_000_000).toFixed(1)}M`);
+  if (filters.min_price) parts.push(`Desde $${(filters.min_price / 1_000_000).toFixed(1)}M`);
+  if (filters.mensualidad_max) parts.push(`Mens. hasta $${Math.round(filters.mensualidad_max / 1000)}k`);
+  if (filters.beds || filters.recamaras_min) parts.push(`${filters.beds || filters.recamaras_min}+ rec`);
+  if (filters.baths) parts.push(`${filters.baths}+ baños`);
+  if (filters.min_sqm) parts.push(`${filters.min_sqm}+ m²`);
+  if (filters.max_sqm) parts.push(`hasta ${filters.max_sqm} m²`);
   return parts.length ? parts : ['Todos los desarrollos'];
 }
 

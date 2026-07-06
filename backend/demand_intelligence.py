@@ -2542,6 +2542,7 @@ async def demand_cut(db, colonias: Optional[List[str]] = None, features: Optiona
                      recamaras_min: Optional[int] = None, m2_max: Optional[float] = None,
                      banos_min: Optional[int] = None, etapa: Optional[str] = None,
                      amenidades: Optional[List[str]] = None,
+                     recamaras_compatibles: Optional[int] = None,
                      since_days: int = 180) -> Dict[str, Any]:
     """El corte CONJUNTIVO sobre las búsquedas reales. personas = distinct visitor_id (fallback
     ip_hash). HONESTO: una búsqueda SIN identidad alguna (p.ej. las anónimas del bridge del asesor)
@@ -2560,6 +2561,9 @@ async def demand_cut(db, colonias: Optional[List[str]] = None, features: Optiona
         q["precio_max"] = {"$gt": 0, "$lte": precio_max}
     if recamaras_min:
         q["recamaras_min"] = {"$gte": recamaras_min}
+    if recamaras_compatibles:
+        # celda de rec EXACTAS: compatible quien declaró un mínimo que esas rec satisfacen
+        q["recamaras_min"] = {"$gt": 0, "$lte": recamaras_compatibles}
     if m2_max:
         # consistente con mens/precio: el TOPE declarado de m² cabe dentro del corte
         q["m2_max"] = {"$gt": 0, "$lte": m2_max}
@@ -2604,6 +2608,7 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
     amenidades: List[str] = []
     mens = precio = m2 = None
     recamaras = banos = None
+    recamaras_eq = None
     etapa = None
     espejados: List[str] = []
     no_espejables: List[str] = []
@@ -2652,8 +2657,12 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
             elif campo == "m2" and op in ("lt", "lte"):
                 m2 = float(valor)
                 espejados.append(campo)
-            elif campo == "recamaras" and op in ("gte", "eq"):
+            elif campo == "recamaras" and op == "gte":
                 recamaras = int(valor)
+                espejados.append(campo)
+            elif campo == "recamaras" and op == "eq":
+                # celda de recámaras EXACTAS: compatible = quien pidió mínimo ≤ rec (su pedido cabe)
+                recamaras_eq = int(valor)
                 espejados.append(campo)
             elif campo == "banos" and op in ("gte", "eq"):
                 banos = int(valor)
@@ -2667,6 +2676,7 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
             no_espejables.append(campo)           # valor no coercible → declarado, nunca 500
     r = await demand_cut(db, colonias=colonias or None, features=features or None,
                          mensualidad_max=mens, precio_max=precio, recamaras_min=recamaras,
+                         recamaras_compatibles=recamaras_eq,
                          m2_max=m2, banos_min=banos, etapa=etapa, amenidades=amenidades or None,
                          since_days=since_days)
     espejo_total = bool(filtros) and not espejados
@@ -2692,3 +2702,132 @@ async def espejo_de_corte(db, filtros: List[Dict[str, Any]], universo: str = "un
     return {**r, "espejados": espejados, "no_espejables": no_espejables,
             "espejo_parcial": bool(no_espejables), "espejo_total_mercado": espejo_total,
             "tension_por_unidad": tension, "lectura": lectura}
+
+
+# ─── CUBO TOTAL F4.3 · LENTE DEL DESARROLLADOR ────────────────────────────────
+
+async def _overrides_map(db, dev_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    """developer_unit_overrides (el camino canónico de edición del dev) → unit_id → override."""
+    ov: Dict[str, Dict[str, Any]] = {}
+    try:
+        async for o in db.developer_unit_overrides.find(
+                {"dev_id": {"$in": dev_ids}} if dev_ids else {}, {"_id": 0}):
+            if o.get("unit_id"):
+                ov[o["unit_id"]] = o
+    except Exception:  # noqa: BLE001
+        pass
+    return ov
+
+
+async def tension_cortes_dev(db, dev_ids: List[str], max_celdas: int = 12) -> Dict[str, Any]:
+    """La tensión oferta↔demanda de TUS cortes: agrupa tus unidades DISPONIBLES por
+    (colonia × recámaras EXACTAS) y a cada celda le pone su espejo (compradores cuyo pedido
+    CABE en esa celda). Se calcula la tensión de TODAS las celdas y LUEGO se recorta al top —
+    truncar antes escondería justo el corte más caliente. Respeta los overrides del dev
+    (precio/status editados). Ordenado: arriba lo que se pelea, abajo el recorte quirúrgico."""
+    if not dev_ids:
+        return {"celdas": [], "lectura": "sin desarrollos propios"}
+    ov = await _overrides_map(db, dev_ids)
+    celdas: Dict[tuple, Dict[str, Any]] = {}
+    _SAFETY_CAP = 48   # backstop anti-fanout (48 espejos = 48 finds acotados)
+    async for u in db.dmx_units.find(
+            {"development_id": {"$in": dev_ids}},
+            {"_id": 0, "unit_id": 1, "geo.colonia_id": 1, "interior.recamaras": 1,
+             "commercial.precio_lista_mxn": 1, "commercial.status": 1}):
+        o = ov.get(u.get("unit_id")) or {}
+        status = o.get("status") or (u.get("commercial") or {}).get("status")
+        if status != "disponible":
+            continue
+        col = (u.get("geo") or {}).get("colonia_id")
+        rec = (u.get("interior") or {}).get("recamaras")
+        if not col or rec is None:
+            continue
+        c = celdas.setdefault((col, rec), {"colonia": col, "recamaras": rec, "disponibles": 0, "precios": []})
+        c["disponibles"] += 1
+        p = o.get("price") or (u.get("commercial") or {}).get("precio_lista_mxn")
+        if p:
+            c["precios"].append(p)
+    import cube_lens
+    out = []
+    for (col, rec), c in list(celdas.items())[:_SAFETY_CAP]:
+        corte = [{"campo": "colonia", "op": "eq", "valor": col},
+                 {"campo": "recamaras", "op": "eq", "valor": rec}]
+        esp = await cube_lens.espejo_con_lente(db, "dev", corte, n_oferta=c["disponibles"])
+        out.append({
+            "colonia": col, "recamaras": rec, "disponibles": c["disponibles"],
+            "precio_prom": round(sum(c["precios"]) / len(c["precios"])) if c["precios"] else None,
+            "personas": esp.get("personas"), "busquedas": esp.get("busquedas"),
+            "tension": esp.get("tension_por_unidad"), "momentum_pct": esp.get("momentum_pct"),
+        })
+    out.sort(key=lambda x: (x["tension"] is not None, x["tension"] or 0), reverse=True)
+    return {"celdas": out[:max_celdas], "celdas_totales": len(out), "desde_dias": 180,
+            "lectura": "tus cortes ordenados por tensión (personas cuyo pedido cabe, por unidad disponible)"}
+
+
+async def simulador_enganche(db, project_id: str, pct_nuevo: float,
+                             since_days: int = 180) -> Dict[str, Any]:
+    """'¿Y si pido menos enganche?' — cuenta compradores REALES (búsquedas con enganche_max
+    declarado, tus colonias del proyecto) que ALCANZAN la entrada con cada esquema.
+    Semántica declarada: alcanza si su enganche_max ≥ precio de tu unidad MÁS BARATA × pct.
+    Honesto: si nadie declaró enganche, se dice — no se inventa un lift."""
+    ov = await _overrides_map(db, [project_id])
+    unidades = [u async for u in db.dmx_units.find(
+        {"development_id": project_id},
+        {"_id": 0, "unit_id": 1, "commercial.precio_lista_mxn": 1, "commercial.status": 1,
+         "geo.colonia_id": 1, "finance.enganche_min_pct": 1})]
+    # overrides del dev (precio/status editados) mandan sobre el seed
+    unidades = [u for u in unidades
+                if ((ov.get(u.get("unit_id")) or {}).get("status")
+                    or (u.get("commercial") or {}).get("status")) == "disponible"]
+    precios = [(ov.get(u.get("unit_id")) or {}).get("price")
+               or (u.get("commercial") or {}).get("precio_lista_mxn") for u in unidades]
+    precios = [p for p in precios if p]
+    if not precios:
+        return {"ok": False, "motivo": "el proyecto no tiene unidades disponibles con precio"}
+    precio_min = min(precios)
+    colonias = sorted({(u.get("geo") or {}).get("colonia_id") for u in unidades
+                       if (u.get("geo") or {}).get("colonia_id")})
+    pcts_actuales = [((u.get("finance") or {}).get("enganche_min_pct")) for u in unidades]
+    pcts_actuales = [p for p in pcts_actuales if p is not None]
+    pct_actual = min(pcts_actuales) if pcts_actuales else 10.0
+    pct_actual_es_estimado = not pcts_actuales   # sin esquema en las unidades → 10% es PROXY declarado
+
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    q = {"created_at_dt": {"$gte": cutoff}, "enganche_max": {"$gt": 0}}
+    if colonias:
+        q["colonias"] = {"$in": colonias}
+    personas_actual: set = set()
+    personas_nuevo: set = set()
+    n_con_enganche = 0
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "enganche_max": 1,
+                                                    "visitor_id": 1, "ip_hash": 1}):
+        n_con_enganche += 1
+        pid = s.get("visitor_id") or s.get("ip_hash")
+        if not pid:   # canon de demand_cut: sin identidad NO se acuña una persona
+            continue
+        em = s["enganche_max"]
+        if em >= precio_min * pct_actual / 100:
+            personas_actual.add(pid)
+        if em >= precio_min * pct_nuevo / 100:
+            personas_nuevo.add(pid)
+    delta = len(personas_nuevo) - len(personas_actual)
+    return {
+        "ok": True, "project_id": project_id, "precio_entrada": precio_min,
+        "colonias": colonias, "desde_dias": since_days,
+        "actual": {"enganche_pct": pct_actual,
+                   "enganche_mxn": round(precio_min * pct_actual / 100),
+                   "compradores_alcanzan": len(personas_actual)},
+        "nuevo": {"enganche_pct": pct_nuevo,
+                  "enganche_mxn": round(precio_min * pct_nuevo / 100),
+                  "compradores_alcanzan": len(personas_nuevo)},
+        "delta_compradores": delta,
+        "n_busquedas_con_enganche": n_con_enganche,
+        "suficiente_dato": n_con_enganche >= 5,
+        "pct_actual_es_estimado": pct_actual_es_estimado,
+        "lectura": (f"con {pct_nuevo:.0f}% de enganche {'entran' if delta >= 0 else 'salen'} "
+                    f"{abs(delta)} compradores que alcanzan tu unidad más barata "
+                    f"(de {n_con_enganche} que declararon enganche en tus zonas, {since_days}d)"
+                    + (" · tu esquema actual es estimado (10%, sin esquema cargado)" if pct_actual_es_estimado else "")
+                    if n_con_enganche else
+                    f"nadie ha declarado enganche en tus zonas en {since_days}d — sin dato no hay proyección"),
+    }

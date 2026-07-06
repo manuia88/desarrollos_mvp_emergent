@@ -90,6 +90,11 @@ TOOLS Y PARAMS:
    params: { "org_id": str, "period_days": int (default 30) }
    devuelve: leads_count, matches_count, conversion_rate, avg_response_time_hours
 
+4b. tension_de_mis_cortes
+   params: { }
+   devuelve: tus cortes de inventario (colonia × recámaras) con su tensión oferta↔demanda (compradores buscando por unidad disponible), momentum y disponibles — ordenado de caliente a frío
+   usar cuando: pregunten qué se vende solo, qué recortar de precio, dónde hay demanda para su inventario
+
 5. retrieve_memory
    params: { "query": str, "top_k": int (default 5), "source_types": list[str] | null }
    devuelve: lista de memorias relevantes (diagnósticos, scores, sesiones previas)
@@ -193,6 +198,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
             # SEGURIDAD (pentest 2026-06-27): SIEMPRE el org de la SESIÓN, nunca params["org_id"] — antes el LLM (o un
             # prompt-injection) pasaba el org_id de OTRO tenant y leía su funnel/KPIs (fuga de inteligencia de competidor).
             return await _tool_get_org_kpis(db, org_id, int(params.get("period_days", 30)))
+        elif tool_name == "tension_de_mis_cortes":
+            # SEGURIDAD: dev_ids derivados del org de la SESIÓN (nunca de params) — mismo principio del fix pentest.
+            return await _tool_tension_de_mis_cortes(db, org_id)
         elif tool_name == "retrieve_memory":
             return await _tool_retrieve_memory(
                 db, org_id,
@@ -348,6 +356,29 @@ async def _tool_get_comparables(db, unit_id: str, radius_km: float = 2.0) -> Dic
             for c in comps
         ],
     }
+
+
+async def _tool_tension_de_mis_cortes(db, org_id: str) -> Dict[str, Any]:
+    """CUBO F4.4 — la tensión de los cortes del PROPIO dev (org de la sesión). Reusa el motor
+    de la lente dev; output compacto (top 6) porque el tool_result entra entero al prompt."""
+    if not org_id:
+        return {"error": "sin organización en la sesión"}
+    from data_developments import DEVELOPMENTS
+    dev_ids = [d["id"] for d in DEVELOPMENTS
+               if d.get("developer_id") == org_id or d.get("org_id") == org_id]
+    try:
+        async for d in db.developments.find({"$or": [{"developer_id": org_id}, {"org_id": org_id}]},
+                                            {"_id": 0, "id": 1}):
+            if d.get("id") and d["id"] not in dev_ids:
+                dev_ids.append(d["id"])
+    except Exception:  # noqa: BLE001
+        pass
+    if not dev_ids:
+        return {"error": "esta organización no tiene desarrollos registrados"}
+    import demand_intelligence as di
+    r = await di.tension_cortes_dev(db, dev_ids, max_celdas=6)
+    return {"celdas": r.get("celdas", [])[:6], "lectura": r.get("lectura"),
+            "desde_dias": r.get("desde_dias")}
 
 
 async def _tool_get_org_kpis(db, org_id: str, period_days: int = 30) -> Dict[str, Any]:

@@ -62,7 +62,7 @@ function FiltersPreview({ filters }) {
   );
 }
 
-export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
+export default function SaveSearchModal({ open, onClose, filters, aiFilters, espejo }) {
   const [email, setEmail] = useState('');
   const [frequency, setFrequency] = useState('weekly');
   const [accepted, setAccepted] = useState(false);
@@ -194,6 +194,19 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
           /* Form */
           <>
             <FiltersPreview filters={mergedFilters} />
+            {/* CUBO F4.1 — el espejo de TU corte: por qué vale la pena la alerta (bandas k-anon, honesto) */}
+            {espejo?.espejo?.hay_demanda && (
+              <div data-testid="save-search-espejo" style={{
+                padding: '9px 12px', marginBottom: 16, borderRadius: 10,
+                background: espejo.espejo.caliente ? 'rgba(220,88,42,0.08)' : 'rgba(31,160,106,0.07)',
+                border: `1px solid ${espejo.espejo.caliente ? 'rgba(220,88,42,0.25)' : 'rgba(31,160,106,0.2)'}`,
+                fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)',
+              }}>
+                {espejo.espejo.caliente ? '🔥' : '👀'} <b>{espejo.espejo.personas_banda} personas</b> buscan
+                algo como esto{espejo.unidades_disponibles != null ? <> y quedan <b>{espejo.unidades_disponibles} unidades</b></> : null} —
+                te avisamos en cuanto entre inventario nuevo o el corte se caliente.
+              </div>
+            )}
 
             {/* Email */}
             <div style={{ marginBottom: 14 }}>
