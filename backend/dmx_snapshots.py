@@ -78,7 +78,10 @@ async def read_timeseries(db, *, tier: str, tier_id: str, measure: str,
     """Serie de tiempo (period asc). Dedup a la última computed_at por periodo (append-only puede repetir)."""
     q: Dict[str, Any] = {"tier": tier, "tier_id": tier_id, "measure": measure}
     if dims is not None:
-        q["dims"] = dims
+        # match por SUBCAMPOS (F5): dims={gran:day} encuentra la fila-total {gran:day} sin exigir
+        # igualdad exacta de documento — y permite drill con dims={gran:day, recamaras:2}.
+        for k, v in dims.items():
+            q[f"dims.{k}"] = v
     rows: List[dict] = []
     async for r in db[SNAP].find(q, {"_id": 0}):
         rows.append(r)

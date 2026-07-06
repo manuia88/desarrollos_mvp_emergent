@@ -760,6 +760,36 @@ async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[s
                 rows.append({**base, "measure": "demand_interactions", "value": float(cell["count"])})
                 rows.append({**base, "measure": "demand_visitors", "value": float(len(cell["vis"]))})
                 rows.append({**base, "measure": "interest_score", "value": round(cell["score"], 2)})
+        # F5 (auditoría): la TENSIÓN también gana tiempo — por colonia (fila total, graficable en
+        # Historia tab) y por colonia×recámaras (drill). Oferta = dmx_units disponibles; demanda =
+        # espejo del corte (personas). k-anon: celdas con <K personas no se escriben.
+        try:
+            import demand_intelligence as di
+            oferta: Dict[tuple, int] = {}
+            async for u in db.dmx_units.find({"commercial.status": "disponible"},
+                                             {"_id": 0, "geo.colonia_id": 1, "interior.recamaras": 1}):
+                col = (u.get("geo") or {}).get("colonia_id")
+                rec = (u.get("interior") or {}).get("recamaras")
+                if col:
+                    oferta[(col, None)] = oferta.get((col, None), 0) + 1
+                    if rec is not None:
+                        oferta[(col, rec)] = oferta.get((col, rec), 0) + 1
+            hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            for (col, rec), disp in oferta.items():
+                corte = [{"campo": "colonia", "op": "eq", "valor": col}]
+                if rec is not None:
+                    corte.append({"campo": "recamaras", "op": "eq", "valor": rec})
+                esp = await di.espejo_de_corte(db, corte, n_oferta=disp)
+                if esp.get("espejo_total_mercado") or (esp.get("personas") or 0) < _KANON_MIN:
+                    continue
+                dims = {"gran": "day"} if rec is None else {"gran": "day", "recamaras": rec}
+                base = {"tier": "colonia", "tier_id": col, "period": hoy, "dims": dims,
+                        "source": "tension_cron"}
+                rows.append({**base, "measure": "tension", "value": float(esp.get("tension_por_unidad") or 0)})
+                rows.append({**base, "measure": "disponibles_corte", "value": float(disp)})
+                rows.append({**base, "measure": "demanda_corte", "value": float(esp["personas"])})
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[olap] tension snapshots failed: {e}")
         summary["snapshots_written"] = await dmx_snapshots.write_many(db, rows) if rows else 0
         summary["snapshot_granularities"] = list(grans)
     except Exception as e:  # noqa: BLE001

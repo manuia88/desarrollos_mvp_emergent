@@ -9,7 +9,7 @@ import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
-import { listInventory, patchUnitFields, patchUnitFieldsBulk, getPaymentSchemes } from '../../api/developer';
+import { listInventory, patchUnitFields, patchUnitFieldsBulk, getPaymentSchemes, getUnitEventos } from '../../api/developer';
 import { appliedPrice } from '../../utils/paymentSchemes';
 import { tc } from '../../lib/titleCase';
 import PaymentQuoter from './PaymentQuoter';
@@ -270,6 +270,13 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
   const [drawerUnit, setDrawerUnit] = useState(null);
+  const [unitEventos, setUnitEventos] = useState([]);   // F5 · historia de la unidad
+  useEffect(() => {
+    if (!drawerUnit?.unit_id && !drawerUnit?.id) { setUnitEventos([]); return; }
+    getUnitEventos(drawerUnit.unit_id || drawerUnit.id, devId)
+      .then((r) => setUnitEventos(r?.eventos || [])).catch(() => setUnitEventos([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerUnit]);
   const [editMode, setEditMode] = useState(false);
   const [bulkField, setBulkField] = useState('parking_spots');
   const [bulkValue, setBulkValue] = useState('');
@@ -606,6 +613,23 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   };
 
   const drawerSections = drawerUnit ? [
+    {
+      id: 'eventos',
+      title: `Historia de la unidad${unitEventos.length ? ` (${unitEventos.length})` : ''}`,
+      defaultOpen: false,
+      content: (
+        <div data-testid="unit-eventos">
+          {unitEventos.length === 0
+            ? <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Sin eventos registrados todavía — cada cambio de precio, estado, apartado o cierre quedará aquí.</div>
+            : unitEventos.slice(0, 12).map((e, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none', fontSize: 12 }}>
+                  <span style={{ color: 'var(--cream-3)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: 10.5 }}>{String(e.ts || '').slice(0, 10)}</span>
+                  <span style={{ color: 'var(--cream)' }}>{e.descripcion}</span>
+                </div>
+              ))}
+        </div>
+      ),
+    },
     {
       id: 'general',
       title: 'Información general',
@@ -1090,6 +1114,13 @@ function VistaDePlanta({ units, user, devId }) {
   const [levelFilter, setLevelFilter] = useState('todos');
   const [tooltip, setTooltip] = useState(null);
   const [drawerUnit, setDrawerUnit] = useState(null);
+  const [unitEventos, setUnitEventos] = useState([]);   // F5 · historia de la unidad
+  useEffect(() => {
+    if (!drawerUnit?.unit_id && !drawerUnit?.id) { setUnitEventos([]); return; }
+    getUnitEventos(drawerUnit.unit_id || drawerUnit.id, devId)
+      .then((r) => setUnitEventos(r?.eventos || [])).catch(() => setUnitEventos([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerUnit]);
 
   const levels = [...new Set(units.map(u => u.level ?? 'N/A'))].sort((a, b) => {
     if (a === 'N/A') return 1;

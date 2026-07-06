@@ -1009,7 +1009,7 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
         "user_id": user.user_id, "action": "unit_status_change",
-        "payload": payload.model_dump(), "ts": _now(),
+        "payload": payload.model_dump(), "antes": {"status": old_status}, "ts": _now(),
     })
     # CROSS-PORTAL: registra TAMBIÉN en el audit_log CENTRAL → el superadmin VE el cambio de estado de unidad del dev en
     # su auditoría unificada (antes solo quedaba en developer_audit, invisible para el superadmin). Fail-open.
@@ -1154,6 +1154,20 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     return {"ok": True, "unit_id": payload.unit_id, **fields}
 
 
+@router.get("/inventario/{unit_id}/eventos")
+async def unit_eventos(unit_id: str, dev_id: str, request: Request):
+    """F5 · la historia de TU unidad (quién la movió: tú, el asesor que la vendió, el hold que
+    expiró, la IA de precio). El dueño era el único que no podía verla."""
+    user = await require_dev_admin(request)
+    db = get_db(request)
+    from dev_guard import guard_project
+    await guard_project(db, user, dev_id, "inventario/eventos")
+    await _assert_unit_in_dev(db, dev_id, unit_id)
+    from routes.superadmin_metrics_cube import _eventos_de_unidad
+    eventos = await _eventos_de_unidad(db, unit_id)
+    return {"unit_id": unit_id, "eventos": eventos, "n": len(eventos)}
+
+
 @router.patch("/inventario/unit-fields-bulk")
 async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     """Llenado masivo: aplica campos a muchas unidades de un solo click."""
@@ -1181,11 +1195,18 @@ async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     ]
     if ops:
         await db.developer_unit_overrides.bulk_write(ops, ordered=False)
-    await db.developer_audit.insert_one({
-        "id": _uid("audit"), "dev_id": payload.dev_id,
-        "user_id": user.user_id, "action": "unit_fields_bulk",
-        "payload": {"count": len(payload.unit_ids), "fields": fields}, "ts": _now(),
-    })
+    # F5 (auditoría): N eventos por unidad CON antes — el doc job-level sin unit_id era
+    # invisible en la historia del átomo.
+    _prevs = {}
+    async for _p in db.developer_unit_overrides.find(
+            {"unit_id": {"$in": payload.unit_ids}}, {"_id": 0, "unit_id": 1, **{k: 1 for k in fields}}):
+        _prevs[_p["unit_id"]] = _p
+    await db.developer_audit.insert_many([{
+        "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": _u,
+        "user_id": user.user_id, "action": "unit_fields_change",
+        "payload": fields, "antes": {k: (_prevs.get(_u) or {}).get(k) for k in fields},
+        "bulk": True, "ts": _now(),
+    } for _u in payload.unit_ids])
     return {"ok": True, "count": len(payload.unit_ids), "fields": fields}
 
 

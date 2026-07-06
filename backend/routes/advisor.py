@@ -2795,6 +2795,22 @@ async def busqueda_corte(bid: str, request: Request):
     }
 
 
+@router.get("/busquedas/{bid}/corte/historia")
+async def busqueda_corte_historia(bid: str, request: Request):
+    """F5 · la línea de tiempo del corte de TU cliente (huella diaria del cron): unidades que
+    le quedan, precio, personas compitiendo y tensión, día a día. Ownership: solo el dueño."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    b = await db.asesor_busquedas.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0, "id": 1})
+    if not b:
+        raise HTTPException(404, "No encontrada")
+    puntos = []
+    async for p in db.cube_corte_snapshots.find({"ref_tipo": "busqueda", "ref_id": bid},
+                                                {"_id": 0, "at": 0}).sort("fecha", 1).limit(400):
+        puntos.append(p)
+    return {"busqueda_id": bid, "puntos": puntos, "n": len(puntos)}
+
+
 @router.get("/busquedas/{bid}/matches")
 async def busqueda_matches(bid: str, request: Request):
     """Matcher determinista: precio 28 + zona 22 + amenidades 16 + recámaras 12 + baños 8

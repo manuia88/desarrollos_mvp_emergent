@@ -99,8 +99,10 @@ async def evaluar_alertas_corte(db) -> Dict[str, Any]:
     import cube_query_libre as ql
     disparadas = []
     revisadas = 0
-    async for v in db.saved_views.find({"tipo": "explorador", "alerta.tipo": "corte",
-                                        "alerta.activa": True}, {"_id": 0}):
+    async for v in db.saved_views.find({"tipo": "explorador"}, {"_id": 0}):
+        # auditoría F5: la HUELLA es para TODAS las vistas (el 📈 lo promete); la alerta solo
+        # decide si además se notifica.
+        alerta_activa = (v.get("alerta") or {}).get("tipo") == "corte" and (v.get("alerta") or {}).get("activa")
         revisadas += 1
         d = v.get("definicion") or {}
         try:
@@ -112,7 +114,8 @@ async def evaluar_alertas_corte(db) -> Dict[str, Any]:
             continue
         k = r.get("kpis") or {}
         nuevo = {"n": r.get("n"), "precio_prom": k.get("precio_prom"), "absorcion_pct": k.get("absorcion_pct")}
-        cambios = _delta_corte(v.get("snapshot"), nuevo, float(v["alerta"].get("umbral_pct", 10)))
+        umbral = float((v.get("alerta") or {}).get("umbral_pct", 10))
+        cambios = _delta_corte(v.get("snapshot"), nuevo, umbral) if alerta_activa else []
         await db.saved_views.update_one({"id": v["id"]}, {"$set": {
             "snapshot": nuevo, "ultimo_check": dt.datetime.utcnow(), "disparada": bool(cambios)}})
         # F5 · HISTORIA: cada corrida deja huella (1 punto/día por corte) — el corte gana tiempo.
@@ -170,7 +173,8 @@ async def evaluar_cortes_asesor(db) -> Dict[str, Any]:
     from routes.advisor import _busqueda_a_corte
     disparadas = []
     revisadas = 0
-    async for b in db.asesor_busquedas.find({}, {"_id": 0}):
+    # deals terminales fuera: una búsqueda ganada/perdida no gasta cubo ni hace ruido
+    async for b in db.asesor_busquedas.find({"stage": {"$nin": ["ganada", "perdida"]}}, {"_id": 0}):
         corte = _busqueda_a_corte(b)
         if not corte or not b.get("owner_id"):
             continue
@@ -187,7 +191,15 @@ async def evaluar_cortes_asesor(db) -> Dict[str, Any]:
         cambios = _delta_corte(b.get("corte_snapshot"), nuevo, 10.0)
         await db.asesor_busquedas.update_one({"id": b["id"]}, {"$set": {
             "corte_snapshot": nuevo, "corte_checked_at": dt.datetime.utcnow()}})
-        await _huella_corte(db, "busqueda", b["id"], nuevo)   # F5 · historia también para el asesor
+        # huella CON espejo (misma riqueza que las vistas — sin esto el asesor nunca podría
+        # ver "¿se calentó el corte de mi cliente?")
+        try:
+            esp = await cube_lens.espejo_con_lente(db, "asesor", corte, n_oferta=nuevo["n"])
+            personas = esp.get("personas")
+            tension = esp.get("tension_por_unidad")
+        except Exception:  # noqa: BLE001
+            personas = tension = None
+        await _huella_corte(db, "busqueda", b["id"], {**nuevo, "personas": personas, "tension": tension})
         if cambios:
             disparadas.append({"busqueda": b["id"], "cambios": cambios})
             try:
@@ -202,3 +214,14 @@ async def evaluar_cortes_asesor(db) -> Dict[str, Any]:
                 pass
     return {"revisadas": revisadas, "disparadas": disparadas,
             "lectura": f"{len(disparadas)} cortes de clientes cambiaron de {revisadas} vigilados"}
+
+
+async def ensure_indexes(db) -> None:
+    """F5 · la huella exige unicidad real (cron + corrida manual concurrentes no deben duplicar
+    el punto del día) y la lectura no debe collscanear."""
+    try:
+        await db.cube_corte_snapshots.create_index(
+            [("ref_tipo", 1), ("ref_id", 1), ("fecha", 1)], unique=True,
+            name="corte_snapshot_uniq")
+    except Exception:  # noqa: BLE001
+        pass

@@ -14,6 +14,9 @@ import { getCubeTimeseries } from '../../api/superadminMetricsCube';
 
 const TIERS = [['colonia', 'Colonia'], ['development', 'Desarrollo']];
 const MEASURES = [
+  ['tension', 'Tensión (personas/unidad)'],
+  ['demanda_corte', 'Demanda del corte (personas)'],
+  ['disponibles_corte', 'Disponibles del corte'],
   ['demand_interactions', 'Interacciones', 'Todo lo que la gente hizo (vistas, guardados, clics)'],
   ['demand_visitors', 'Visitantes', 'Personas distintas interesadas'],
   ['interest_score', 'Interés', 'Qué tan caliente está (índice ponderado)'],

@@ -2594,6 +2594,7 @@ async def startup():
         # CUBO TOTAL F3 — alertas por corte guardado del Explorador (re-corre y notifica cambios)
         try:
             import vistas_guardadas
+            await vistas_guardadas.ensure_indexes(db)
             vistas_guardadas.register_vistas_corte_cron(sched, db)
         except Exception as e:
             logging.warning(f"[cube_view_alerts] startup register failed: {e}")

@@ -35,6 +35,7 @@ export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dia
 export const getDemandFeatures = (dias = 90) => j(`/api/dev/market/demand-features?dias=${dias}`);
 // CUBO F4.3 — tensión de TUS cortes + simulador de enganche→compradores
 export const getTensionCortes = () => j('/api/dev/market/tension-cortes');
+export const getUnitEventos = (unitId, devId) => j(`/api/desarrollador/inventario/${unitId}/eventos?dev_id=${encodeURIComponent(devId)}`);
 export const simularEnganche = (projectId, pct) => post('/api/dev/market/simulador-enganche', { project_id: projectId, enganche_pct: pct });
 // BUZÓN DEL CUBO — lo que el superadmin (el cubo) te mandó construir/ajustar (cierra el flywheel agéntico). Relevantes (tus colonias) primero.
 export const getCubeActions = () => j('/api/desarrollador/cube-actions');

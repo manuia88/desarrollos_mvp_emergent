@@ -347,7 +347,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [busquedas, setBusquedas] = useState([]);
   const [profBusy, setProfBusy] = useState(false); // E2 · guardando perfil de compra
   const [matches, setMatches] = useState({});
-  const [corteLead, setCorteLead] = useState(null);   // CUBO F4.2 — el corte del cliente en el cubo      // bid → [matches]
+  const [corteLead, setCorteLead] = useState(null);   // CUBO F4.2 — el corte del cliente en el cubo
+  const [corteHist, setCorteHist] = useState([]);     // F5 — huella diaria del corte      // bid → [matches]
   const [overview, setOverview] = useState(null);
   const [convos, setConvos] = useState(null);
   const [convIntel, setConvIntel] = useState(null);   // B2 · ánimo/sentiment real (client_insights)
@@ -412,6 +413,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
     setEtapaVida(null); setMemo(null); setEnrich(null);
     setCorteLead(null);   // review F4: sin esto, el corte del lead ANTERIOR se mostraba con el nombre del nuevo
+    setCorteHist([]);
     // Guard demo robusto: un contacto demo (prop `demo` O id 'demo-…') NUNCA llama la API real (evita 404 en consola
     // si se abre por URL directa sin el objeto demo).
     if (demo || (typeof cid === 'string' && cid.startsWith('demo-'))) return;
@@ -468,6 +470,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     if (tab === 'props' && busquedas.length > 0 && corteLead === null) {
       // CUBO F4.2 — el corte de la 1a búsqueda del cliente (unidades que le quedan + tensión)
       api.getBusquedaCorte(busquedas[0].id).then((r) => setCorteLead(r?.ok ? r : { ok: false })).catch(() => setCorteLead({ ok: false }));
+      // F5 — su línea de tiempo (huella diaria del cron)
+      api.getBusquedaCorteHistoria(busquedas[0].id).then((r) => setCorteHist(r?.puntos || [])).catch(() => setCorteHist([]));
     }
   }, [tab, open, cid, busquedas]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1301,6 +1305,11 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                           {corteLead.espejo.tension_por_unidad != null && <> (tensión {corteLead.espejo.tension_por_unidad}/unidad)</>}.</>
                         )}
                         {corteLead.espejo?.momentum_pct > 0 && <span style={{ color: '#6EE7B7', fontWeight: 700 }}> Demanda subiendo {corteLead.espejo.momentum_pct}%.</span>}
+                        {corteHist.length > 1 && (
+                          <span style={{ display: 'block', marginTop: 4, fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)' }}>
+                            {corteHist.slice(-10).map((pt) => `${pt.fecha.slice(5)}:${pt.n ?? '—'}`).join(' · ')} (unidades que le quedan, día a día)
+                          </span>
+                        )}
                       </span>
                     </div>
                   )}

@@ -572,12 +572,11 @@ async def vista_historia_route(view_id: str, request: Request):
     return {"view_id": view_id, "puntos": puntos, "n": len(puntos)}
 
 
-@router.get(PREFIX + "/atom/{unit_id}/eventos")
-async def atom_eventos_route(unit_id: str, request: Request):
-    """F5 · la línea de tiempo del átomo: qué le ha pasado a ESTA unidad (cambios de estado y de
-    campos del dev, con antes→después). Fuente: developer_audit (el camino canónico de edición)."""
-    await _require_superadmin(request)
-    db = _db(request)
+async def _eventos_de_unidad(db, unit_id: str) -> list:
+    """F5 · UNIÓN de las 4 fuentes reales de eventos del átomo (auditoría: leer solo
+    developer_audit perdía el CIERRE, la venta del asesor, los holds y el precio movido por IA):
+    developer_audit + audit_log central (unit/unit_hold/cube_unit_closed) + units_history +
+    price_events. Merge por ts descendente. Compartido por el reader superadmin y el del dev."""
     eventos = []
     async for e in db.developer_audit.find({"unit_id": unit_id}, {"_id": 0}).sort("ts", -1).limit(100):
         p = e.get("payload") or {}
@@ -588,7 +587,44 @@ async def atom_eventos_route(unit_id: str, request: Request):
             cambios = [f"{k}: {antes.get(k, '—')} → {v}" for k, v in p.items() if k not in ("unit_id", "dev_id")]
             desc = "campos: " + ", ".join(cambios[:5]) if cambios else "edición"
         eventos.append({"ts": e.get("ts"), "accion": e.get("action"), "descripcion": desc,
-                        "por": e.get("user_id")})
+                        "por": e.get("user_id"), "fuente": "dev"})
+    try:
+        async for e in db.audit_log.find({"entity_id": unit_id,
+                                          "entity_type": {"$in": ["unit", "unit_hold", "cube_unit_closed"]}},
+                                         {"_id": 0}).sort("ts", -1).limit(100):
+            aft = e.get("after") or {}
+            et = e.get("entity_type")
+            if et == "cube_unit_closed":
+                desc = f"CIERRE · precio {aft.get('precio_cierre', '—')}"
+            elif et == "unit_hold":
+                desc = f"apartado · {aft.get('status') or e.get('action')}"
+            else:
+                desc = ", ".join(f"{k}: {v}" for k, v in list(aft.items())[:4]) or e.get("action", "cambio")
+            eventos.append({"ts": e.get("ts") or e.get("created_at"), "accion": et,
+                            "descripcion": desc, "por": (e.get("actor") or {}).get("user_id") or e.get("user_id"),
+                            "fuente": "central"})
+    except Exception:  # noqa: BLE001
+        pass
+    for coll, accion, fmt in ((db.units_history, "cambio", lambda h: f"{h.get('field', 'campo')}: {h.get('old', '—')} → {h.get('new', '—')}"),
+                              (db.price_events, "precio", lambda h: f"precio: {h.get('old_price', '—')} → {h.get('new_price', h.get('price', '—'))}")):
+        try:
+            async for h in coll.find({"unit_id": unit_id}, {"_id": 0}).sort("ts", -1).limit(50):
+                eventos.append({"ts": h.get("ts") or h.get("created_at"), "accion": accion,
+                                "descripcion": fmt(h), "por": h.get("user_id"), "fuente": "historial"})
+        except Exception:  # noqa: BLE001
+            pass
+    eventos.sort(key=lambda e: str(e.get("ts") or ""), reverse=True)
+    return eventos[:100]
+
+
+@router.get(PREFIX + "/atom/{unit_id}/eventos")
+async def atom_eventos_route(unit_id: str, request: Request):
+    """F5 · la línea de tiempo del átomo — unión de developer_audit + audit_log central +
+    units_history + price_events (el cierre, la venta del asesor, los holds y la IA de precio
+    ya son visibles)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    eventos = await _eventos_de_unidad(db, unit_id)
     return {"unit_id": unit_id, "eventos": eventos, "n": len(eventos)}
 
 

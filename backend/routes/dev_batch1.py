@@ -1293,6 +1293,13 @@ async def auto_release_expired_holds(db) -> int:
             {"unit_id": hold["unit_id"]},
             {"$set": {"status": "disponible", "hold_id": None, "updated_at": now_iso}},
         )
+        try:   # F5: el auto-release era invisible en todo el sistema — ahora deja evento por unidad
+            await db.audit_log.insert_one({
+                "entity_type": "unit_hold", "entity_id": hold.get("unit_id"),
+                "action": "auto_release", "after": {"status": "disponible", "hold_id": str(hold.get("_id"))},
+                "actor": {"user_id": "scheduler"}, "ts": now_iso})
+        except Exception:  # noqa: BLE001
+            pass
         try:
             import cube_cache
             cube_cache.cache_invalidate_zones([])   # el cubo ve el override al instante (no espera TTL 5min)

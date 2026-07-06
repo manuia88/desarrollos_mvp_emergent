@@ -284,3 +284,28 @@ async def test_huella_de_busqueda_asesor(db):
     assert r["revisadas"] == 1
     h = await db.cube_corte_snapshots.find_one({"ref_tipo": "busqueda", "ref_id": "b1"}, {"_id": 0})
     assert h and h["n"] == 3                                 # disponibles del corte del cliente
+
+
+@pytest.mark.asyncio
+async def test_huella_sin_alerta_tambien(db):
+    """[auditoría F5] la huella es para TODAS las vistas explorador — la alerta solo notifica."""
+    await vg.guardar(db, "Sin alerta", "explorador",
+                     {"filtros": [], "agrupar_por": [], "universo": "unidades"}, alerta=None)
+    await db.dmx_units.insert_one({"unit_id": "u1", "development_id": "d1",
+                                   "commercial": {"precio_lista_mxn": 1_000_000, "status": "disponible"},
+                                   "areas": {"m2_privativo": 50}, "geo": {"colonia_id": "narvarte"}})
+    r = await vg.evaluar_alertas_corte(db)
+    assert r["revisadas"] == 1 and r["disparadas"] == []     # sin alerta no notifica...
+    h = await db.cube_corte_snapshots.find_one({"ref_tipo": "vista"}, {"_id": 0})
+    assert h and h["n"] == 1                                 # ...pero SÍ deja huella (el 📈 lo promete)
+
+
+@pytest.mark.asyncio
+async def test_busqueda_terminal_no_gasta_cubo(db):
+    """[auditoría F5] búsquedas ganadas/perdidas quedan fuera del cron."""
+    await db.asesor_busquedas.insert_many([
+        {"id": "b1", "owner_id": "a1", "colonias": ["narvarte"], "stage": "activa"},
+        {"id": "b2", "owner_id": "a1", "colonias": ["narvarte"], "stage": "ganada"},
+    ])
+    r = await vg.evaluar_cortes_asesor(db)
+    assert r["revisadas"] == 1

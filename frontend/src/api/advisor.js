@@ -67,6 +67,7 @@ export const registerOffer = (id) => post(`/api/asesor/busquedas/${id}/offer`);
 export const getMatches = (id) => j(`/api/asesor/busquedas/${id}/matches`);
 // CUBO F4.2 — el corte del cliente: unidades que le quedan + tensión (compradores que piden lo mismo)
 export const getBusquedaCorte = (id) => j(`/api/asesor/busquedas/${id}/corte`);
+export const getBusquedaCorteHistoria = (id) => j(`/api/asesor/busquedas/${id}/corte/historia`);
 
 // B5.1 · Tablero de propiedades por lead (Tab Propiedades del perfil-hub)
 export const getLeadBoard = (cid) => j(`/api/asesor/contactos/${cid}/board`);
