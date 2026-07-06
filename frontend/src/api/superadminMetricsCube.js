@@ -129,10 +129,10 @@ export async function getCubeDemandGap(top = 10) {
 }
 
 // CUBO TOTAL F2 — CONSULTA LIBRE: filtros arbitrarios + agrupación (el motor del Explorador)
-export async function runConsulta(filtros, agruparPor = []) {
+export async function runConsulta(filtros, agruparPor = [], universo = 'unidades') {
   return _j(await fetch(`${BASE}/consulta`, {
     method: 'POST', headers: h(), credentials: 'include',
-    body: JSON.stringify({ filtros, agrupar_por: agruparPor }),
+    body: JSON.stringify({ filtros, agrupar_por: agruparPor, universo }),
   }));
 }
 export async function getConsultaCampos() {

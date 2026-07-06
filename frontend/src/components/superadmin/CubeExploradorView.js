@@ -18,19 +18,53 @@ const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const money = (v) => (v == null ? '—' : `$${nf.format(v)}`);
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-// La pregunta del founder, precargada como ejemplo vivo (se puede editar/quitar chip por chip).
-const EJEMPLO = [
-  { campo: 'alcaldia', op: 'eq', valor: 'benito-juarez' },
-  { campo: 'has_balcon', op: 'eq', valor: true },
-  { campo: 'm2', op: 'lt', valor: 65 },
-  { campo: 'n_parking', op: 'gte', valor: 1 },
-  { campo: 'enganche_min_pct', op: 'lte', valor: 10 },
-  { campo: 'mens_80_20', op: 'lt', valor: 30000 },
+// PRESETS de mundos DISTINTOS — demuestran que el espacio es universal (físico + financiero +
+// zona + edificio + etapa). Cada uno es solo un punto de partida editable; el default es TODO el mercado.
+const PRESETS = [
+  { nombre: 'Asequibilidad', filtros: [
+    { campo: 'alcaldia', op: 'eq', valor: 'benito-juarez' },
+    { campo: 'has_balcon', op: 'eq', valor: true },
+    { campo: 'm2', op: 'lt', valor: 65 },
+    { campo: 'enganche_min_pct', op: 'lte', valor: 10 },
+    { campo: 'mens_80_20', op: 'lt', valor: 30000 },
+  ], agrupar: ['colonia'] },
+  { nombre: 'Vida a pie y segura', filtros: [
+    { campo: 'walkability', op: 'gt', valor: 90 },
+    { campo: 'escuelas_zona', op: 'gt', valor: 70 },
+    { campo: 'recamaras', op: 'gte', valor: 2 },
+  ], agrupar: ['colonia'] },
+  { nombre: 'Inversión temprana', filtros: [
+    { campo: 'etapa', op: 'eq', valor: 'preventa' },
+    { campo: 'gentrificacion_zona', op: 'gt', valor: 45 },
+    { campo: 'precio_m2', op: 'lt', valor: 75000 },
+  ], agrupar: ['colonia', 'etapa'] },
+  { nombre: 'Edificio con vida', filtros: [
+    { campo: 'amenidades_edificio', op: 'eq', valor: 'alberca' },
+    { campo: 'vida_nocturna_zona', op: 'gt', valor: 60 },
+  ], agrupar: ['development_id'] },
+];
+
+// Presets del MODO ZONA (universo = las 2,400+ colonias)
+const PRESETS_ZONA = [
+  { nombre: 'Para familias', filtros: [
+    { campo: 'escuelas_zona', op: 'gt', valor: 70 },
+    { campo: 'walkability', op: 'gt', valor: 60 },
+    { campo: 'gentrificacion_zona', op: 'lt', valor: 45 },
+  ], agrupar: ['alcaldia'] },
+  { nombre: 'Seguras y con vida', filtros: [
+    { campo: 'riesgo_zona', op: 'gt', valor: 60 },
+    { campo: 'vida_nocturna_zona', op: 'gt', valor: 60 },
+  ], agrupar: ['alcaldia'] },
+  { nombre: 'Gentrificación temprana', filtros: [
+    { campo: 'gentrificacion_zona', op: 'between', valor: [40, 60] },
+    { campo: 'walkability', op: 'gt', valor: 70 },
+  ], agrupar: ['alcaldia'] },
 ];
 
 export default function CubeExploradorView({ onDrillUnit }) {
+  const [universo, setUniverso] = useState('unidades');   // 'unidades' (oferta) | 'zonas' (2,400+ colonias)
   const [campos, setCampos] = useState([]);
-  const [filtros, setFiltros] = useState(EJEMPLO);
+  const [filtros, setFiltros] = useState([]);           // default: TODO el mercado (universal, no un ejemplo)
   const [agrupar, setAgrupar] = useState(['colonia']);
   const [nuevo, setNuevo] = useState({ campo: 'precio', op: 'lt', valor: '' });
   const [res, setRes] = useState(null);
@@ -41,18 +75,27 @@ export default function CubeExploradorView({ onDrillUnit }) {
     getConsultaCampos().then((d) => setCampos(d.campos || [])).catch(() => setCampos([]));
   }, []);
 
-  const correr = async (fs = filtros, gs = agrupar) => {
+  const correr = async (fs = filtros, gs = agrupar, uni = universo) => {
     setBusy(true); setErr(null);
-    try { setRes(await runConsulta(fs, gs)); }
+    try { setRes(await runConsulta(fs, gs, uni)); }
     catch (e) { setErr(e?.message || 'No se pudo consultar.'); }
     finally { setBusy(false); }
+  };
+  // al cambiar de universo: en zonas solo campos de zona; limpia filtros que no apliquen
+  const cambiarUniverso = (uni) => {
+    setUniverso(uni);
+    const okZona = new Set(campos.filter((c) => c.zona).map((c) => c.key));
+    const fs = uni === 'zonas' ? filtros.filter((f) => okZona.has(f.campo)) : filtros;
+    const gs = uni === 'zonas' ? (agrupar.filter((g) => okZona.has(g) || g === 'colonia' || g === 'alcaldia').length ? agrupar : ['alcaldia']) : agrupar;
+    setFiltros(fs); setAgrupar(gs); correr(fs, gs, uni);
   };
   useEffect(() => { correr(); /* al montar, con el ejemplo */ // eslint-disable-next-line
   }, []);
 
   const tipoDe = (key) => (campos.find((c) => c.key === key) || {}).tipo || 'num';
   const labelDe = (key) => (campos.find((c) => c.key === key) || {}).label || key;
-  const agrupables = useMemo(() => campos.filter((c) => c.agrupable), [campos]);
+  const camposVisibles = useMemo(() => (universo === 'zonas' ? campos.filter((c) => c.zona) : campos), [campos, universo]);
+  const agrupables = useMemo(() => camposVisibles.filter((c) => c.agrupable), [camposVisibles]);
 
   const agregar = () => {
     if (nuevo.valor === '' && nuevo.op !== 'exists') return;
@@ -83,6 +126,36 @@ export default function CubeExploradorView({ onDrillUnit }) {
         Combina los filtros que quieras (físicos, financieros, de zona) y agrupa por lo que sea. Cada respuesta dice cuántas unidades hay detrás.
       </div>
 
+      {/* Toggle de UNIVERSO: oferta (unidades con inventario) vs el Modelo del Mundo (2,400+ colonias) */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        {[['unidades', 'Unidades (oferta)'], ['zonas', 'Zonas (2,400+ colonias)']].map(([u, l]) => (
+          <button key={u} data-testid={`exp-universo-${u}`} onClick={() => cambiarUniverso(u)}
+            style={{ padding: '6px 16px', borderRadius: 11, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
+              background: universo === u ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${universo === u ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.08)'}`,
+              color: universo === u ? 'var(--theme)' : 'rgba(240,235,224,0.6)' }}>{l}</button>
+        ))}
+        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+          {universo === 'unidades' ? 'Cortes de producto/precio/financiero — donde hay inventario cargado.' : 'El Modelo del Mundo: toda colonia por sus índices, tenga o no unidades.'}
+        </span>
+      </div>
+
+      {/* Presets: mundos distintos como punto de partida (editables) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Empieza por:</span>
+        {(universo === 'zonas' ? PRESETS_ZONA : PRESETS).map((p) => (
+          <button key={p.nombre} data-testid={`exp-preset-${p.nombre.replace(/\s+/g, '-').toLowerCase()}`}
+            onClick={() => { setFiltros(p.filtros); setAgrupar(p.agrupar); correr(p.filtros, p.agrupar); }}
+            style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, borderRadius: 9999, padding: '4px 12px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.75)' }}>
+            {p.nombre}
+          </button>
+        ))}
+        <button onClick={() => { setFiltros([]); setAgrupar(['colonia']); correr([], ['colonia']); }}
+          style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, borderRadius: 9999, padding: '4px 12px', cursor: 'pointer', background: 'none', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(240,235,224,0.5)' }}>
+          Limpiar todo
+        </button>
+      </div>
+
       {/* Chips de filtros activos */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 8 }}>
         {filtros.map((f, i) => (
@@ -97,7 +170,7 @@ export default function CubeExploradorView({ onDrillUnit }) {
       {/* Constructor de filtro */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10, padding: '9px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
         <select value={nuevo.campo} onChange={(e) => setNuevo((n) => ({ ...n, campo: e.target.value }))} style={inputS} data-testid="exp-campo">
-          {campos.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          {camposVisibles.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
         <select value={nuevo.op} onChange={(e) => setNuevo((n) => ({ ...n, op: e.target.value }))} style={inputS} data-testid="exp-op">
           {Object.entries(OP_LABEL).filter(([o]) => o !== 'in' && o !== 'between').map(([o, l]) => <option key={o} value={o}>{l}</option>)}
@@ -132,12 +205,19 @@ export default function CubeExploradorView({ onDrillUnit }) {
           {/* El número gordo + n */}
           <div className="dmx-card" style={{ padding: '16px 18px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', marginBottom: 12 }}>
             <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'baseline' }}>
-              {[['Unidades del corte', nf.format(k.unidades ?? 0)],
-                ['Absorción', k.absorcion_pct != null ? `${k.absorcion_pct}%` : '—'],
-                ['Disponibles', nf.format(k.disponibles ?? 0)],
-                ['Precio prom.', money(k.precio_prom)],
-                ['$/m² prom.', money(k.precio_m2_prom)],
-                ['Mensualidad prom. (80/20)', money(k.mens_80_20_prom)]].map(([l, v]) => (
+              {(universo === 'zonas'
+                ? [['Colonias del corte', nf.format(k.colonias ?? 0)],
+                   ['Calidad prom.', k.zone_score_prom != null ? Math.round(k.zone_score_prom) : '—'],
+                   ['Caminabilidad prom.', k.walkability_prom != null ? Math.round(k.walkability_prom) : '—'],
+                   ['Seguridad prom.', k.seguridad_prom != null ? Math.round(k.seguridad_prom) : '—'],
+                   ['Escuelas prom.', k.escuelas_prom != null ? Math.round(k.escuelas_prom) : '—'],
+                   ['Gentrif. prom.', k.gentrificacion_prom != null ? Math.round(k.gentrificacion_prom) : '—']]
+                : [['Unidades del corte', nf.format(k.unidades ?? 0)],
+                   ['Absorción', k.absorcion_pct != null ? `${k.absorcion_pct}%` : '—'],
+                   ['Disponibles', nf.format(k.disponibles ?? 0)],
+                   ['Precio prom.', money(k.precio_prom)],
+                   ['$/m² prom.', money(k.precio_m2_prom)],
+                   ['Mensualidad prom. (80/20)', money(k.mens_80_20_prom)]]).map(([l, v]) => (
                 <div key={l}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', fontWeight: 600 }}>{l}</div>
                   <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', fontVariantNumeric: 'tabular-nums' }}>{v}</div>
@@ -175,8 +255,27 @@ export default function CubeExploradorView({ onDrillUnit }) {
             </div>
           )}
 
-          {/* Las unidades exactas (drill al Átomo) */}
-          {(res.unidades || []).length > 0 && (
+          {/* Modo ZONA: las colonias del corte con sus índices */}
+          {universo === 'zonas' && (res.colonias || []).length > 0 && (
+            <>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.55)', marginBottom: 8 }}>
+                Las colonias del corte {res.colonias_truncadas > 0 ? `(primeras ${res.colonias.length} de ${res.n})` : `(${res.n})`}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 8, marginBottom: 12 }}>
+                {res.colonias.map((c) => (
+                  <div key={c.colonia} data-testid={`exp-colonia-${c.colonia}`} style={{ padding: '10px 12px', borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{tc(c.colonia)}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 3, lineHeight: 1.5 }}>
+                      {c.tc} {[c.zone_score != null && `calidad ${Math.round(c.zone_score)}`, c.walkability != null && `caminable ${Math.round(c.walkability)}`, c.gentrificacion != null && `gentrif ${Math.round(c.gentrificacion)}`].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Modo UNIDADES: las unidades exactas (drill al Átomo) */}
+          {universo === 'unidades' && (res.unidades || []).length > 0 && (
             <>
               <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.55)', marginBottom: 8 }}>
                 Las unidades del corte {res.unidades_truncadas > 0 ? `(primeras ${res.unidades.length} de ${res.n})` : `(${res.n})`}
@@ -200,7 +299,7 @@ export default function CubeExploradorView({ onDrillUnit }) {
           )}
           {res.n === 0 && (
             <div style={{ padding: 20, borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>
-              Ninguna unidad cumple TODO el corte — honesto, no lo inventamos. Quita o relaja un filtro.
+              {universo === 'zonas' ? 'Ninguna colonia' : 'Ninguna unidad'} cumple TODO el corte — honesto, no lo inventamos. Quita o relaja un filtro.
             </div>
           )}
         </>

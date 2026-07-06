@@ -536,6 +536,7 @@ class ConsultaFiltro(BaseModel):
 class ConsultaBody(BaseModel):
     filtros: List[ConsultaFiltro] = []
     agrupar_por: List[str] = []
+    universo: str = "unidades"   # 'unidades' (oferta) | 'zonas' (Modelo del Mundo, 2,400+ colonias)
 
 
 @router.post(PREFIX + "/consulta")
@@ -546,7 +547,7 @@ async def consulta_libre_route(body: ConsultaBody, request: Request):
     await _require_superadmin(request)
     import cube_query_libre
     return await cube_query_libre.consulta(
-        _db(request), [f.model_dump() for f in body.filtros], body.agrupar_por)
+        _db(request), [f.model_dump() for f in body.filtros], body.agrupar_por, body.universo)
 
 
 @router.get(PREFIX + "/consulta/campos")

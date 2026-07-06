@@ -100,3 +100,43 @@ def test_campos_disponibles():
     assert {"alcaldia", "colonia", "m2", "has_balcon", "n_parking",
             "mens_80_20", "enganche_min_pct", "precio", "status"} <= keys
     assert d["k_anon"] == 3
+
+
+@pytest.mark.asyncio
+async def test_modo_zona_universo_colonias(db):
+    """Universo 'zonas': el corte es sobre COLONIAS (con índices), no unidades — escala a toda la ciudad."""
+    # ie_scores usa slug corto (como en prod: 'polanco', 'condesa'); zone_id == colonia.id
+    await db.ie_scores.insert_many([
+        {"code": "IE_COL_N08_WALKABILITY_MX", "zone_id": "roma-norte", "value": 95, "is_stub": False},
+        {"code": "IE_COL_N06_SCHOOL_PREMIUM", "zone_id": "roma-norte", "value": 80, "is_stub": False},
+        {"code": "IE_COL_N08_WALKABILITY_MX", "zone_id": "napoles", "value": 40, "is_stub": False},
+        {"code": "IE_COL_N08_WALKABILITY_MX", "zone_id": "condesa", "value": 88, "is_stub": False},  # prefijo
+        {"code": "IE_COL_N08_WALKABILITY_MX", "zone_id": "stub-zone", "value": 99, "is_stub": True},  # stub NO cuenta
+    ])
+    await db.colonias.insert_many([
+        {"id": "roma-norte", "name": "Roma Norte", "alcaldia": "Cuauhtémoc"},
+        {"id": "napoles", "name": "Nápoles", "alcaldia": "Benito Juárez"},
+        {"id": "condesa-cuauhtemoc", "name": "Condesa", "alcaldia": "Cuauhtémoc"},  # solo slug largo en catálogo
+    ])
+    # todas las colonias con índice real (3, el stub excluido)
+    r = await Q.consulta(db, [], ["alcaldia"], universo="zonas")
+    assert r["ok"] and r["universo"] == "zonas" and r["n"] == 3
+    # alcaldía resuelta por prefijo: 'condesa' (índice) → 'condesa-cuauhtemoc' (catálogo) → Cuauhtémoc
+    condesa = next(c for c in r["colonias"] if c["colonia"] == "condesa")
+    assert condesa["alcaldia"] == "cuauhtemoc"
+    # filtro de zona: solo caminables >90 → roma-norte
+    r2 = await Q.consulta(db, [{"campo": "walkability", "op": "gt", "valor": 90}], universo="zonas")
+    assert {c["colonia"] for c in r2["colonias"]} == {"roma-norte"}
+    # en modo zona, un campo de UNIDAD es inválido (no aplica)
+    r3 = await Q.consulta(db, [{"campo": "mens_80_20", "op": "lt", "valor": 20000}], universo="zonas")
+    assert r3["ok"] is False and any("no aplica" in e for e in r3["errores"])
+
+
+@pytest.mark.asyncio
+async def test_campos_incluye_zona_y_universos(db):
+    d = Q.campos_disponibles()
+    assert set(d["universos"]) == {"unidades", "zonas"}
+    zk = {c["key"] for c in d["campos"] if c.get("zona")}
+    assert {"walkability", "escuelas_zona", "gentrificacion_zona", "riesgo_zona", "colonia", "alcaldia"} <= zk
+    # un campo de unidad NO está marcado como zona
+    assert not next(c for c in d["campos"] if c["key"] == "mens_80_20")["zona"]
