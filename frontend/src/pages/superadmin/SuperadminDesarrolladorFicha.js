@@ -47,6 +47,7 @@ export default function SuperadminDesarrolladorFicha() {
   const [access, setAccess] = useState(null);      // {email, password} | null
   const [newProj, setNewProj] = useState(null);    // form | null
   const [editProj, setEditProj] = useState(null);  // {id, ...fields} | null
+  const [openData, setOpenData] = useState(null);  // id del proyecto cuyos datos extraídos se ven
 
   const load = useCallback(() => {
     detalleDesarrollador(devOrgId).then(setD).catch((e) => setErr(e.message));
@@ -227,6 +228,7 @@ export default function SuperadminDesarrolladorFicha() {
                         </div>
                       </div>
                     ) : (
+                      <>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ minWidth: 200 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -238,11 +240,36 @@ export default function SuperadminDesarrolladorFicha() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button onClick={() => setOpenData(openData === p.id ? null : p.id)} style={openData === p.id ? btn(true) : ghost} data-testid={`proj-verdatos-${p.id}`}>{openData === p.id ? 'Ocultar datos' : 'Ver datos'}</button>
                           <button onClick={() => setEditProj({ id: p.id, name: p.name || '', colonia: p.colonia || '', alcaldia: p.alcaldia || '', total_units: p.total_units ?? '', price_from: p.price_from ?? '', stage: p.stage || 'preventa' })} style={ghost}><Pencil size={12} style={{ verticalAlign: -2, marginRight: 3 }} />Editar</button>
                           <button onClick={() => togglePublish(p)} disabled={busy} style={ghost}>{p.marketplace_published === true ? 'Ocultar' : 'Publicar'}</button>
                           <button onClick={() => nav(`/superadmin/desarrollos/${p.id}`)} style={ghost}><ExternalLink size={12} style={{ verticalAlign: -2, marginRight: 3 }} />Abrir ficha</button>
                         </div>
                       </div>
+                      {openData === p.id && (
+                        <div data-testid={`proj-data-${p.id}`} style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'rgba(240,235,224,0.45)', marginBottom: 8 }}>Lo que la IA sacó de los documentos</div>
+                          {[
+                            ['Dirección', p.address || p.colonia, true],
+                            ['Precio desde', p.price_from ? mxn(p.price_from) : null, true],
+                            ['Unidades', p.total_units || null, true],
+                            ['Amenidades', (p.amenities || []).length ? `${p.amenities.length}: ${p.amenities.slice(0, 12).join(', ')}` : null, true],
+                            ['Ubicación en mapa', p.has_geo ? 'sí ✓' : null, false],
+                            ['Archivos leídos', p.source_files || null, false],
+                          ].map(([lbl, val, warn]) => (
+                            <div key={lbl} style={{ display: 'flex', gap: 10, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)', minWidth: 130 }}>{lbl}</span>
+                              <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: val ? 'var(--cream)' : '#F87171', flex: 1 }}>
+                                {val || (warn ? '🔴 la IA no lo encontró — edítalo o complétalo' : '—')}
+                              </span>
+                            </div>
+                          ))}
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 8 }}>
+                            ¿Falta algo? Usa <b style={{ color: 'var(--cream)' }}>Editar</b> para completarlo, o <b style={{ color: 'var(--cream)' }}>Abrir ficha</b> para el detalle completo (fotos, unidades, pagos).
+                          </div>
+                        </div>
+                      )}
+                      </>
                     )}
                   </div>
                 ))}

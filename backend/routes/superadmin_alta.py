@@ -266,14 +266,21 @@ async def detalle_desarrollador(dev_org_id: str, request: Request):
             if not pid or pid in seen:
                 continue
             seen.add(pid)
+            amen = p.get("amenities") or p.get("amenidades") or []
             proyectos.append({
                 "id": pid, "name": p.get("name"), "colonia": p.get("colonia"),
                 "alcaldia": p.get("alcaldia") or p.get("municipio"),
                 "stage": p.get("stage"), "segmento": p.get("segmento"),
                 "total_units": p.get("total_units") or p.get("units_total") or 0,
-                "price_from": p.get("price_from"),
+                "price_from": p.get("price_from") or p.get("price_min_mxn"),
+                "price_to": p.get("price_to") or p.get("price_max_mxn"),
                 "marketplace_published": p.get("marketplace_published"),
-                "source": coll, "created_via": p.get("created_via")})
+                "source": coll, "created_via": p.get("created_via"),
+                # datos que sacó la IA (para "Ver datos" en la ficha, sin salir)
+                "address": p.get("address") or p.get("address_full") or p.get("calle"),
+                "amenities": amen if isinstance(amen, list) else [],
+                "has_geo": bool(p.get("lat") and p.get("lng")),
+                "source_files": len(p.get("source_files") or []) or p.get("source_files_count") or None})
     proyectos.sort(key=lambda x: (x.get("name") or "").lower())
     return {"dev_org_id": dev_org_id,
             "name": (org or {}).get("name") or (usr or {}).get("name"),
