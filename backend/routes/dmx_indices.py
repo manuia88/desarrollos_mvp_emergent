@@ -75,7 +75,25 @@ def _market_absorcion_by_colonia() -> Dict[str, Dict[str, int]]:
     return agg
 
 
-def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]]) -> Dict[str, Any]:
+_DEMANDA_MAP_CACHE: Optional[Dict[str, float]] = None
+
+
+async def _demanda_score_map(db) -> Dict[str, float]:
+    """Score de demanda REAL 0-100 por colonia (slug) para alimentar el IDS. Cacheado en proceso.
+    Vacío si no hay señal real (→ IDS 'estimado' honesto, sin demanda inventada)."""
+    global _DEMANDA_MAP_CACHE
+    if _DEMANDA_MAP_CACHE is not None:
+        return _DEMANDA_MAP_CACHE
+    try:
+        import dmx_demand
+        score, _isproxy, _src = await dmx_demand.demanda_score_by_colonia(db)
+        _DEMANDA_MAP_CACHE = score or {}
+    except Exception:
+        _DEMANDA_MAP_CACHE = {}
+    return _DEMANDA_MAP_CACHE
+
+
+def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]], dem_map: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
     a = abs_map.get(colonia.get("name")) or {}
     ctx: Dict[str, Any] = {}
     if a.get("total"):
@@ -84,6 +102,13 @@ def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]]) -> Dic
         from anonymization_engine import ventas_publicables
         if ventas_publicables(colonia.get("name") or colonia.get("id") or ""):
             ctx["absorcion_pct"] = round(a["sold"] / a["total"] * 100, 1)
+    if dem_map:
+        # demanda REAL observada → IDS real (dmx_demand); sin señal → no se pasa (IDS estimado honesto).
+        ds = dem_map.get(colonia.get("id") or "")
+        if ds is None:
+            ds = dem_map.get((colonia.get("name") or "").strip().lower())
+        if ds is not None:
+            ctx["demanda_score"] = ds
     return ctx
 
 
@@ -160,9 +185,10 @@ async def compute_zone_indices(db, zone_id: str, tier_label: str) -> Dict[str, A
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
+    dem_map = await _demanda_score_map(db)   # demanda REAL → IDS real donde haya señal
     # Distribución de percentiles del UNIVERSO COMPLETO (1,812) → bandas reales, no "estimado".
-    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map))
-    ctx = _ctx_for(colonia, abs_map)
+    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map))
+    ctx = _ctx_for(colonia, abs_map, dem_map)
     try:
         from live_pulse_engine import compute_pulse
         pulse = await compute_pulse(db, colonia.get("id") or zone_id)
@@ -200,13 +226,14 @@ async def superadmin_indices(
     await _sa(request)
     db = request.app.state.db
     abs_map = _market_absorcion_by_colonia()
+    dem_map = await _demanda_score_map(db)
     universo = await _all_colonias(db)   # 1,812 colonias, no solo 16 seed
-    ix.ensure_index_distributions(universo, ctx_fn=lambda c: _ctx_for(c, abs_map))
+    ix.ensure_index_distributions(universo, ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map))
     rows: List[Dict[str, Any]] = []
     for c in universo:
         if tier and (c.get("tier") or "").lower() != tier.lower():
             continue
-        r = ix.compute_indices(c, _ctx_for(c, abs_map))
+        r = ix.compute_indices(c, _ctx_for(c, abs_map, dem_map))
         rows.append(r)
     rows.sort(key=lambda x: -x["idm"]["valor"])
     rows = rows[:limit]

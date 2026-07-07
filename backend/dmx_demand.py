@@ -136,6 +136,19 @@ async def _zone_demand(db) -> tuple:
     return demand, is_proxy, sources
 
 
+async def demanda_score_by_colonia(db) -> tuple:
+    """Score de demanda 0-100 por colonia (slug) desde la demanda REAL multi-fuente (_zone_demand).
+    Alimenta el IDS de los índices DMX. SOLO devuelve colonias con señal real: si toda la demanda es
+    proxy/uniforme (sin eventos) → dict vacío, para que IDS caiga a 'estimado' honesto y NUNCA se
+    inyecte demanda inventada. Devuelve (score_map, is_proxy, sources)."""
+    demand, is_proxy, sources = await _zone_demand(db)
+    if is_proxy or not demand:
+        return {}, is_proxy, sources
+    mx = max(demand.values()) or 1.0
+    score = {z: round(v / mx * 100, 1) for z, v in demand.items() if v > 0}
+    return score, is_proxy, sources
+
+
 async def demand_gap(db, top: int = 25) -> Dict[str, Any]:
     """Gap demanda-oferta por (colonia × tipología). Rankea oportunidades de construcción."""
     cc = await olap.query_cross_cut(db, dimensions=["zone", "tipologia"], filters={})
