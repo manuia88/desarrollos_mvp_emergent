@@ -353,15 +353,10 @@ async def extract_bulk_project(
         try:
             session_id = f"bulk-ingest-{secrets.token_urlsafe(8)}"
             chat = LlmChat(api_key=api_key, session_id=session_id, system_message=EXTRACTION_PROMPT)
-            chat = chat.with_model("anthropic", "claude-haiku-4-5").with_max_tokens(2000)
+            chat = chat.with_model("anthropic", "claude-haiku-4-5").with_max_tokens(8000)
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
-            raw = (resp or "").strip()
-            # Strip code fences
-            if raw.startswith("```"):
-                raw = re.sub(r"^```(?:json)?\s*", "", raw)
-                raw = re.sub(r"\s*```$", "", raw)
-            data = json.loads(raw)
+            data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
             # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
             data = _sanitize_extraction(data)
             # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft).
@@ -375,6 +370,63 @@ async def extract_bulk_project(
         except Exception as e:
             log.warning(f"[bulk_ingest] extraction failed for {project_name_hint}: {e}")
             return _stub_extraction(project_name_hint), 0.0
+
+
+def _parse_llm_json(text: str) -> Dict[str, Any]:
+    """Parseo TOLERANTE del JSON que devuelve el LLM: quita ```fences```, aísla el objeto {…},
+    borra comas colgantes y, si el JSON viene TRUNCADO (se acabó el presupuesto de tokens), lo
+    cierra balanceando llaves/corchetes para rescatar lo que sí llegó. Lanza si no hay nada usable."""
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        return json.loads(raw)
+    except Exception:  # noqa: BLE001
+        pass
+    i = raw.find("{")
+    if i == -1:
+        raise ValueError("sin objeto JSON en la respuesta")
+    frag = raw[i:]
+    # intento 1: hasta el último '}' + limpiar comas colgantes
+    last = frag.rfind("}")
+    if last != -1:
+        cand = re.sub(r",\s*([}\]])", r"\1", frag[:last + 1])
+        try:
+            return json.loads(cand)
+        except Exception:  # noqa: BLE001
+            pass
+    # intento 2: JSON truncado → volver al ÚLTIMO límite de elemento limpio (fuera de strings) y
+    # cerrar los contenedores abiertos ahí. Rescata las unidades/campos que sí alcanzaron a llegar.
+    stack: List[str] = []
+    in_str = False
+    esc = False
+    snap_cut = -1
+    snap_stack: List[str] = []
+    for k, ch in enumerate(frag):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if stack:
+                stack.pop()
+            snap_cut, snap_stack = k + 1, list(stack)   # límite limpio tras cerrar un contenedor
+        elif ch == ",":
+            snap_cut, snap_stack = k + 1, list(stack)     # límite limpio tras un elemento
+    if snap_cut == -1:
+        raise ValueError("JSON truncado no rescatable")
+    tail = frag[:snap_cut].rstrip().rstrip(",")
+    closing = "".join("}" if c == "{" else "]" for c in reversed(snap_stack))
+    return json.loads(re.sub(r",\s*([}\]])", r"\1", tail + closing))  # si falla, propaga → stub
 
 
 def _stub_extraction(name: str) -> Dict[str, Any]:

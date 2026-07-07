@@ -346,3 +346,35 @@ def test_list_folder_recursive_two_projects_and_root_file(monkeypatch):
     assert len(groups) == 3                       # A (con su anidado), B, y la raíz
     a_files = [f for f in files if f["parent_folder_id"] == "A"]
     assert {f["id"] for f in a_files} == {"a1", "a2"}   # el anidado a2 quedó bajo A
+
+
+# ─── _parse_llm_json: parseo tolerante del JSON del LLM (fences/comas/truncado) ──
+
+def test_parse_llm_json_plain():
+    from bulk_ingest_engine import _parse_llm_json
+    assert _parse_llm_json('{"a": 1, "units": [{"x": 2}]}')["a"] == 1
+
+
+def test_parse_llm_json_code_fences():
+    from bulk_ingest_engine import _parse_llm_json
+    assert _parse_llm_json('```json\n{"a": 2}\n```')["a"] == 2
+
+
+def test_parse_llm_json_trailing_commas():
+    from bulk_ingest_engine import _parse_llm_json
+    assert _parse_llm_json('{"a": 3, "b": [1, 2,],}')["b"] == [1, 2]
+
+
+def test_parse_llm_json_truncated_mid_string_rescues_complete_units():
+    """max_tokens agotado -> JSON cortado a mitad de una unidad: rescata las unidades completas."""
+    from bulk_ingest_engine import _parse_llm_json
+    trunc = '{"project_name": "X", "total_units": 50, "units": [{"n": "1"}, {"n": "2"}, {"n": "3'
+    r = _parse_llm_json(trunc)
+    assert r["project_name"] == "X"
+    assert len(r["units"]) == 2
+
+
+def test_parse_llm_json_no_object_raises():
+    from bulk_ingest_engine import _parse_llm_json
+    with pytest.raises(Exception):
+        _parse_llm_json("no hay json aqui")
