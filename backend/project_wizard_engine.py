@@ -162,6 +162,13 @@ async def duplicate_project(
 
     await db.projects.insert_one(deepcopy(forked))
 
+    # UNIFICAR universos: espejar el proyecto duplicado a db.developments (best-effort).
+    try:
+        from routes.dev_project_full import publish_to_developments
+        await publish_to_developments(db, forked.get("id"), source="duplicate")
+    except Exception:  # noqa: BLE001
+        pass
+
     try:
         from audit_immutable_engine import log as audit_log
 

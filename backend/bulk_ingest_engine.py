@@ -426,14 +426,25 @@ async def extract_bulk_project(
         # imágenes por visión. Antes solo mandaba filenames → la IA no podía llenar los campos.
         content_parts = [f"Proyecto (hint): {project_name_hint}\n"]
         imagenes = []
+        pdf_docs = 0
         for b, mime, fname in file_payloads:
             texto = _extract_text_from_bytes(b, mime, fname)
-            if texto:
+            nm = (fname or "").lower()
+            import base64 as _b64
+            if texto and len(texto.strip()) >= 120:
                 content_parts.append(f"\n=== {fname} ===\n{texto[:8000]}")
-            elif mime.startswith("image/") or (fname or "").lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            elif (mime == "application/pdf" or nm.endswith(".pdf")) and pdf_docs < 3 and len(b) <= 10 * 1024 * 1024:
+                # OCR (#2): PDF escaneado (poco/ningún texto) → DOCUMENTO nativo (Claude lee la imagen de la página)
                 try:
                     from llm_client import ImageContent  # type: ignore
-                    import base64 as _b64
+                    imagenes.append(ImageContent(image_base64=_b64.b64encode(b).decode(), media_type="application/pdf"))
+                    content_parts.append(f"\n=== {fname} (PDF escaneado — leer imagen) ===")
+                    pdf_docs += 1
+                except Exception:  # noqa: BLE001
+                    content_parts.append(f"- Archivo: {fname} [PDF sin texto]")
+            elif mime.startswith("image/") or nm.endswith((".jpg", ".jpeg", ".png", ".webp")):
+                try:
+                    from llm_client import ImageContent  # type: ignore
                     imagenes.append(ImageContent(image_base64=_b64.b64encode(b).decode(),
                                                  media_type=mime if mime.startswith("image/") else "image/jpeg"))
                     content_parts.append(f"\n=== {fname} (imagen adjunta) ===")
@@ -954,6 +965,39 @@ async def run(db, job_id: str) -> None:
     fresh = await db.bulk_ingest_jobs.find_one({"id": job_id}, {"_id": 0})
     if fresh:
         await _email_completion(fresh)
+
+
+# ─── AUTO-REFRESH (#3) — re-ingesta periódica de las carpetas ya cargadas ─────
+
+async def auto_refresh_bulk_ingests(db) -> Dict[str, Any]:
+    """CRON: por cada dev con Drive conectado, re-corre su ÚLTIMA carpeta de ingesta. El dedup evita
+    duplicados (proyectos existentes se fusionan/saltan; solo entran nuevos o cambios). Así, si el dev
+    actualiza su lista de precios en Drive, el sistema lo recoge solo (sin que nadie apriete nada)."""
+    seen: set = set()
+    launched = 0
+    cur = db.bulk_ingest_jobs.find(
+        {"drive_folder_url": {"$nin": [None, ""]}, "source": {"$ne": "auto_refresh"}}
+    ).sort("started_at", -1)
+    async for j in cur:
+        dev = j.get("target_dev_org_id")
+        url = j.get("drive_folder_url")
+        key = dev or url
+        if not url or key in seen:
+            continue
+        seen.add(key)
+        conn = await _resolve_drive_conn(db, dev)   # solo si hay Drive (OAuth o api-key)
+        if not conn:
+            continue
+        job_id = f"bij_{secrets.token_urlsafe(10)}"
+        await db.bulk_ingest_jobs.insert_one({
+            "id": job_id, "drive_folder_url": url, "target_dev_org_id": dev,
+            "status": "pending", "source": "auto_refresh",
+            "items_total": 0, "started_at": _iso(), "error_log": [],
+        })
+        asyncio.create_task(run(db, job_id))
+        launched += 1
+    log.info(f"[bulk_ingest] auto-refresh lanzó {launched} re-ingestas")
+    return {"auto_refreshed": launched}
 
 
 # ─── W1.5 — Inline edits, diff, recompute, force-match ────────────────────────

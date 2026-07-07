@@ -505,6 +505,14 @@ def start_scheduler(db):
         args=[db], id="drive_webhook_renew", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # AUTO-REFRESH (#3) — re-ingesta semanal de las carpetas Drive ya cargadas (dedup evita dups)
+    from bulk_ingest_engine import auto_refresh_bulk_ingests
+    _scheduler.add_job(
+        wrap_apscheduler_job(auto_refresh_bulk_ingests, "bulk_ingest_auto_refresh"),
+        CronTrigger(day_of_week="sun", hour=2, minute=0, timezone=TZ),
+        args=[db], id="bulk_ingest_auto_refresh", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     # Phase 4 Batch 1 — Unit holds auto-release (every 30min)
     from routes.dev_batch1 import auto_release_expired_holds
     _scheduler.add_job(

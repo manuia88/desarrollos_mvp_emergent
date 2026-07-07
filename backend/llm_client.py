@@ -109,9 +109,16 @@ async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: i
         content: Any = [{"type": "text", "text": user_text or ""}]
         for im in images:
             b64 = getattr(im, "image_base64", None)
-            if b64:
+            if not b64:
+                continue
+            mt = getattr(im, "media_type", "image/jpeg")
+            if mt == "application/pdf":
+                # PDF nativo (Claude lee texto + imágenes de la página → sirve para PDFs escaneados/OCR)
+                content.append({"type": "document", "source": {
+                    "type": "base64", "media_type": "application/pdf", "data": b64}})
+            else:
                 content.append({"type": "image", "source": {
-                    "type": "base64", "media_type": getattr(im, "media_type", "image/jpeg"), "data": b64}})
+                    "type": "base64", "media_type": mt, "data": b64}})
     else:
         content = user_text or ""
     resp = await client.messages.create(

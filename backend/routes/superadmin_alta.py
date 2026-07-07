@@ -237,6 +237,13 @@ async def alta_proyecto(body: AltaProyectoBody, request: Request):
         "created_at": now, "updated_at": now,
     }
     await db.projects.insert_one(dict(doc))
+    # UNIFICAR universos: espejar a db.developments para que TODOS los motores (fit/director/
+    # alertas/simulador/mood/KG/calidad) que leen db.developments vean también el proyecto manual.
+    try:
+        from routes.dev_project_full import publish_to_developments
+        await publish_to_developments(db, slug, user_id=user.user_id, source="superadmin_manual")
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[alta] espejo a developments falló: {e}")
     await _audit(db, user, "create", "development", slug,
                  {"name": body.name, "dev_org_id": body.dev_org_id, "via": "manual"})
     return {"ok": True, "project_id": slug, "colonia_id": colonia_id,
