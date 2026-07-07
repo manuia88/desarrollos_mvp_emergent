@@ -60,7 +60,7 @@ export default function AbTestCreateModal({ open, onClose, onCreated }) {
     try {
       const res = await fetch(`${API}/api/superadmin/ab-testing/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           name: name.trim(), description: description.trim() || null,
           prompt_a: promptA, prompt_b: promptB, split_pct: splitA,

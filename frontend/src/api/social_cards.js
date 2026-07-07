@@ -21,7 +21,7 @@ async function handle(res) {
 
 export async function getSocialCardsStats() {
   const res = await fetch(`${API}/api/superadmin/social-cards/stats`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   return handle(res);
 }

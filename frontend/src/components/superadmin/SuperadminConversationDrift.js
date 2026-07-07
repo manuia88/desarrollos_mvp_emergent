@@ -114,7 +114,7 @@ export default function SuperadminConversationDrift({ embedded }) {
 
   const loadConfStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/superadmin/confidence/stats`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/confidence/stats`, { credentials: 'include', headers: authHeaders() });
       setConfStats(res.ok ? await res.json() : null);
     } catch { setConfStats(null); }
   }, []);
@@ -123,7 +123,7 @@ export default function SuperadminConversationDrift({ embedded }) {
     try {
       const qs = new URLSearchParams({ days: '30', page: String(p), page_size: String(PAGE_SIZE) });
       if (tenantId.trim()) qs.set('tenant_id', tenantId.trim());
-      const res = await fetch(`${BASE}/alerts/history?${qs}`, { headers: authHeaders() });
+      const res = await fetch(`${BASE}/alerts/history?${qs}`, { credentials: 'include', headers: authHeaders() });
       setAlerts(res.ok ? await res.json() : { alerts: [], total: 0, page: p });
     } catch {
       setAlerts({ alerts: [], total: 0, page: p });
@@ -135,7 +135,7 @@ export default function SuperadminConversationDrift({ embedded }) {
     setNotice('');
     try {
       if (tenantId.trim()) {
-        const res = await fetch(`${BASE}/compute?tenant_id=${encodeURIComponent(tenantId.trim())}`, { headers: authHeaders() });
+        const res = await fetch(`${BASE}/compute?tenant_id=${encodeURIComponent(tenantId.trim())}`, { credentials: 'include', headers: authHeaders() });
         setData(res.ok ? await res.json() : null);
       } else {
         setData(null);
@@ -155,7 +155,7 @@ export default function SuperadminConversationDrift({ embedded }) {
   const onAck = async (alertId) => {
     setAcking(alertId);
     try {
-      await fetch(`${BASE}/alerts/${encodeURIComponent(alertId)}/ack`, { method: 'POST', headers: authHeaders() });
+      await fetch(`${BASE}/alerts/${encodeURIComponent(alertId)}/ack`, { method: 'POST', credentials: 'include', headers: authHeaders() });
       await loadAlerts(page);
     } catch { /* noop */ }
     finally { setAcking(null); }
@@ -166,7 +166,7 @@ export default function SuperadminConversationDrift({ embedded }) {
     setRecomputing(true);
     setNotice('');
     try {
-      const res = await fetch(`${BASE}/baseline/recompute?tenant_id=${encodeURIComponent(tenantId.trim())}`, { headers: authHeaders() });
+      const res = await fetch(`${BASE}/baseline/recompute?tenant_id=${encodeURIComponent(tenantId.trim())}`, { credentials: 'include', headers: authHeaders() });
       const j = res.ok ? await res.json() : null;
       setNotice(j?.throttled ? t('recompute_throttled') : t('recompute_done'));
       await load();

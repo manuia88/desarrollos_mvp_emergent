@@ -39,9 +39,9 @@ export default function SuperadminConversationCost() {
     setLoading(true);
     try {
       const [sRes, dRes, tRes] = await Promise.all([
-        fetch(`${BASE}/stats-summary?days=${days}`, { headers: authHeaders() }),
-        fetch(`${BASE}/model-distribution?days=${days}`, { headers: authHeaders() }),
-        fetch(`${BASE}/top-expensive?days=${days}&limit=10`, { headers: authHeaders() }),
+        fetch(`${BASE}/stats-summary?days=${days}`, { credentials: 'include', headers: authHeaders() }),
+        fetch(`${BASE}/model-distribution?days=${days}`, { credentials: 'include', headers: authHeaders() }),
+        fetch(`${BASE}/top-expensive?days=${days}&limit=10`, { credentials: 'include', headers: authHeaders() }),
       ]);
       setSummary(sRes.ok ? await sRes.json() : null);
       setDist(dRes.ok ? await dRes.json() : null);

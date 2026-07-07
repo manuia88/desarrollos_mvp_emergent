@@ -27,7 +27,7 @@ async function _j(res) {
 export async function requestWhitelistAccess(payload) {
   return _j(await fetch(`${API}/api/asesor/whitelist/request`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify(payload),
   }));
 }
@@ -35,14 +35,14 @@ export async function requestWhitelistAccess(payload) {
 /** Obtener mis solicitudes (cualquier estado) */
 export async function getMyWhitelistRequests() {
   return _j(await fetch(`${API}/api/asesor/whitelist/me`, {
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
   }));
 }
 
 /** Obtener IDs de developers con acceso aprobado */
 export async function getAuthorizedDevOrgs() {
   return _j(await fetch(`${API}/api/asesor/whitelist/authorized-devs`, {
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
   }));
 }
 
@@ -51,7 +51,7 @@ export async function getAuthorizedDevOrgs() {
 /** Solicitudes pendientes de aprobación */
 export async function getDevWhitelistPending() {
   return _j(await fetch(`${API}/api/dev/whitelist/pending`, {
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
   }));
 }
 
@@ -59,7 +59,7 @@ export async function getDevWhitelistPending() {
 export async function getDevWhitelistAll(status) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : '';
   return _j(await fetch(`${API}/api/dev/whitelist/all${qs}`, {
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
   }));
 }
 
@@ -67,7 +67,7 @@ export async function getDevWhitelistAll(status) {
 export async function approveWhitelistRequest(authId, comentario) {
   return _j(await fetch(`${API}/api/dev/whitelist/${authId}/approve`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify({ comentario: comentario || null }),
   }));
 }
@@ -76,7 +76,7 @@ export async function approveWhitelistRequest(authId, comentario) {
 export async function rejectWhitelistRequest(authId, comentario) {
   return _j(await fetch(`${API}/api/dev/whitelist/${authId}/reject`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify({ comentario }),
   }));
 }
@@ -85,7 +85,7 @@ export async function rejectWhitelistRequest(authId, comentario) {
 export async function revokeWhitelistAccess(authId, reason) {
   return _j(await fetch(`${API}/api/dev/whitelist/${authId}/revoke`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify({ reason }),
   }));
 }
@@ -94,7 +94,7 @@ export async function revokeWhitelistAccess(authId, reason) {
 export async function bulkApproveWhitelistRequests(authIds, comentario) {
   return _j(await fetch(`${API}/api/dev/whitelist/bulk-approve`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify({ auth_ids: authIds, comentario: comentario || null }),
   }));
 }
@@ -103,14 +103,14 @@ export async function bulkApproveWhitelistRequests(authIds, comentario) {
 
 export async function getAutoApproveRule() {
   return _j(await fetch(`${API}/api/dev/auto-approve-rule`, {
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
   }));
 }
 
 export async function saveAutoApproveRule(payload) {
   return _j(await fetch(`${API}/api/dev/auto-approve-rule`, {
     method: 'PUT',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify(payload),
   }));
 }
@@ -118,7 +118,7 @@ export async function saveAutoApproveRule(payload) {
 export async function simulateAutoApproveRule(payload) {
   return _j(await fetch(`${API}/api/dev/auto-approve-rule/simulate`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include', headers: authHeaders(),
     body: JSON.stringify(payload),
   }));
 }

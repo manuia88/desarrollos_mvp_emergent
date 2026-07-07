@@ -25,14 +25,14 @@ export async function getEmbedStats({ widget_type = '', days = 30, limit = 50, s
   qs.set('limit', String(limit));
   qs.set('skip', String(skip));
   const res = await fetch(`${API}/api/superadmin/widgets/embed-stats?${qs.toString()}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   return handle(res);
 }
 
 export async function getNewDomains() {
   const res = await fetch(`${API}/api/superadmin/widgets/embed-new-domains`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   return handle(res);
 }

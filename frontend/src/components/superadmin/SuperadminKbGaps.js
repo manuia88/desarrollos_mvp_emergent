@@ -33,7 +33,7 @@ export default function SuperadminKbGaps({ embedded }) {
     try {
       const qs = new URLSearchParams({ status: 'open', limit: '50' });
       if (detect) qs.set('detect', 'true');
-      const res = await fetch(`${API}/api/superadmin/kb-gaps/list?${qs.toString()}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/kb-gaps/list?${qs.toString()}`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setGaps(Array.isArray(data.gaps) ? data.gaps : []);

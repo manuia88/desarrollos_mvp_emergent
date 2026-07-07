@@ -37,7 +37,7 @@ export default function SuperadminConversations({ embedded }) {
 
   const loadStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/superadmin/conversations/stats`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/conversations/stats`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) setStats(await res.json());
     } catch (e) { /* no-op */ }
   }, []);
@@ -49,7 +49,7 @@ export default function SuperadminConversations({ embedded }) {
       if (fSentiment) qs.set('sentiment', fSentiment);
       if (fStatus) qs.set('status', fStatus);
       if (fAsesor) qs.set('asesor_id', fAsesor);
-      const res = await fetch(`${API}/api/superadmin/conversations/list?${qs.toString()}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/conversations/list?${qs.toString()}`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setList(data.conversations || []);
@@ -64,7 +64,7 @@ export default function SuperadminConversations({ embedded }) {
     setSelected(conv.conversation_id);
     setDetail(null);
     try {
-      const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) setDetail(await res.json());
     } catch (e) { /* no-op */ }
   }, []);

@@ -71,7 +71,7 @@ function DirectorMemoryPanel() {
   const [hits, setHits] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => {
-    fetch(`${API}/api/director/memory/stats?days=90`, { headers: authH(), credentials: 'include' })
+    fetch(`${API}/api/superadmin/director/memory/stats?days=90`, { headers: authH(), credentials: 'include' })
       .then((r) => r.json()).then(setStats).catch(() => setStats({ error: true }));
   }, []);
   const buscar = async () => {

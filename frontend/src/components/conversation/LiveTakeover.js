@@ -25,7 +25,7 @@ export default function LiveTakeover({ conversationId, onTakenOver, disabled = f
     try {
       const res = await fetch(`${API}/api/superadmin/conversations/takeover`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ conversation_id: conversationId }),
       });
       if (res.ok) {

@@ -27,7 +27,7 @@ export default function SuperadminAbTesting({ embedded }) {
   const loadTests = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/superadmin/ab-testing/list`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/ab-testing/list`, { credentials: 'include', headers: authHeaders() });
       const data = res.ok ? await res.json() : { tests: [] };
       setTests(data.tests || []);
     } catch (e) {
@@ -40,7 +40,7 @@ export default function SuperadminAbTesting({ embedded }) {
   const loadResults = useCallback(async (id) => {
     setResults(null);
     try {
-      const res = await fetch(`${API}/api/superadmin/ab-testing/results/${id}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/ab-testing/results/${id}`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) setResults(await res.json());
     } catch (e) { /* no-op */ }
   }, []);
@@ -67,7 +67,7 @@ export default function SuperadminAbTesting({ embedded }) {
     // eslint-disable-next-line no-alert
     if (!window.confirm(t('confirm_delete'))) return;
     try {
-      await fetch(`${API}/api/superadmin/ab-testing/${id}`, { method: 'DELETE', headers: authHeaders() });
+      await fetch(`${API}/api/superadmin/ab-testing/${id}`, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
       if (selectedId === id) { setSelectedId(null); setResults(null); }
       await loadTests();
     } catch (e) { /* no-op */ }
