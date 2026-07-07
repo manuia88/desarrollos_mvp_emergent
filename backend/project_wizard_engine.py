@@ -88,6 +88,16 @@ def _sanitize_source(source: Dict[str, Any]) -> Dict[str, Any]:
     return cloned
 
 
+async def ensure_indexes(db) -> None:
+    """Índices para las queries del wizard: historial de duplicación (duplicated_from)
+    y lookup de nombre por tenant. Best-effort — no rompe el arranque si falla."""
+    try:
+        await db.projects.create_index("duplicated_from", background=True, sparse=True)
+        await db.projects.create_index([("name", 1), ("dev_org_id", 1)], background=True)
+    except Exception:
+        pass
+
+
 async def _name_exists(db, tenant_id: Optional[str], name: str) -> bool:
     query: Dict[str, Any] = {"name": name}
     if tenant_id:

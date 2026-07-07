@@ -2689,6 +2689,24 @@ async def registro_interes(payload: RegistroInteresIn, request: Request):
         await db.registros_interes.insert_one(doc)
     except Exception:
         pass
+    # Espejo al pipeline REAL que sí lee el superadmin (Landing Leads) — antes esta demanda
+    # declarada moría en registros_interes (colección sin ningún lector). Fail-open.
+    try:
+        import secrets as _sec
+        await db.landing_leads.insert_one({
+            "lead_id": f"land_{_sec.token_urlsafe(10)}",
+            "email": (payload.email or "").strip(),
+            "phone": (payload.telefono or "").strip(),
+            "zone_interest": (payload.colonia or "").strip().lower(),
+            "notes": f"lead-magnet landing · rol={payload.rol} · empresa={payload.empresa or '—'} · tipo={payload.tipo or '—'} · precio={payload.precio or '—'}",
+            "source": "landing_leadmagnet",
+            "rol": payload.rol, "nombre": payload.nombre, "empresa": payload.empresa,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "pending_inventory",
+            "ip_hash": doc.get("ip_hash"),
+        })
+    except Exception:
+        pass
     return {"ok": True, "mensaje": "¡Listo! Te enviaremos el reporte completo de tu zona en breve."}
 
 

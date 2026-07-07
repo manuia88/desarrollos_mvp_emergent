@@ -472,7 +472,7 @@ async def _donde_construir(db, zona=None, segmento=None):
     proto_pop: Dict[str, Dict[str, int]] = {}          # zona → {proto: n}
     leads_usados = 0
     try:
-        async for l in db.leads.find({}, {"_id": 0, "development_id": 1, "budget_mxn": 1, "prototype_interes": 1}):
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1, "budget_mxn": 1, "prototype_interes": 1, "buyer_profile": 1}):
             did = l.get("development_id")
             dv = DEVELOPMENTS_BY_ID.get(did)
             if not dv:
@@ -480,7 +480,10 @@ async def _donde_construir(db, zona=None, segmento=None):
             z = dv.get("colonia")
             if zona and z != zona:
                 continue
-            band = _band_label(l.get("budget_mxn"))
+            # Los leads del copiloto guardan el presupuesto anidado en buyer_profile.presupuesto_max;
+            # antes solo se leía budget_mxn top-level → esa demanda (la más rica) se descartaba.
+            _budget = l.get("budget_mxn") or (l.get("buyer_profile") or {}).get("presupuesto_max")
+            band = _band_label(_budget)
             if not band:
                 continue
             rec = _proto_to_recamaras(l.get("prototype_interes"), dv.get("bedrooms_range"))

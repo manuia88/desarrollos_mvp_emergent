@@ -2787,8 +2787,8 @@ async def startup():
             logging.warning(f"[W6.5] project_wizard startup register failed: {e}")
         # W6.11 — Insights Fact-Check: indexes (cache + courses)
         try:
-            from insights_factcheck_engine import ensure_indexes as factcheck_ensure_indexes
-            await factcheck_ensure_indexes(db)
+            from insights_factcheck_engine import ensure_factcheck_indexes
+            await ensure_factcheck_indexes(db)
         except Exception as e:
             logging.warning(f"[W6.11] insights_factcheck startup register failed: {e}")
         # W2.4 SA5 — Trial expiry email cron (daily 08:00 MX)
