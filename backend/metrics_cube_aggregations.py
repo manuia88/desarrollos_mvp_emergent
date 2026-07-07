@@ -258,15 +258,22 @@ async def _all_developments(db) -> List[Dict[str, Any]]:
     # (leía el seed estático) → ahora refleja tanto el edit manual como el apply del subagente. Fail-open.
     try:
         from routes.public import _apply_unit_overrides, _aggregates_from_units
+        from ingested_reader import units_for_dev, apply_unit_aggregates
         for d in devs:
             units = d.get("units")
-            if not units:
-                continue
             try:
-                merged = await _apply_unit_overrides(db, d.get("id"), units)
-                agg = _aggregates_from_units(merged)
-                if agg:
-                    d.update(agg)  # price_from/to + units_total/available/reserved/sold EFECTIVOS
+                if units:
+                    merged = await _apply_unit_overrides(db, d.get("id"), units)
+                    agg = _aggregates_from_units(merged)
+                    if agg:
+                        d.update(agg)  # price_from/to + units_total/available/reserved/sold EFECTIVOS
+                else:
+                    # INGESTA/WIZARD: unidades NO embebidas (viven en db.units por development_id). El cubo lee el
+                    # escalar 'units_total' (que el ingerido NO trae; guarda 'total_units', otro nombre) → contaba 0
+                    # y precio/m² null para TODO el inventario ingerido (auditoría 07-07). Derivamos de db.units.
+                    real_units = await units_for_dev(db, d.get("id"))
+                    if real_units:
+                        apply_unit_aggregates(d, real_units)  # units_total/available/sold + price_from/to + m2_range
             except Exception:
                 continue
     except Exception as e:

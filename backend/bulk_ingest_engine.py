@@ -291,17 +291,25 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "maintenance_fee_mxn": int|null,
   "amenities": ["string", ...],
   "units": [
-    {"unit_number": "string", "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft",
+    {"unit_number": "string", "prototype": "string|null (tipo/modelo, p.ej. 'Tipo 02', 'B', 'PH')",
+     "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft",
      "bedrooms": int|null, "bathrooms": int|null, "size_m2": int|null, "size_m2_total": int|null,
+     "m2_interior": int|null, "m2_balcony": int|null, "m2_terrace": int|null, "m2_roof_garden": int|null,
      "storage": "string|null (bodega)", "parking": "string|null (cajones)", "price_mxn": int|null}
   ],
   "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
 IMPORTANTE: la LISTA DE PRECIOS / DISPONIBILIDAD es tu fuente principal — extrae CADA depto con su precio,
 m², disponibilidad, bodega y cajón. Si un depto aparece "apartado"/"vendido" márcalo en status.
-CRUCE DE PLANOS (importante): si hay planos individuales por depto (nombres tipo "DEP-206", "H122_DEP-201")
-úsalos para COMPLETAR/VERIFICAR recámaras, baños y m² de ESE depto, cruzando por número de unidad con la
-lista de precios. Si la lista de precios no trae recámaras/baños pero el plano sí, tómalos del plano.
+CRUCE DE PLANOS (CLAVE): las listas de precios casi nunca traen el DESGLOSE de m² (interior/balcón/terraza/roof
+garden) — eso vive en los PLANOS. Si hay planos (nombres tipo "DEP-206", "H122_DEP-201", "Tipo 02", "Prototipo B"):
+1) cruza por NÚMERO DE UNIDAD cuando el plano es por depto (DEP-206 → unidad 206);
+2) cruza por PROTOTIPO cuando el plano es por modelo (depto 102 usa el plano del "Tipo 02"/"Prototipo 02") — asigna el
+   mismo desglose a TODAS las unidades de ese prototipo;
+3) del plano toma m2_interior, m2_balcony, m2_terrace, m2_roof_garden (y verifica recámaras/baños/m² totales).
+Si la lista de precios no trae recámaras/baños pero el plano sí, tómalos del plano.
+FALLBACK DE PRECIO: si la lista da precio por PROTOTIPO/tipo (no por número de depto), asigna ese precio a cada
+unidad de ese prototipo — no dejes price_mxn null si el prototipo tiene precio.
 En "_confidence" califica QUÉ TAN SEGURO estás de cada grupo (1.0 = explícito en el documento · 0.5 = inferido · 0.2 = adivinado). Sé honesto: si el precio no aparece claro, pon price bajo.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
@@ -390,23 +398,17 @@ def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-async def _geocode_address(address: str) -> Tuple[Optional[float], Optional[float]]:
-    """Geocodifica una dirección → (lat, lng) vía Nominatim (OSM · gratis · sin llave), acotado a MX.
-    Fail-soft: (None, None) si falla. Completa lat/lng cuando la IA no los trae (casi siempre)."""
-    if not (address or "").strip():
-        return None, None
+async def _geocode_address(address: str, colonia: Optional[str] = None,
+                           alcaldia: Optional[str] = None) -> Tuple[Optional[float], Optional[float]]:
+    """Geocodifica dirección → (lat, lng) vía Mapbox (token ya configurado), con sesgo a CDMX y fallback a
+    colonia+alcaldía. Antes usaba Nominatim, que fallaba con direcciones MX sobre-formateadas y hacía mis-hits
+    (RENTAS → Torreón). geocode_engine acota país=mx + proximidad + bbox ZMVM. Fail-soft (None, None)."""
     try:
-        import httpx
-        async with httpx.AsyncClient(timeout=12) as c:
-            r = await c.get("https://nominatim.openstreetmap.org/search",
-                            params={"q": address, "format": "json", "limit": 1, "countrycodes": "mx"},
-                            headers={"User-Agent": "DesarrollosMX/1.0 (ingest)"})
-            arr = r.json()
-            if isinstance(arr, list) and arr:
-                return float(arr[0]["lat"]), float(arr[0]["lon"])
+        from geocode_engine import geocode
+        return await geocode(address, colonia, alcaldia)
     except Exception as e:  # noqa: BLE001
         log.warning(f"[bulk_ingest] geocode falló: {e}")
-    return None, None
+        return None, None
 
 
 async def extract_bulk_project(
@@ -471,9 +473,12 @@ async def extract_bulk_project(
                 raise ValueError("La IA no devolvió un objeto de proyecto")
             # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
             data = _sanitize_extraction(data)
-            # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft).
+            # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft). El dato útil vive
+            # en address/colonia/alcaldia (address_full suele venir null) → pasamos los tres a Mapbox.
             if data.get("lat") is None or data.get("lng") is None:
-                _lat, _lng = await _geocode_address(data.get("address_full") or "")
+                _lat, _lng = await _geocode_address(
+                    data.get("address_full") or data.get("address"),
+                    data.get("colonia"), data.get("alcaldia"))
                 if _lat is not None and _lng is not None:
                     data["lat"], data["lng"], data["_geocoded"] = _lat, _lng, True
             # Approx cost: 0.50 MXN per call (Haiku ballpark) — caller side records
@@ -629,16 +634,36 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
     except Exception as e:  # noqa: BLE001
         log.warning(f"[bulk_ingest] colonia_id no resuelto: {e}")
 
+    # GEO (belt): si la extracción no dejó coords, geocodifica aquí (Mapbox) desde address+colonia+alcaldía → el
+    # proyecto cae en el mapa. Antes se perdía (call-site mandaba address_full null). Fail-soft.
+    _lat, _lng = extracted.get("lat"), extracted.get("lng")
+    if _lat is None or _lng is None:
+        _lat, _lng = await _geocode_address(
+            extracted.get("address_full") or extracted.get("address"), colonia, alcaldia)
+
+    # REVERSE-COLONIA: si no se resolvió colonia_id pero ya hay coords, toma la colonia más cercana (punto→zona) →
+    # el proyecto se conecta a la inteligencia de zona/absorción aunque el texto de colonia no fuera canónico.
+    if not colonia_id and _lat is not None and _lng is not None:
+        try:
+            from estudio_mercado_engine import colonias_en_radio
+            near = await colonias_en_radio(db, _lat, _lng, 1200)
+            if near:
+                colonia_id = near[0].get("id")
+                colonia = colonia or near[0].get("name")
+                alcaldia = alcaldia or near[0].get("alcaldia")
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[bulk_ingest] reverse-colonia falló: {e}")
+
     dev_doc = {
         "id": dev_id,
         "name": extracted.get("project_name") or item.get("source_files", [{}])[0].get("name", "Proyecto sin nombre"),
-        "address": extracted.get("address_full") or "",
+        "address": extracted.get("address_full") or extracted.get("address") or "",
         "colonia": colonia,
         "colonia_id": colonia_id,            # ← vínculo a la inteligencia de zona
         "alcaldia": alcaldia,
         "municipio": alcaldia,
-        "lat": extracted.get("lat"),
-        "lng": extracted.get("lng"),
+        "lat": _lat,
+        "lng": _lng,
         "developer_id": target_org,
         "dev_org_id": target_org,            # ← consistencia con el resto del sistema
         "total_units": int(extracted.get("total_units") or 0),
@@ -648,6 +673,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         "delivery_estimate": extracted.get("delivery_date"),
         "maintenance_fee_mxn": extracted.get("maintenance_fee_mxn"),
         "amenities": extracted.get("amenities") or [],
+        "stage": extracted.get("stage") or "preventa",   # sin stage → absorción/etapa lo ignoraban (default seguro)
         "status": "active",
         "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
         "source": "bulk_ingest",
@@ -664,6 +690,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
            "available": "disponible", "reserved": "reservado", "sold": "vendido"}
     for u in (extracted.get("units") or []):
         _sm2 = u.get("size_m2")
+        _m2int = u.get("m2_interior") or _sm2               # interior/privativo (del plano cuando existe)
         _sm2t = u.get("size_m2_total") or u.get("size_m2")
         _price = u.get("price_mxn")
         _park_raw = u.get("parking")
@@ -676,12 +703,16 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "colonia_id": colonia_id,
             "unit_number": u.get("unit_number") or f"U{secrets.token_hex(3)}",
             "type": u.get("type") or "depto",
-            "prototype": u.get("type") or "depto",
+            "prototype": u.get("prototype") or u.get("type") or "depto",
             "bedrooms": u.get("bedrooms"),
             "bathrooms": u.get("bathrooms"),
             # canónico (front + filtros + semilla)
-            "m2_privative": _sm2,
+            "m2_privative": _m2int,
             "m2_total": _sm2t,
+            # desglose de m² (del plano por depto/prototipo) → alimenta has_roof/terraza/balcón del cubo
+            "m2_balcony": u.get("m2_balcony"),
+            "m2_terrace": u.get("m2_terrace"),
+            "m2_roof_garden": u.get("m2_roof_garden"),
             "parking_spots": _park_n,
             "bodega": bool(u.get("storage")),
             "price": _price,
