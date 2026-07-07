@@ -17,6 +17,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import re
+import secrets
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -54,9 +55,9 @@ def _slug(s: str) -> str:
 
 class AltaDevBody(BaseModel):
     name: str
-    email: str
-    password: str
-    plan_tier: str = "pro"          # informativo; el gating real vive en feature_flags
+    email: Optional[str] = None      # vacío → crea SHELL (cuenta vacía) para reclamar después
+    password: Optional[str] = None
+    plan_tier: Optional[str] = "pro"  # informativo; el gating real vive en feature_flags
     display_name: Optional[str] = None
 
 
@@ -69,25 +70,44 @@ async def alta_desarrollador(body: AltaDevBody, request: Request):
     from server import hash_password
 
     email = (body.email or "").lower().strip()
+    password = body.password or ""
+    now = dt.datetime.now(dt.timezone.utc)
+    tenant_id = f"org_user_{uuid.uuid4().hex[:12]}"   # tenant PROPIO (aislado)
+
+    # ── MODO SHELL: sin email/password → crea la cuenta VACÍA para que el dev oficial la reclame ──
+    if not email and not password:
+        claim_token = secrets.token_urlsafe(16)
+        await db.dev_orgs.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {"tenant_id": tenant_id, "name": body.name,
+                      "display_name": body.display_name or body.name,
+                      "plan_tier": body.plan_tier or "pro",
+                      "created_at": now.isoformat(), "created_by": "superadmin",
+                      "status": "pending_claim", "claim_token": claim_token}},
+            upsert=True)
+        await _audit(db, user, "create", "developer_org_shell", tenant_id, {"name": body.name})
+        return {"ok": True, "dev_org_id": tenant_id, "name": body.name,
+                "status": "pending_claim", "claim_token": claim_token,
+                "claim_path": f"/reclamar/{claim_token}"}
+
+    # ── MODO COMPLETO: crea usuario developer_admin + org activa ──
     if not email or "@" not in email:
-        raise HTTPException(400, "Email inválido")
-    if not (body.password and len(body.password) >= 8):
+        raise HTTPException(400, "Email inválido (o déjalo vacío para crear una cuenta a reclamar después)")
+    if not (password and len(password) >= 8):
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
     if await db.users.find_one({"email": email}):
         raise HTTPException(409, "Ese correo ya está registrado")
 
     user_id = f"user_{uuid.uuid4().hex[:12]}"
-    tenant_id = f"org_{user_id}"     # tenant PROPIO (aislado) — mismo patrón que el registro público
-    now = dt.datetime.now(dt.timezone.utc)
+    tenant_id = f"org_{user_id}"
     await db.users.insert_one({
         "user_id": user_id, "email": email, "name": body.name,
-        "password_hash": hash_password(body.password),
+        "password_hash": hash_password(password),
         "role": "developer_admin", "tenant_id": tenant_id,
         "onboarded": True, "created_at": now,
         "created_by": "superadmin", "created_by_id": user.user_id,
         "plan_tier": body.plan_tier,
     })
-    # doc de organización (nombre para mostrar en Clientes/impersonar)
     await db.dev_orgs.update_one(
         {"tenant_id": tenant_id},
         {"$set": {"tenant_id": tenant_id, "name": body.name,
@@ -197,3 +217,58 @@ async def _audit(db, user, accion: str, entidad: str, eid: str, after: Dict[str,
                            accion, entidad, entity_id=eid, after=after)
     except Exception:  # noqa: BLE001
         pass
+
+
+# ─── 4) Claim PÚBLICO: el dev oficial reclama una cuenta shell y se vuelve su admin ──────
+
+class ClaimDevBody(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+@router.get("/api/dev-claim/{token}")
+async def dev_claim_info(token: str, request: Request):
+    """Info PÚBLICA de la cuenta shell a reclamar (para la página de registro del dev invitado).
+    404 si el token es inválido o la cuenta ya fue reclamada."""
+    db = _db(request)
+    org = await db.dev_orgs.find_one(
+        {"claim_token": token, "status": "pending_claim"},
+        {"_id": 0, "name": 1, "display_name": 1, "plan_tier": 1})
+    if not org:
+        raise HTTPException(404, "Invitación inválida o ya reclamada")
+    return {"ok": True, "name": org.get("display_name") or org.get("name"), "plan_tier": org.get("plan_tier")}
+
+
+@router.post("/api/dev-claim/{token}")
+async def dev_claim(token: str, body: ClaimDevBody, request: Request):
+    """El dev oficial RECLAMA la cuenta shell: crea su usuario developer_admin bajo ESE tenant
+    (hereda los proyectos ya cargados) y activa la org. Público — el dev aún no tiene cuenta.
+    Después, como developer_admin, puede invitar a sus propios usuarios (POST /api/dev/internal-users)."""
+    db = _db(request)
+    from server import hash_password
+    org = await db.dev_orgs.find_one({"claim_token": token, "status": "pending_claim"}, {"_id": 0})
+    if not org:
+        raise HTTPException(404, "Invitación inválida o ya reclamada")
+    email = (body.email or "").lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(400, "Email inválido")
+    if not (body.password and len(body.password) >= 8):
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(409, "Ese correo ya está registrado")
+    tenant_id = org["tenant_id"]
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    now = dt.datetime.now(dt.timezone.utc)
+    await db.users.insert_one({
+        "user_id": user_id, "email": email, "name": body.name or org.get("name"),
+        "password_hash": hash_password(body.password),
+        "role": "developer_admin", "tenant_id": tenant_id,
+        "onboarded": True, "created_at": now, "created_via": "claim",
+        "plan_tier": org.get("plan_tier"),
+    })
+    await db.dev_orgs.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": {"status": "active", "admin_email": email, "claimed_at": now.isoformat()},
+         "$unset": {"claim_token": ""}})
+    return {"ok": True, "dev_org_id": tenant_id, "email": email, "name": body.name or org.get("name")}
