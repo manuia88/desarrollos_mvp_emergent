@@ -27,6 +27,8 @@ export default function SuperadminAltaDesarrolladores() {
 
   // form desarrollador
   const [dev, setDev] = useState({ name: '', email: '', password: '', plan_tier: 'pro' });
+  const [shell, setShell] = useState(false);      // crear cuenta VACÍA (sin credenciales) para reclamar después
+  const [claimLink, setClaimLink] = useState(null);
   // form proyecto
   const [proj, setProj] = useState({ dev_org_id: '', name: '', colonia: '', alcaldia: '', total_units: '', price_from: '', tipo_proyecto: 'vertical', stage: 'preventa' });
   // upload IA (PDF/XLS/imágenes → la IA llena los campos)
@@ -64,11 +66,18 @@ export default function SuperadminAltaDesarrolladores() {
   useEffect(cargar, [cargar]);
 
   const crearDev = async () => {
-    if (!dev.name || !dev.email || dev.password.length < 8) { setMsg({ tipo: 'err', txt: 'Nombre, email y contraseña (8+) requeridos.' }); return; }
-    setBusy(true); setMsg(null);
+    if (!dev.name) { setMsg({ tipo: 'err', txt: 'Escribe el nombre del desarrollador.' }); return; }
+    if (!shell && (!dev.email || dev.password.length < 8)) { setMsg({ tipo: 'err', txt: 'Email y contraseña (8+) requeridos — o marca "cuenta vacía" para invitar después.' }); return; }
+    setBusy(true); setMsg(null); setClaimLink(null);
     try {
-      const r = await altaDesarrollador(dev);
-      setMsg({ tipo: 'ok', txt: `Desarrollador "${r.name}" creado. Ya puede entrar con ${r.email}.` });
+      const payload = shell ? { name: dev.name, plan_tier: dev.plan_tier } : dev;
+      const r = await altaDesarrollador(payload);
+      if (r.status === 'pending_claim' && r.claim_path) {
+        setClaimLink(`${window.location.origin}${r.claim_path}`);
+        setMsg({ tipo: 'ok', txt: `Cuenta vacía de "${r.name}" creada. Cárgale sus proyectos y envíale este link para que la reclame con su email:` });
+      } else {
+        setMsg({ tipo: 'ok', txt: `Desarrollador "${r.name}" creado. Ya puede entrar con ${r.email}.` });
+      }
       setDev({ name: '', email: '', password: '', plan_tier: 'pro' });
       setProj((p) => ({ ...p, dev_org_id: r.dev_org_id }));   // preselecciona para crear su proyecto
       cargar();
@@ -126,10 +135,23 @@ export default function SuperadminAltaDesarrolladores() {
                 <UserPlus size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>1. Nuevo desarrollador</b>
               </div>
               <Field label="Nombre / empresa"><input style={inp} value={dev.name} onChange={(e) => setDev({ ...dev, name: e.target.value })} data-testid="dev-name" placeholder="Constructora Aurora" /></Field>
-              <Field label="Email del admin"><input style={inp} value={dev.email} onChange={(e) => setDev({ ...dev, email: e.target.value })} data-testid="dev-email" placeholder="admin@aurora.mx" /></Field>
-              <Field label="Contraseña (8+)"><input style={inp} type="text" value={dev.password} onChange={(e) => setDev({ ...dev, password: e.target.value })} data-testid="dev-pass" placeholder="temporal, el dev la cambia" /></Field>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: '2px 0 10px', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                <input type="checkbox" checked={shell} onChange={(e) => { setShell(e.target.checked); setClaimLink(null); }} data-testid="dev-shell" />
+                Crear cuenta <b style={{ color: 'var(--cream)' }}>vacía</b> — sin email/contraseña; el dev la reclama con un link
+              </label>
+              {!shell && <Field label="Email del admin"><input style={inp} value={dev.email} onChange={(e) => setDev({ ...dev, email: e.target.value })} data-testid="dev-email" placeholder="admin@aurora.mx" /></Field>}
+              {!shell && <Field label="Contraseña (8+)"><input style={inp} type="text" value={dev.password} onChange={(e) => setDev({ ...dev, password: e.target.value })} data-testid="dev-pass" placeholder="temporal, el dev la cambia" /></Field>}
               <Field label="Plan"><select style={inp} value={dev.plan_tier} onChange={(e) => setDev({ ...dev, plan_tier: e.target.value })}><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></Field>
-              <button onClick={crearDev} disabled={busy} style={btn(!busy)} data-testid="dev-crear">Crear desarrollador</button>
+              <button onClick={crearDev} disabled={busy} style={btn(!busy)} data-testid="dev-crear">{shell ? 'Crear cuenta vacía' : 'Crear desarrollador'}</button>
+              {claimLink && (
+                <div data-testid="dev-claim-link" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.35)' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.05em', color: '#A5B4FC', marginBottom: 5 }}>Link para reclamar (envíaselo al dev)</div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input readOnly value={claimLink} style={{ ...inp, flex: 1, fontSize: 11.5 }} onFocus={(e) => e.target.select()} data-testid="dev-claim-url" />
+                    <button onClick={() => { navigator.clipboard?.writeText(claimLink); }} style={btn(true)} data-testid="dev-claim-copy">Copiar</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Proyecto */}

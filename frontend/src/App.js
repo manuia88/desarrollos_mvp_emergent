@@ -369,6 +369,7 @@ const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets
 // W5.1 — AVM ML productionization
 const AvmWidgetPage                  = lazy(() => import('./pages/widgets/AvmWidgetPage'));
 const ValorColonia                   = lazy(() => import('./pages/public/ValorColonia'));
+const ReclamarDev                    = lazy(() => import('./pages/public/ReclamarDev'));
 const SuperadminAvmAccuracy          = lazy(() => import('./pages/superadmin/SuperadminAvmAccuracy'));
 // W5.3 Parte 2A — Forecast Accuracy dashboard
 const SuperadminForecastAccuracy     = lazy(() => import('./pages/superadmin/SuperadminForecastAccuracy'));
@@ -1031,6 +1032,7 @@ function AppRouter() {
       {/* W5.1 — AVM widget embeddable + landing SEO + accuracy dashboard */}
       <Route path="/widgets/avm/:slug" element={<AvmWidgetPage />} />
       <Route path="/valor/:slug" element={<ValorColonia />} />
+      <Route path="/reclamar/:token" element={<ReclamarDev />} />
       <Route path="/superadmin/avm-accuracy" element={<Navigate to="/superadmin/modelo?tab=avm" replace />} />
       <Route path="/superadmin/forecast-accuracy" element={<Navigate to="/superadmin/modelo?tab=forecast" replace />} />
       <Route path="/prensa" element={<PrensaPage />} />
