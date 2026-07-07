@@ -207,6 +207,9 @@ async def publish_to_developments(db, pid: str, *, user_id: Optional[str] = None
             "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
         },
         "readiness_pct": rd["pct"],
+        # Propaga el estado de publicación al espejo (antes se omitía → campo muerto: get_development no podía
+        # respetar un "despublicado" y list nunca sabía el estado real). Conserva el valor real de la fuente.
+        "marketplace_published": seed.get("marketplace_published"),
         "published_at": now_iso, "published_by": user_id, "published_source": source,
     }
     try:

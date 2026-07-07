@@ -2,6 +2,19 @@
 
 ---
 
+## 🏗️ SUPERADMIN · ALTA/CARGA DE DESARROLLADORES UNIFICADA (2026-07-07 · branch `auditoria/fixes-y-upgrades`)
+Doc canónico: **`memory/DEV_ALTA_SHELL_FICHA.md`** (auto-memoria). Todo verificado en vivo · pytest **1346 verdes**.
+
+| Pieza | Qué hace | Estado |
+|---|---|---|
+| **Cuenta vacía (shell) → claim** | superadmin crea dev sin credenciales · `/reclamar/:token` público (dev reclama, hereda proyectos) · o `dar-acceso` directo · invitación por correo opcional | ✅ |
+| **Ficha de desarrollador** | `/superadmin/alta/dev/:id` · detalle+proyectos · editar dev/proyecto · publicar · lista clickeable | ✅ |
+| **Carga COMPLETA reusa wizard 9 pasos** | `create_project` acepta `target_dev_org_id` (solo superadmin) → escribe TODAS las colecciones bajo el dev elegido (incl. shells) · lanza `/desarrollador/proyectos/nuevo?dev=` con banner | ✅ |
+| **Hub unificado** | `/superadmin/alta` (sidebar "Desarrolladores y carga") · 4 tabs: Directorio · Alta manual · Carga masiva IA (BulkIngest embebido) · Granularidad (embebida) | ✅ |
+| **5 bugs seguridad** | claim TOCTOU (find_one_and_update atómico) · proyecto heredado 403 (assert_db_project_owner) · list_projects solo-seed · developments pending sin gate · dup-email→409 | ✅ |
+
+---
+
 ## 📊 CALCULADORA DE INVERSIÓN v4 · GRADO INSTITUCIONAL (2026-06-22 · branch `dev-redesign-tandas`)
 Calculadora de inversión nivel fondo en `/zona/{slug}` → Invertir. "Pro por dentro, simple por fuera". Doc canónico: **`memory/CALCULADORA_V4_PROGRESO.md`** (checklist completo) + **`memory/INSTITUTIONAL_METRICS_RESEARCH.md`** (deep research verificado, en auto-memoria).
 

@@ -87,6 +87,41 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
     except Exception as e:
         log.warning(f"[absorcion] fail-open: {e}")
 
+    # INGESTA / WIZARD: además de la semilla, la oferta REAL vive en db.developments (+ db.projects) con unidades en
+    # db.units. Sin esto la absorción de una zona ignoraba los proyectos ingeridos → curva incompleta (auditoría 07-07).
+    try:
+        from ingested_reader import units_for_dev
+        _seen_names = {c["nombre"] for c in comparables}
+        async for d in db.developments.find({"colonia_id": {"$nin": [None, ""]}}, {"_id": 0}):
+            cn = str(d.get("colonia") or "").strip().lower()
+            if not (cn in names or d.get("colonia_id") in ids):
+                continue
+            _nom = d.get("name") or d.get("nombre") or d.get("id")
+            if _nom in _seen_names:
+                continue
+            units = await units_for_dev(db, d.get("id"))
+            total = len(units)
+            if total <= 0:
+                continue
+            sold = sum(1 for u in units if u.get("status") == "vendido")
+            avail = sum(1 for u in units if u.get("status") == "disponible")
+            stage = (d.get("stage") or "preventa").lower()
+            coh = _COHORTE.get(stage, "En Construcción (2-3 años)")
+            meses = _MESES_STAGE.get(stage, 12)
+            b = cohortes[coh]
+            b["n"] += 1; b["total"] += total; b["sold"] += sold; b["avail"] += avail; b["stage_key"] = stage
+            b["meses_acc"] += meses * total
+            comparables.append({
+                "nombre": _nom, "stage": stage, "cohorte": coh,
+                "unidades": total, "vendidas": sold, "disponibles": avail,
+                "absorcion_pct": round(100 * sold / total) if total else 0,
+                "velocidad_mensual": round(sold / meses, 1) if meses else 0,
+                "precio_desde": d.get("price_from") or (min((u.get("price") for u in units if u.get("price")), default=None)),
+            })
+            _seen_names.add(_nom)
+    except Exception as e:
+        log.warning(f"[absorcion] ingeridos fail-open: {e}")
+
     curva = []
     for coh in _ORDEN:
         b = cohortes.get(coh)

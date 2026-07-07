@@ -70,6 +70,20 @@ async def get_all_projects(db, dev_org_id: Optional[str] = None) -> List[Dict[st
     except Exception as e:
         log.warning(f"db.projects scan failed: {e}")
 
+    # db.developments (ingesta masiva / espejo del wizard) — sin esto los proyectos INGERIDOS quedaban fuera de la
+    # vista unificada que consumen sondas, absorción y otros motores (auditoría 07-07).
+    try:
+        q2: Dict[str, Any] = {}
+        if dev_org_id:
+            q2["$or"] = [{"dev_org_id": dev_org_id}, {"developer_id": dev_org_id}]
+        async for p in db.developments.find(q2, {"_id": 0}):
+            if p.get("id") in seen_ids:
+                continue
+            out.append(_normalize(p, "db.developments"))
+            seen_ids.add(p.get("id"))
+    except Exception as e:
+        log.warning(f"db.developments scan failed: {e}")
+
     return out
 
 

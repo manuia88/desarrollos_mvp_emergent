@@ -1737,6 +1737,15 @@ async def list_developments(
     # DEV PUBLICA → MARKETPLACE: suma los proyectos del wizard ya publicados (gate + calidad). Los filtros de abajo
     # operan igual sobre ellos (la tarjeta trae todos los campos). Fail-open.
     results += await _published_wizard_cards(request.app.state.db)
+    # INGESTA MASIVA → MARKETPLACE: suma los proyectos INGERIDOS (db.developments source='bulk_ingest') ya aprobados,
+    # con sus unidades reales de db.units. Sin esto el proyecto ingerido era invisible en el catálogo (auditoría 07-07).
+    try:
+        from ingested_reader import ingested_dev_cards
+        _ing = await ingested_dev_cards(request.app.state.db, published_only=True)
+        _seen_ids = {d.get("id") for d in results}
+        results += [c for c in _ing if c.get("id") not in _seen_ids]
+    except Exception:
+        pass  # fail-open: si la lectura de ingeridos falla, el listado sigue con el catálogo curado + wizard
     if colonia:
         cset = {c.lower() for c in colonia}
         results = [d for d in results if d["colonia_id"].lower() in cset]
@@ -2148,6 +2157,15 @@ async def get_development(dev_id: str, request: Request):
             raise HTTPException(404, "Desarrollo no encontrado")
         out = {k: v for k, v in pub.items() if k != "config"}
         out["contact_phone"] = pub.get("contact_phone") or DMX_FALLBACK_WHATSAPP
+    # INGESTA / WIZARD: los proyectos ingeridos o del wizard NO llevan las unidades embebidas en el doc; viven en
+    # db.units (llave development_id o project_id). Si el doc no trae units, las cargamos y normalizamos → la ficha,
+    # el cotizador y la lista de disponibilidad dejan de salir vacías (auditoría 07-07). Fail-open.
+    if not out.get("units"):
+        try:
+            from ingested_reader import units_for_dev
+            out["units"] = await units_for_dev(db, dev_id)
+        except Exception:
+            pass
     # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
     out["units"] = await _apply_unit_overrides(db, dev_id, out.get("units") or [])
     # Conteos + rangos + desde/hasta coherentes con las unidades vivas (si el dev edita precio/estado/m²/etc., el doc no puede
@@ -2262,14 +2280,26 @@ async def list_dev_units(
     baths: Optional[int] = None,
     parking: Optional[int] = None,
 ):
+    db = request.app.state.db
     d = DEVELOPMENTS_BY_ID.get(dev_id)
-    if not d:
-        raise HTTPException(404, "Desarrollo no encontrado")
-    await _ensure_overlay_loaded(dev_id, request.app.state.db)
-    d = _apply_overlay(d)
-    units = list(d.get("units", []))
+    if d:
+        await _ensure_overlay_loaded(dev_id, db)
+        d = _apply_overlay(d)
+        units = list(d.get("units", []))
+    else:
+        # INGESTA / WIZARD: proyecto fuera de la semilla → sus unidades viven en db.units (development_id/project_id).
+        # Sin este fallback el endpoint daba 404 y el cotizador/ficha 360 del asesor quedaba sin unidades (auditoría 07-07).
+        pub = await db.developments.find_one(
+            {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+        if not pub:
+            pub = await db.projects.find_one(
+                {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+        if not pub:
+            raise HTTPException(404, "Desarrollo no encontrado")
+        from ingested_reader import units_for_dev
+        units = await units_for_dev(db, dev_id)
     # Fusiona las ediciones MANUALES del dev → el comprador ve el dato vivo (mismo helper que la ficha).
-    units = await _apply_unit_overrides(request.app.state.db, dev_id, units)
+    units = await _apply_unit_overrides(db, dev_id, units)
     if status:
         units = [u for u in units if u.get("status") == status]
     if beds is not None:

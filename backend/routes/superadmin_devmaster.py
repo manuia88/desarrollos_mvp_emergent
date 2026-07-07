@@ -164,13 +164,20 @@ async def pending_approval(request: Request):
     await require_superadmin(request)
     db = request.app.state.db
     out = []
-    async for p in db.projects.find(
-            {"marketplace_published": "pending"},
-            {"_id": 0, "id": 1, "name": 1, "colonia": 1, "colonia_id": 1, "price_from": 1,
-             "developer_id": 1, "created_via": 1, "created_at": 1, "total_units": 1}
-    ).sort("created_at", -1).limit(200):
+    _proj = {"_id": 0, "id": 1, "name": 1, "colonia": 1, "colonia_id": 1, "price_from": 1,
+             "developer_id": 1, "created_via": 1, "created_at": 1, "total_units": 1, "source": 1}
+    async for p in db.projects.find({"marketplace_published": "pending"}, _proj).sort("created_at", -1).limit(200):
         # completo = tiene colonia + precio (si no, ni siquiera aparecería al aprobar)
         p["completo"] = bool(p.get("colonia_id") and (p.get("price_from") or 0) > 0)
+        out.append(p)
+    # INGESTA MASIVA: los proyectos ingeridos viven en db.developments (no db.projects) y también empiezan 'pending'.
+    # Sin esto quedaban atrapados sin forma de aprobarse → nunca salían al marketplace (auditoría 07-07).
+    _seen = {p.get("id") for p in out}
+    async for p in db.developments.find({"marketplace_published": "pending"}, _proj).sort("created_at", -1).limit(200):
+        if p.get("id") in _seen:
+            continue
+        p["completo"] = bool(p.get("colonia_id") and (p.get("price_from") or 0) > 0)
+        p["created_via"] = p.get("created_via") or "ingesta"
         out.append(p)
     return {"total": len(out), "proyectos": out}
 
@@ -261,12 +268,19 @@ async def toggle_project_marketplace(project_id: str, request: Request):
     db = request.app.state.db
     body = await request.json()
     published = bool(body.get("published", True))
-    proj = await db.projects.find_one({"id": project_id}, {"_id": 0, "id": 1, "name": 1, "colonia_id": 1, "price_from": 1})
+    # El proyecto puede vivir en db.projects (wizard) o en db.developments (ingesta masiva). Buscamos en ambas y
+    # actualizamos la que lo contiene → el ingerido también se puede publicar/despublicar (auditoría 07-07).
+    _flds = {"_id": 0, "id": 1, "name": 1, "colonia_id": 1, "price_from": 1}
+    proj = await db.projects.find_one({"id": project_id}, _flds)
+    _coll = "projects"
+    if not proj:
+        proj = await db.developments.find_one({"id": project_id}, _flds)
+        _coll = "developments"
     if not proj:
         raise HTTPException(404, "Proyecto no encontrado")
     if published and not (proj.get("colonia_id") and (proj.get("price_from") or 0) > 0):
         raise HTTPException(400, "El proyecto necesita colonia y precio para publicarse en el marketplace")
-    await db.projects.update_one({"id": project_id}, {"$set": {"marketplace_published": published}})
+    await db[_coll].update_one({"id": project_id}, {"$set": {"marketplace_published": published}})
     try:
         from audit_log import log_mutation
         actor = getattr(request.state, "user", None)

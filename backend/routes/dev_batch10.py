@@ -303,6 +303,37 @@ async def list_projects_with_stats(request: Request):
             "_price_m2": None,
         })
 
+    # INGESTA MASIVA — Incluye los proyectos INGERIDOS del dev (db.developments source='bulk_ingest'). Sin esto el dev
+    # no veía en "Mis Proyectos" lo que él mismo subió por Drive (auditoría 07-07). Unidades desde db.units (development_id).
+    _seen_ids = {r["id"] for r in results}
+    async for p in db.developments.find(
+            {"source": "bulk_ingest", "$or": [{"dev_org_id": org}, {"developer_id": org}]}, {"_id": 0}):
+        if p.get("id") in _seen_ids:
+            continue
+        _seen_ids.add(p.get("id"))
+        try:
+            from ingested_reader import units_for_dev
+            _units = await units_for_dev(db, p["id"])
+        except Exception:
+            _units = []
+        by_status: Dict[str, int] = {}
+        for u in _units:
+            s = u.get("status", "disponible")
+            by_status[s] = by_status.get(s, 0) + 1
+        _prices = [u.get("price") for u in _units if u.get("price")]
+        results.append({
+            "id": p["id"], "name": p.get("name", p["id"]), "colonia": p.get("colonia", ""),
+            "stage": p.get("stage", "preventa"),
+            "price_from": int(min(_prices)) if _prices else int(p.get("price_from") or 0),
+            "price_to": int(max(_prices)) if _prices else int(p.get("price_from") or 0),
+            "units_total": len(_units) or int(p.get("total_units") or 0), "units_by_status": by_status,
+            "construction_pct": 0, "health_score": 65, "leads_active": 0, "revenue_mtd_est": 0,
+            "weekly_sales": [], "cover_photo": None, "developer_id": p.get("developer_id"),
+            "delivery_estimate": p.get("delivery_estimate"), "created_via": "ingesta",
+            "colonia_id": p.get("colonia_id") or p.get("colonia"), "_price_m2": None,
+            "marketplace_published": p.get("marketplace_published"),
+        })
+
     # Margen semáforo (upgrade Mis Proyectos · B02): costo INPP/m² vs precio/m² × ritmo de venta.
     try:
         import dmx_margin

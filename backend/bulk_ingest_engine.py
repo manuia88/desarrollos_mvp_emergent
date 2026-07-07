@@ -657,11 +657,18 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
     }
     await db.developments.insert_one(dict(dev_doc))
 
-    # CABLE #2 → COTIZADOR + FILTRO + CUBO: escribir los campos COMPLETOS de unidad (status real de
-    # disponibilidad, bodega, cajón, m² total). Antes se perdían → cotizador vacío y filtro "disponible" roto.
-    _ST = {"disponible": "available", "apartado": "reserved", "vendido": "sold",
-           "available": "available", "reserved": "reserved", "sold": "sold"}
+    # CABLE #2 → COTIZADOR + FILTRO + CUBO: escribir los campos COMPLETOS de unidad en el vocabulario CANÓNICO
+    # (el mismo de la semilla y del front) + los nombres legacy (que lee el cubo). status en ESPAÑOL: la semilla y
+    # el filtro "disponible" del marketplace comparan contra 'disponible'/'reservado'/'vendido' (auditoría 07-07).
+    _ST = {"disponible": "disponible", "apartado": "reservado", "vendido": "vendido",
+           "available": "disponible", "reserved": "reservado", "sold": "vendido"}
     for u in (extracted.get("units") or []):
+        _sm2 = u.get("size_m2")
+        _sm2t = u.get("size_m2_total") or u.get("size_m2")
+        _price = u.get("price_mxn")
+        _park_raw = u.get("parking")
+        _park_digits = re.sub(r"[^\d]", "", str(_park_raw or ""))
+        _park_n = int(_park_digits) if _park_digits else (1 if _park_raw else 0)
         unit_doc = {
             "id": f"unit_{secrets.token_urlsafe(10)}",
             "development_id": dev_id,
@@ -669,14 +676,23 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "colonia_id": colonia_id,
             "unit_number": u.get("unit_number") or f"U{secrets.token_hex(3)}",
             "type": u.get("type") or "depto",
+            "prototype": u.get("type") or "depto",
             "bedrooms": u.get("bedrooms"),
             "bathrooms": u.get("bathrooms"),
-            "size_m2": u.get("size_m2"),
-            "size_m2_total": u.get("size_m2_total"),
-            "storage": u.get("storage"),        # bodega
-            "parking": u.get("parking"),        # cajón(es)
-            "price_mxn": u.get("price_mxn"),
-            "status": _ST.get((u.get("status") or "").lower().strip(), "available"),
+            # canónico (front + filtros + semilla)
+            "m2_privative": _sm2,
+            "m2_total": _sm2t,
+            "parking_spots": _park_n,
+            "bodega": bool(u.get("storage")),
+            "price": _price,
+            "price_display": (f"${int(_price):,}" if _price else None),
+            # legacy (lo que lee dmx_cube_feed.db_unit_to_atom) — se conservan para no romper el cubo
+            "size_m2": _sm2,
+            "size_m2_total": _sm2t,
+            "storage": u.get("storage"),        # bodega (texto original)
+            "parking": _park_raw,               # cajón(es) (texto original)
+            "price_mxn": _price,
+            "status": _ST.get((u.get("status") or "").lower().strip(), "disponible"),
             "source": "bulk_ingest",
             "created_at": now,
         }
@@ -710,6 +726,8 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
         existing = await db.units.find_one(
             {"development_id": target_dev_id, "unit_number": unit_no}, {"_id": 0, "id": 1},
         )
+        _sm2 = u.get("size_m2")
+        _price = u.get("price_mxn")
         if existing:
             await db.units.update_one(
                 {"id": existing["id"]},
@@ -717,8 +735,8 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                     "type": u.get("type"),
                     "bedrooms": u.get("bedrooms"),
                     "bathrooms": u.get("bathrooms"),
-                    "size_m2": u.get("size_m2"),
-                    "price_mxn": u.get("price_mxn"),
+                    "m2_privative": _sm2, "m2_total": u.get("size_m2_total") or _sm2,
+                    "size_m2": _sm2, "price": _price, "price_mxn": _price,
                     "updated_at": now,
                 }},
             )
@@ -727,12 +745,12 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "id": f"unit_{secrets.token_urlsafe(10)}",
                 "development_id": target_dev_id,
                 "unit_number": unit_no,
-                "type": u.get("type") or "depto",
+                "type": u.get("type") or "depto", "prototype": u.get("type") or "depto",
                 "bedrooms": u.get("bedrooms"),
                 "bathrooms": u.get("bathrooms"),
-                "size_m2": u.get("size_m2"),
-                "price_mxn": u.get("price_mxn"),
-                "status": "available",
+                "m2_privative": _sm2, "m2_total": u.get("size_m2_total") or _sm2,
+                "size_m2": _sm2, "price": _price, "price_mxn": _price,
+                "status": "disponible",
                 "source": "bulk_ingest_merge",
                 "created_at": now,
             })
