@@ -29,8 +29,10 @@ from typing import Any, Dict, List, Optional, Tuple
 log = logging.getLogger("dmx.bulk_ingest")
 
 CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
-MAX_FILES_PER_FOLDER = 400        # tope global de archivos listados por job (seguridad)
-MAX_KEY_FILES_PER_PROJECT = 12    # PDFs/planos leídos por proyecto (a más, más costo de IA)
+MAX_FILES_PER_FOLDER = 2000       # tope global de archivos listados por job (seguridad)
+MAX_FILES_PER_PROJECT_LIST = 60   # tope de archivos LISTADOS por proyecto (evita que un proyecto con
+                                  # muchas fotos se coma el presupuesto global y tape a los demás)
+MAX_KEY_FILES_PER_PROJECT = 12    # PDFs/planos DESCARGADOS+leídos por proyecto (a más, más costo de IA)
 MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
 PDF_MIMES = {"application/pdf"}
 SPREADSHEET_MIMES = {
@@ -79,7 +81,9 @@ def parse_folder_id(url: str) -> Optional[str]:
 # ─── OAuth context resolver ───────────────────────────────────────────────────
 
 async def _resolve_drive_conn(db, target_dev_org_id: Optional[str]) -> Optional[Dict[str, Any]]:
-    """Return a valid drive_connection. Prefer target_dev_org_id, else first connected."""
+    """Devuelve una conexión Drive válida. Prefiere la OAuth del dev objetivo, luego cualquier OAuth
+    conectada; si NO hay ninguna, cae a modo PÚBLICO con API key (solo lee carpetas compartidas
+    'cualquiera con el link'). Así se puede ingerir un Drive público sin conectar cuenta."""
     coll = db.dev_drive_connections
     if target_dev_org_id:
         conn = await coll.find_one(
@@ -87,7 +91,14 @@ async def _resolve_drive_conn(db, target_dev_org_id: Optional[str]) -> Optional[
         )
         if conn:
             return conn
-    return await coll.find_one({"status": "connected"}, {"_id": 0})
+    conn = await coll.find_one({"status": "connected"}, {"_id": 0})
+    if conn:
+        return conn
+    api_key = os.environ.get("GOOGLE_DRIVE_API_KEY")
+    if api_key:
+        return {"_mode": "api_key", "api_key": api_key, "status": "connected",
+                "email": "api_key(público)", "developer_id": target_dev_org_id}
+    return None
 
 
 # ─── Drive operations (sync wrappers via run_in_executor) ─────────────────────
@@ -109,6 +120,7 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
             resp = svc.files().list(
                 q=q, fields="files(id,name,mimeType,modifiedTime,size),nextPageToken",
                 pageSize=200, pageToken=page_token,
+                supportsAllDrives=True, includeItemsFromAllDrives=True,
             ).execute()
             out.extend(resp.get("files", []) or [])
             page_token = resp.get("nextPageToken")
@@ -131,7 +143,8 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
         proj_id, proj_name = top["id"], top.get("name") or ""
         stack: List[Tuple[str, int]] = [(top["id"], 1)]   # (folder_id, depth)
         visited: set = set()
-        while stack and len(all_files) < MAX_FILES_PER_FOLDER:
+        proj_count = 0
+        while stack and len(all_files) < MAX_FILES_PER_FOLDER and proj_count < MAX_FILES_PER_PROJECT_LIST:
             fid, depth = stack.pop()
             if fid in visited or depth > MAX_TREE_DEPTH:
                 continue
@@ -142,7 +155,8 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
                 else:
                     # todo lo que cuelga de la subcarpeta directa se atribuye a ESE proyecto
                     all_files.append({**it, "parent_folder_id": proj_id, "parent_folder_name": proj_name})
-                    if len(all_files) >= MAX_FILES_PER_FOLDER:
+                    proj_count += 1
+                    if proj_count >= MAX_FILES_PER_PROJECT_LIST or len(all_files) >= MAX_FILES_PER_FOLDER:
                         break
 
     return all_files[:MAX_FILES_PER_FOLDER]

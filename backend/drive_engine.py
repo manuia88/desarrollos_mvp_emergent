@@ -168,6 +168,10 @@ def _build_credentials(conn: Dict[str, Any]):
 
 def _drive_service(conn: Dict[str, Any]):
     from googleapiclient.discovery import build
+    # Modo PÚBLICO (sin OAuth): carpetas compartidas "cualquiera con el link" leídas con API key.
+    # Un solo punto: al vivir aquí, listar/descargar/exportar heredan el modo automáticamente.
+    if conn and conn.get("_mode") == "api_key":
+        return build("drive", "v3", developerKey=conn.get("api_key"), cache_discovery=False)
     creds = _build_credentials(conn)
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
