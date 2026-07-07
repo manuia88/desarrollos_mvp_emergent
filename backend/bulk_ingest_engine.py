@@ -371,6 +371,10 @@ async def extract_bulk_project(
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
             data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
+            if not isinstance(data, dict):
+                # la IA devolvió una lista u otra cosa (p.ej. una carpeta que no es un proyecto) →
+                # no reventar con 'list' object has no attribute 'get', cae a stub limpio.
+                raise ValueError("La IA no devolvió un objeto de proyecto")
             # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
             data = _sanitize_extraction(data)
             # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft).

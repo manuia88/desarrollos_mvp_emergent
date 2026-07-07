@@ -172,8 +172,9 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
     try {
       const all = await listJobs({ limit: 50 });
       const allItems = [];
-      for (const j of (all.items || []).slice(0, 10)) {
-        if ((j.items_pending_review || 0) === 0) continue;
+      // NO filtrar por el contador del job (se queda viejo si el job murió a media corrida) →
+      // consultar los pendientes REALES de cada job reciente. Así el conteo y la lista cuadran.
+      for (const j of (all.items || []).slice(0, 20)) {
         try {
           const r = await listJobItems(j.id, { decision: 'pending_review', limit: 50 });
           allItems.push(...(r.items || []));
@@ -348,11 +349,27 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
 
         {tab === 'review' && (
           <>
+            {/* Explicación en lenguaje claro — qué es esto y qué significan los colores */}
+            <div style={{ padding: '12px 15px', borderRadius: 11, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.25)', marginBottom: 12, fontFamily: 'DM Sans' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--cream)', marginBottom: 5 }}>¿Qué reviso aquí?</div>
+              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.72)', lineHeight: 1.6 }}>
+                La IA leyó los documentos de cada carpeta (planos, listas de precios, fichas) y sacó los datos.
+                <b style={{ color: 'var(--cream)' }}> La mayoría de proyectos entró sola al catálogo</b> (míralos en Desarrollos). Aquí abajo solo caen los que <b style={{ color: 'var(--cream)' }}>parecen repetidos</b> — tú decides.
+                <br />
+                En cada uno revisa que <b style={{ color: 'var(--cream)' }}>nombre, dirección, precio y unidades</b> estén bien (edítalos con un clic) y luego:
+                <b style={{ color: '#4ADE80' }}> Aprobar</b> (es nuevo) · <b style={{ color: 'var(--theme)' }}>Fusionar</b> (es el mismo que ya existe) · <b style={{ color: '#F87171' }}>Rechazar</b> (no sirve).
+              </div>
+              <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(240,235,224,0.62)' }}>
+                <span><span style={{ color: '#4ADE80' }}>●</span> la IA lo encontró</span>
+                <span><span style={{ color: '#FACC15' }}>●</span> dudoso</span>
+                <span><span style={{ color: '#F87171' }}>●</span> no lo halló — complétalo (no significa que esté mal)</span>
+              </div>
+            </div>
             {(reviewItems.items || []).length === 0 ? (
               <div data-testid="review-empty" style={{ padding: 50, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans' }}>
                 <Clock size={36} color="rgba(240,235,224,0.18)" style={{ marginBottom: 10 }} />
-                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Sin items en revisión</div>
-                <div style={{ fontSize: 12 }}>Todos los proyectos extraídos fueron procesados.</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Nada que revisar</div>
+                <div style={{ fontSize: 12 }}>No hay proyectos dudosos. Los que se ingirieron entraron directo al catálogo — míralos en <b style={{ color: 'var(--theme)' }}>Desarrollos</b> o en la ficha del dev.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

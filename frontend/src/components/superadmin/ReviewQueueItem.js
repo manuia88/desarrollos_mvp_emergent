@@ -95,17 +95,19 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
         </div>
       )}
 
-      {/* Confianza por campo de la IA (color) + geocodificado — upgrades de esta sesión */}
+      {/* Qué tan segura está la IA de cada dato — en lenguaje claro (no un % que asusta) */}
       {(Object.keys(conf).length > 0 || geocoded) && (
         <div data-testid={`review-conf-${item.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.05em', color: 'rgba(240,235,224,0.45)' }}>Confianza IA</span>
+          <span title="La IA leyó los documentos y esto es qué tan segura está de cada dato" style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.05em', color: 'rgba(240,235,224,0.45)' }}>La IA encontró</span>
           {[['nombre', conf.project_name], ['dirección', conf.address], ['precio', conf.price], ['unidades', conf.units]]
             .filter(([, v]) => typeof v === 'number')
             .map(([lbl, v]) => {
               const c = v >= 0.7 ? '#4ADE80' : (v >= 0.4 ? '#FACC15' : '#F87171');
+              const word = v >= 0.7 ? 'sí ✓' : (v >= 0.4 ? 'dudoso' : 'no lo halló');
               return (
-                <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, background: `${c}1f`, border: `1px solid ${c}55`, color: c }}>
-                  {lbl} {Math.round(v * 100)}%
+                <span key={lbl} title={`La IA está ${Math.round(v * 100)}% segura del ${lbl}. Rojo = no lo encontró en los documentos (edítalo o apruébalo igual, no significa que esté mal).`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, background: `${c}1f`, border: `1px solid ${c}55`, color: c }}>
+                  {lbl}: {word}
                 </span>
               );
             })}
