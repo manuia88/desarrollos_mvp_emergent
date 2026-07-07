@@ -561,8 +561,18 @@ async def drive_callback(
         raise HTTPException(400, f"OAuth fetch_token falló: {type(e).__name__}: {e}")
     creds = flow.credentials
     granted = set(creds.scopes or [])
-    if "https://www.googleapis.com/auth/drive.readonly" not in granted and "https://www.googleapis.com/auth/drive" not in granted:
-        raise HTTPException(400, f"Scopes insuficientes: {granted}")
+    if not granted:
+        # Con scopes=None, google-auth a veces NO puebla creds.scopes → el scope concedido igual
+        # viene en la respuesta cruda del token (campo "scope", separado por espacios). Leerlo de ahí.
+        try:
+            tok = (getattr(flow, "oauth2session", None) and flow.oauth2session.token) or {}
+            raw = tok.get("scope") or ""
+            granted = set(raw.split()) if isinstance(raw, str) else set(raw or [])
+        except Exception:  # noqa: BLE001
+            granted = set()
+    if not (granted & {"https://www.googleapis.com/auth/drive.readonly",
+                       "https://www.googleapis.com/auth/drive"}):
+        raise HTTPException(400, f"Scopes insuficientes: {sorted(granted)}")
 
     db = request.app.state.db
     now = _now()
