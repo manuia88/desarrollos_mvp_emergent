@@ -236,6 +236,8 @@ Devuelve SOLO JSON válido con la siguiente estructura:
 {
   "project_name": "string requerido",
   "address_full": "calle, colonia, ciudad, estado, país",
+  "colonia": "string|null (SOLO el nombre de la colonia, p.ej. 'Santa María la Ribera')",
+  "alcaldia": "string|null (alcaldía/municipio, p.ej. 'Cuauhtémoc')",
   "lat": null o float,
   "lng": null o float,
   "total_units": int,
@@ -557,16 +559,35 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
     now = _iso()
     target_org = item.get("target_dev_org_id") or "superadmin_global"
 
+    # CABLE #1 → INTELIGENCIA DE ZONA: resolver colonia_id del catálogo. Sin esto, el development
+    # NO se conecta a zone_scores / IE / walkability / gentrificación / plusvalía / absorción-por-zona.
+    colonia_id = None
+    colonia = extracted.get("colonia")
+    alcaldia = extracted.get("alcaldia")
+    try:
+        from routes.wizard import _resolve_colonia_id
+        colonia_id = await _resolve_colonia_id(db, colonia or extracted.get("address_full"), alcaldia)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] colonia_id no resuelto: {e}")
+
     dev_doc = {
         "id": dev_id,
         "name": extracted.get("project_name") or item.get("source_files", [{}])[0].get("name", "Proyecto sin nombre"),
         "address": extracted.get("address_full") or "",
+        "colonia": colonia,
+        "colonia_id": colonia_id,            # ← vínculo a la inteligencia de zona
+        "alcaldia": alcaldia,
+        "municipio": alcaldia,
         "lat": extracted.get("lat"),
         "lng": extracted.get("lng"),
         "developer_id": target_org,
+        "dev_org_id": target_org,            # ← consistencia con el resto del sistema
         "total_units": int(extracted.get("total_units") or 0),
         "price_min_mxn": (extracted.get("price_range") or {}).get("min_mxn"),
         "price_max_mxn": (extracted.get("price_range") or {}).get("max_mxn"),
+        "price_from": (extracted.get("price_range") or {}).get("min_mxn"),
+        "delivery_estimate": extracted.get("delivery_date"),
+        "maintenance_fee_mxn": extracted.get("maintenance_fee_mxn"),
         "amenities": extracted.get("amenities") or [],
         "status": "active",
         "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
@@ -577,19 +598,26 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
     }
     await db.developments.insert_one(dict(dev_doc))
 
-    # Units
+    # CABLE #2 → COTIZADOR + FILTRO + CUBO: escribir los campos COMPLETOS de unidad (status real de
+    # disponibilidad, bodega, cajón, m² total). Antes se perdían → cotizador vacío y filtro "disponible" roto.
+    _ST = {"disponible": "available", "apartado": "reserved", "vendido": "sold",
+           "available": "available", "reserved": "reserved", "sold": "sold"}
     for u in (extracted.get("units") or []):
         unit_doc = {
             "id": f"unit_{secrets.token_urlsafe(10)}",
             "development_id": dev_id,
             "developer_id": target_org,
+            "colonia_id": colonia_id,
             "unit_number": u.get("unit_number") or f"U{secrets.token_hex(3)}",
             "type": u.get("type") or "depto",
             "bedrooms": u.get("bedrooms"),
             "bathrooms": u.get("bathrooms"),
             "size_m2": u.get("size_m2"),
+            "size_m2_total": u.get("size_m2_total"),
+            "storage": u.get("storage"),        # bodega
+            "parking": u.get("parking"),        # cajón(es)
             "price_mxn": u.get("price_mxn"),
-            "status": "available",
+            "status": _ST.get((u.get("status") or "").lower().strip(), "available"),
             "source": "bulk_ingest",
             "created_at": now,
         }
