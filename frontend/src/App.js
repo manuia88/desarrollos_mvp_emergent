@@ -301,6 +301,7 @@ const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/I
 // W1.2 SA1.1 — Superadmin Tenants Management
 const SuperadminTenants              = lazy(() => import('./pages/superadmin/SuperadminTenants'));
 // W1.3 SA1.2 — Superadmin System Health
+const SuperadminOperacionHub         = lazy(() => import('./pages/superadmin/SuperadminOperacionHub'));
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
@@ -745,7 +746,7 @@ function AppRouter() {
       {/* W5.19 wire — Probability page standalone (publico T0) */}
       <Route path="/portal/probability" element={<Suspense fallback={null}><ProbabilityPage /></Suspense>} />
       {/* W5 cleanup — Superadmin Entity Resolution queue */}
-      <Route path="/superadmin/entity-resolution" element={<SuperadminRoute Page={SuperadminEntityResolution} />} />
+      <Route path="/superadmin/entity-resolution" element={<Navigate to="/superadmin/operacion?tab=entity-resolution" replace />} />
       {/* W5.9 — Climate Migration (publico T0 + superadmin debug) */}
       <Route path="/portal/climate-migration" element={<Suspense fallback={null}><ClimateMigrationPage /></Suspense>} />
       <Route path="/superadmin/climate-migration" element={<SuperadminRoute Page={SuperadminClimateMigration} />} />
@@ -963,7 +964,8 @@ function AppRouter() {
       {/* W1.2 SA1.1 — Superadmin Tenants */}
       <Route path="/superadmin/tenants" element={<SuperadminRoute Page={SuperadminTenants} />} />
       {/* W1.3 SA1.2 — Superadmin System Health */}
-      <Route path="/superadmin/health" element={<SuperadminRoute Page={SuperadminHealth} />} />
+      <Route path="/superadmin/operacion" element={<SuperadminRoute Page={SuperadminOperacionHub} />} />
+      <Route path="/superadmin/health" element={<Navigate to="/superadmin/operacion?tab=health" replace />} />
       {/* W1.4 ZZ.1 — Bulk Drive Ingestion */}
       <Route path="/superadmin/bulk-ingest" element={<SuperadminRoute Page={SuperadminBulkIngest} />} />
       <Route path="/superadmin/alta" element={<SuperadminRoute Page={SuperadminAltaDesarrolladores} />} />
@@ -985,13 +987,13 @@ function AppRouter() {
       <Route path="/superadmin/scores" element={<Navigate to="/superadmin/modelo?tab=scores" replace />} />
       <Route path="/superadmin/documents" element={<SuperadminRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<SuperadminRoute Page={SuperadminDrivePage} />} />
-      <Route path="/superadmin/observability" element={<SuperadminRoute Page={SuperadminObservabilityPage} />} />
-      <Route path="/superadmin/phase-y-observability" element={<SuperadminRoute Page={SuperadminPhaseYObservability} />} />
+      <Route path="/superadmin/observability" element={<Navigate to="/superadmin/operacion?tab=observabilidad" replace />} />
+      <Route path="/superadmin/phase-y-observability" element={<Navigate to="/superadmin/operacion?tab=phase-y" replace />} />
       {/* Panel debug fuentes gov MX (W4.18) — estaba SOMBREADO por la colisión de path con el Hub (línea 971,
           gana la primera ruta) → invisible por accidente. Des-sombreado con su propio path (= su prefijo de API). */}
       <Route path="/superadmin/data-sources-gov-mx" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
-      <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
-      <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
+      <Route path="/superadmin/audit-log" element={<Navigate to="/superadmin/operacion?tab=audit-log" replace />} />
+      <Route path="/superadmin/actividad-unificada" element={<Navigate to="/superadmin/operacion?tab=actividad" replace />} />
       <Route path="/superadmin/audit-log-legacy" element={<Navigate to="/superadmin/audit-log" replace />} />{/* legacy → audit-log nuevo */}
       <Route path="/superadmin/ai-cost" element={<Navigate to="/superadmin/monetizacion?tab=costos" replace />} />
       <Route path="/superadmin/rag-inspector" element={<Navigate to="/superadmin/ia-conversacional?tab=rag" replace />} />
@@ -1014,9 +1016,9 @@ function AppRouter() {
       <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
       <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
-      <Route path="/superadmin/fraud-alerts" element={<SuperadminRoute Page={SuperadminFraudAlerts} />} />
+      <Route path="/superadmin/fraud-alerts" element={<Navigate to="/superadmin/operacion?tab=fraud-alerts" replace />} />
       <Route path="/superadmin/risk-score" element={<Navigate to="/superadmin/modelo?tab=risk" replace />} />
-      <Route path="/superadmin/risk-alerts" element={<SuperadminRoute Page={SuperadminRiskAlerts} />} />
+      <Route path="/superadmin/risk-alerts" element={<Navigate to="/superadmin/operacion?tab=risk-alerts" replace />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
       {/* W3.5 — Public API + Stripe routes */}
@@ -1026,7 +1028,7 @@ function AppRouter() {
       <Route path="/superadmin/vertical-products" element={<Navigate to="/superadmin/monetizacion?tab=probar" replace />} />
       <Route path="/superadmin/data-licensing" element={<Navigate to="/superadmin/monetizacion?tab=bundles" replace />} />
       {/* W3.7 — Phase Z.5 Compliance */}
-      <Route path="/superadmin/compliance" element={<SuperadminRoute Page={SuperadminCompliance} />} />
+      <Route path="/superadmin/compliance" element={<Navigate to="/superadmin/operacion?tab=compliance" replace />} />
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
       {/* W4.2B — MCP connect page */}
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
@@ -1040,9 +1042,9 @@ function AppRouter() {
       <Route path="/superadmin/landing-leads" element={<SuperadminRoute Page={SuperadminLandingLeads} />} />
       <Route path="/superadmin/lead-sources" element={<SuperadminRoute Page={SuperadminLeadSources} />} />
       {/* W5.11 Parte 2 — Entity resolution + audit chain */}
-      <Route path="/superadmin/duplicates" element={<SuperadminRoute Page={SuperadminDuplicates} />} />
-      <Route path="/superadmin/fraud-patterns" element={<SuperadminRoute Page={SuperadminFraudPatterns} />} />
-      <Route path="/superadmin/audit-chain" element={<SuperadminRoute Page={SuperadminAuditChain} />} />
+      <Route path="/superadmin/duplicates" element={<Navigate to="/superadmin/operacion?tab=duplicates" replace />} />
+      <Route path="/superadmin/fraud-patterns" element={<Navigate to="/superadmin/operacion?tab=fraud-patterns" replace />} />
+      <Route path="/superadmin/audit-chain" element={<Navigate to="/superadmin/operacion?tab=audit-chain" replace />} />
       {/* W5.FF3 · UI Feature Visibility Matrix */}
       <Route path="/superadmin/feature-visibility" element={<SuperadminRoute Page={SuperadminFeatureVisibility} />} />
       {/* W5.25 · Widget Embed Analytics */}

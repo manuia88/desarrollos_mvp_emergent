@@ -260,20 +260,9 @@ const SUPERADMIN_NAV = [
     tier: 4, label: 'Operación', section_key: 'operacion',
     items: [
       // ─ System health ─
-      { key: 'health',                 to: '/superadmin/health',                 label: 'Salud sistema',          Icon: Activity },
-      { key: 'observability',          to: '/superadmin/observability',          label: 'Observabilidad',         Icon: Eye },
-      { key: 'phase-y-observability',  to: '/superadmin/phase-y-observability',  label: 'Phase Y Observability',  Icon: BarChart2 },
+      { key: 'operacion',            to: '/superadmin/operacion',            label: 'Operación & Seguridad',  Icon: ShieldCheck },
       // ─ Audit & compliance ─
-      { key: 'actividad-unificada',    to: '/superadmin/actividad-unificada',    label: 'Actividad unificada',    Icon: FileText },
-      { key: 'audit-log',              to: '/superadmin/audit-log',              label: 'Audit log',              Icon: FileText },
-      { key: 'audit-chain',            to: '/superadmin/audit-chain',            label: 'Audit Chain (SHA-256)',  Icon: ShieldCheck },
-      { key: 'compliance',             to: '/superadmin/compliance',             label: 'Compliance',             Icon: Shield },
       // ─ Fraud & risk ─
-      { key: 'duplicates',             to: '/superadmin/duplicates',             label: 'Duplicados pendientes',  Icon: GitMerge },
-      { key: 'entity-resolution',      to: '/superadmin/entity-resolution',      label: 'Resolución de entidades', Icon: GitMerge },
-      { key: 'fraud-patterns',         to: '/superadmin/fraud-patterns',         label: 'Patrones de fraude',     Icon: AlertTriangle },
-      { key: 'fraud-alerts',           to: '/superadmin/fraud-alerts',           label: 'Fraud Alerts',           Icon: AlertTriangle },
-      { key: 'risk-alerts',            to: '/superadmin/risk-alerts',            label: 'Risk Alerts',            Icon: AlertTriangle },
       // W5.FF3 · Feature Visibility Matrix (GoHighLevel-style snapshot grants)
       { key: 'feature-visibility',     to: '/superadmin/feature-visibility',     label: 'Feature Visibility',     Icon: GitMerge },
       // W5.25 · Widget Embed Analytics (dominios externos que embeben widgets)

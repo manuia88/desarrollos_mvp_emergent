@@ -13,7 +13,7 @@ const SEVERITIES = [
   { id: 'info', label: 'Mejora' },
 ];
 
-export default function SuperadminRiskAlerts() {
+export default function SuperadminRiskAlerts({ embedded }) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [kpis, setKpis] = useState({});
@@ -40,7 +40,7 @@ export default function SuperadminRiskAlerts() {
   useEffect(() => { refresh(0); /* eslint-disable-next-line */ }, [filterSeverity, zoneSearch, days]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.4B · Risk Alerts"
         title="Cambios de letra"

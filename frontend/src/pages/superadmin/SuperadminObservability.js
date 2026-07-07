@@ -782,11 +782,11 @@ function RoiMatrixTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Page wrapper
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function SuperadminObservability({ user, onLogout }) {
+export default function SuperadminObservability({ user, onLogout, embedded }) {
   const [tab, setTab] = useState('kpis');
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-observability" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
           <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240, 235, 224, 0.70)', fontWeight: 700, marginBottom: 6 }}>

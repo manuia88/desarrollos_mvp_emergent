@@ -28,7 +28,7 @@ const kpiCard = (label, value, sub) => (
   </div>
 );
 
-export default function SuperadminCrossSellAnalytics() {
+export default function SuperadminCrossSellAnalytics({ embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
@@ -88,7 +88,7 @@ export default function SuperadminCrossSellAnalytics() {
   const maxFunnel = Math.max(...Object.values(funnel), 1);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.8 · Cross-sell Intelligence"
         title="Analytics"

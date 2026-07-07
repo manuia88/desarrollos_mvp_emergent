@@ -50,7 +50,7 @@ async function fetchFsdAccuracy(days = 30) {
   return res.json();
 }
 
-export default function SuperadminFSDAccuracy() {
+export default function SuperadminFSDAccuracy({ embedded }) {
   const { t } = useTranslation('common');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +75,7 @@ export default function SuperadminFSDAccuracy() {
   const dist = data?.distribution || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-fsd-accuracy" style={{ padding: 24, fontFamily: 'DM Sans, sans-serif', color: '#F0EBE0' }}>
         <header style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em' }}>

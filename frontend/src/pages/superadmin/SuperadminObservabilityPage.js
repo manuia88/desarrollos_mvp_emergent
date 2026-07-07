@@ -122,7 +122,7 @@ function DirectorMemoryPanel() {
   );
 }
 
-export default function SuperadminObservabilityPage({ user, onLogout }) {
+export default function SuperadminObservabilityPage({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
@@ -161,7 +161,7 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
   };
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div>
         <div style={{ marginBottom: 22 }}>
           <div className="eyebrow">Phase F0.11</div>

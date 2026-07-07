@@ -94,7 +94,7 @@ function ServiceCard({ svc }) {
   );
 }
 
-export default function SuperadminHealth({ user, onLogout }) {
+export default function SuperadminHealth({ user, onLogout, embedded }) {
   const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [crons, setCrons] = useState([]);
@@ -161,7 +161,7 @@ export default function SuperadminHealth({ user, onLogout }) {
     : null;
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-health">
         {toast && (
           <div style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
@@ -291,7 +291,7 @@ export default function SuperadminHealth({ user, onLogout }) {
           ) : (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {alerts.items.map(a => <AlertItem key={a.id} alert={a} onResolve={handleResolve} />)}
+                {alerts.items.map((a, i) => <AlertItem key={a.id || a._id || i} alert={a} onResolve={handleResolve} />)}
               </div>
               {alerts.items.length < alerts.total && (
                 <div style={{ marginTop: 14, textAlign: 'center' }}>

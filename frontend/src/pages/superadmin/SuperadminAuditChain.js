@@ -57,7 +57,7 @@ function shortHash(h) {
   return h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
 }
 
-export default function SuperadminAuditChain({ user, onLogout }) {
+export default function SuperadminAuditChain({ user, onLogout, embedded }) {
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [verifyError, setVerifyError] = useState(null);
@@ -124,7 +124,7 @@ export default function SuperadminAuditChain({ user, onLogout }) {
   useEffect(() => { handleVerify(); getAiActivity(7).then(setAiAct).catch(() => setAiAct(false)); /* eslint-disable-next-line */ }, []);
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="SUPERADMIN · AUDIT CHAIN"
         title="Verificacion de cadena inmutable"

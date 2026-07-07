@@ -23,7 +23,7 @@ function fmt(ts) {
 
 const PAGE = 50;
 
-export default function SuperadminAuditUnified() {
+export default function SuperadminAuditUnified({ embedded }) {
   const [data, setData] = useState(null);
   const [items, setItems] = useState([]);
   const [skip, setSkip] = useState(0);
@@ -51,7 +51,7 @@ export default function SuperadminAuditUnified() {
   const totalEventos = Object.values(sources).reduce((a, b) => a + b, 0);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         title="Actividad unificada"
         sub="Toda la actividad de los 3 portales en un solo timeline — antes estaba fragmentada en trails por-portal."

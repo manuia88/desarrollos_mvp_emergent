@@ -45,7 +45,7 @@ const kpiCard = (label, value, sub) => (
   </div>
 );
 
-export default function SuperadminCompliance() {
+export default function SuperadminCompliance({ embedded }) {
   const [tab, setTab] = useState('dsr');
   const [dsrData, setDsrData] = useState({ items: [], kpis: {} });
   const [auditData, setAuditData] = useState({ items: [], kpis: {} });
@@ -127,7 +127,7 @@ export default function SuperadminCompliance() {
   const kpis = dsrData.kpis || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.7 · Phase Z.5 · LFPDPPP"
         title="Compliance"

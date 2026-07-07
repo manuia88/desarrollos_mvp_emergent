@@ -135,7 +135,7 @@ function PatternRow({ row }) {
   );
 }
 
-export default function SuperadminFraudPatterns({ user, onLogout }) {
+export default function SuperadminFraudPatterns({ user, onLogout, embedded }) {
   const [patterns, setPatterns] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
@@ -158,7 +158,7 @@ export default function SuperadminFraudPatterns({ user, onLogout }) {
   const high     = patterns.filter(p => (p.pattern_count_30d || 0) >= 5 && (p.pattern_count_30d || 0) < 10).length;
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="SUPERADMIN · FRAUD PATTERNS"
         title="Patrones de fraude broker"

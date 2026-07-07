@@ -26,7 +26,7 @@ const STATUSES = [
   { id: 'dismissed', label: 'Descartada' },
 ];
 
-export default function SuperadminFraudAlerts() {
+export default function SuperadminFraudAlerts({ embedded }) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [kpis, setKpis] = useState({});
@@ -60,7 +60,7 @@ export default function SuperadminFraudAlerts() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.4A · Fraud Detection AI"
         title="Alertas de fraude"

@@ -167,7 +167,7 @@ function PendingRow({ row, onMerge, onReject, onIgnore, busy }) {
   );
 }
 
-export default function SuperadminDuplicates({ user, onLogout }) {
+export default function SuperadminDuplicates({ user, onLogout, embedded }) {
   const [pending, setPending] = useState([]);
   const [total, setTotal]     = useState(0);
   const [skip, setSkip]       = useState(0);
@@ -266,7 +266,7 @@ export default function SuperadminDuplicates({ user, onLogout }) {
   }, [skip, pending.length, total]);
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="SUPERADMIN · ENTITY RESOLUTION"
         title="Duplicados pendientes"
