@@ -238,6 +238,17 @@ async def run_daily_score_recompute(db):
         except Exception as e:  # noqa: BLE001
             _emit("daily_score_recompute_zone_error", zone=z, scope="unit", error=str(e))
 
+    # Paso FINAL: rellenar los stubs restantes (recetas sin fuente real) con proxy ETIQUETADO →
+    # stub=0 permanente (plomería 100%). El recompute de arriba pudo re-stubear zonas sin dato;
+    # esto las re-etiqueta como estimadas (mediana de pares reales), sin inventar. Se auto-revierte
+    # a real cuando entra dato (score_engine._persist limpia is_proxy).
+    try:
+        from granularity_backfill import backfill_ie_proxy
+        px = await backfill_ie_proxy(db)
+        stats["proxy_fill"] = px.get("rellenados")
+    except Exception as e:  # noqa: BLE001
+        _emit("daily_score_recompute_proxy_error", error=str(e))
+
     _emit("daily_score_recompute_done", stats=stats)
     return stats
 

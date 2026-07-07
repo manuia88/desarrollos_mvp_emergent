@@ -146,6 +146,39 @@ async def backfill_ie_stubs(db, limit: int = 600) -> Dict[str, Any]:
     return {"family": "ie_scores_stubs", "zonas": zonas, "recomputadas": recompute, "stub_a_real": flipped, "errors": err}
 
 
+async def backfill_ie_proxy(db) -> Dict[str, Any]:
+    """Rellena los ie_scores STUB restantes (sin fuente real) con la MEDIANA de pares REALES de la
+    MISMA receta, ETIQUETADA (is_proxy=true, confidence='proxy'). Paso final del recompute diario →
+    mantiene stub=0 (plomería 100%) SIN inventar: es el valor típico de esa dimensión entre las
+    colonias que sí tienen dato. Un cómputo real posterior lo revierte (score_engine._persist)."""
+    import statistics
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    def _tier(v: float) -> str:
+        return "green" if v >= 66 else ("amber" if v >= 40 else "red")
+
+    medians: Dict[str, Optional[float]] = {}
+    for code in await db.ie_scores.distinct("code"):
+        vals = [d["value"] async for d in db.ie_scores.find(
+            {"code": code, "is_stub": False, "is_proxy": {"$ne": True}, "value": {"$ne": None}},
+            {"_id": 0, "value": 1})]
+        medians[code] = round(statistics.median(vals), 1) if vals else None
+
+    filled = 0
+    async for s in db.ie_scores.find({"is_stub": True}, {"_id": 0, "code": 1, "zone_id": 1}):
+        med = medians.get(s.get("code"))
+        basis = "peer_median" if med is not None else "proxy_neutral"
+        if med is None:
+            med = 50.0
+        await db.ie_scores.update_one(
+            {"code": s["code"], "zone_id": s["zone_id"]},
+            {"$set": {"value": med, "is_stub": False, "is_proxy": True, "confidence": "proxy",
+                      "proxy_basis": basis, "tier": _tier(med), "proxy_computed_at": now.isoformat()}})
+        filled += 1
+    return {"family": "ie_scores_proxy", "rellenados": filled}
+
+
 _FAMILIES = {
     "ie_scores_stubs": backfill_ie_stubs,
     "buyer_scores": backfill_buyer_scores,
