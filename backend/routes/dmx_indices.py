@@ -87,6 +87,54 @@ def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]]) -> Dic
     return ctx
 
 
+def _colonia_from_valoracion(cv: Dict[str, Any]) -> Dict[str, Any]:
+    """Construye el dict-colonia que compute_indices espera desde colonia_valoracion (universo 1,812).
+    Mapea plusvalia.series → momentum/trend/price (para que IPV/gentrificación sean REALES);
+    sin dict `scores` → compute_indices degrada a estimado honesto en IAB/IDS/ICO."""
+    series = (cv.get("plusvalia") or {}).get("series") or []
+    last_yoy = next((s.get("yoy_pct") for s in reversed(series) if s.get("yoy_pct") is not None), None)
+    price_m2 = ((cv.get("market_m2") or {}).get("valor")
+                or (series[-1].get("valor_m2") if series and series[-1].get("valor_m2") else None))
+    return {
+        "id": cv.get("colonia_id"), "name": cv.get("name") or cv.get("colonia_id"),
+        "city": "CDMX", "alcaldia": cv.get("alcaldia"),
+        "momentum": f"{last_yoy}%" if last_yoy is not None else "0",
+        "trend": [s.get("valor_m2") for s in series if s.get("valor_m2") is not None],
+        "price_m2_num": price_m2,
+        "plusvalia": cv.get("plusvalia"), "gentrification": cv.get("gentrification"),
+        "scores": {},
+    }
+
+
+_ALL_COLONIAS_CACHE: List[Dict[str, Any]] = []
+
+
+async def _all_colonias(db) -> List[Dict[str, Any]]:
+    """Universo COMPLETO para índices + distribución de percentiles: seed (16 ricas) +
+    colonia_valoracion (1,812). Cacheado en proceso (idempotente)."""
+    global _ALL_COLONIAS_CACHE
+    if _ALL_COLONIAS_CACHE:
+        return _ALL_COLONIAS_CACHE
+    from data_seed import COLONIAS
+    seed_ids = {c.get("id") for c in COLONIAS}
+    out = list(COLONIAS)
+    async for cv in db.colonia_valoracion.find({}, {"_id": 0}):
+        if cv.get("colonia_id") and cv["colonia_id"] not in seed_ids:
+            out.append(_colonia_from_valoracion(cv))
+    _ALL_COLONIAS_CACHE = out
+    return out
+
+
+async def _resolve_colonia(db, zone_id: str) -> Optional[Dict[str, Any]]:
+    """Resuelve la colonia para índices desde el universo completo (no solo las 16 seed)."""
+    from data_seed import COLONIAS
+    c = next((c for c in COLONIAS if c.get("id") == zone_id or c.get("name") == zone_id), None)
+    if c:
+        return c
+    cv = await db.colonia_valoracion.find_one({"colonia_id": zone_id}, {"_id": 0})
+    return _colonia_from_valoracion(cv) if cv else None
+
+
 def _qualitative(result: Dict[str, Any]) -> Dict[str, Any]:
     """Vista free: nivel honesto (Alta/Media/Baja) sin el número exacto (gating)."""
     out = {
@@ -108,12 +156,12 @@ def _qualitative(result: Dict[str, Any]) -> Dict[str, Any]:
 async def compute_zone_indices(db, zone_id: str, tier_label: str) -> Dict[str, Any]:
     """F6 · el índice de zona por TIER, agnóstico del origen del tier (sesión O API key).
     free = cualitativo; pro/enterprise = completo + jugada. 404 si la zona no existe."""
-    from data_seed import COLONIAS
-    colonia = next((c for c in COLONIAS if c.get("id") == zone_id or c.get("name") == zone_id), None)
+    colonia = await _resolve_colonia(db, zone_id)
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
-    ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
+    # Distribución de percentiles del UNIVERSO COMPLETO (1,812) → bandas reales, no "estimado".
+    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map))
     ctx = _ctx_for(colonia, abs_map)
     try:
         from live_pulse_engine import compute_pulse
@@ -150,11 +198,12 @@ async def superadmin_indices(
     limit: int = Query(100, ge=1, le=500),
 ):
     await _sa(request)
-    from data_seed import COLONIAS
+    db = request.app.state.db
     abs_map = _market_absorcion_by_colonia()
-    ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
+    universo = await _all_colonias(db)   # 1,812 colonias, no solo 16 seed
+    ix.ensure_index_distributions(universo, ctx_fn=lambda c: _ctx_for(c, abs_map))
     rows: List[Dict[str, Any]] = []
-    for c in COLONIAS:
+    for c in universo:
         if tier and (c.get("tier") or "").lower() != tier.lower():
             continue
         r = ix.compute_indices(c, _ctx_for(c, abs_map))
