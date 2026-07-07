@@ -2135,8 +2135,10 @@ async def get_development(dev_id: str, request: Request):
         await _ensure_overlay_loaded(dev_id, db)
         out = _dev_public(d, include_units=True)
     else:
-        # B0.3 · Proyecto creado/publicado por el dev → leer la tienda unificada (no solo el seed)
-        pub = await db.developments.find_one({"id": dev_id}, {"_id": 0})
+        # B0.3 · Proyecto creado/publicado por el dev → leer la tienda unificada (no solo el seed).
+        # Mismo gate que la rama hermana de db.projects: NO servir fichas 'pending'/no-aprobadas a compradores.
+        pub = await db.developments.find_one(
+            {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0})
         if not pub:
             # DEV PUBLICA → MARKETPLACE: ficha de un proyecto del wizard (db.projects) convertido a tarjeta.
             _proj = await db.projects.find_one({"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0})

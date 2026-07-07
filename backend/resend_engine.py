@@ -110,6 +110,22 @@ def send_welcome_broker(email: str, name: str, invite_code: str) -> bool:
     return _send(subject, html, email)
 
 
+def send_dev_claim_invite(email: str, org_name: str, claim_url: str) -> bool:
+    """Invita al desarrollador oficial a RECLAMAR su cuenta (creada vacía por el equipo DMX) con un
+    link de un solo uso. Best-effort: si no hay RESEND_API_KEY, no rompe (skip)."""
+    safe_org = (org_name or "tu desarrollo").replace("<", "").replace(">", "")
+    html = f"""<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+  <div style="font-size:13px;letter-spacing:2px;color:#888;margin-bottom:16px">DESARROLLOS<b style="color:#111">MX</b></div>
+  <h1 style="font-size:22px;margin:0 0 12px">Tu cuenta de <span style="color:#4f46e5">{safe_org}</span> está lista</h1>
+  <p style="font-size:15px;line-height:1.6;color:#444">El equipo de DesarrollosMX creó tu cuenta y ya le cargó tus proyectos. Reclámala para tomar el control: eliges tu correo y contraseña, y desde tu portal podrás invitar a tu equipo.</p>
+  <p style="margin:24px 0">
+    <a href="{claim_url}" style="background:#111;color:#fff;text-decoration:none;padding:13px 26px;border-radius:10px;font-size:15px;font-weight:700;display:inline-block">Reclamar mi cuenta →</a>
+  </p>
+  <p style="font-size:12.5px;color:#888;line-height:1.5">Este link es de un solo uso. Si no reconoces esta invitación, ignora este correo.<br>O copia y pega: <span style="color:#4f46e5">{claim_url}</span></p>
+</div>"""
+    return _send(f"Reclama tu cuenta de {safe_org} · DesarrollosMX", html, email)
+
+
 # ─── F0.2·Sub-A — Digest semanal asesor ───────────────────────────────────────
 
 def _digest_semanal_html(asesor_name: str, week_data: dict) -> str:

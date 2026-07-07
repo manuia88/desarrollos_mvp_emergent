@@ -3,11 +3,15 @@
  * Dos caras: MANUAL (formularios aquí) y AUTOMATIZADO (ingesta masiva desde Google Drive, ya existe).
  * Reusa /api/superadmin/alta/* (backend superadmin_alta.py).
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { UserPlus, Building2, Sparkles, ArrowRight, Check, UploadCloud } from 'lucide-react';
+import { UserPlus, Building2, Check, UploadCloud, LayoutGrid, FolderUp, Layers, ListChecks, ChevronRight } from 'lucide-react';
 import { altaDesarrollador, listarDesarrolladores, altaProyecto, uploadIngesta, ingestaJob } from '../../api/superadminAlta';
+
+// Componentes que se EMBEBEN aquí para unificar todo en un solo lugar (aceptan prop `embedded`).
+const SuperadminBulkIngest = lazy(() => import('./SuperadminBulkIngest'));
+const SuperadminGranularidad = lazy(() => import('./SuperadminGranularidad'));
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '18px 20px' };
 const inp = { width: '100%', padding: '9px 11px', borderRadius: 9, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', marginTop: 4 };
@@ -20,13 +24,13 @@ function Field({ label, children }) {
 
 export default function SuperadminAltaDesarrolladores() {
   const nav = useNavigate();
-  const [tab, setTab] = useState('manual');
+  const [tab, setTab] = useState('directorio');
   const [devs, setDevs] = useState([]);
   const [msg, setMsg] = useState(null);      // {tipo:'ok'|'err', txt}
   const [busy, setBusy] = useState(false);
 
   // form desarrollador
-  const [dev, setDev] = useState({ name: '', email: '', password: '', plan_tier: 'pro' });
+  const [dev, setDev] = useState({ name: '', email: '', password: '', plan_tier: 'pro', contact_email: '' });
   const [shell, setShell] = useState(false);      // crear cuenta VACÍA (sin credenciales) para reclamar después
   const [claimLink, setClaimLink] = useState(null);
   // form proyecto
@@ -70,15 +74,20 @@ export default function SuperadminAltaDesarrolladores() {
     if (!shell && (!dev.email || dev.password.length < 8)) { setMsg({ tipo: 'err', txt: 'Email y contraseña (8+) requeridos — o marca "cuenta vacía" para invitar después.' }); return; }
     setBusy(true); setMsg(null); setClaimLink(null);
     try {
-      const payload = shell ? { name: dev.name, plan_tier: dev.plan_tier } : dev;
+      const contact = (dev.contact_email || '').trim();
+      const payload = shell
+        ? { name: dev.name, plan_tier: dev.plan_tier, contact_email: contact || undefined, claim_base: window.location.origin }
+        : { name: dev.name, email: dev.email, password: dev.password, plan_tier: dev.plan_tier };
       const r = await altaDesarrollador(payload);
       if (r.status === 'pending_claim' && r.claim_path) {
         setClaimLink(`${window.location.origin}${r.claim_path}`);
-        setMsg({ tipo: 'ok', txt: `Cuenta vacía de "${r.name}" creada. Cárgale sus proyectos y envíale este link para que la reclame con su email:` });
+        setMsg({ tipo: 'ok', txt: r.invite_sent
+          ? `Cuenta vacía de "${r.name}" creada — le enviamos la invitación a ${r.contact_email}. También puedes copiar el link abajo.`
+          : `Cuenta vacía de "${r.name}" creada. Cárgale sus proyectos y envíale este link para que la reclame con su email:` });
       } else {
         setMsg({ tipo: 'ok', txt: `Desarrollador "${r.name}" creado. Ya puede entrar con ${r.email}.` });
       }
-      setDev({ name: '', email: '', password: '', plan_tier: 'pro' });
+      setDev({ name: '', email: '', password: '', plan_tier: 'pro', contact_email: '' });
       setProj((p) => ({ ...p, dev_org_id: r.dev_org_id }));   // preselecciona para crear su proyecto
       cargar();
     } catch (e) { setMsg({ tipo: 'err', txt: e.message || 'No se pudo crear.' }); }
@@ -102,19 +111,19 @@ export default function SuperadminAltaDesarrolladores() {
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <Building2 size={20} color="var(--theme)" />
-          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0 }}>Alta de desarrolladores y proyectos</h1>
+          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0 }}>Desarrolladores y desarrollos</h1>
         </div>
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.6)', marginBottom: 16 }}>
-          Da de alta un desarrollador y sus proyectos a mano, o cárgalos en lote automáticamente desde una carpeta de Google Drive.
+          Un solo lugar: da de alta desarrolladores, carga proyectos a mano o en lote con IA, revisa la granularidad de los datos y entra al directorio de cada dev.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {[['manual', 'Manual'], ['automatizado', 'Automatizado (lote)'], ['lista', `Desarrolladores (${devs.length})`]].map(([k, l]) => (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[['directorio', 'Directorio', LayoutGrid], ['manual', 'Alta manual', UserPlus], ['masiva', 'Carga masiva (IA)', FolderUp], ['granularidad', 'Granularidad', ListChecks]].map(([k, l, Ic]) => (
             <button key={k} data-testid={`alta-tab-${k}`} onClick={() => setTab(k)}
-              style={{ padding: '7px 15px', borderRadius: 10, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: 10, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
                 background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
                 border: `1px solid ${tab === k ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.08)'}`,
-                color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.6)' }}>{l}</button>
+                color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.6)' }}><Ic size={13} />{l}</button>
           ))}
         </div>
 
@@ -127,6 +136,27 @@ export default function SuperadminAltaDesarrolladores() {
           </div>
         )}
 
+        {tab === 'directorio' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 18 }}>
+            {[
+              { k: 'manual', t: 'Alta manual', s: 'Nuevo desarrollador + proyecto (rápido o wizard de 9 pasos).', Ic: UserPlus, go: () => setTab('manual') },
+              { k: 'masiva', t: 'Carga masiva con IA', s: 'Sube PDF/Excel/fotos o una carpeta de Drive → la IA llena todo.', Ic: FolderUp, go: () => setTab('masiva') },
+              { k: 'granularidad', t: 'Granularidad de datos', s: 'Qué tan completo está cada dato por colonia y proyecto.', Ic: ListChecks, go: () => setTab('granularidad') },
+              { k: 'catalogo', t: 'Catálogo y aprobación', s: 'Todos los proyectos + cola para publicar al marketplace.', Ic: Layers, go: () => nav('/superadmin/desarrollos') },
+            ].map((c) => (
+              <button key={c.k} onClick={c.go} data-testid={`dir-card-${c.k}`}
+                style={{ ...card, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 7 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}>
+                <c.Ic size={18} color="var(--theme)" />
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)' }}>{c.t}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)', lineHeight: 1.4 }}>{c.s}</div>
+                <span style={{ marginTop: 2, fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: 'var(--theme)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>Abrir <ChevronRight size={12} /></span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {tab === 'manual' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {/* Desarrollador */}
@@ -135,14 +165,38 @@ export default function SuperadminAltaDesarrolladores() {
                 <UserPlus size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>1. Nuevo desarrollador</b>
               </div>
               <Field label="Nombre / empresa"><input style={inp} value={dev.name} onChange={(e) => setDev({ ...dev, name: e.target.value })} data-testid="dev-name" placeholder="Constructora Aurora" /></Field>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: '2px 0 10px', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-                <input type="checkbox" checked={shell} onChange={(e) => { setShell(e.target.checked); setClaimLink(null); }} data-testid="dev-shell" />
-                Crear cuenta <b style={{ color: 'var(--cream)' }}>vacía</b> — sin email/contraseña; el dev la reclama con un link
-              </label>
+
+              {/* Modo de acceso — selector claro en vez del checkbox confuso */}
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ ...lbl, display: 'block', marginBottom: 6 }}>¿Cómo va a entrar?</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[[false, 'Le pongo el acceso', 'Email y contraseña ahora'], [true, 'Invitar por link', 'Cuenta vacía, él la reclama']].map(([v, t, sub]) => (
+                    <button key={String(v)} type="button" onClick={() => { setShell(v); setClaimLink(null); setMsg(null); }} data-testid={`dev-mode-${v ? 'shell' : 'creds'}`}
+                      style={{ flex: 1, textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                        background: shell === v ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${shell === v ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`, transition: 'all .12s' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: shell === v ? 'var(--theme)' : 'var(--cream)' }}>{t}</div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.5)', marginTop: 2, lineHeight: 1.3 }}>{sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {!shell && <Field label="Email del admin"><input style={inp} value={dev.email} onChange={(e) => setDev({ ...dev, email: e.target.value })} data-testid="dev-email" placeholder="admin@aurora.mx" /></Field>}
               {!shell && <Field label="Contraseña (8+)"><input style={inp} type="text" value={dev.password} onChange={(e) => setDev({ ...dev, password: e.target.value })} data-testid="dev-pass" placeholder="temporal, el dev la cambia" /></Field>}
+              {shell && (
+                <div style={{ marginBottom: 10, padding: '11px 13px', borderRadius: 11, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)' }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.72)', lineHeight: 1.5, marginBottom: 9 }}>
+                    Creamos la cuenta con sus proyectos ya cargados. El dev la <b style={{ color: 'var(--cream)' }}>reclama</b> con su propio correo y contraseña.
+                  </div>
+                  <label style={{ display: 'block' }}>
+                    <span style={lbl}>Correo del dev <span style={{ color: 'rgba(240,235,224,0.4)' }}>(opcional — le mandamos la invitación)</span></span>
+                    <input style={inp} type="email" value={dev.contact_email} onChange={(e) => setDev({ ...dev, contact_email: e.target.value })} data-testid="dev-contact" placeholder="dev@empresa.mx" />
+                  </label>
+                </div>
+              )}
               <Field label="Plan"><select style={inp} value={dev.plan_tier} onChange={(e) => setDev({ ...dev, plan_tier: e.target.value })}><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></Field>
-              <button onClick={crearDev} disabled={busy} style={btn(!busy)} data-testid="dev-crear">{shell ? 'Crear cuenta vacía' : 'Crear desarrollador'}</button>
+              <button onClick={crearDev} disabled={busy} style={btn(!busy)} data-testid="dev-crear">{shell ? (dev.contact_email.trim() ? 'Crear e invitar' : 'Crear cuenta') : 'Crear desarrollador'}</button>
               {claimLink && (
                 <div data-testid="dev-claim-link" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.35)' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.05em', color: '#A5B4FC', marginBottom: 5 }}>Link para reclamar (envíaselo al dev)</div>
@@ -162,7 +216,7 @@ export default function SuperadminAltaDesarrolladores() {
               <Field label="Desarrollador">
                 <select style={inp} value={proj.dev_org_id} onChange={(e) => setProj({ ...proj, dev_org_id: e.target.value })} data-testid="proj-dev">
                   <option value="">— elige —</option>
-                  {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name} ({d.proyectos})</option>)}
+                  {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}{d.status === 'pending_claim' ? ' · sin reclamar' : ''} ({d.proyectos})</option>)}
                 </select>
               </Field>
               <Field label="Nombre del proyecto"><input style={inp} value={proj.name} onChange={(e) => setProj({ ...proj, name: e.target.value })} data-testid="proj-name" placeholder="Torre Aurora Roma" /></Field>
@@ -175,13 +229,18 @@ export default function SuperadminAltaDesarrolladores() {
                 <Field label="Precio desde"><input style={inp} type="number" value={proj.price_from} onChange={(e) => setProj({ ...proj, price_from: e.target.value })} placeholder="3500000" /></Field>
                 <Field label="Etapa"><select style={inp} value={proj.stage} onChange={(e) => setProj({ ...proj, stage: e.target.value })}><option value="preventa">Preventa</option><option value="construccion">Construcción</option><option value="entrega">Entrega</option></select></Field>
               </div>
-              <button onClick={crearProyecto} disabled={busy} style={btn(!busy)} data-testid="proj-crear">Crear proyecto</button>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 8 }}>Nace en el catálogo. Las unidades/fotos/precio se completan desde su ficha o por Ingesta masiva.</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => { const dv = devs.find((x) => x.dev_org_id === proj.dev_org_id); if (!proj.dev_org_id) { setMsg({ tipo: 'err', txt: 'Elige primero un desarrollador.' }); return; } nav(`/desarrollador/proyectos/nuevo?dev=${encodeURIComponent(proj.dev_org_id)}&devName=${encodeURIComponent(dv?.name || '')}`); }}
+                  style={btn(true)} data-testid="proj-wizard">Cargar completo (wizard 9 pasos)</button>
+                <button onClick={crearProyecto} disabled={busy} style={{ ...btn(!busy), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }} data-testid="proj-crear">Alta rápida</button>
+              </div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 8 }}>El wizard captura todo (categoría, ubicación, amenidades, pagos, obra, legal…). La alta rápida crea solo lo básico; el resto se completa en su ficha.</p>
             </div>
           </div>
         )}
 
-        {tab === 'automatizado' && (
+        {tab === 'masiva' && (
           <div style={{ display: 'grid', gap: 14 }}>
             {/* UPLOAD DIRECTO — sube PDF/XLS/imágenes, la IA llena los campos sola */}
             <div style={card}>
@@ -208,7 +267,7 @@ export default function SuperadminAltaDesarrolladores() {
                 <Field label="Asignar a desarrollador (opcional)">
                   <select style={inp} value={upDev} onChange={(e) => setUpDev(e.target.value)}>
                     <option value="">— sin asignar —</option>
-                    {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}</option>)}
+                    {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}{d.status === 'pending_claim' ? ' · sin reclamar' : ''}</option>)}
                   </select>
                 </Field>
               </div>
@@ -227,36 +286,60 @@ export default function SuperadminAltaDesarrolladores() {
               )}
             </div>
 
-            {/* Drive — para lotes grandes */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Sparkles size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>…o carga masiva desde Google Drive</b>
-              </div>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.65)', lineHeight: 1.55, marginBottom: 12 }}>
-                Una carpeta con una subcarpeta por proyecto = muchos proyectos de golpe (misma extracción IA + revisión).
-              </p>
-              <button onClick={() => nav('/superadmin/bulk-ingest')} style={{ ...btn(), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }} data-testid="ir-ingesta">
-                Ir a Ingesta masiva (Drive) <ArrowRight size={14} style={{ verticalAlign: -2 }} />
-              </button>
+            {/* Consola COMPLETA de ingesta masiva (Drive + cola de revisión + aprobar), embebida aquí */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 8 }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(240,235,224,0.45)', marginBottom: 6 }}>…o carga en lote desde Google Drive + cola de revisión</div>
+              <Suspense fallback={<div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', padding: 12 }}>Cargando consola de ingesta…</div>}>
+                <SuperadminBulkIngest embedded />
+              </Suspense>
             </div>
           </div>
         )}
 
-        {tab === 'lista' && (
+        {tab === 'granularidad' && (
+          <Suspense fallback={<div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', padding: 12 }}>Cargando granularidad…</div>}>
+            <SuperadminGranularidad embedded />
+          </Suspense>
+        )}
+
+        {tab === 'directorio' && (
           <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', padding: '14px 16px 4px' }}>Directorio de desarrolladores ({devs.length})</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', padding: '0 16px 10px' }}>Haz clic en un desarrollador para ver/editar/agregar sus proyectos.</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['Desarrollador', 'Email', 'Plan', 'Alta', 'Proyectos'].map((c) => (
+              <thead><tr>{['Desarrollador', 'Estado', 'Email', 'Plan', 'Proyectos'].map((c) => (
                 <th key={c} style={{ textAlign: 'left', fontFamily: 'DM Mono, monospace', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.5)', padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>{c}</th>))}</tr></thead>
               <tbody>
-                {devs.map((d) => (
-                  <tr key={d.dev_org_id} data-testid={`dev-row-${d.dev_org_id}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                {devs.map((d) => {
+                  const pending = d.status === 'pending_claim';
+                  const claimUrl = d.claim_path ? `${window.location.origin}${d.claim_path}` : null;
+                  return (
+                  <tr key={d.dev_org_id} data-testid={`dev-row-${d.dev_org_id}`}
+                    onClick={() => nav(`/superadmin/alta/dev/${d.dev_org_id}`)}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>{d.name}</td>
-                    <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>{d.email}</td>
+                    <td style={{ padding: '9px 14px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                        background: pending ? 'rgba(99,102,241,0.14)' : 'rgba(31,160,106,0.14)',
+                        color: pending ? '#A5B4FC' : '#6EE7B7', border: `1px solid ${pending ? 'rgba(99,102,241,0.3)' : 'rgba(31,160,106,0.3)'}` }}>
+                        {pending ? 'Sin reclamar' : 'Activo'}
+                      </span>
+                      {pending && claimUrl && (
+                        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(claimUrl); setMsg({ tipo: 'ok', txt: `Link de reclamo de "${d.name}" copiado.` }); }}
+                          data-testid={`dev-copy-${d.dev_org_id}`}
+                          style={{ marginLeft: 8, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }}>
+                          Copiar link
+                        </button>
+                      )}
+                    </td>
+                    <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>{d.email || '—'}</td>
                     <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>{d.plan_tier}</td>
-                    <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 11.5, color: d.alta === 'superadmin' ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>{d.alta}</td>
                     <td style={{ padding: '9px 14px', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>{d.proyectos}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 {devs.length === 0 && <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)' }}>Aún no hay desarrolladores. Crea el primero en "Manual".</td></tr>}
               </tbody>
             </table>

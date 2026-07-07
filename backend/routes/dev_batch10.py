@@ -498,17 +498,30 @@ async def get_project_summary(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
 
-    dev_ids = _user_dev_ids(user)
-    if project_id not in dev_ids:
-        raise HTTPException(403, "Proyecto no accesible")
+    # Db-aware: los proyectos creados por el dev/superadmin viven en db.projects/db.developments y
+    # NO en el SEED en memoria — el gate solo-seed daba 403 al dueño legítimo de un proyecto heredado.
+    from tenant_scope import assert_db_project_owner
+    await assert_db_project_owner(db, user, project_id, not_found="Proyecto no accesible")
 
     from data_developments import DEVELOPMENTS
     dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
     if not dev:
-        raise HTTPException(404, "Proyecto no encontrado")
+        # Proyecto de BD (wizard/alta/bulk): normaliza a una forma mínima que el resumen entiende.
+        dev = await db.developments.find_one({"id": project_id}, {"_id": 0})
+        if not dev:
+            pdoc = await db.projects.find_one({"id": project_id}, {"_id": 0})
+            if pdoc:
+                dev = {"id": project_id, "units": pdoc.get("units") or [],
+                       "stage": pdoc.get("stage", "preventa"),
+                       "price_from": pdoc.get("price_from") or 0, "price_to": pdoc.get("price_to") or 0,
+                       "total_units": pdoc.get("total_units") or 0,
+                       "construction_progress": pdoc.get("construction_progress", {})}
+        if not dev:
+            raise HTTPException(404, "Proyecto no encontrado")
 
-    units_raw = dev.get("units", [])
-    units_total = max(1, len(units_raw))
+    units_raw = dev.get("units", []) or []
+    declared_total = int(dev.get("units_total") or dev.get("total_units") or 0)
+    units_total = max(1, len(units_raw) or declared_total)
 
     # Apply overrides
     overrides = {}

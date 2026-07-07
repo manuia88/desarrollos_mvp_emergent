@@ -59,6 +59,8 @@ class AltaDevBody(BaseModel):
     password: Optional[str] = None
     plan_tier: Optional[str] = "pro"  # informativo; el gating real vive en feature_flags
     display_name: Optional[str] = None
+    contact_email: Optional[str] = None   # SHELL: a dónde mandar la invitación de claim (opcional)
+    claim_base: Optional[str] = None      # SHELL: origen público para armar el link (lo manda el front)
 
 
 @router.post(PREFIX + "/desarrollador")
@@ -77,18 +79,31 @@ async def alta_desarrollador(body: AltaDevBody, request: Request):
     # ── MODO SHELL: sin email/password → crea la cuenta VACÍA para que el dev oficial la reclame ──
     if not email and not password:
         claim_token = secrets.token_urlsafe(16)
+        contact = (body.contact_email or "").lower().strip()
         await db.dev_orgs.update_one(
             {"tenant_id": tenant_id},
             {"$set": {"tenant_id": tenant_id, "name": body.name,
                       "display_name": body.display_name or body.name,
                       "plan_tier": body.plan_tier or "pro",
                       "created_at": now.isoformat(), "created_by": "superadmin",
-                      "status": "pending_claim", "claim_token": claim_token}},
+                      "status": "pending_claim", "claim_token": claim_token,
+                      "contact_email": contact or None}},
             upsert=True)
-        await _audit(db, user, "create", "developer_org_shell", tenant_id, {"name": body.name})
+        # Envío automático de la invitación (best-effort · skip si no hay RESEND_API_KEY)
+        invite_sent = False
+        if contact and "@" in contact:
+            base = (body.claim_base or "").rstrip("/") or "https://desarrollosmx.io"
+            try:
+                from resend_engine import send_dev_claim_invite
+                invite_sent = bool(send_dev_claim_invite(contact, body.name, f"{base}/reclamar/{claim_token}"))
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[alta] envío de invitación falló: {e}")
+        await _audit(db, user, "create", "developer_org_shell", tenant_id,
+                     {"name": body.name, "contact_email": contact or None})
         return {"ok": True, "dev_org_id": tenant_id, "name": body.name,
                 "status": "pending_claim", "claim_token": claim_token,
-                "claim_path": f"/reclamar/{claim_token}"}
+                "claim_path": f"/reclamar/{claim_token}",
+                "contact_email": contact or None, "invite_sent": invite_sent}
 
     # ── MODO COMPLETO: crea usuario developer_admin + org activa ──
     if not email or "@" not in email:
@@ -135,15 +150,31 @@ async def listar_desarrolladores(request: Request):
         async for r in db[coll].aggregate([{"$group": {"_id": f"${field}", "n": {"$sum": 1}}}]):
             if r["_id"]:
                 proj_por_org[r["_id"]] = proj_por_org.get(r["_id"], 0) + r["n"]
-    out = []
+    out, seen = [], set()
     async for u in db.users.find({"role": "developer_admin"},
                                  {"_id": 0, "user_id": 1, "name": 1, "email": 1, "tenant_id": 1,
                                   "created_by": 1, "plan_tier": 1}).sort("created_at", -1).limit(500):
         tid = u.get("tenant_id")
+        seen.add(tid)
         out.append({"dev_org_id": tid, "user_id": u.get("user_id"), "name": u.get("name"),
                     "email": u.get("email"), "plan_tier": u.get("plan_tier") or "—",
                     "alta": "superadmin" if u.get("created_by") == "superadmin" else "auto-registro",
-                    "proyectos": proj_por_org.get(tid, 0)})
+                    "proyectos": proj_por_org.get(tid, 0), "status": "active", "claim_path": None})
+    # Cuentas VACÍAS (shell) aún sin reclamar: no tienen usuario todavía, pero deben verse aquí y
+    # poder recibir proyectos — si no, "se crean y no aparecen". Se dedupean contra los usuarios.
+    async for o in db.dev_orgs.find({"status": "pending_claim"},
+                                    {"_id": 0, "tenant_id": 1, "name": 1, "plan_tier": 1,
+                                     "claim_token": 1, "contact_email": 1, "created_by": 1}).sort("created_at", -1).limit(500):
+        tid = o.get("tenant_id")
+        if not tid or tid in seen:
+            continue
+        seen.add(tid)
+        tok = o.get("claim_token")
+        out.append({"dev_org_id": tid, "user_id": None, "name": o.get("name"),
+                    "email": o.get("contact_email"), "plan_tier": o.get("plan_tier") or "—",
+                    "alta": "superadmin" if o.get("created_by") == "superadmin" else "auto-registro",
+                    "proyectos": proj_por_org.get(tid, 0), "status": "pending_claim",
+                    "claim_path": f"/reclamar/{tok}" if tok else None})
     return {"desarrolladores": out, "total": len(out)}
 
 
@@ -173,7 +204,10 @@ async def alta_proyecto(body: AltaProyectoBody, request: Request):
     db = _db(request)
     if not (body.name or "").strip():
         raise HTTPException(400, "Nombre del proyecto requerido")
-    if not await db.users.find_one({"tenant_id": body.dev_org_id, "role": "developer_admin"}):
+    # El dev puede ser un usuario ya activo O una cuenta vacía (shell) aún sin reclamar: en ambos
+    # casos se le pueden cargar proyectos por adelantado (los hereda al reclamar la cuenta).
+    if not (await db.users.find_one({"tenant_id": body.dev_org_id, "role": "developer_admin"})
+            or await db.dev_orgs.find_one({"tenant_id": body.dev_org_id})):
         raise HTTPException(404, "Desarrollador no encontrado")
 
     slug = _slug(body.name)
@@ -207,6 +241,177 @@ async def alta_proyecto(body: AltaProyectoBody, request: Request):
                  {"name": body.name, "dev_org_id": body.dev_org_id, "via": "manual"})
     return {"ok": True, "project_id": slug, "colonia_id": colonia_id,
             "nota": "El proyecto ya está en el catálogo. Súbele unidades/fotos/precio desde su ficha o Ingesta masiva."}
+
+
+# ─── 4) Ficha de un DESARROLLADOR: detalle + sus proyectos (gestión granular) ──
+
+@router.get(PREFIX + "/desarrollador/{dev_org_id}")
+async def detalle_desarrollador(dev_org_id: str, request: Request):
+    """Ficha de un dev: datos de la org + TODOS sus proyectos (db.projects + db.developments),
+    para verlos/gestionarlos desde superadmin aunque la cuenta aún no haya sido reclamada."""
+    await _require_superadmin(request)
+    db = _db(request)
+    org = await db.dev_orgs.find_one({"tenant_id": dev_org_id}, {"_id": 0})
+    usr = await db.users.find_one({"tenant_id": dev_org_id, "role": "developer_admin"},
+                                  {"_id": 0, "email": 1, "name": 1, "user_id": 1, "plan_tier": 1})
+    if not org and not usr:
+        raise HTTPException(404, "Desarrollador no encontrado")
+    tok = (org or {}).get("claim_token")
+    status = (org or {}).get("status") or ("active" if usr else "pending_claim")
+    scope = {"$or": [{"dev_org_id": dev_org_id}, {"developer_id": dev_org_id}, {"tenant_id": dev_org_id}]}
+    proyectos, seen = [], set()
+    for coll in ("projects", "developments"):
+        async for p in db[coll].find(scope, {"_id": 0}):
+            pid = p.get("id") or p.get("slug")
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            proyectos.append({
+                "id": pid, "name": p.get("name"), "colonia": p.get("colonia"),
+                "alcaldia": p.get("alcaldia") or p.get("municipio"),
+                "stage": p.get("stage"), "segmento": p.get("segmento"),
+                "total_units": p.get("total_units") or p.get("units_total") or 0,
+                "price_from": p.get("price_from"),
+                "marketplace_published": p.get("marketplace_published"),
+                "source": coll, "created_via": p.get("created_via")})
+    proyectos.sort(key=lambda x: (x.get("name") or "").lower())
+    return {"dev_org_id": dev_org_id,
+            "name": (org or {}).get("name") or (usr or {}).get("name"),
+            "display_name": (org or {}).get("display_name"),
+            "plan_tier": (org or {}).get("plan_tier") or (usr or {}).get("plan_tier") or "pro",
+            "status": status,
+            "email": (usr or {}).get("email") or (org or {}).get("admin_email"),
+            "contact_email": (org or {}).get("contact_email"),
+            "claim_path": f"/reclamar/{tok}" if tok else None,
+            "has_user": bool(usr),
+            "proyectos": proyectos, "total_proyectos": len(proyectos)}
+
+
+class EditDevBody(BaseModel):
+    name: Optional[str] = None
+    display_name: Optional[str] = None
+    plan_tier: Optional[str] = None
+    contact_email: Optional[str] = None
+
+
+@router.patch(PREFIX + "/desarrollador/{dev_org_id}")
+async def editar_desarrollador(dev_org_id: str, body: EditDevBody, request: Request):
+    """Edita datos de un dev (nombre/plan/contacto) sin recrearlo — actualiza org y su usuario."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    if not await db.dev_orgs.find_one({"tenant_id": dev_org_id}, {"_id": 0, "tenant_id": 1}):
+        raise HTTPException(404, "Desarrollador no encontrado")
+    org_set: Dict[str, Any] = {}
+    usr_set: Dict[str, Any] = {}
+    if body.name is not None:
+        org_set["name"] = body.name.strip(); usr_set["name"] = body.name.strip()
+    if body.display_name is not None:
+        org_set["display_name"] = body.display_name.strip()
+    if body.plan_tier is not None:
+        org_set["plan_tier"] = body.plan_tier; usr_set["plan_tier"] = body.plan_tier
+    if body.contact_email is not None:
+        org_set["contact_email"] = (body.contact_email or "").lower().strip() or None
+    if org_set:
+        await db.dev_orgs.update_one({"tenant_id": dev_org_id}, {"$set": org_set})
+    if usr_set:
+        await db.users.update_one({"tenant_id": dev_org_id, "role": "developer_admin"}, {"$set": usr_set})
+    await _audit(db, user, "update", "developer_org", dev_org_id, org_set)
+    return {"ok": True, "dev_org_id": dev_org_id, **org_set}
+
+
+class DarAccesoBody(BaseModel):
+    email: str
+    password: str
+
+
+@router.post(PREFIX + "/desarrollador/{dev_org_id}/dar-acceso")
+async def dar_acceso_desarrollador(dev_org_id: str, body: DarAccesoBody, request: Request):
+    """Le pone acceso (email+contraseña) a una cuenta vacía existente: crea el usuario
+    developer_admin bajo ESE tenant (hereda sus proyectos) y activa la org, sin usar el link."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    from server import hash_password
+    org = await db.dev_orgs.find_one({"tenant_id": dev_org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(404, "Desarrollador no encontrado")
+    if await db.users.find_one({"tenant_id": dev_org_id, "role": "developer_admin"}):
+        raise HTTPException(409, "Esta cuenta ya tiene acceso")
+    email = (body.email or "").lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(400, "Email inválido")
+    if not (body.password and len(body.password) >= 8):
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(409, "Ese correo ya está registrado")
+    now = dt.datetime.now(dt.timezone.utc)
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    try:
+        await db.users.insert_one({
+            "user_id": user_id, "email": email, "name": org.get("name"),
+            "password_hash": hash_password(body.password),
+            "role": "developer_admin", "tenant_id": dev_org_id,
+            "onboarded": True, "created_at": now,
+            "created_by": "superadmin", "created_by_id": user.user_id,
+            "plan_tier": org.get("plan_tier")})
+    except Exception as e:  # noqa: BLE001
+        from pymongo.errors import DuplicateKeyError
+        if isinstance(e, DuplicateKeyError):
+            raise HTTPException(409, "Ese correo ya está registrado")
+        raise
+    await db.dev_orgs.update_one(
+        {"tenant_id": dev_org_id},
+        {"$set": {"status": "active", "admin_email": email, "claimed_at": now.isoformat()},
+         "$unset": {"claim_token": ""}})
+    await _audit(db, user, "update", "developer_org", dev_org_id, {"dar_acceso": email})
+    return {"ok": True, "dev_org_id": dev_org_id, "email": email}
+
+
+class EditProyectoBody(BaseModel):
+    name: Optional[str] = None
+    colonia: Optional[str] = None
+    alcaldia: Optional[str] = None
+    stage: Optional[str] = None
+    segmento: Optional[str] = None
+    tipo_proyecto: Optional[str] = None
+    total_units: Optional[int] = None
+    price_from: Optional[float] = None
+
+
+@router.patch(PREFIX + "/proyecto/{project_id}")
+async def editar_proyecto(project_id: str, body: EditProyectoBody, request: Request):
+    """Edita los campos básicos de un proyecto (nombre/etapa/segmento/precio/unidades). Los detalles
+    finos (unidades, amenidades, planes de pago) se editan por impersonación en el portal del dev."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    coll = "projects"
+    if not await db.projects.find_one({"id": project_id}, {"_id": 0, "id": 1}):
+        coll = "developments"
+        if not await db.developments.find_one({"id": project_id}, {"_id": 0, "id": 1}):
+            raise HTTPException(404, "Proyecto no encontrado")
+    upd: Dict[str, Any] = {}
+    if body.name is not None:
+        upd["name"] = body.name.strip()
+    if body.colonia is not None:
+        upd["colonia"] = body.colonia
+    if body.alcaldia is not None:
+        upd["alcaldia"] = body.alcaldia
+        upd["municipio"] = body.alcaldia
+    if body.stage is not None:
+        upd["stage"] = body.stage
+    if body.segmento is not None:
+        upd["segmento"] = body.segmento
+    if body.tipo_proyecto is not None:
+        upd["tipo_proyecto"] = body.tipo_proyecto
+    if body.total_units is not None:
+        upd["total_units"] = int(body.total_units)
+    if body.price_from is not None:
+        upd["price_from"] = float(body.price_from)
+    if not upd:
+        return {"ok": True, "project_id": project_id, "nota": "sin cambios"}
+    upd["updated_at"] = _now_iso()
+    await db[coll].update_one({"id": project_id}, {"$set": upd})
+    await _audit(db, user, "update", "development", project_id, upd)
+    return {"ok": True, "project_id": project_id, **upd}
 
 
 async def _audit(db, user, accion: str, entidad: str, eid: str, after: Dict[str, Any]) -> None:
@@ -247,28 +452,42 @@ async def dev_claim(token: str, body: ClaimDevBody, request: Request):
     Después, como developer_admin, puede invitar a sus propios usuarios (POST /api/dev/internal-users)."""
     db = _db(request)
     from server import hash_password
-    org = await db.dev_orgs.find_one({"claim_token": token, "status": "pending_claim"}, {"_id": 0})
-    if not org:
-        raise HTTPException(404, "Invitación inválida o ya reclamada")
     email = (body.email or "").lower().strip()
     if not email or "@" not in email:
         raise HTTPException(400, "Email inválido")
     if not (body.password and len(body.password) >= 8):
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(409, "Ese correo ya está registrado")
+    # Consumo ATÓMICO del token: sólo UN request concurrente gana el match (evita que dos reclamos
+    # simultáneos con correos distintos creen DOS developer_admin sobre el mismo tenant). El perdedor
+    # ya no matchea (status ya no es pending_claim, token removido) → 404.
+    org = await db.dev_orgs.find_one_and_update(
+        {"claim_token": token, "status": "pending_claim"},
+        {"$set": {"status": "claiming"}, "$unset": {"claim_token": ""}})
+    if not org:
+        raise HTTPException(404, "Invitación inválida o ya reclamada")
     tenant_id = org["tenant_id"]
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     now = dt.datetime.now(dt.timezone.utc)
-    await db.users.insert_one({
-        "user_id": user_id, "email": email, "name": body.name or org.get("name"),
-        "password_hash": hash_password(body.password),
-        "role": "developer_admin", "tenant_id": tenant_id,
-        "onboarded": True, "created_at": now, "created_via": "claim",
-        "plan_tier": org.get("plan_tier"),
-    })
+    try:
+        if await db.users.find_one({"email": email}):
+            raise HTTPException(409, "Ese correo ya está registrado")
+        await db.users.insert_one({
+            "user_id": user_id, "email": email, "name": body.name or org.get("name"),
+            "password_hash": hash_password(body.password),
+            "role": "developer_admin", "tenant_id": tenant_id,
+            "onboarded": True, "created_at": now, "created_via": "claim",
+            "plan_tier": org.get("plan_tier"),
+        })
+    except Exception as e:  # noqa: BLE001
+        # Rollback: reabrir la cuenta con su token original para que el dev legítimo pueda reintentar.
+        await db.dev_orgs.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {"status": "pending_claim", "claim_token": token}})
+        from pymongo.errors import DuplicateKeyError
+        if isinstance(e, DuplicateKeyError):
+            raise HTTPException(409, "Ese correo ya está registrado")
+        raise
     await db.dev_orgs.update_one(
         {"tenant_id": tenant_id},
-        {"$set": {"status": "active", "admin_email": email, "claimed_at": now.isoformat()},
-         "$unset": {"claim_token": ""}})
+        {"$set": {"status": "active", "admin_email": email, "claimed_at": now.isoformat()}})
     return {"ok": True, "dev_org_id": tenant_id, "email": email, "name": body.name or org.get("name")}

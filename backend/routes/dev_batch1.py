@@ -1087,21 +1087,31 @@ async def list_projects(request: Request):
     user = await _auth(request)
     db = _db(request)
     from data_developments import DEVELOPMENTS
+    tid = _tenant(user)
     metas = {}
-    async for m in db.dev_project_meta.find({"dev_org_id": _tenant(user)}, {"_id": 0}):
+    async for m in db.dev_project_meta.find({"dev_org_id": tid}, {"_id": 0}):
         metas[m["project_id"]] = m
 
-    return [
-        {
-            "id": d["id"],
-            "name": d["name"],
-            "colonia": d["colonia"],
-            "stage": d["stage"],
-            "center": d.get("center"),
-            "location_meta": metas.get(d["id"]),
-        }
-        for d in DEVELOPMENTS
-    ]
+    out, seen = [], set()
+    for d in DEVELOPMENTS:
+        seen.add(d["id"])
+        out.append({"id": d["id"], "name": d["name"], "colonia": d["colonia"],
+                    "stage": d["stage"], "center": d.get("center"),
+                    "location_meta": metas.get(d["id"])})
+    # Proyectos de BD (wizard/alta/bulk) del PROPIO tenant — sin esto el dev no ve sus proyectos
+    # heredados/creados en los selectores (demanda, calendario de contenido). Filtrado por tenant.
+    scope = {"$or": [{"dev_org_id": tid}, {"developer_id": tid}, {"tenant_id": tid}]}
+    for coll in ("projects", "developments"):
+        async for p in db[coll].find(scope, {"_id": 0, "id": 1, "name": 1, "colonia": 1,
+                                             "stage": 1, "center": 1}):
+            pid = p.get("id")
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            out.append({"id": pid, "name": p.get("name"), "colonia": p.get("colonia"),
+                        "stage": p.get("stage", "preventa"), "center": p.get("center"),
+                        "location_meta": metas.get(pid)})
+    return out
 # ═══════════════════════════════════════════════════════════════════════════════
 # 4.7 UNIT HOLDS (apartado temporal)
 # ═══════════════════════════════════════════════════════════════════════════════

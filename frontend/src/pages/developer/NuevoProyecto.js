@@ -3,7 +3,7 @@
  * 3 modes: manual | IA upload | Drive import. All converge into the same 7-step wizard.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { SmartWizard } from '../../components/shared/SmartWizard';
 import { DragDropZone } from '../../components/shared/DragDropZone';
@@ -12,7 +12,7 @@ import {
   getWizardSmartDefaults, createWizardProject,
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
-import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
+import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X, Building2 } from 'lucide-react';
 import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal, uploadProjectAssets, getLegalMeta, uploadDevDocument } from '../../api/developer';
 import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
 import { SchemeCard } from '../../components/developer/paymentSchemesUI';
@@ -727,6 +727,11 @@ function DriveImportTab() {
 // ═══ MAIN PAGE ════════════════════════════════════════════════════════════
 export default function NuevoProyectoPage({ user, onLogout }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Superadmin puede cargar el proyecto A NOMBRE de un dev (viene por ?dev=&devName=) — el mismo
+  // wizard, mismos 9 pasos, pero el dueño queda vinculado a ese dev (incluye cuentas vacías).
+  const targetDev = searchParams.get('dev');
+  const targetDevName = searchParams.get('devName');
   const [mode, setMode] = useState('manual'); // manual | ia | drive
   const [iaPrefill, setIaPrefill] = useState(null);
   const [smartDefaults, setSmartDefaults] = useState(null);
@@ -788,6 +793,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         comercializacion: allData.comercializacion || {},
         ia_source: iaPrefill ? 'ia_upload' : (mode === 'drive' ? 'drive' : 'manual'),
         ia_extraction_id: iaPrefill?.run_id || null,
+        target_dev_org_id: targetDev || undefined,   // superadmin: dueño = ese dev
       };
       const r = await createWizardProject(payload);
       // Subida REAL de fotos al proyecto recién creado (no bloquea: el proyecto ya existe)
@@ -805,7 +811,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
           } catch (e) { /* no bloquea; se reintenta en la ficha Legal */ }
         }
       }
-      navigate(r.redirect || `/desarrollador/proyectos/${r.project_id}`);
+      navigate(targetDev ? `/superadmin/alta/dev/${targetDev}` : (r.redirect || `/desarrollador/proyectos/${r.project_id}`));
     } catch (e) {
       setSubmitError(e.message || 'Error al crear el proyecto');
       setSubmitting(false);
@@ -826,6 +832,13 @@ export default function NuevoProyectoPage({ user, onLogout }) {
           <p className="text-sm text-[rgba(var(--cream-rgb),0.55)] mt-1">
             Crea un proyecto nuevo en 9 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
           </p>
+          {targetDev && (
+            <div data-testid="wizard-target-dev" className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-[DM_Sans]"
+              style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#A5B4FC' }}>
+              <Building2 size={14} />
+              Cargando para <b style={{ color: 'var(--cream)' }}>{targetDevName || 'el desarrollador'}</b> · el proyecto quedará vinculado a esa cuenta.
+            </div>
+          )}
         </div>
 
         <div className="flex gap-1 p-1 rounded-xl bg-[rgba(var(--cream-rgb),0.04)] border border-[rgba(var(--cream-rgb),0.08)] mb-6 w-fit">

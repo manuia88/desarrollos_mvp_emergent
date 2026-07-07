@@ -1,8 +1,15 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-07-01
+**Última actualización**: 2026-07-07
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+> **2026-07-07 · Superadmin · alta/carga de desarrolladores unificada + wizard vinculado + seguridad (rama `auditoria/fixes-y-upgrades`)**:
+> **Cuenta vacía (shell)→claim**: superadmin crea un dev sin credenciales (`dev_orgs` `pending_claim`+`claim_token`); el dev oficial la reclama en **`/reclamar/:token`** (`ReclamarDev.js` + público `GET/POST /api/dev-claim/{token}`) heredando sus proyectos, o el superadmin le da acceso directo (`POST .../dar-acceso`). Invitación por correo opcional (`send_dev_claim_invite`).
+> **Ficha de desarrollador** (`/superadmin/alta/dev/:id`, `SuperadminDesarrolladorFicha.js`): drill-in granular con detalle+proyectos, editar dev, editar básicos de proyecto, publicar (endpoints nuevos en `superadmin_alta.py`).
+> **Carga COMPLETA reusa el wizard de 9 pasos** del portal dev (`NuevoProyecto.js`) parametrizado con `target_dev_org_id` (solo superadmin) en `create_project` (`wizard.py`) → escribe TODAS las colecciones bajo el dev elegido (incluso shells).
+> **Hub unificado** `/superadmin/alta` (sidebar "Desarrolladores y carga"): 4 tabs Directorio · Alta manual · Carga masiva IA (`SuperadminBulkIngest` embebido) · Granularidad (`SuperadminGranularidad` embebida).
+> **5 bugs de seguridad corregidos** (auditoría adversarial): claim TOCTOU (find_one_and_update atómico), proyecto heredado 403 (`assert_db_project_owner`), `list_projects` solo-seed, ficha pública `developments` pending sin gate, dup-email→409. Pytest **1346 verdes**. Doc: `memory/DEV_ALTA_SHELL_FICHA.md`.
 
 > **2026-07-01 · Mapa + Herramientas · rediseño Apple-tier + hipergranularidad (rama `feat/p1-feeders`)**:
 > MAPA `/mapa-valores` con **selector de 15 capas** (valor · AVM mercado · plusvalía · gentrificación · FAR · subutilizado ·

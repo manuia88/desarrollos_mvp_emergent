@@ -289,6 +289,7 @@ const SuperadminDevtoolsHub          = lazy(() => import('./pages/superadmin/Sup
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
+const SuperadminDesarrolladorFicha   = lazy(() => import('./pages/superadmin/SuperadminDesarrolladorFicha'));
 // W2.1 SA2 — Data Sources Hub (unified connectors)
 // W2.2 SA3 — Audit Log Viewer (cross-org)
 const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
@@ -936,6 +937,7 @@ function AppRouter() {
       {/* W1.4 ZZ.1 — Bulk Drive Ingestion */}
       <Route path="/superadmin/bulk-ingest" element={<Navigate to="/superadmin/datos?tab=bulk-ingest" replace />} />
       <Route path="/superadmin/alta" element={<SuperadminRoute Page={SuperadminAltaDesarrolladores} />} />
+      <Route path="/superadmin/alta/dev/:devOrgId" element={<SuperadminRoute Page={SuperadminDesarrolladorFicha} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}

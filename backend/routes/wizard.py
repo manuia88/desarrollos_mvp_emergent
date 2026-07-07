@@ -321,6 +321,7 @@ class WizardProjectPayload(BaseModel):
     comercializacion: Dict[str, Any] = {}
     ia_source: Optional[str] = None      # 'manual' | 'ia_upload' | 'drive'
     ia_extraction_id: Optional[str] = None
+    target_dev_org_id: Optional[str] = None  # SOLO superadmin: crear el proyecto A NOMBRE de otro dev
 
 
 @router.post("/projects")
@@ -328,6 +329,15 @@ async def create_project(payload: WizardProjectPayload, request: Request):
     user = await _auth(request)
     db = _db(request)
     org = _org(user)
+    # Superadmin puede cargar el proyecto (con TODOS sus pasos) a nombre de un dev específico —
+    # incluso una cuenta vacía (shell) que aún no se puede impersonar. El vínculo vive en dev_org_id.
+    owner_developer_id = getattr(user, "user_id", None)
+    if payload.target_dev_org_id and getattr(user, "role", None) == "superadmin":
+        tgt = (payload.target_dev_org_id or "").strip()
+        if not await db.dev_orgs.find_one({"tenant_id": tgt}):
+            raise HTTPException(404, "Desarrollador (target_dev_org_id) no encontrado")
+        org = tgt
+        owner_developer_id = tgt
     op = payload.operacion or {}
     ub = payload.ubicacion or {}
     cat = payload.categoria or {}
@@ -354,7 +364,7 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         "slug": slug,
         "name": name,
         "dev_org_id": org,
-        "developer_id": getattr(user, "user_id", None),
+        "developer_id": owner_developer_id,
         "tipo_proyecto": cat.get("tipo_proyecto"),
         "segmento": cat.get("segmento"),
         "stage": cat.get("etapa", "preventa"),

@@ -46,3 +46,27 @@ export async function ingestaJob(jobId) {
   if (!res.ok) return null;
   return res.json();
 }
+
+// ─── Ficha de un desarrollador (detalle + gestión granular) ───────────────────
+
+export async function detalleDesarrollador(devOrgId) {
+  return _j(await fetch(`${API}/api/superadmin/alta/desarrollador/${encodeURIComponent(devOrgId)}`, { credentials: 'include' }));
+}
+
+export async function editarDesarrollador(devOrgId, body) {
+  return _j(await fetch(`${API}/api/superadmin/alta/desarrollador/${encodeURIComponent(devOrgId)}`, {
+    method: 'PATCH', headers: h, credentials: 'include', body: JSON.stringify(body),
+  }));
+}
+
+export async function darAccesoDesarrollador(devOrgId, body) {
+  return _j(await fetch(`${API}/api/superadmin/alta/desarrollador/${encodeURIComponent(devOrgId)}/dar-acceso`, {
+    method: 'POST', headers: h, credentials: 'include', body: JSON.stringify(body),
+  }));
+}
+
+export async function editarProyecto(projectId, body) {
+  return _j(await fetch(`${API}/api/superadmin/alta/proyecto/${encodeURIComponent(projectId)}`, {
+    method: 'PATCH', headers: h, credentials: 'include', body: JSON.stringify(body),
+  }));
+}
