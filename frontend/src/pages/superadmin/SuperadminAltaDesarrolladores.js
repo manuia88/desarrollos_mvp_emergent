@@ -39,13 +39,27 @@ export default function SuperadminAltaDesarrolladores() {
   const [upFiles, setUpFiles] = useState([]);
   const [upName, setUpName] = useState('');
   const [upDev, setUpDev] = useState('');
+  const [upNewDevName, setUpNewDevName] = useState('');   // crear dev al vuelo desde la carga masiva
   const [upJob, setUpJob] = useState(null);   // {status, extracted, ...}
+
+  // Crea un desarrollador (cuenta vacía) SIN salir de la carga masiva y lo deja seleccionado.
+  const crearDevDesdeCarga = async () => {
+    if (!upNewDevName.trim()) { setMsg({ tipo: 'err', txt: 'Escribe el nombre del desarrollador nuevo.' }); return; }
+    setBusy(true); setMsg(null);
+    try {
+      const r = await altaDesarrollador({ name: upNewDevName.trim(), plan_tier: 'pro' });
+      await new Promise((res) => { listarDesarrolladores().then((d) => { setDevs(d.desarrolladores || []); res(); }).catch(res); });
+      setUpDev(r.dev_org_id); setUpNewDevName('');
+      setMsg({ tipo: 'ok', txt: `Desarrollador "${r.name}" creado (cuenta vacía) y seleccionado. Ya puedes subirle proyectos.` });
+    } catch (e) { setMsg({ tipo: 'err', txt: e.message || 'No se pudo crear.' }); }
+    finally { setBusy(false); }
+  };
 
   const correrUpload = async () => {
     if (upFiles.length === 0) { setMsg({ tipo: 'err', txt: 'Arrastra o elige al menos un PDF/XLS/imagen.' }); return; }
     setBusy(true); setMsg(null); setUpJob({ status: 'extracting' });
     try {
-      const r = await uploadIngesta(upFiles, upName, upDev);
+      const r = await uploadIngesta(upFiles, upName, upDev === '__new__' ? '' : upDev);
       // poll el job hasta que termine (la IA extrae en background)
       let done = null;
       for (let i = 0; i < 30 && !done; i++) {
@@ -211,7 +225,7 @@ export default function SuperadminAltaDesarrolladores() {
             {/* Proyecto */}
             <div style={card}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Building2 size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>2. Nuevo proyecto</b>
+                <Building2 size={16} color="var(--theme)" /><b style={{ fontFamily: 'Outfit', fontSize: 15, color: 'var(--cream)' }}>2. Cargar proyecto (wizard o alta rápida)</b>
               </div>
               <Field label="Desarrollador">
                 <select style={inp} value={proj.dev_org_id} onChange={(e) => setProj({ ...proj, dev_org_id: e.target.value })} data-testid="proj-dev">
@@ -264,16 +278,31 @@ export default function SuperadminAltaDesarrolladores() {
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <Field label="Nombre del proyecto (opcional)"><input style={inp} value={upName} onChange={(e) => setUpName(e.target.value)} placeholder="lo detecta la IA si lo dejas vacío" /></Field>
-                <Field label="Asignar a desarrollador (opcional)">
-                  <select style={inp} value={upDev} onChange={(e) => setUpDev(e.target.value)}>
+                <Field label="Desarrollador (asigna o crea uno nuevo)">
+                  <select style={inp} value={upDev} onChange={(e) => setUpDev(e.target.value)} data-testid="up-dev">
                     <option value="">— sin asignar —</option>
+                    <option value="__new__">➕ Crear desarrollador nuevo…</option>
                     {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}{d.status === 'pending_claim' ? ' · sin reclamar' : ''}</option>)}
                   </select>
                 </Field>
               </div>
-              <button onClick={correrUpload} disabled={busy || upFiles.length === 0} style={btn(!busy && upFiles.length > 0)} data-testid="up-correr">
-                {busy ? 'La IA está leyendo…' : 'Subir y extraer con IA'}
-              </button>
+              {upDev === '__new__' && (
+                <div style={{ display: 'flex', gap: 6, margin: '-2px 0 12px' }}>
+                  <input style={{ ...inp, marginTop: 0 }} value={upNewDevName} onChange={(e) => setUpNewDevName(e.target.value)} placeholder="Nombre / empresa del nuevo desarrollador" data-testid="up-newdev" />
+                  <button onClick={crearDevDesdeCarga} disabled={busy} style={{ ...btn(!busy), whiteSpace: 'nowrap' }} data-testid="up-newdev-crear">Crear y seleccionar</button>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={correrUpload} disabled={busy || upFiles.length === 0} style={btn(!busy && upFiles.length > 0)} data-testid="up-correr">
+                  {busy ? 'La IA está leyendo…' : 'Subir y extraer con IA'}
+                </button>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.4)' }}>o captúralo a mano →</span>
+                <button
+                  onClick={() => { const id = upDev && upDev !== '__new__' ? upDev : ''; if (!id) { setMsg({ tipo: 'err', txt: 'Elige (o crea) un desarrollador arriba para abrir el wizard.' }); return; } const dv = devs.find((x) => x.dev_org_id === id); nav(`/desarrollador/proyectos/nuevo?dev=${encodeURIComponent(id)}&devName=${encodeURIComponent(dv?.name || '')}`); }}
+                  style={{ ...btn(true), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.82)' }} data-testid="up-wizard">
+                  Wizard 9 pasos
+                </button>
+              </div>
               {upJob && upJob.status === 'completed' && upJob.items_auto_approved > 0 && (
                 <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 12.5, color: '#6EE7B7' }}>
                   ✓ Proyecto creado y publicado en el catálogo.

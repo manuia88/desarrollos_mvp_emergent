@@ -10,6 +10,7 @@ import {
   startIngest, listJobs, getJob, listJobItems,
   approveItem, rejectItem, mergeItem, bulkApproveJob, getStats,
 } from '../../api/superadminBulkIngest';
+import { listarDesarrolladores, altaDesarrollador } from '../../api/superadminAlta';
 import { Z } from '../../styles/zIndex';
 
 function fmtMxn(n) {
@@ -144,7 +145,21 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
   const [form, setForm] = useState({ url: '', org: '' });
   const [busyStart, setBusyStart] = useState(false);
   const [toast, setToast] = useState('');
+  const [devs, setDevs] = useState([]);          // para elegir/crear el dev dueño de la ingesta
+  const [newDevName, setNewDevName] = useState('');
   const tabVisibleRef = useRef(true);
+
+  const loadDevs = useCallback(() => {
+    listarDesarrolladores().then((d) => setDevs(d.desarrolladores || [])).catch(() => {});
+  }, []);
+  const crearDevInline = async () => {
+    if (!newDevName.trim()) { setToast('Escribe el nombre del nuevo desarrollador.'); return; }
+    try {
+      const r = await altaDesarrollador({ name: newDevName.trim(), plan_tier: 'pro' });
+      loadDevs(); setForm((f) => ({ ...f, org: r.dev_org_id })); setNewDevName('');
+      setToast(`Desarrollador "${r.name}" creado y seleccionado.`);
+    } catch (e) { setToast(e.message || 'No se pudo crear el desarrollador.'); }
+  };
 
   const loadStats = useCallback(async () => {
     try { setStats(await getStats()); } catch { /* keep */ }
@@ -168,7 +183,7 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
     } catch { /* keep */ }
   }, []);
 
-  useEffect(() => { loadStats(); loadJobs(); }, [loadStats, loadJobs]);
+  useEffect(() => { loadStats(); loadJobs(); loadDevs(); }, [loadStats, loadJobs, loadDevs]);
   useEffect(() => { if (tab === 'review') loadReview(); }, [tab, loadReview]);
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 3500); return () => clearTimeout(t); } }, [toast]);
 
@@ -264,14 +279,28 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
             <input data-testid="ingest-url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
               placeholder="https://drive.google.com/drive/folders/…"
               style={{ flex: '1 1 280px', padding: '9px 13px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
-            <input data-testid="ingest-org" value={form.org} onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
-              placeholder="dev_org_id (opcional)"
-              style={{ flex: '0 1 200px', padding: '9px 13px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
-            <button data-testid="ingest-start-btn" onClick={handleStart} disabled={busyStart || !form.url.trim()}
+            <select data-testid="ingest-org" value={form.org} onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
+              style={{ flex: '0 1 220px', padding: '9px 13px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }}>
+              <option value="">— desarrollador: sin asignar —</option>
+              <option value="__new__">➕ Crear desarrollador nuevo…</option>
+              {devs.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}{d.status === 'pending_claim' ? ' · sin reclamar' : ''}</option>)}
+            </select>
+            <button data-testid="ingest-start-btn" onClick={handleStart} disabled={busyStart || !form.url.trim() || form.org === '__new__'}
               style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busyStart ? 'wait' : 'pointer', opacity: busyStart ? 0.7 : 1 }}>
               {busyStart ? 'Iniciando…' : 'Iniciar ingesta'}
             </button>
           </div>
+          {form.org === '__new__' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input data-testid="ingest-newdev" value={newDevName} onChange={e => setNewDevName(e.target.value)}
+                placeholder="Nombre / empresa del nuevo desarrollador"
+                style={{ flex: '1 1 240px', padding: '9px 13px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
+              <button data-testid="ingest-newdev-btn" onClick={crearDevInline}
+                style={{ padding: '9px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Crear y seleccionar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
