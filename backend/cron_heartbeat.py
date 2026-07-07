@@ -54,6 +54,8 @@ SCHEDULE_LABELS = {
     "notifications_digest_4h":          "cada 4h (08:00 · 12:00 · 16:00 · 20:00 MX)",
     "wa_pending_replies_check":         "cada 30 min",
     "meeting_reminders_check":          "cada 30 min",
+    "ie_moat_feeders_refresh":          "semanal · dom 01:30 MX",
+    "gentrification_persist":           "diario · 04:45 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -92,6 +94,8 @@ SCHEDULE_INTERVAL_SEC = {
     "notifications_digest_4h":          4 * 3600,
     "wa_pending_replies_check":         30 * 60,
     "meeting_reminders_check":          30 * 60,
+    "ie_moat_feeders_refresh":          7 * 86400,
+    "gentrification_persist":           86400,
 }
 
 
