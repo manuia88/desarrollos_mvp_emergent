@@ -20,7 +20,7 @@ function Spark({ serie }) {
 
 const PERIODS = [['day', 'Día'], ['week', 'Semana'], ['month', 'Mes'], ['quarter', 'Trimestre'], ['year', 'Año']];
 
-export default function SuperadminDemandaMercado() {
+export default function SuperadminDemandaMercado({ embedded }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [period, setPeriod] = useState('month');
@@ -47,7 +47,7 @@ export default function SuperadminDemandaMercado() {
   const build = data?.what_to_build?.oportunidades || [];
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader title="Demanda de mercado"
         sub="Las interacciones de los compradores convertidas en data: qué se busca, dónde, cuándo y qué construir." />
 

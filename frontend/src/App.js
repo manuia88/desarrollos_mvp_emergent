@@ -76,7 +76,6 @@ const ProbabilityPage = lazy(() => import('./pages/portal/tools/ProbabilityPage'
 // W5.15 wire — Superadmin FSD accuracy dashboard
 const SuperadminFSDAccuracy = lazy(() => import('./pages/superadmin/SuperadminFSDAccuracy'));
 // W5.17 wire — Superadmin Virtual Staging stats/debug
-const SuperadminVirtualStaging = lazy(() => import('./pages/superadmin/SuperadminVirtualStaging'));
 // W5.x F11 wire — AsesorMarketplace (advisor view with per-card fit-score)
 const AsesorMarketplace = lazy(() => import('./pages/asesor/AsesorMarketplace'));
 // W5.x F11 close — PropertyFitLeadsPage (consumes FitTopLeadsList huérfano)
@@ -85,15 +84,12 @@ const PropertyFitLeadsPage = lazy(() => import('./pages/asesor/PropertyFitLeadsP
 const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
 // W5.9 — Climate Migration (T0 publico + superadmin debug)
 const ClimateMigrationPage = lazy(() => import('./pages/public/ClimateMigrationPage'));
-const SuperadminClimateMigration = lazy(() => import('./pages/superadmin/SuperadminClimateMigration'));
 // W5.17 — Virtual Staging IA (Studio dev tool)
 const VirtualStagingPage = lazy(() => import('./pages/portal/studio/VirtualStagingPage'));
 // W5.16-C — Studio Video (Asesor)
 const StudioVideoPage = lazy(() => import('./pages/portal/asesor/StudioVideoPage'));
 // W6.MOV.5 — Construction Quality Index (Superadmin)
-const SuperadminConstructionQuality = lazy(() => import('./pages/superadmin/SuperadminConstructionQuality'));
 // W6.MOV.3 — Reviews Residentes (Superadmin)
-const SuperadminReviewsResidents = lazy(() => import('./pages/superadmin/SuperadminReviewsResidents'));
 // W6.MOV.2 — Gov Data MX External Sources (Superadmin)
 // W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin)
 // W6.AS.1 — Workflow Builder Visual (Asesor)
@@ -178,7 +174,6 @@ const DesarrolladorDisputas = lazy(() => import('./pages/developer/Desarrollador
 const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/SuperadminKnowledgeGraph'));
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
-const SuperadminGrafoComprador = lazy(() => import('./pages/superadmin/SuperadminGrafoComprador'));
 const SuperadminInmobiliariaLeads = lazy(() => import('./pages/superadmin/SuperadminInmobiliariaLeads'));
 const SuperadminCerebroMercado = lazy(() => import('./pages/superadmin/SuperadminCerebroMercado'));
 const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
@@ -188,8 +183,6 @@ const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
 const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
 const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
-const SuperadminGranularidad  = lazy(() => import('./pages/superadmin/SuperadminGranularidad'));
-const SuperadminDemandaMercado = lazy(() => import('./pages/superadmin/SuperadminDemandaMercado'));
 const SuperadminTerminalZona = lazy(() => import('./pages/superadmin/SuperadminTerminalZona'));
 // W5.FF3 — UI Visibility Matrix
 const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/SuperadminFeatureVisibility'));
@@ -294,6 +287,7 @@ const SuperadminTenants              = lazy(() => import('./pages/superadmin/Sup
 const SuperadminOperacionHub         = lazy(() => import('./pages/superadmin/SuperadminOperacionHub'));
 const SuperadminCrecimientoHub       = lazy(() => import('./pages/superadmin/SuperadminCrecimientoHub'));
 const SuperadminDatosHub             = lazy(() => import('./pages/superadmin/SuperadminDatosHub'));
+const SuperadminInteligenciaHub      = lazy(() => import('./pages/superadmin/SuperadminInteligenciaHub'));
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
@@ -326,20 +320,17 @@ const SuperadminModeloHub            = lazy(() => import('./pages/superadmin/Sup
 const SuperadminAprendizaje           = lazy(() => import('./pages/superadmin/SuperadminAprendizaje'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
-const SuperadminGemeloDemanda        = lazy(() => import('./pages/superadmin/SuperadminGemeloDemanda')); // moonshot: gemelo de demanda
 const SuperadminDesarrollos          = lazy(() => import('./pages/superadmin/SuperadminDesarrollos'));
 const SuperadminDesarrolloFicha      = lazy(() => import('./pages/superadmin/SuperadminDesarrolloFicha'));
 // W2.7 Phase Z.0 — Data Lake foundation
 // W2.9 Phase Z.2 — Intelligence Hub (executive bird's-eye)
 const SuperadminIntelligenceHub      = lazy(() => import('./pages/superadmin/SuperadminIntelligenceHub'));
-const SuperadminTrends               = lazy(() => import('./pages/superadmin/SuperadminTrends'));
 const SuperadminPhase5Foundation     = lazy(() => import('./pages/superadmin/SuperadminPhase5Foundation'));
 const SuperadminTransactionNetwork   = lazy(() => import('./pages/superadmin/SuperadminTransactionNetwork'));
 // W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
 const SuperadminDRPI                 = lazy(() => import('./pages/superadmin/SuperadminDRPI'));
 const SuperadminIndices              = lazy(() => import('./pages/superadmin/SuperadminIndices'));
 const SuperadminCalibracion          = lazy(() => import('./pages/superadmin/SuperadminCalibracion'));
-const SuperadminInvestmentExplorer   = lazy(() => import('./pages/superadmin/SuperadminInvestmentExplorer'));
 const MethodologyPage                = lazy(() => import('./pages/public/MethodologyPage'));
 const BulletinPage                   = lazy(() => import('./pages/public/BulletinPage'));
 // W3.4A ZZ.4 — Fraud Detection + Risk Score
@@ -727,22 +718,23 @@ function AppRouter() {
       <Route path="/superadmin/entity-resolution" element={<Navigate to="/superadmin/operacion?tab=entity-resolution" replace />} />
       {/* W5.9 — Climate Migration (publico T0 + superadmin debug) */}
       <Route path="/portal/climate-migration" element={<Suspense fallback={null}><ClimateMigrationPage /></Suspense>} />
-      <Route path="/superadmin/climate-migration" element={<SuperadminRoute Page={SuperadminClimateMigration} />} />
+      <Route path="/superadmin/inteligencia" element={<SuperadminRoute Page={SuperadminInteligenciaHub} />} />
+      <Route path="/superadmin/climate-migration" element={<Navigate to="/superadmin/inteligencia?tab=clima" replace />} />
       {/* W5.17 — Virtual Staging IA (Studio · protegido dev T1+) */}
       <Route path="/portal/studio/staging" element={<AdvisorRoute Page={VirtualStagingPage} />} />
       {/* W5.16-C — Studio Video Page (Asesor) */}
       <Route path="/portal/asesor/studio-video" element={<AdvisorRoute Page={StudioVideoPage} />} />
       {/* W6.MOV.5 — Construction Quality (Superadmin) */}
-      <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
+      <Route path="/superadmin/construction-quality" element={<Navigate to="/superadmin/inteligencia?tab=calidad" replace />} />
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
       <Route path="/superadmin/soc-franchise" element={<Navigate to="/superadmin/monetizacion?tab=franquicia" replace />} />
       <Route path="/superadmin/kg" element={<Navigate to="/superadmin/knowledge-graph" replace />} />{/* legacy KG → canónica (W5.12) */}
-      <Route path="/superadmin/granularidad" element={<SuperadminRoute Page={SuperadminGranularidad} />} />
-      <Route path="/superadmin/demanda-mercado" element={<SuperadminRoute Page={SuperadminDemandaMercado} />} />
+      <Route path="/superadmin/granularidad" element={<Navigate to="/superadmin/inteligencia?tab=granularidad" replace />} />
+      <Route path="/superadmin/demanda-mercado" element={<Navigate to="/superadmin/inteligencia?tab=demanda" replace />} />
       <Route path="/superadmin/terminal-zona" element={<SuperadminRoute Page={SuperadminTerminalZona} />} />
-      <Route path="/superadmin/gemelo-demanda" element={<SuperadminRoute Page={SuperadminGemeloDemanda} />} />{/* moonshot */}
+      <Route path="/superadmin/gemelo-demanda" element={<Navigate to="/superadmin/inteligencia?tab=gemelo" replace />} />{/* moonshot */}
       {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
-      <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
+      <Route path="/superadmin/reviews-residents" element={<Navigate to="/superadmin/inteligencia?tab=reviews" replace />} />
       {/* W6.MOV.2 — Gov Data MX External Sources (Superadmin) */}
       <Route path="/superadmin/datos" element={<SuperadminRoute Page={SuperadminDatosHub} />} />
       <Route path="/superadmin/gov-data-mx" element={<Navigate to="/superadmin/datos?tab=gov-data" replace />} />
@@ -790,7 +782,7 @@ function AppRouter() {
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<Navigate to="/superadmin/modelo?tab=fsd" replace />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}
-      <Route path="/superadmin/virtual-staging" element={<SuperadminRoute Page={SuperadminVirtualStaging} />} />
+      <Route path="/superadmin/virtual-staging" element={<Navigate to="/superadmin/inteligencia?tab=staging" replace />} />
       {/* W5.x F11 wire — Asesor Marketplace (fit-score per card) */}
       <Route path="/portal/asesor/marketplace" element={<AdvisorRoute Page={AsesorMarketplace} />} />
       {/* W5.x F11 close — Top leads cualificados por propiedad (consume FitTopLeadsList) */}
@@ -984,7 +976,7 @@ function AppRouter() {
       <Route path="/superadmin/metrics-cube" element={<SuperadminRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<Navigate to="/superadmin/datos?tab=data-lake" replace />} />
       <Route path="/superadmin/intelligence-hub" element={<SuperadminRoute Page={SuperadminIntelligenceHub} />} />
-      <Route path="/superadmin/trends" element={<SuperadminRoute Page={SuperadminTrends} />} />
+      <Route path="/superadmin/trends" element={<Navigate to="/superadmin/inteligencia?tab=trends" replace />} />
       <Route path="/superadmin/phase5-foundation" element={<SuperadminRoute Page={SuperadminPhase5Foundation} />} />
       <Route path="/superadmin/transactions" element={<SuperadminRoute Page={SuperadminTransactionNetwork} />} />
       {/* W3.3 ZZ.3 — DRPI / Bulletins / Investment Explorer */}
@@ -993,7 +985,7 @@ function AppRouter() {
       <Route path="/superadmin/calibracion" element={<Navigate to="/superadmin/modelo?tab=calibracion" replace />} />
       <Route path="/superadmin/recipes-coverage" element={<Navigate to="/superadmin/datos?tab=coverage" replace />} />
       <Route path="/superadmin/bulletins" element={<Navigate to="/superadmin/crecimiento?tab=bulletins" replace />} />
-      <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
+      <Route path="/superadmin/investment-explorer" element={<Navigate to="/superadmin/inteligencia?tab=investment" replace />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
       <Route path="/superadmin/fraud-alerts" element={<Navigate to="/superadmin/operacion?tab=fraud-alerts" replace />} />
       <Route path="/superadmin/risk-score" element={<Navigate to="/superadmin/modelo?tab=risk" replace />} />
@@ -1032,7 +1024,7 @@ function AppRouter() {
       <Route path="/superadmin/social-cards" element={<Navigate to="/superadmin/crecimiento?tab=social-cards" replace />} />
       <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
-      <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
+      <Route path="/superadmin/grafo-comprador" element={<Navigate to="/superadmin/inteligencia?tab=grafo-comprador" replace />} />
       <Route path="/superadmin/inmobiliaria-leads" element={<SuperadminRoute Page={SuperadminInmobiliariaLeads} />} />
       <Route path="/superadmin/cerebro-mercado" element={<Navigate to="/superadmin/modelo?tab=cerebro" replace />} />
       <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />

@@ -165,7 +165,7 @@ function ListBlock({ title, rows, testid }) {
   );
 }
 
-export default function SuperadminTrends({ user, onLogout }) {
+export default function SuperadminTrends({ user, onLogout, embedded }) {
   const [query, setQuery] = useState('polanco');
   const [geo, setGeo] = useState('MX');
   const [timeframe, setTimeframe] = useState('today 3-m');
@@ -278,7 +278,7 @@ export default function SuperadminTrends({ user, onLogout }) {
   };
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="sa-trends-page" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Header */}
         <div>

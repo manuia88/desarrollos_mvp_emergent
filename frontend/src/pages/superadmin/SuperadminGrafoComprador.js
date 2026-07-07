@@ -22,7 +22,7 @@ function Chip({ children, muted }) {
   );
 }
 
-export default function SuperadminGrafoComprador({ user, onLogout }) {
+export default function SuperadminGrafoComprador({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(false);
 
@@ -33,7 +33,7 @@ export default function SuperadminGrafoComprador({ user, onLogout }) {
   );
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div style={{ padding: '8px 0 12px' }}>
         <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>Inteligencia · Demanda</div>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '4px 0 2px' }}>Grafo del Comprador</h1>

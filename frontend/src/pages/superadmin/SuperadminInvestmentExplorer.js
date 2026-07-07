@@ -25,7 +25,7 @@ function fmt(v, dec = 1) {
   return Number(v).toFixed(dec);
 }
 
-export default function SuperadminInvestmentExplorer() {
+export default function SuperadminInvestmentExplorer({ embedded }) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState('score');
@@ -63,7 +63,7 @@ export default function SuperadminInvestmentExplorer() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.3 · Investment Explorer"
         title="Inversión por colonia"

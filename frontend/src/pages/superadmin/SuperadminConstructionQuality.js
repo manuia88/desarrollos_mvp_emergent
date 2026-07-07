@@ -38,7 +38,7 @@ const kpi = {
 
 const TIER_KEYS = ['excelente', 'bueno', 'regular', 'deficiente'];
 
-export default function SuperadminConstructionQuality() {
+export default function SuperadminConstructionQuality({ embedded }) {
   const { t } = useTranslation('common');
   const [stats, setStats] = useState(null);
   const [items, setItems] = useState([]);
@@ -101,7 +101,7 @@ export default function SuperadminConstructionQuality() {
   const tiersStats = stats?.tiers || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-cq-page" style={{ padding: 24, fontFamily: 'DM Sans, sans-serif', color: CREAM }}>
         <header style={{ marginBottom: 22 }}>
           <div style={{

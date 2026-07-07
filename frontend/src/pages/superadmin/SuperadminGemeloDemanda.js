@@ -16,7 +16,7 @@ const COLS = [
   { k: 'oferta_devs', label: 'Oferta' },
 ];
 
-export default function SuperadminGemeloDemanda({ user, onLogout }) {
+export default function SuperadminGemeloDemanda({ user, onLogout, embedded }) {
   const [rows, setRows] = useState(null);
   const [sort, setSort] = useState('oportunidad');
   useEffect(() => { getDemandTwin(80).then((d) => setRows(d.zonas || [])).catch(() => setRows([])); }, []);
@@ -26,7 +26,7 @@ export default function SuperadminGemeloDemanda({ user, onLogout }) {
   const grid = '1.2fr 90px 1.1fr 0.9fr 1.6fr 1.8fr';
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="gemelo-demanda">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <TrendingUp size={20} color="var(--theme)" />

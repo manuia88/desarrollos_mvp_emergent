@@ -74,7 +74,7 @@ function StatCard({ label, value }) {
   );
 }
 
-export default function SuperadminClimateMigration() {
+export default function SuperadminClimateMigration({ embedded }) {
   const { t } = useTranslation('common');
   const [confFilter, setConfFilter] = useState('all');
   const [driverFilter, setDriverFilter] = useState(null);
@@ -126,7 +126,7 @@ export default function SuperadminClimateMigration() {
   }), [allPatterns, heatmap]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-climate-migration-page" style={{ color: CREAM, fontFamily: 'DM Sans, sans-serif', padding: '24px 0' }}>
         <header style={{ marginBottom: 18 }}>
           <h1 style={{

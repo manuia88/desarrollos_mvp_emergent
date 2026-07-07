@@ -29,7 +29,7 @@ function StatCard({ label, value, color }) {
   );
 }
 
-export default function SuperadminGranularidad() {
+export default function SuperadminGranularidad({ embedded }) {
   const [cov, setCov] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export default function SuperadminGranularidad() {
   const etypes = r?.entity_types || ['zona', 'desarrollo', 'unidad', 'lead', 'asesor', 'comprador'];
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         title="Visibilidad de granularidad"
         sub="Todos los scores y features de los motores, en un solo lugar — qué fluye, qué está apagado, qué es efímero."

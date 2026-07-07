@@ -17,7 +17,7 @@ const SUBTLE = 'rgba(240,235,224,0.65)';
 const PANEL_BG = 'rgba(240,235,224,0.04)';
 const PANEL_BORDER = 'rgba(240,235,224,0.10)';
 
-export default function SuperadminReviewsResidents() {
+export default function SuperadminReviewsResidents({ embedded }) {
   const { t } = useTranslation('common');
   const tt = (k, fb) => t(`reviewsResidents.admin.${k}`, fb);
 
@@ -83,7 +83,7 @@ export default function SuperadminReviewsResidents() {
 
   if (loading) {
     return (
-      <SuperadminLayout>
+      <SuperadminLayout bare={embedded}>
         <PageHeader eyebrow="W6.MOV.3" title={tt('title', 'Reviews Residentes')} sub={tt('sub', 'Sentiment agregado por zona y desarrollo')} />
         <div style={{ color: SUBTLE, fontFamily: 'DM Sans, sans-serif' }}>
           {t('reviewsResidents.loading', 'Cargando…')}
@@ -96,7 +96,7 @@ export default function SuperadminReviewsResidents() {
   const cronHealth = stats?.cron_health || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W6.MOV.3"
         title={tt('title', 'Reviews Residentes')}

@@ -217,36 +217,19 @@ const SUPERADMIN_NAV = [
   {
     tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
     items: [
-      // ─ Accuracy & ML (W5.x) ─
+      // Hubs ya consolidados (cada uno agrupa N pantallas en pestañas)
       { key: 'modelo',            to: '/superadmin/modelo',            label: 'Modelo & Aprendizaje', Icon: Activity },
-      // ─ Intelligence layer (W3.x legacy) ─
-      { key: 'granularidad',      to: '/superadmin/granularidad',      label: 'Granularidad',      Icon: Target },
-      { key: 'demanda-mercado',   to: '/superadmin/demanda-mercado',   label: 'Demanda de mercado', Icon: Target },
+      { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional', Icon: MessageCircle },
+      // Hub de Inteligencia · Tableros — 10 dashboards ligeros (demanda/calidad/cobertura) en 1 (metodología Hub de Mercado)
+      { key: 'inteligencia',      to: '/superadmin/inteligencia',      label: 'Inteligencia · Tableros', Icon: BarChart3 },
+      // ─ Terminales full-screen: se quedan top-level a propósito (drill-down / mapas / tabs internas) ─
       { key: 'terminal-zona',     to: '/superadmin/terminal-zona',     label: 'Terminal de Zona',   Icon: Target },
-      { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer', Icon: DollarSign },
       { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },
-      { key: 'trends',            to: '/superadmin/trends',            label: 'Google Trends',     Icon: BarChart3 },
       { key: 'phase5-foundation', to: '/superadmin/phase5-foundation', label: 'Foundation Phase 5', Icon: Database },
       { key: 'transactions',      to: '/superadmin/transactions',      label: 'Transaction Network', Icon: Network },
-      // ─ Graph & Live (W5.x) ─
       { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
-      { key: 'grafo-comprador',   to: '/superadmin/grafo-comprador',   label: 'Grafo del Comprador', Icon: Users },
-      { key: 'gemelo-demanda',    to: '/superadmin/gemelo-demanda',    label: 'Gemelo de Demanda', Icon: TrendingUp },
       { key: 'terminal-mercado',  to: '/superadmin/terminal-mercado',  label: 'Terminal de Mercado CDMX', Icon: Layers },
-      // ─ W6.MOV.5 · Construction Quality Index ─
-      { key: 'construction-quality', to: '/superadmin/construction-quality', label: 'Construction Quality', Icon: ShieldCheck },
-      // ─ W6.MOV.3 · Reviews Residentes ─
-      { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
-      // ─ W7.AS.3.A · Conversation AI Agent inbox ─
-      { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional', Icon: MessageCircle },
-      // E5 · Copiloto de asesores (adopción · ranking · scripts · objeciones) — estaba sin menú.
-      // ─ W7.AS.3.D · Round 2 · KB Gaps (huecos de conocimiento) ─
-      // ─ W7.AS.3.G · Round 3 · A/B Testing de prompts ─
-      // ─ W7.AS.3.I · Round 3 · Drift Dashboard (calidad agente IA) ─
-      // ─ Observabilidad IA · pantallas ruteadas sin entrada de menú ─
-      { key: 'virtual-staging',   to: '/superadmin/virtual-staging',   label: 'Staging Virtual',        Icon: Sparkles },
-      { key: 'climate-migration', to: '/superadmin/climate-migration', label: 'Migración Climática',    Icon: Activity },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─

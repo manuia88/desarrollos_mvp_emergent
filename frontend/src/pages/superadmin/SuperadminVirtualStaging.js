@@ -45,7 +45,7 @@ async function fetchVsStats() {
   return res.json();
 }
 
-export default function SuperadminVirtualStaging() {
+export default function SuperadminVirtualStaging({ embedded }) {
   const { t } = useTranslation('common');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +71,7 @@ export default function SuperadminVirtualStaging() {
   const topUsers = Array.isArray(data?.top_users_5) ? data.top_users_5 : [];
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-virtual-staging" style={{ padding: 24, fontFamily: 'DM Sans, sans-serif', color: '#F0EBE0' }}>
         <header style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em' }}>
