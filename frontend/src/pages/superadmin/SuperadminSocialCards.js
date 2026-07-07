@@ -68,7 +68,7 @@ const tdStyle = {
   fontFamily: 'DM Sans',
 };
 
-export default function SuperadminSocialCards() {
+export default function SuperadminSocialCards({ embedded }) {
   const { t } = useTranslation();
   const tt = (k, opts) => t(`social_cards.${k}`, opts);
 
@@ -123,7 +123,7 @@ export default function SuperadminSocialCards() {
   }, [layout]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow={tt('eyebrow')}
         title={tt('title')}

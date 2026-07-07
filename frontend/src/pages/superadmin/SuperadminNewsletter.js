@@ -43,7 +43,7 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function SuperadminNewsletter() {
+export default function SuperadminNewsletter({ embedded }) {
   const [stats, setStats]         = useState(null);
   const [runs, setRuns]           = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -110,7 +110,7 @@ export default function SuperadminNewsletter() {
   });
 
   return (
-    <SuperadminLayout><div data-testid="superadmin-newsletter" style={{ padding: "28px 32px", color: "var(--cream)" }}>
+    <SuperadminLayout bare={embedded}><div data-testid="superadmin-newsletter" style={{ padding: "28px 32px", color: "var(--cream)" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>

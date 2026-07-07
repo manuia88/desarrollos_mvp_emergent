@@ -293,19 +293,8 @@ const SUPERADMIN_NAV = [
   {
     tier: 6, label: 'Crecimiento', section_key: 'crecimiento',
     items: [
-      { key: 'whatsapp',     to: '/superadmin/whatsapp',              label: 'WhatsApp',             Icon: MessageSquare },
-      { key: 'newsletter',   to: '/superadmin/newsletter',            label: 'Newsletter',           Icon: Mail },
-      { key: 'bulletins',    to: '/superadmin/bulletins',             label: 'Bulletins',            Icon: Megaphone },
-      { key: 'landing-leads',to: '/superadmin/landing-leads',         label: 'Landing leads',        Icon: Users },
-      { key: 'partners',     to: '/superadmin/partners',              label: 'Partners',             Icon: HeartHandshake },
-      { key: 'invites',      to: '/superadmin/invites',               label: 'Invitaciones',         Icon: Mail },
-      { key: 'onboarding',   to: '/superadmin/onboarding-analytics',  label: 'Onboarding analytics', Icon: BarChart3 },
-      { key: 'free-audit',   to: '/superadmin/free-audit-funnel',     label: 'Free Audit funnel',    Icon: ClipboardList },
-      { key: 'lead-sources', to: '/superadmin/lead-sources',          label: 'Lead sources',         Icon: Plug },
-      // W5.16 · Social Cards Renderer (viral growth public-facing)
-      { key: 'social-cards', to: '/superadmin/social-cards',          label: 'Social Cards',         Icon: Share2 },
-      // W6.MOV.4 · Marketing Distribution MCP (Twitter/LinkedIn/Telegram/Discord)
-      { key: 'marketing-mcp',to: '/superadmin/marketing-mcp',         label: 'Marketing MCP',        Icon: Megaphone },
+      // Hub de Crecimiento & Distribución — 11 pantallas (canales/captación/aliados) en 1 (metodología Hub de Mercado)
+      { key: 'crecimiento', to: '/superadmin/crecimiento', label: 'Crecimiento & Distribución', Icon: Megaphone },
     ],
   },
   // ─── tier 7 · DEV TOOLS morado · 2026-05-18 sidebar fix ───────────────────────────────

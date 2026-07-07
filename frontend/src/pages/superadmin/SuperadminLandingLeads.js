@@ -59,7 +59,7 @@ function pageTypeBadge(type) {
   );
 }
 
-export default function SuperadminLandingLeads() {
+export default function SuperadminLandingLeads({ embedded }) {
   const [tab, setTab] = useState('by-zone'); // by-zone | list
   const [summary, setSummary] = useState(null);
   const [byZone, setByZone] = useState([]);
@@ -112,7 +112,7 @@ export default function SuperadminLandingLeads() {
   }, [tab, filters.zone_interest, filters.page_type]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W4.2D3.5 · Programmatic SEO"
         title="Leads landing"

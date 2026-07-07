@@ -81,7 +81,7 @@ function StatCard({ label, value, sub, testId }) {
   );
 }
 
-export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
+export default function SuperadminFreeAuditFunnel({ user, onLogout, embedded }) {
   const [period, setPeriod] = useState(30);
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
@@ -115,7 +115,7 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
   useEffect(() => { load(); }, [period]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="MARKETING · FUNNEL"
         title="Free Audit Funnel"

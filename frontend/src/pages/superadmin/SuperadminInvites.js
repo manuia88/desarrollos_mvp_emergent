@@ -27,7 +27,7 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function SuperadminInvites({ user }) {
+export default function SuperadminInvites({ user, embedded }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('codes');
 
@@ -100,7 +100,7 @@ export default function SuperadminInvites({ user }) {
   };
 
   return (
-    <SuperadminLayout><div data-testid="superadmin-invites-page" style={{ color: 'var(--cream)', padding: '32px 24px' }}>
+    <SuperadminLayout bare={embedded}><div data-testid="superadmin-invites-page" style={{ color: 'var(--cream)', padding: '32px 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--theme)', marginBottom: 8 }}>
           SUPERADMIN

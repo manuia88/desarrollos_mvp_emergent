@@ -15,7 +15,7 @@ const TOP_ZONES = [
   { id: 'coyoacan', name: 'Coyoacán' },
 ];
 
-export default function SuperadminBulletins() {
+export default function SuperadminBulletins({ embedded }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -41,7 +41,7 @@ export default function SuperadminBulletins() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.3 · Boletines DMX"
         title="Boletines mensuales"

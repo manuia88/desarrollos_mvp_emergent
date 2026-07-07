@@ -25,7 +25,7 @@ const STATUS_COLORS = {
   received:  "#f59e0b",
 };
 
-export default function SuperadminWhatsApp() {
+export default function SuperadminWhatsApp({ embedded }) {
   const [stats, setStats]         = useState(null);
   const [messages, setMessages]   = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -101,7 +101,7 @@ export default function SuperadminWhatsApp() {
   });
 
   return (
-    <SuperadminLayout><div data-testid="superadmin-whatsapp" style={{ padding: "28px 32px", color: "var(--cream)" }}>
+    <SuperadminLayout bare={embedded}><div data-testid="superadmin-whatsapp" style={{ padding: "28px 32px", color: "var(--cream)" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>

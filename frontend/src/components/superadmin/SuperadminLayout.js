@@ -10,11 +10,11 @@ const ROLES_OK = new Set(['superadmin']);
 // AND .portal-superadmin[data-section="..."] rules in superadmin-aurora.css.
 function sectionFromPath(p) {
   if (p === '/superadmin' || p.startsWith('/superadmin/tenants') || p.startsWith('/superadmin/inmobiliaria-leads') || p.startsWith('/superadmin/desarrollos')) return 'principal';
-  if (/^\/superadmin\/(bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|metrics-cube|lead-sources|catalog-pulse)/.test(p)) return 'datos';
+  if (/^\/superadmin\/(bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|metrics-cube|catalog-pulse)/.test(p)) return 'datos';
   if (/^\/superadmin\/(ia-conversacional|rag-inspector|conversation-cost|modelo|aprendizaje|scores|drpi|indices|risk-score|fsd-accuracy|granularidad|investment-explorer|intelligence-hub|trends|phase5-foundation|transactions|avm-accuracy|forecast-accuracy|knowledge-graph|live-pulse|grafo-comprador|cerebro-mercado|terminal-mercado|construction-quality|reviews-residents|conversations|copilot|calibracion|kb-gaps|ab-testing|conversation-drift)/.test(p)) return 'inteligencia';
   if (/^\/superadmin\/(operacion|entity-resolution|health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor)/.test(p)) return 'operacion';
   if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|conversation-cost)/.test(p)) return 'monetizacion';
-  if (/^\/superadmin\/(whatsapp|newsletter|bulletins|landing-leads|partners|onboarding-analytics|free-audit-funnel|social-cards|marketing-mcp)/.test(p)) return 'crecimiento';
+  if (/^\/superadmin\/(crecimiento|whatsapp|newsletter|bulletins|landing-leads|partners|invites|onboarding-analytics|free-audit-funnel|lead-sources|social-cards|marketing-mcp)/.test(p)) return 'crecimiento';
   if (/^\/superadmin\/primitives-demo/.test(p)) return 'devtools';
   return 'principal';
 }

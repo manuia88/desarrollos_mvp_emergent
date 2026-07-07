@@ -66,7 +66,7 @@ const inputStyle = {
   padding: '8px 12px', outline: 'none', boxSizing: 'border-box',
 };
 
-export default function SuperadminPartners() {
+export default function SuperadminPartners({ embedded }) {
   const [data, setData] = useState({ items: [], kpis: {} });
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
@@ -131,7 +131,7 @@ export default function SuperadminPartners() {
   const kpis = data.kpis || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W3.8 · Cross-sell Intelligence"
         title="Partners"

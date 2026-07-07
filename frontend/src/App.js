@@ -55,7 +55,6 @@ const FichaVenta = lazy(() => import('./pages/FichaVenta'));             // redi
 const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
-const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
 // W4.13.A — Lead Journey Outbound
 const AsesorOutbound     = lazy(() => import('./pages/asesor/AsesorOutbound'));
 // W4.14 — Buyer Coach + Investment Simulator
@@ -103,7 +102,6 @@ const SuperadminSocFranchise = lazy(() => import('./pages/superadmin/SuperadminS
 const WorkflowBuilderPage = lazy(() => import('./pages/portal/asesor/WorkflowBuilderPage'));
 const WorkflowHistoryPage = lazy(() => import('./pages/portal/asesor/WorkflowHistoryPage'));
 // W6.MOV.4 — Marketing Distribution MCP (Superadmin)
-const SuperadminMarketingMcp = lazy(() => import('./pages/superadmin/SuperadminMarketingMcp'));
 // W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation)
 const MarketplaceTemplatesPage = lazy(() => import('./pages/portal/asesor/MarketplaceTemplatesPage'));
 const SuperadminMarketplaceTemplates = lazy(() => import('./pages/superadmin/SuperadminMarketplaceTemplates'));
@@ -192,7 +190,6 @@ const SuperadminCerebroMercado = lazy(() => import('./pages/superadmin/Superadmi
 const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
 const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
-const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
 // W5.11 Parte 2 — Entity resolution + audit chain
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
 const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
@@ -205,7 +202,6 @@ const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/Supera
 // W5.25 — Widget Embed Analytics
 const SuperadminWidgetEmbeds = lazy(() => import('./pages/superadmin/SuperadminWidgetEmbeds'));
 // W5.16 — Social Cards Renderer
-const SuperadminSocialCards = lazy(() => import('./pages/superadmin/SuperadminSocialCards'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -302,6 +298,7 @@ const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/I
 const SuperadminTenants              = lazy(() => import('./pages/superadmin/SuperadminTenants'));
 // W1.3 SA1.2 — Superadmin System Health
 const SuperadminOperacionHub         = lazy(() => import('./pages/superadmin/SuperadminOperacionHub'));
+const SuperadminCrecimientoHub       = lazy(() => import('./pages/superadmin/SuperadminCrecimientoHub'));
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
@@ -352,7 +349,6 @@ const SuperadminDRPI                 = lazy(() => import('./pages/superadmin/Sup
 const SuperadminIndices              = lazy(() => import('./pages/superadmin/SuperadminIndices'));
 const SuperadminCalibracion          = lazy(() => import('./pages/superadmin/SuperadminCalibracion'));
 const SuperadminRecipesCoverage      = lazy(() => import('./pages/superadmin/SuperadminRecipesCoverage'));
-const SuperadminBulletins            = lazy(() => import('./pages/superadmin/SuperadminBulletins'));
 const SuperadminInvestmentExplorer   = lazy(() => import('./pages/superadmin/SuperadminInvestmentExplorer'));
 const MethodologyPage                = lazy(() => import('./pages/public/MethodologyPage'));
 const BulletinPage                   = lazy(() => import('./pages/public/BulletinPage'));
@@ -381,15 +377,12 @@ const AtlaxExperiencia               = lazy(() => import('./pages/public/AtlaxEx
 const AlcaldiaPage                   = lazy(() => import('./pages/public/AlcaldiaPage'));
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
 // W4.2D3.5 — Superadmin Landing Leads dashboard
-const SuperadminLandingLeads         = lazy(() => import('./pages/superadmin/SuperadminLandingLeads'));
 // F0.2·Sub-E — Free Audit funnel dashboard
-const SuperadminFreeAuditFunnel      = lazy(() => import('./pages/superadmin/SuperadminFreeAuditFunnel'));
 // W4.2.5 — Embeddable widgets + Press kit
 const ScoreWidgetPage                = lazy(() => import('./pages/public/widgets/ScoreWidgetPage'));
 const RiskWidgetPage                 = lazy(() => import('./pages/public/widgets/RiskWidgetPage'));
 const PrensaPage                     = lazy(() => import('./pages/public/PrensaPage'));
 // W3.8 — Cross-sell Intelligence
-const SuperadminPartners             = lazy(() => import('./pages/superadmin/SuperadminPartners'));
 const SuperadminCrossSellAnalytics   = lazy(() => import('./pages/superadmin/SuperadminCrossSellAnalytics'));
 const BankAvmWidget                  = lazy(() => import('./pages/public/widgets/BankAvmWidget'));
 const InsuranceRiskWidget            = lazy(() => import('./pages/public/widgets/InsuranceRiskWidget'));
@@ -416,9 +409,6 @@ const PrimitivesDemo             = lazy(() => import('./pages/superadmin/Primiti
 const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
 const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
 // W4.10 — WhatsApp + Newsletter
-const SuperadminWhatsApp         = lazy(() => import('./pages/superadmin/SuperadminWhatsApp'));
-const SuperadminNewsletter       = lazy(() => import('./pages/superadmin/SuperadminNewsletter'));
-const SuperadminOnboardingAnalytics = lazy(() => import('./pages/superadmin/SuperadminOnboardingAnalytics'));
 
 // Phase 4 Batch 12
 const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
@@ -715,7 +705,8 @@ function AppRouter() {
       <Route path="/confianza" element={<ConfianzaPage />} />
       {/* W4.18.3 — Private Beta Gate */}
       <Route path="/broker-portal" element={<BrokerPortal />} />
-      <Route path="/superadmin/invites" element={<SuperadminInvitesRoute />} />
+      <Route path="/superadmin/crecimiento" element={<SuperadminRoute Page={SuperadminCrecimientoHub} />} />
+      <Route path="/superadmin/invites" element={<Navigate to="/superadmin/crecimiento?tab=invites" replace />} />
       {/* W4.13.A — Lead Journey Outbound */}
       <Route path="/asesor/outbound" element={<AsesorOutboundRoute />} />
       <Route path="/portal/outbound" element={<AsesorOutboundRoute />} />
@@ -776,7 +767,7 @@ function AppRouter() {
       <Route path="/portal/asesor/workflows/:workflowId" element={<AdvisorRoute Page={WorkflowBuilderPage} />} />
       <Route path="/portal/asesor/workflows/:workflowId/history" element={<AdvisorRoute Page={WorkflowHistoryPage} />} />
       {/* W6.MOV.4 — Marketing Distribution MCP (Superadmin) */}
-      <Route path="/superadmin/marketing-mcp" element={<SuperadminRoute Page={SuperadminMarketingMcp} />} />
+      <Route path="/superadmin/marketing-mcp" element={<Navigate to="/superadmin/crecimiento?tab=marketing-mcp" replace />} />
       {/* W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation) */}
       <Route path="/portal/asesor/marketplace-templates" element={<AdvisorRoute Page={MarketplaceTemplatesPage} />} />
       <Route path="/superadmin/marketplace-templates" element={<SuperadminRoute Page={SuperadminMarketplaceTemplates} />} />
@@ -1013,7 +1004,7 @@ function AppRouter() {
       <Route path="/superadmin/indices" element={<Navigate to="/superadmin/modelo?tab=indices" replace />} />
       <Route path="/superadmin/calibracion" element={<Navigate to="/superadmin/modelo?tab=calibracion" replace />} />
       <Route path="/superadmin/recipes-coverage" element={<SuperadminRoute Page={SuperadminRecipesCoverage} />} />
-      <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
+      <Route path="/superadmin/bulletins" element={<Navigate to="/superadmin/crecimiento?tab=bulletins" replace />} />
       <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
       <Route path="/superadmin/fraud-alerts" element={<Navigate to="/superadmin/operacion?tab=fraud-alerts" replace />} />
@@ -1039,8 +1030,8 @@ function AppRouter() {
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
       <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
-      <Route path="/superadmin/landing-leads" element={<SuperadminRoute Page={SuperadminLandingLeads} />} />
-      <Route path="/superadmin/lead-sources" element={<SuperadminRoute Page={SuperadminLeadSources} />} />
+      <Route path="/superadmin/landing-leads" element={<Navigate to="/superadmin/crecimiento?tab=landing-leads" replace />} />
+      <Route path="/superadmin/lead-sources" element={<Navigate to="/superadmin/crecimiento?tab=lead-sources" replace />} />
       {/* W5.11 Parte 2 — Entity resolution + audit chain */}
       <Route path="/superadmin/duplicates" element={<Navigate to="/superadmin/operacion?tab=duplicates" replace />} />
       <Route path="/superadmin/fraud-patterns" element={<Navigate to="/superadmin/operacion?tab=fraud-patterns" replace />} />
@@ -1050,7 +1041,7 @@ function AppRouter() {
       {/* W5.25 · Widget Embed Analytics */}
       <Route path="/superadmin/widget-embeds" element={<SuperadminRoute Page={SuperadminWidgetEmbeds} />} />
       {/* W5.16 · Social Cards Renderer */}
-      <Route path="/superadmin/social-cards" element={<SuperadminRoute Page={SuperadminSocialCards} />} />
+      <Route path="/superadmin/social-cards" element={<Navigate to="/superadmin/crecimiento?tab=social-cards" replace />} />
       <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
@@ -1058,7 +1049,7 @@ function AppRouter() {
       <Route path="/superadmin/cerebro-mercado" element={<Navigate to="/superadmin/modelo?tab=cerebro" replace />} />
       <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
-      <Route path="/superadmin/free-audit-funnel" element={<SuperadminRoute Page={SuperadminFreeAuditFunnel} />} />
+      <Route path="/superadmin/free-audit-funnel" element={<Navigate to="/superadmin/crecimiento?tab=free-audit" replace />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}
       <Route path="/widgets/score/:slug" element={<ScoreWidgetPage />} />
       <Route path="/widgets/risk/:slug" element={<RiskWidgetPage />} />
@@ -1069,7 +1060,7 @@ function AppRouter() {
       <Route path="/superadmin/forecast-accuracy" element={<Navigate to="/superadmin/modelo?tab=forecast" replace />} />
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
-      <Route path="/superadmin/partners" element={<SuperadminRoute Page={SuperadminPartners} />} />
+      <Route path="/superadmin/partners" element={<Navigate to="/superadmin/crecimiento?tab=partners" replace />} />
       <Route path="/superadmin/cross-sell-analytics" element={<SuperadminRoute Page={SuperadminCrossSellAnalytics} />} />
       <Route path="/widget/bank-avm" element={<BankAvmWidget />} />
       <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
@@ -1078,10 +1069,10 @@ function AppRouter() {
       <Route path="/superadmin/primitives-demo" element={<SuperadminRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<SuperadminRoute Page={SystemMapPage} />} />
       {/* W4.10 — WhatsApp Business + Newsletter Pulse */}
-      <Route path="/superadmin/whatsapp" element={<SuperadminRoute Page={SuperadminWhatsApp} />} />
-      <Route path="/superadmin/newsletter" element={<SuperadminRoute Page={SuperadminNewsletter} />} />
+      <Route path="/superadmin/whatsapp" element={<Navigate to="/superadmin/crecimiento?tab=whatsapp" replace />} />
+      <Route path="/superadmin/newsletter" element={<Navigate to="/superadmin/crecimiento?tab=newsletter" replace />} />
       <Route path="/superadmin/user-diagnostics" element={<SuperadminRoute Page={UserDiagnosticsPage} />} />
-      <Route path="/superadmin/onboarding-analytics" element={<SuperadminRoute Page={SuperadminOnboardingAnalytics} />} />
+      <Route path="/superadmin/onboarding-analytics" element={<Navigate to="/superadmin/crecimiento?tab=onboarding" replace />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       {/* B7 Fase 5 · Hub Links (Tracking + Crear UTM) — unifica las 2 páginas de links */}
       <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksHubPage} />} />
@@ -1163,12 +1154,6 @@ function MapaRoute() {
   return <Mapa user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
-
-function SuperadminInvitesRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  return <SuperadminInvites user={user} />;
-}
 
 function AsesorOutboundRoute() {
   const { user, logout, loading } = useAuth();

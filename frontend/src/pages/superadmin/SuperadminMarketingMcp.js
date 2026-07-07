@@ -48,7 +48,7 @@ const inputStyle = {
   color: CREAM, fontSize: 14, boxSizing: 'border-box',
 };
 
-export default function SuperadminMarketingMcp() {
+export default function SuperadminMarketingMcp({ embedded }) {
   const { t } = useTranslation('common');
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
@@ -128,7 +128,7 @@ export default function SuperadminMarketingMcp() {
   );
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-mcp-page" style={{ padding: 24, fontFamily: 'DM Sans, sans-serif', color: CREAM }}>
         <header style={{ marginBottom: 22 }}>
           <div style={{

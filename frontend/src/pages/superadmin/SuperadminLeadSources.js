@@ -79,7 +79,7 @@ function DonutBar({ by_source = {} }) {
   );
 }
 
-export default function SuperadminLeadSources({ user, onLogout }) {
+export default function SuperadminLeadSources({ user, onLogout, embedded }) {
   const [days, setDays]     = useState(30);
   const [stats, setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +99,7 @@ export default function SuperadminLeadSources({ user, onLogout }) {
   useEffect(() => { load(); }, [days]); // eslint-disable-line
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="SUPERADMIN · LEAD SOURCES"
         title="Lead Sources"

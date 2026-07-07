@@ -6,9 +6,9 @@ import React from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import TourCompletionAnalytics from '../../components/developer/TourCompletionAnalytics';
 
-export default function SuperadminOnboardingAnalyticsPage({ user, onLogout }) {
+export default function SuperadminOnboardingAnalyticsPage({ user, onLogout, embedded }) {
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div
         data-testid="superadmin-onboarding-analytics"
         style={{
