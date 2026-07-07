@@ -47,7 +47,8 @@ def _seed(zone_id: str) -> float:
 
 
 def _trayectoria(zone_id: str, score_numeric):
-    """Serie index_value (base 100) anclada al score real de la colonia."""
+    """Serie index_value (base 100) anclada al score real de la colonia (IE value 0-100).
+    Si la colonia es stub (sin score real), usa apreciación base neutral — igual va etiquetada proxy."""
     try:
         s = float(score_numeric)
         s_norm = max(0.0, min(1.0, s / 100.0))
@@ -69,10 +70,14 @@ async def main():
     periodos = _periodos(MESES)
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    zonas = []
-    async for z in db.zone_scores.find({"tier": "colonia"}, {"_id": 0, "zone_id": 1, "score_numeric": 1}):
-        if z.get("zone_id"):
-            zonas.append((z["zone_id"], z.get("score_numeric")))
+    # Universo COMPLETO de colonias = ie_scores (2,462), no zone_scores (solo 81 activas).
+    # Ancla la trayectoria al IE `value` real (0-100) cuando existe; stub → base neutral.
+    zonas_map = {}
+    async for z in db.ie_scores.find({}, {"_id": 0, "zone_id": 1, "value": 1}):
+        zid = z.get("zone_id")
+        if zid and zid not in zonas_map:
+            zonas_map[zid] = z.get("value")
+    zonas = list(zonas_map.items())
 
     escritas = 0
     zonas_ok = 0
