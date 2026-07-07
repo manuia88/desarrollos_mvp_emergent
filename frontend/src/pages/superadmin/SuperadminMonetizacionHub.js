@@ -11,18 +11,31 @@
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { KeyRound, Package, FlaskConical, Cpu, Briefcase } from 'lucide-react';
+import { KeyRound, Package, FlaskConical, Cpu, Briefcase, HeartHandshake, Trophy, Layers, Search, Megaphone, Video } from 'lucide-react';
 
 const SuperadminApiKeys = lazy(() => import('./SuperadminApiKeys'));
 const SuperadminDataLicensing = lazy(() => import('./SuperadminDataLicensing'));
 const SuperadminVerticalProducts = lazy(() => import('./SuperadminVerticalProducts'));
 const SuperadminAiCost = lazy(() => import('./SuperadminAiCost'));
 const SuperadminCommercial = lazy(() => import('./SuperadminCommercial'));
+// Productos & servicios monetizables (antes 6 rutas sueltas del sidebar)
+const SuperadminCrossSellAnalytics = lazy(() => import('./SuperadminCrossSellAnalytics'));
+const SuperadminSocFranchise = lazy(() => import('./SuperadminSocFranchise'));
+const SuperadminMarketplaceTemplates = lazy(() => import('./SuperadminMarketplaceTemplates'));
+const SuperadminLeadEnrichment = lazy(() => import('./SuperadminLeadEnrichment'));
+const SuperadminSocialAds = lazy(() => import('./SuperadminSocialAds'));
+const SuperadminVideoStandalone = lazy(() => import('./SuperadminVideoStandalone'));
 
 const TABS = [
   { k: 'keys', label: 'API Keys & Uso', Icon: KeyRound, grupo: 'API Pública', Page: SuperadminApiKeys },
   { k: 'bundles', label: 'Bundles B2B', Icon: Package, grupo: 'API Pública', Page: SuperadminDataLicensing },
   { k: 'probar', label: 'Probar API', Icon: FlaskConical, grupo: 'API Pública', Page: SuperadminVerticalProducts },
+  { k: 'cross-sell', label: 'Cross-sell', Icon: HeartHandshake, grupo: 'Productos', Page: SuperadminCrossSellAnalytics },
+  { k: 'franquicia', label: 'Franquicia SOC', Icon: Trophy, grupo: 'Productos', Page: SuperadminSocFranchise },
+  { k: 'templates', label: 'Plantillas marketplace', Icon: Layers, grupo: 'Productos', Page: SuperadminMarketplaceTemplates },
+  { k: 'enrichment', label: 'Enriquecimiento de leads', Icon: Search, grupo: 'Productos', Page: SuperadminLeadEnrichment },
+  { k: 'ads', label: 'Social Ads', Icon: Megaphone, grupo: 'Productos', Page: SuperadminSocialAds },
+  { k: 'video', label: 'Video', Icon: Video, grupo: 'Productos', Page: SuperadminVideoStandalone },
   { k: 'costos', label: 'Costo de IA', Icon: Cpu, grupo: 'Interno', Page: SuperadminAiCost },
   { k: 'comercial', label: 'Comercial & Planes', Icon: Briefcase, grupo: 'Interno', Page: SuperadminCommercial },
 ];
@@ -56,7 +69,7 @@ export default function SuperadminMonetizacionHub() {
           const sep = t.grupo !== grupoActual; grupoActual = t.grupo;
           return (
             <React.Fragment key={t.k}>
-              {sep && <span aria-hidden="true" style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.4)', marginLeft: t.grupo === 'Interno' ? 8 : 0 }}>{t.grupo}</span>}
+              {sep && <span aria-hidden="true" style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.4)', marginLeft: t.grupo !== 'API Pública' ? 8 : 0 }}>{t.grupo}</span>}
               <button role="tab" aria-selected={tab === t.k} data-testid={`monet-tab-${t.k}`} onClick={() => setTab(t.k)} style={tabBtn(tab === t.k)}>
                 <t.Icon size={13} /> {t.label}
               </button>

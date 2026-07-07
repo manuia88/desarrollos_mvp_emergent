@@ -25,7 +25,7 @@ function fmtNum(n) {
   try { return new Intl.NumberFormat('es-MX').format(n); } catch { return String(n); }
 }
 
-export default function SuperadminSocialAds() {
+export default function SuperadminSocialAds({ embedded }) {
   const { t } = useTranslation('common');
   const [stats, setStats] = useState(null);
   const [tenants, setTenants] = useState([]);
@@ -52,7 +52,7 @@ export default function SuperadminSocialAds() {
   const health = stats?.meta_api_status || {};
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div style={{ padding: 24, color: '#E5E7EB' }}>
         <header style={{ marginBottom: 22 }}>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, backgroundImage: GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>

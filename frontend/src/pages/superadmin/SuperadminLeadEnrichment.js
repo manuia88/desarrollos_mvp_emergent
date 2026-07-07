@@ -54,7 +54,7 @@ function SourceBar({ label, count, total }) {
   );
 }
 
-export default function SuperadminLeadEnrichment() {
+export default function SuperadminLeadEnrichment({ embedded }) {
   const { t } = useTranslation('common');
   const [days, setDays] = useState(30);
   const [tenantFilter, setTenantFilter] = useState('');
@@ -111,7 +111,7 @@ export default function SuperadminLeadEnrichment() {
   }, [byTenant]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div style={{ padding: 24, color: '#E5E7EB' }}>
         <header style={{ marginBottom: 22 }}>
           <h1 style={{

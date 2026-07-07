@@ -96,25 +96,20 @@ const SuperadminConstructionQuality = lazy(() => import('./pages/superadmin/Supe
 const SuperadminReviewsResidents = lazy(() => import('./pages/superadmin/SuperadminReviewsResidents'));
 // W6.MOV.2 — Gov Data MX External Sources (Superadmin)
 // W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin)
-const SuperadminSocFranchise = lazy(() => import('./pages/superadmin/SuperadminSocFranchise'));
 // W6.AS.1 — Workflow Builder Visual (Asesor)
 const WorkflowBuilderPage = lazy(() => import('./pages/portal/asesor/WorkflowBuilderPage'));
 const WorkflowHistoryPage = lazy(() => import('./pages/portal/asesor/WorkflowHistoryPage'));
 // W6.MOV.4 — Marketing Distribution MCP (Superadmin)
 // W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation)
 const MarketplaceTemplatesPage = lazy(() => import('./pages/portal/asesor/MarketplaceTemplatesPage'));
-const SuperadminMarketplaceTemplates = lazy(() => import('./pages/superadmin/SuperadminMarketplaceTemplates'));
 // W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style)
 const SuperadminReputationMonitor = lazy(() => import('./pages/superadmin/SuperadminReputationMonitor'));
 // W7.AS.1 — Lead Enrichment Clay-style (Superadmin cost monitoring)
-const SuperadminLeadEnrichment = lazy(() => import('./pages/superadmin/SuperadminLeadEnrichment'));
 // W5.10 — Social/Ads Meta multi-tenant (Asesor connect + campaigns · Superadmin monitoring)
 const SocialAdsConnectPage = lazy(() => import('./pages/portal/asesor/SocialAdsConnectPage'));
 const SocialAdsCampaignsPage = lazy(() => import('./pages/portal/asesor/SocialAdsCampaignsPage'));
-const SuperadminSocialAds = lazy(() => import('./pages/superadmin/SuperadminSocialAds'));
 // W5.22 Z.4 — Video Standalone (Asesor T2+ creator + Superadmin stats)
 const VideoStandalonePage = lazy(() => import('./pages/portal/asesor/VideoStandalonePage'));
-const SuperadminVideoStandalone = lazy(() => import('./pages/superadmin/SuperadminVideoStandalone'));
 // W7.AS.3.A — Conversation AI Agent (asesor playground + superadmin inbox)
 const ConversationPlayground = lazy(() => import('./pages/asesor/ConversationPlayground'));
 const SuperadminIaConversacionalHub  = lazy(() => import('./pages/superadmin/SuperadminIaConversacionalHub'));
@@ -378,7 +373,6 @@ const ScoreWidgetPage                = lazy(() => import('./pages/public/widgets
 const RiskWidgetPage                 = lazy(() => import('./pages/public/widgets/RiskWidgetPage'));
 const PrensaPage                     = lazy(() => import('./pages/public/PrensaPage'));
 // W3.8 — Cross-sell Intelligence
-const SuperadminCrossSellAnalytics   = lazy(() => import('./pages/superadmin/SuperadminCrossSellAnalytics'));
 const BankAvmWidget                  = lazy(() => import('./pages/public/widgets/BankAvmWidget'));
 const InsuranceRiskWidget            = lazy(() => import('./pages/public/widgets/InsuranceRiskWidget'));
 const NotariaTitleWidget             = lazy(() => import('./pages/public/widgets/NotariaTitleWidget'));
@@ -741,7 +735,7 @@ function AppRouter() {
       {/* W6.MOV.5 — Construction Quality (Superadmin) */}
       <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
-      <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
+      <Route path="/superadmin/soc-franchise" element={<Navigate to="/superadmin/monetizacion?tab=franquicia" replace />} />
       <Route path="/superadmin/kg" element={<Navigate to="/superadmin/knowledge-graph" replace />} />{/* legacy KG → canónica (W5.12) */}
       <Route path="/superadmin/granularidad" element={<SuperadminRoute Page={SuperadminGranularidad} />} />
       <Route path="/superadmin/demanda-mercado" element={<SuperadminRoute Page={SuperadminDemandaMercado} />} />
@@ -764,18 +758,18 @@ function AppRouter() {
       <Route path="/superadmin/marketing-mcp" element={<Navigate to="/superadmin/crecimiento?tab=marketing-mcp" replace />} />
       {/* W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation) */}
       <Route path="/portal/asesor/marketplace-templates" element={<AdvisorRoute Page={MarketplaceTemplatesPage} />} />
-      <Route path="/superadmin/marketplace-templates" element={<SuperadminRoute Page={SuperadminMarketplaceTemplates} />} />
+      <Route path="/superadmin/marketplace-templates" element={<Navigate to="/superadmin/monetizacion?tab=templates" replace />} />
       {/* W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style) */}
       <Route path="/superadmin/reputation-monitor" element={<SuperadminRoute Page={SuperadminReputationMonitor} />} />
       {/* W7.AS.1 — Lead Enrichment (Superadmin cost monitoring) */}
-      <Route path="/superadmin/lead-enrichment" element={<SuperadminRoute Page={SuperadminLeadEnrichment} />} />
+      <Route path="/superadmin/lead-enrichment" element={<Navigate to="/superadmin/monetizacion?tab=enrichment" replace />} />
       {/* W5.10 — Social/Ads Meta multi-tenant (2 asesor + 1 superadmin) */}
       <Route path="/portal/asesor/social-ads" element={<AdvisorRoute Page={SocialAdsConnectPage} />} />
       <Route path="/portal/asesor/social-ads/campaigns" element={<AdvisorRoute Page={SocialAdsCampaignsPage} />} />
-      <Route path="/superadmin/social-ads" element={<SuperadminRoute Page={SuperadminSocialAds} />} />
+      <Route path="/superadmin/social-ads" element={<Navigate to="/superadmin/monetizacion?tab=ads" replace />} />
       {/* W5.22 Z.4 — Video Standalone (Asesor T2+ creator · Superadmin stats) */}
       <Route path="/portal/asesor/video-standalone" element={<AdvisorRoute Page={VideoStandalonePage} />} />
-      <Route path="/superadmin/video-standalone" element={<SuperadminRoute Page={SuperadminVideoStandalone} />} />
+      <Route path="/superadmin/video-standalone" element={<Navigate to="/superadmin/monetizacion?tab=video" replace />} />
 
       {/* W7.AS.3.A — Conversation AI Agent */}
       <Route path="/portal/asesor/conversation-playground" element={<AdvisorRoute Page={ConversationPlayground} />} />
@@ -1055,7 +1049,7 @@ function AppRouter() {
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<Navigate to="/superadmin/crecimiento?tab=partners" replace />} />
-      <Route path="/superadmin/cross-sell-analytics" element={<SuperadminRoute Page={SuperadminCrossSellAnalytics} />} />
+      <Route path="/superadmin/cross-sell-analytics" element={<Navigate to="/superadmin/monetizacion?tab=cross-sell" replace />} />
       <Route path="/widget/bank-avm" element={<BankAvmWidget />} />
       <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
       <Route path="/widget/notaria-title-check" element={<NotariaTitleWidget />} />

@@ -269,18 +269,8 @@ const SUPERADMIN_NAV = [
   {
     tier: 5, label: 'Monetización', section_key: 'monetizacion',
     items: [
+      // Hub de Monetización & API — API pública + 6 productos (cross-sell/franquicia/templates/enrichment/ads/video) + interno, en 1 (metodología Hub de Mercado)
       { key: 'monetizacion',      to: '/superadmin/monetizacion',          label: 'Monetización & API', Icon: Briefcase },
-      { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell',         Icon: HeartHandshake },
-      // ─ W6.MOV.1 · SOC Franchise (Sistema Operación Certificado) ─
-      { key: 'soc-franchise',     to: '/superadmin/soc-franchise',         label: 'SOC Franchise',      Icon: Trophy },
-      // ─ W6.4 · Marketplace Templates (moderación + revenue split) ─
-      { key: 'marketplace-templates', to: '/superadmin/marketplace-templates', label: 'Marketplace Templates', Icon: Layers },
-      // ─ W7.AS.1 · Lead Enrichment Clay-style (waterfall · cache · cost monitoring) ─
-      { key: 'lead-enrichment',  to: '/superadmin/lead-enrichment',       label: 'Lead Enrichment',    Icon: Search },
-      // ─ W5.10 · Social/Ads Meta multi-tenant (tokens · cost · API health) ─
-      { key: 'social-ads',       to: '/superadmin/social-ads',            label: 'Social Ads',         Icon: Megaphone },
-      // ─ W5.22 Z.4 · Video Standalone (stats + cost monitoring) ─
-      { key: 'video-standalone', to: '/superadmin/video-standalone',      label: 'Video Standalone',   Icon: Video },
     ],
   },
   // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────

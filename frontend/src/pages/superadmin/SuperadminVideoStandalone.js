@@ -31,7 +31,7 @@ const tdStyle = {
   borderBottom: '1px solid var(--border)', fontFamily: 'DM Sans',
 };
 
-export default function SuperadminVideoStandalone() {
+export default function SuperadminVideoStandalone({ embedded }) {
   const { t } = useTranslation();
   const tt = (k, d, o) => t(`videoStandalone.superadmin.${k}`, d, o);
   const [days, setDays] = useState(30);
@@ -61,7 +61,7 @@ export default function SuperadminVideoStandalone() {
   const topUsers = stats?.top_users || [];
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow={tt('eyebrow', 'Monetización · Studio')}
         title={tt('title', 'Video Standalone')}
