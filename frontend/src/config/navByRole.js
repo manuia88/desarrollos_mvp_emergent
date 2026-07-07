@@ -260,9 +260,8 @@ const SUPERADMIN_NAV = [
   {
     tier: 7, label: 'Dev Tools', section_key: 'devtools',
     items: [
-      { key: 'primitives-demo',  to: '/superadmin/primitives-demo',  label: 'Primitives demo',         Icon: Sparkles },
-      { key: 'system-map',       to: '/superadmin/system-map',       label: 'Mapa del Sistema',        Icon: Network },
-      { key: 'user-diagnostics', to: '/superadmin/user-diagnostics', label: 'Diagnóstico de Usuarios', Icon: Activity },
+      // Hub de Dev Tools — 3 herramientas internas (primitivas/mapa/diagnóstico) en 1 (metodología Hub de Mercado)
+      { key: 'devtools',         to: '/superadmin/devtools',         label: 'Dev Tools',               Icon: Network },
     ],
   },
 ];

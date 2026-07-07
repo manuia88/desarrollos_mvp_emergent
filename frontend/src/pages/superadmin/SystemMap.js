@@ -171,7 +171,7 @@ function PerOrgTable() {
   );
 }
 
-export default function SystemMapPage({ user, onLogout }) {
+export default function SystemMapPage({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
 
@@ -180,7 +180,7 @@ export default function SystemMapPage({ user, onLogout }) {
   }, []);
 
   if (!data) return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div style={{ padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>
         Cargando system map…
       </div>
@@ -190,7 +190,7 @@ export default function SystemMapPage({ user, onLogout }) {
   const stats = data.stats || {};
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <Activity size={20} color="var(--cream)" />

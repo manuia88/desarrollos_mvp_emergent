@@ -285,6 +285,7 @@ const SuperadminOperacionHub         = lazy(() => import('./pages/superadmin/Sup
 const SuperadminCrecimientoHub       = lazy(() => import('./pages/superadmin/SuperadminCrecimientoHub'));
 const SuperadminDatosHub             = lazy(() => import('./pages/superadmin/SuperadminDatosHub'));
 const SuperadminInteligenciaHub      = lazy(() => import('./pages/superadmin/SuperadminInteligenciaHub'));
+const SuperadminDevtoolsHub          = lazy(() => import('./pages/superadmin/SuperadminDevtoolsHub'));
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
@@ -380,9 +381,6 @@ const ScoresPage                 = lazy(() => import('./pages/superadmin/ScoresP
 const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
 const SuperadminPhaseYObservability = lazy(() => import('./pages/superadmin/SuperadminObservability'));
 const SuperadminDataSourcesPage = lazy(() => import('./pages/superadmin/SuperadminDataSources'));
-const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
-const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
-const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
 // W4.10 — WhatsApp + Newsletter
 
 // Phase 4 Batch 12
@@ -1043,12 +1041,13 @@ function AppRouter() {
       <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
       <Route path="/widget/notaria-title-check" element={<NotariaTitleWidget />} />
       <Route path="/widget/investor-yield" element={<InvestorYieldWidget />} />
-      <Route path="/superadmin/primitives-demo" element={<SuperadminRoute Page={PrimitivesDemo} />} />
-      <Route path="/superadmin/system-map" element={<SuperadminRoute Page={SystemMapPage} />} />
+      <Route path="/superadmin/devtools" element={<SuperadminRoute Page={SuperadminDevtoolsHub} />} />
+      <Route path="/superadmin/primitives-demo" element={<Navigate to="/superadmin/devtools?tab=primitives" replace />} />
+      <Route path="/superadmin/system-map" element={<Navigate to="/superadmin/devtools?tab=system-map" replace />} />
       {/* W4.10 — WhatsApp Business + Newsletter Pulse */}
       <Route path="/superadmin/whatsapp" element={<Navigate to="/superadmin/crecimiento?tab=whatsapp" replace />} />
       <Route path="/superadmin/newsletter" element={<Navigate to="/superadmin/crecimiento?tab=newsletter" replace />} />
-      <Route path="/superadmin/user-diagnostics" element={<SuperadminRoute Page={UserDiagnosticsPage} />} />
+      <Route path="/superadmin/user-diagnostics" element={<Navigate to="/superadmin/devtools?tab=user-diagnostics" replace />} />
       <Route path="/superadmin/onboarding-analytics" element={<Navigate to="/superadmin/crecimiento?tab=onboarding" replace />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       {/* B7 Fase 5 · Hub Links (Tracking + Crear UTM) — unifica las 2 páginas de links */}

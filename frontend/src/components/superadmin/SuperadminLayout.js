@@ -15,7 +15,7 @@ function sectionFromPath(p) {
   if (/^\/superadmin\/(operacion|entity-resolution|health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor)/.test(p)) return 'operacion';
   if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|conversation-cost)/.test(p)) return 'monetizacion';
   if (/^\/superadmin\/(crecimiento|whatsapp|newsletter|bulletins|landing-leads|partners|invites|onboarding-analytics|free-audit-funnel|lead-sources|social-cards|marketing-mcp)/.test(p)) return 'crecimiento';
-  if (/^\/superadmin\/primitives-demo/.test(p)) return 'devtools';
+  if (/^\/superadmin\/(devtools|primitives-demo|system-map|user-diagnostics)/.test(p)) return 'devtools';
   return 'principal';
 }
 

@@ -165,7 +165,7 @@ function ReportDetail({ reportId, onClose, onChanged }) {
   );
 }
 
-export default function UserDiagnosticsPage({ user, onLogout }) {
+export default function UserDiagnosticsPage({ user, onLogout, embedded }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +201,7 @@ export default function UserDiagnosticsPage({ user, onLogout }) {
   };
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: 24 }}>
       <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
         User Diagnostics & Reportes

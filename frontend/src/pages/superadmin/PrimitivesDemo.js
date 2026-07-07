@@ -194,7 +194,7 @@ const DEMO_SECTIONS = [
 ];
 
 /* ─── Main Component ─────────────────────────────────────────────── */
-export default function PrimitivesDemo({ user, onLogout }) {
+export default function PrimitivesDemo({ user, onLogout, embedded }) {
   const { showUndo } = useUndo();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wizardDone, setWizardDone] = useState(null);
@@ -222,7 +222,7 @@ export default function PrimitivesDemo({ user, onLogout }) {
   };
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8" data-testid="primitives-demo">
 
         {/* Header */}
