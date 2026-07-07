@@ -30,7 +30,7 @@ function fmtTs(ts) {
   } catch { return String(ts); }
 }
 
-export default function SuperadminRagInspector() {
+export default function SuperadminRagInspector({ embedded }) {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsErr, setStatsErr] = useState('');
@@ -96,7 +96,7 @@ export default function SuperadminRagInspector() {
   };
 
   return (
-    <SuperadminLayout title="RAG Inspector">
+    <SuperadminLayout title="RAG Inspector" bare={embedded}>
       <div style={{ padding: 18, maxWidth: 1280, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
           <div>

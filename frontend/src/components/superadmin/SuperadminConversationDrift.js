@@ -100,7 +100,7 @@ function TrendChart({ data, t }) {
   );
 }
 
-export default function SuperadminConversationDrift() {
+export default function SuperadminConversationDrift({ embedded }) {
   const { t } = useTranslation(['conversation_drift', 'conversation_confidence']);
   const [tenantId, setTenantId] = useState('');
   const [data, setData] = useState(null);
@@ -181,7 +181,7 @@ export default function SuperadminConversationDrift() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
     <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>

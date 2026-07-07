@@ -16,7 +16,7 @@ function authHeaders() {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-export default function SuperadminAbTesting() {
+export default function SuperadminAbTesting({ embedded }) {
   const { t } = useTranslation('conversation_ab_testing');
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +122,7 @@ export default function SuperadminAbTesting() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>

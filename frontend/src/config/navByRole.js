@@ -245,18 +245,12 @@ const SUPERADMIN_NAV = [
       // ─ W6.MOV.3 · Reviews Residentes ─
       { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
       // ─ W7.AS.3.A · Conversation AI Agent inbox ─
-      { key: 'conversations', to: '/superadmin/conversations', label: 'Conversaciones IA', Icon: MessageCircle },
+      { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional', Icon: MessageCircle },
       // E5 · Copiloto de asesores (adopción · ranking · scripts · objeciones) — estaba sin menú.
-      { key: 'copilot', to: '/superadmin/copilot', label: 'Copiloto Asesores', Icon: MessageCircle },
       // ─ W7.AS.3.D · Round 2 · KB Gaps (huecos de conocimiento) ─
-      { key: 'kb-gaps', to: '/superadmin/kb-gaps', label: 'KB Gaps', Icon: HelpCircle },
       // ─ W7.AS.3.G · Round 3 · A/B Testing de prompts ─
-      { key: 'ab-testing', to: '/superadmin/ab-testing', label: 'A/B Testing', Icon: FlaskConical },
       // ─ W7.AS.3.I · Round 3 · Drift Dashboard (calidad agente IA) ─
-      { key: 'conversation-drift', to: '/superadmin/conversation-drift', label: 'Drift IA', Icon: Activity },
       // ─ Observabilidad IA · pantallas ruteadas sin entrada de menú ─
-      { key: 'rag-inspector',     to: '/superadmin/rag-inspector',     label: 'RAG Inspector',          Icon: Eye },
-      { key: 'conversation-cost', to: '/superadmin/conversation-cost', label: 'Costo de Conversación IA', Icon: DollarSign },
       { key: 'virtual-staging',   to: '/superadmin/virtual-staging',   label: 'Staging Virtual',        Icon: Sparkles },
       { key: 'climate-migration', to: '/superadmin/climate-migration', label: 'Migración Climática',    Icon: Activity },
     ],

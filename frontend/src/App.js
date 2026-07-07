@@ -120,6 +120,7 @@ const VideoStandalonePage = lazy(() => import('./pages/portal/asesor/VideoStanda
 const SuperadminVideoStandalone = lazy(() => import('./pages/superadmin/SuperadminVideoStandalone'));
 // W7.AS.3.A — Conversation AI Agent (asesor playground + superadmin inbox)
 const ConversationPlayground = lazy(() => import('./pages/asesor/ConversationPlayground'));
+const SuperadminIaConversacionalHub  = lazy(() => import('./pages/superadmin/SuperadminIaConversacionalHub'));
 const SuperadminConversations = lazy(() => import('./components/superadmin/SuperadminConversations'));
 // W7.AS.3.G — Round 3 · A/B Testing de prompts (superadmin)
 const SuperadminAbTesting = lazy(() => import('./components/superadmin/SuperadminAbTesting'));
@@ -792,19 +793,20 @@ function AppRouter() {
 
       {/* W7.AS.3.A — Conversation AI Agent */}
       <Route path="/portal/asesor/conversation-playground" element={<AdvisorRoute Page={ConversationPlayground} />} />
-      <Route path="/superadmin/conversations" element={<SuperadminRoute Page={SuperadminConversations} />} />
-      <Route path="/superadmin/ab-testing" element={<SuperadminRoute Page={SuperadminAbTesting} />} />
+      <Route path="/superadmin/ia-conversacional" element={<SuperadminRoute Page={SuperadminIaConversacionalHub} />} />
+      <Route path="/superadmin/conversations" element={<Navigate to="/superadmin/ia-conversacional?tab=conversaciones" replace />} />
+      <Route path="/superadmin/ab-testing" element={<Navigate to="/superadmin/ia-conversacional?tab=ab-testing" replace />} />
       {/* W7.AS.3.D — Round 2 · Inbox avanzado + KB Gaps */}
       <Route path="/portal/asesor/conversation-inbox" element={<AdvisorRoute Page={ConversationInbox} />} />
       <Route path="/portal/asesor/canales" element={<AdvisorRoute Page={CanalesPage} />} />
       {/* B7 Fase 2 · Hub de Conexiones (Canales + Anuncios Meta + Campañas en pestañas) */}
       <Route path="/portal/asesor/conexiones" element={<AdvisorRoute Page={ConexionesPage} />} />
-      <Route path="/superadmin/kb-gaps" element={<SuperadminRoute Page={SuperadminKbGaps} />} />
+      <Route path="/superadmin/kb-gaps" element={<Navigate to="/superadmin/ia-conversacional?tab=kb-gaps" replace />} />
       {/* W7.AS.3.F — Round 2 · Cost dashboard */}
-      <Route path="/superadmin/conversation-cost" element={<SuperadminRoute Page={SuperadminConversationCost} />} />
-      <Route path="/superadmin/copilot" element={<SuperadminRoute Page={SuperadminCopilot} />} />
+      <Route path="/superadmin/conversation-cost" element={<Navigate to="/superadmin/ia-conversacional?tab=costo" replace />} />
+      <Route path="/superadmin/copilot" element={<Navigate to="/superadmin/ia-conversacional?tab=copiloto" replace />} />
       {/* W7.AS.3.I — Round 3 · Drift Dashboard */}
-      <Route path="/superadmin/conversation-drift" element={<SuperadminRoute Page={SuperadminConversationDrift} />} />
+      <Route path="/superadmin/conversation-drift" element={<Navigate to="/superadmin/ia-conversacional?tab=drift" replace />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<Navigate to="/superadmin/modelo?tab=fsd" replace />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}
@@ -992,7 +994,7 @@ function AppRouter() {
       <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
       <Route path="/superadmin/audit-log-legacy" element={<Navigate to="/superadmin/audit-log" replace />} />{/* legacy → audit-log nuevo */}
       <Route path="/superadmin/ai-cost" element={<Navigate to="/superadmin/monetizacion?tab=costos" replace />} />
-      <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
+      <Route path="/superadmin/rag-inspector" element={<Navigate to="/superadmin/ia-conversacional?tab=rag" replace />} />
       <Route path="/superadmin/commercial" element={<Navigate to="/superadmin/monetizacion?tab=comercial" replace />} />
       <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
       <Route path="/superadmin/monetizacion" element={<SuperadminRoute Page={SuperadminMonetizacionHub} />} />{/* Hub de Monetización & API */}

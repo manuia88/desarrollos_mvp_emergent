@@ -24,7 +24,7 @@ function authHeaders() {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-export default function SuperadminConversations() {
+export default function SuperadminConversations({ embedded }) {
   const { t } = useTranslation('conversation_round1');
   const [stats, setStats] = useState(null);
   const [list, setList] = useState([]);
@@ -86,7 +86,7 @@ export default function SuperadminConversations() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
     <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <MessageCircle size={22} />

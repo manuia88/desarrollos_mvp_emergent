@@ -18,7 +18,7 @@ function authHeaders() {
   return tk ? { Authorization: `Bearer ${tk}` } : {};
 }
 
-export default function SuperadminKbGaps() {
+export default function SuperadminKbGaps({ embedded }) {
   const { t } = useTranslation('conversation_round2_ui');
   const [gaps, setGaps] = useState([]);
   const [stats, setStats] = useState(null);
@@ -84,7 +84,7 @@ export default function SuperadminKbGaps() {
   }, [load]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <HelpCircle size={22} />
