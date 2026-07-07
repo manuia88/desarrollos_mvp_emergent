@@ -13,6 +13,7 @@ Bridge entre el átomo (dmx_units · dmx_unit_schema) y el cube_olap_engine:
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -116,6 +117,66 @@ async def backfill_atom(db) -> Dict[str, Any]:
             )
             n += 1
     return {"backfilled": n, "collection": UNITS}
+
+
+def db_unit_to_atom(u: Dict[str, Any], dev: Dict[str, Any]) -> Dict[str, Any]:
+    """Mapea una unidad INGERIDA (db.units, shape bulk-ingest) al átomo dmx_units. Espejo de
+    seed_to_atom pero con los campos que escribe la ingesta (size_m2/size_m2_total/storage/parking/…)."""
+    beds = u.get("bedrooms")
+    try:
+        n_park = int(re.sub(r"[^\d]", "", str(u.get("parking") or "")) or 0)
+    except Exception:  # noqa: BLE001
+        n_park = 1 if u.get("parking") else 0
+    parking = [{"arreglo": None} for _ in range(n_park)] if n_park else []
+    storage = [{"incluida": True}] if u.get("storage") else []
+    amenities = dev.get("amenities")
+    amenity_keys = amenities if isinstance(amenities, list) and amenities and isinstance(amenities[0], str) else None
+    return {
+        "unit_id": u.get("id"),
+        "development_id": u.get("development_id") or dev.get("id"),
+        "prototype_id": u.get("type"),
+        "org_id": u.get("developer_id") or dev.get("developer_id"),
+        "developer_id": u.get("developer_id") or dev.get("developer_id"),
+        "tipologia": tipologia_from_beds(beds),
+        "position": {"piso": None, "orientacion": None},
+        "areas": {"m2_construido": u.get("size_m2_total") or u.get("size_m2"),
+                  "m2_privativo": u.get("size_m2"), "m2_terraza": None, "m2_balcon": None,
+                  "m2_roof_garden_privado": None},
+        "interior": {"recamaras": beds, "banos_completos": u.get("bathrooms")},
+        "parking": parking,
+        "storage": storage,
+        "commercial": {"precio_lista_mxn": u.get("price_mxn"), "status": u.get("status")},
+        "geo": {"colonia_id": u.get("colonia_id") or dev.get("colonia_id"),
+                "alcaldia": dev.get("alcaldia"), "calle": dev.get("address"),
+                "cp": None, "lat": dev.get("lat"), "lng": dev.get("lng")},
+        "amenity_keys": amenity_keys,
+        "sources": {"_origin": "bulk_ingest"},
+        "updated_at": _iso(),
+    }
+
+
+async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[str, Any]:
+    """CABLE #3: mete las unidades INGERIDAS (db.units) al átomo dmx_units para que el Cubo OLAP,
+    Demanda y Absorción las vean. Idempotente (upsert por unit_id). Filtra por developer_id si se pasa."""
+    q: Dict[str, Any] = {"developer_id": developer_id} if developer_id else {}
+    devs: Dict[str, Dict[str, Any]] = {}
+    async for d in db.developments.find(q if developer_id else {"source": "bulk_ingest"}, {"_id": 0}):
+        devs[d["id"]] = d
+    if not devs:
+        return {"synced": 0, "collection": UNITS}
+    n = 0
+    async for u in db.units.find({"development_id": {"$in": list(devs.keys())}}, {"_id": 0}):
+        dev = devs.get(u.get("development_id")) or {}
+        atom = db_unit_to_atom(u, dev)
+        if not atom.get("unit_id"):
+            continue
+        await db[UNITS].update_one(
+            {"unit_id": atom["unit_id"]},
+            {"$set": atom, "$setOnInsert": {"created_at": _iso()}},
+            upsert=True,
+        )
+        n += 1
+    return {"synced": n, "collection": UNITS}
 
 
 # ─── átomo → plano (para el agregador del cubo) ──────────────────────────────

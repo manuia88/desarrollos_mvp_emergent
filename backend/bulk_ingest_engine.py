@@ -889,6 +889,14 @@ async def run(db, job_id: str) -> None:
                 "error_log": error_log[:50],
             }},
         )
+        # CABLE #3: volcar las unidades ingeridas al átomo dmx_units → el Cubo OLAP / Demanda /
+        # Absorción ya las ven (antes solo veían el seed). Best-effort, no rompe el job.
+        try:
+            from dmx_cube_feed import sync_ingested_to_atom
+            res = await sync_ingested_to_atom(db, target_org)
+            log.info(f"[bulk_ingest] átomo sincronizado: {res.get('synced')} units → dmx_units")
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[bulk_ingest] sync al átomo falló: {e}")
     except Exception as e:
         log.exception(f"[bulk_ingest] job {job_id} crashed")
         await db.bulk_ingest_jobs.update_one(
