@@ -32,7 +32,8 @@ CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
 MAX_FILES_PER_FOLDER = 2000       # tope global de archivos listados por job (seguridad)
 MAX_FILES_PER_PROJECT_LIST = 60   # tope de archivos LISTADOS por proyecto (evita que un proyecto con
                                   # muchas fotos se coma el presupuesto global y tape a los demás)
-MAX_KEY_FILES_PER_PROJECT = 12    # PDFs/planos DESCARGADOS+leídos por proyecto (a más, más costo de IA)
+MAX_KEY_FILES_PER_PROJECT = 15    # PDFs DESCARGADOS+leídos por proyecto (datos primero + planos para
+                                  # cruzar por unidad; a más, más costo de IA)
 MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
 PDF_MIMES = {"application/pdf"}
 SPREADSHEET_MIMES = {
@@ -298,6 +299,9 @@ Devuelve SOLO JSON válido con la siguiente estructura:
 }
 IMPORTANTE: la LISTA DE PRECIOS / DISPONIBILIDAD es tu fuente principal — extrae CADA depto con su precio,
 m², disponibilidad, bodega y cajón. Si un depto aparece "apartado"/"vendido" márcalo en status.
+CRUCE DE PLANOS (importante): si hay planos individuales por depto (nombres tipo "DEP-206", "H122_DEP-201")
+úsalos para COMPLETAR/VERIFICAR recámaras, baños y m² de ESE depto, cruzando por número de unidad con la
+lista de precios. Si la lista de precios no trae recámaras/baños pero el plano sí, tómalos del plano.
 En "_confidence" califica QUÉ TAN SEGURO estás de cada grupo (1.0 = explícito en el documento · 0.5 = inferido · 0.2 = adivinado). Sé honesto: si el precio no aparece claro, pon price bajo.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
