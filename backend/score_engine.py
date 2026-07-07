@@ -454,6 +454,9 @@ class ScoreEngine:
             "inputs_used": r.inputs_used,
             "formula_version": r.formula_version,
             "computed_at": r.computed_at,
+            # Un cómputo REAL limpia la etiqueta proxy (backfill_ie_proxy) → el proxy se
+            # revierte solo en cuanto entra dato real de la fuente. Cero proxy fantasma.
+            "is_proxy": False,
         }
         # Phase C / N4 predictive extras — only persisted if set
         if r.model_version is not None:

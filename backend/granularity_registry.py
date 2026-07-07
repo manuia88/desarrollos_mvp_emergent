@@ -130,38 +130,44 @@ async def stub_diagnosis(db) -> Dict[str, Any]:
         recs = all_recipes()
     except Exception:
         recs = {}
+    # Cuenta STUB (sin dato, gris) y PROXY (relleno etiquetado 'estimado' por falta de fuente).
     rows = await db.ie_scores.aggregate(
-        [{"$match": {"is_stub": True}}, {"$group": {"_id": "$code", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}]
+        [{"$match": {"$or": [{"is_stub": True}, {"is_proxy": True}]}},
+         {"$group": {"_id": "$code",
+                     "n_stub": {"$sum": {"$cond": [{"$eq": ["$is_stub", True]}, 1, 0]}},
+                     "n_proxy": {"$sum": {"$cond": [{"$eq": ["$is_proxy", True]}, 1, 0]}}}},
+         {"$sort": {"n_proxy": -1}}]
     ).to_list(300)
     items = []
     for r in rows:
-        code, n = r["_id"], r["n"]
+        code, n_stub, n_proxy = r["_id"], r.get("n_stub", 0), r.get("n_proxy", 0)
         rec = recs.get(code)
         deps = list(getattr(rec, "dependencies", []) or []) if rec else []
         needs_denue = bool(getattr(rec, "needs_denue", False)) if rec else False
         if needs_denue and "osm_overpass" not in deps:
             deps = deps + ["osm_overpass"]
         if not deps:
-            status, accion, fuentes = "dato_interno", "Computa de datos DMX internos — stub = la entidad aún no tiene ese dato capturado.", []
+            status, accion, fuentes = "dato_interno", "Computa de datos DMX internos — proxy = mediana de pares hasta capturar el dato real.", []
         else:
             cand = [(SOURCE_STATUS.get(d, ("sin_fuente", d))[0], SOURCE_STATUS.get(d, ("sin_fuente", d))[1], d) for d in deps]
             cand.sort(key=lambda c: _STATUS_PRIORITY.index(c[0]) if c[0] in _STATUS_PRIORITY else 99)
             status, accion = cand[0][0], cand[0][1]
             fuentes = deps
-        items.append({"code": code, "zonas_stub": n, "fuentes": fuentes, "status": status, "accion": accion})
+        items.append({"code": code, "zonas_stub": n_stub, "zonas_proxy": n_proxy, "fuentes": fuentes, "status": status, "accion": accion})
     resumen = {}
     for it in items:
-        resumen.setdefault(it["status"], {"recetas": 0, "zonas_stub": 0})
+        resumen.setdefault(it["status"], {"recetas": 0, "zonas_stub": 0, "zonas_proxy": 0})
         resumen[it["status"]]["recetas"] += 1
         resumen[it["status"]]["zonas_stub"] += it["zonas_stub"]
-    return {"total_recetas_stub": len(items), "por_status": resumen, "detalle": items}
+        resumen[it["status"]]["zonas_proxy"] += it["zonas_proxy"]
+    return {"total_recetas_incompletas": len(items), "por_status": resumen, "detalle": items}
 
 
 def _drill(key: str, docs: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """CAPA 3 · drill por-score / por-feature: expande las familias gruesas en su detalle granular."""
     if key == "ie_scores":  # ~70 recetas IE por zona → score por receta
         recetas = sorted(({"receta": d.get("code"), "valor": d.get("value"), "confianza": d.get("confidence"),
-                           "stub": bool(d.get("is_stub"))} for d in docs if d.get("code")),
+                           "stub": bool(d.get("is_stub")), "proxy": bool(d.get("is_proxy"))} for d in docs if d.get("code")),
                          key=lambda x: x["receta"] or "")
         return {"tipo": "recetas", "total": len(recetas), "items": recetas}
     if key == "unit_atom":  # taxonomía de 14 grupos → cuántos features poblados por grupo
