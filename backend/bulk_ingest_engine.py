@@ -214,6 +214,61 @@ def _extract_text_from_bytes(b: bytes, mime: str, fname: str) -> str:
     return ""
 
 
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validación de negocio: descarta valores imposibles (precios ≤0, m²≤0, recámaras/baños fuera de
+    rango) → null en vez de basura. Evita que la IA meta -1, 0 o texto al catálogo."""
+    if not isinstance(data, dict):
+        return data
+    pr = data.get("price_range")
+    if isinstance(pr, dict):
+        for k in ("min_mxn", "max_mxn"):
+            v = _num(pr.get(k))
+            pr[k] = int(v) if (v is not None and v > 0) else None
+        if pr.get("min_mxn") and pr.get("max_mxn") and pr["min_mxn"] > pr["max_mxn"]:
+            pr["min_mxn"], pr["max_mxn"] = pr["max_mxn"], pr["min_mxn"]
+    tu = _num(data.get("total_units"))
+    if tu is not None:
+        data["total_units"] = int(tu) if 0 < tu <= 100000 else None
+    clean_units = []
+    for u in (data.get("units") or []):
+        if not isinstance(u, dict):
+            continue
+        p = _num(u.get("price_mxn")); u["price_mxn"] = int(p) if (p is not None and p > 0) else None
+        s = _num(u.get("size_m2")); u["size_m2"] = int(s) if (s is not None and s > 0) else None
+        b = _num(u.get("bedrooms")); u["bedrooms"] = int(b) if (b is not None and 0 <= b <= 20) else None
+        ba = _num(u.get("bathrooms")); u["bathrooms"] = int(ba) if (ba is not None and 0 <= ba <= 20) else None
+        clean_units.append(u)
+    if "units" in data:
+        data["units"] = clean_units
+    return data
+
+
+async def _geocode_address(address: str) -> Tuple[Optional[float], Optional[float]]:
+    """Geocodifica una dirección → (lat, lng) vía Nominatim (OSM · gratis · sin llave), acotado a MX.
+    Fail-soft: (None, None) si falla. Completa lat/lng cuando la IA no los trae (casi siempre)."""
+    if not (address or "").strip():
+        return None, None
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=12) as c:
+            r = await c.get("https://nominatim.openstreetmap.org/search",
+                            params={"q": address, "format": "json", "limit": 1, "countrycodes": "mx"},
+                            headers={"User-Agent": "DesarrollosMX/1.0 (ingest)"})
+            arr = r.json()
+            if isinstance(arr, list) and arr:
+                return float(arr[0]["lat"]), float(arr[0]["lon"])
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] geocode falló: {e}")
+    return None, None
+
+
 async def extract_bulk_project(
     project_name_hint: str,
     file_payloads: List[Tuple[bytes, str, str]],  # (bytes, mime, filename)
@@ -264,6 +319,13 @@ async def extract_bulk_project(
                 raw = re.sub(r"^```(?:json)?\s*", "", raw)
                 raw = re.sub(r"\s*```$", "", raw)
             data = json.loads(raw)
+            # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
+            data = _sanitize_extraction(data)
+            # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft).
+            if data.get("lat") is None or data.get("lng") is None:
+                _lat, _lng = await _geocode_address(data.get("address_full") or "")
+                if _lat is not None and _lng is not None:
+                    data["lat"], data["lng"], data["_geocoded"] = _lat, _lng, True
             # Approx cost: 0.50 MXN per call (Haiku ballpark) — caller side records
             # the budget event via track_ai_call (db handle lives there).
             return data, 0.50
