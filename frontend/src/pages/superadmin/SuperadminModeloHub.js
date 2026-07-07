@@ -15,7 +15,7 @@ import { Activity, TrendingUp, Gauge, Sparkles, Target, LineChart, AlertTriangle
 const SuperadminAprendizaje = lazy(() => import('./SuperadminAprendizaje'));
 const SuperadminAvmAccuracy = lazy(() => import('./SuperadminAvmAccuracy'));
 const SuperadminForecastAccuracy = lazy(() => import('./SuperadminForecastAccuracy'));
-const SuperadminFsdAccuracy = lazy(() => import('./SuperadminFsdAccuracy'));
+const SuperadminFsdAccuracy = lazy(() => import('./SuperadminFSDAccuracy'));
 const SuperadminCalibracion = lazy(() => import('./SuperadminCalibracion'));
 const SuperadminCerebroMercado = lazy(() => import('./SuperadminCerebroMercado'));
 const ScoresPage = lazy(() => import('./ScoresPage'));
