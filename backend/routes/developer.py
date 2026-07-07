@@ -50,6 +50,26 @@ def _user_dev_ids(user) -> List[str]:
     return user_dev_ids(user)
 
 
+@router.post("/proyecto/{project_id}/publicar")
+async def publicar_proyecto(project_id: str, request: Request):
+    """El DEV publica su propio proyecto pendiente al marketplace (marketplace_published=True),
+    scoped a SU tenant (fail-closed). Cierra el 'o el dev aprueba' del paso de aprobación pre-publicar."""
+    user = await require_dev_admin(request)
+    db = get_db(request)
+    proj = await db.projects.find_one(
+        {"id": project_id}, {"_id": 0, "dev_org_id": 1, "developer_id": 1, "name": 1})
+    if not proj:
+        raise HTTPException(404, "Proyecto no encontrado")
+    from tenant_scope import tenant_of, is_superadmin
+    tenant = tenant_of(user)
+    if not is_superadmin(user) and tenant not in (proj.get("dev_org_id"), proj.get("developer_id")):
+        raise HTTPException(403, "No es tu proyecto")
+    await db.projects.update_one(
+        {"id": project_id},
+        {"$set": {"marketplace_published": True, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"ok": True, "project_id": project_id, "marketplace_published": True}
+
+
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 async def _effective_units(db, dev_ids):
     """Unidades de los dev_ids con las ediciones manuales del dev (developer_unit_overrides) YA fusionadas → conteos/
