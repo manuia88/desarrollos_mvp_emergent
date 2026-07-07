@@ -384,6 +384,19 @@ async def run_rates_update(db):
     return res
 
 
+async def run_moat_feeders_refresh(db):
+    """Refresca los feeders del moat (SACMEX agua · FGJ crimen · zona sísmica) desde CKAN vivo y
+    recomputa N04/N05/N07. Antes solo se disparaba a mano (endpoint) → el dato quedaba stale.
+    Semanal (dom 01:30, ANTES del recompute 02:00). Fail-soft. NO crea colonias — mantiene FRESCO
+    lo que la fuente oficial ya cubre (N04~1034 · N07~1051 · sísmico~1182 cuando CKAN vive)."""
+    from routes.scores import moat_feeders_core
+    res = await moat_feeders_core(db)
+    _emit("moat_feeders_refresh_done",
+          feeders={k: (v or {}).get("ok") for k, v in (res.get("feeders") or {}).items()},
+          recompute={k: v.get("reales") for k, v in (res.get("recompute") or {}).items()})
+    return res
+
+
 def start_scheduler(db):
     global _scheduler
     if _scheduler is not None:
@@ -418,6 +431,14 @@ def start_scheduler(db):
         CronTrigger(hour=2, minute=0, timezone=TZ),
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
         misfire_grace_time=3600,
+    )
+    # Moat feeders (agua/crimen/sísmico) — refresco SEMANAL desde CKAN, dom 01:30 MX (antes del
+    # recompute 02:00 para que vea dato fresco). Antes: solo manual → dato stale.
+    _scheduler.add_job(
+        wrap_apscheduler_job(run_moat_feeders_refresh, "ie_moat_feeders_refresh"),
+        CronTrigger(day_of_week="sun", hour=1, minute=30, timezone=TZ),
+        args=[db], id="ie_moat_feeders_refresh", replace_existing=True,
+        misfire_grace_time=7200,
     )
     # W3.9b — Watchlist alerts (02:30 MX, post score recompute)
     _scheduler.add_job(
@@ -972,7 +993,7 @@ def start_scheduler(db):
 
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
-          "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
+          "ie_daily_score_recompute", "ie_moat_feeders_refresh", "drive_watcher", "drive_webhook_renew",
           "unit_holds_release", "health_score_snapshots", "weekly_brief_generation",
           "oauth_token_refresh", "newsletter_generate", "newsletter_send",
           "notifications_digest_4h", "wa_pending_replies_check", "meeting_reminders_check"])

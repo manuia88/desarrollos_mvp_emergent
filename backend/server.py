@@ -2505,6 +2505,11 @@ async def startup():
         except Exception as e:
             logging.warning(f"[zone_data] cron register failed: {e}")
         try:
+            from gentrification_engine import schedule_gentrification_cron
+            schedule_gentrification_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[gentrif] cron register failed: {e}")
+        try:
             register_batch4_3_jobs(sched, db)
         except Exception as e:
             logging.warning(f"batch4.3 scheduler register failed: {e}")

@@ -347,3 +347,21 @@ async def persist_all(db, limit: Optional[int] = None) -> Dict[str, Any]:
         if limit and written >= limit:
             break
     return {"ok": True, "scanned": scanned, "written": written}
+
+
+def schedule_gentrification_cron(scheduler, db) -> None:
+    """Registra el persist DIARIO del índice de gentrificación (04:45 MX, tras el recompute 02:00).
+    Antes: solo on-read + endpoint manual → la colección persistida (que leen cubo/índices) quedaba
+    stale. persist_all es idempotente y barato (solo colonias con ≥1 componente)."""
+    try:
+        from cron_heartbeat import wrap_apscheduler_job
+    except Exception:
+        def wrap_apscheduler_job(fn, _job_id):  # noqa: ARG001
+            return fn
+    from apscheduler.triggers.cron import CronTrigger
+    scheduler.add_job(
+        wrap_apscheduler_job(persist_all, "gentrification_persist"),
+        CronTrigger(hour=4, minute=45, timezone="America/Mexico_City"),
+        args=[db], id="gentrification_persist", replace_existing=True, misfire_grace_time=3600,
+    )
+    log.info("[gentrif] cron de persist diario registrado (04:45 MX)")

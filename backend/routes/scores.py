@@ -110,46 +110,64 @@ async def recompute_scores(payload: RecomputeRequest, request: Request):
     )
 
 
+async def moat_feeders_core(db, on_progress=None) -> Dict[str, Any]:
+    """Core COMPARTIDO (endpoint manual + cron semanal): ingesta los 3 feeders del moat
+    (SACMEX agua · FGJ trayectoria · zona sísmica) fail-soft desde CKAN vivo, y recomputa
+    N04/N05/N07 sobre las colonias con dato. Devuelve {feeders, recompute, processed}. NO duplica motor."""
+    out: Dict[str, Any] = {"feeders": {}, "recompute": {}}
+    processed = 0
+    # 1) Ingestas de dato real (cada una fail-soft)
+    try:
+        import sacmex_water_ingest as sw
+        out["feeders"]["sacmex_water"] = await sw.ingest_sacmex_water(db)
+    except Exception as e:  # noqa: BLE001
+        out["feeders"]["sacmex_water"] = {"ok": False, "error": str(e)[:160]}
+    try:
+        import fgj_trajectory_ingest as ft
+        out["feeders"]["fgj_trajectory"] = await ft.ingest_fgj_trajectory(db)
+    except Exception as e:  # noqa: BLE001
+        out["feeders"]["fgj_trajectory"] = {"ok": False, "error": str(e)[:160]}
+    try:
+        import seismic_zone_ingest as sz
+        out["feeders"]["seismic_zone"] = await sz.ingest_seismic_zones(db)
+    except Exception as e:  # noqa: BLE001
+        out["feeders"]["seismic_zone"] = {"ok": False, "error": str(e)[:160]}
+    # 2) Recompute de los 3 scores sobre las colonias con dato nuevo
+    eng = ScoreEngine(db)
+    targets: set = set()
+    for col, field in [("sacmex_zone_colonia", None), ("fgj_trajectory_zone", None), ("seismic_zone_colonia", None)]:
+        targets |= set(await db[col].distinct("zone_id"))
+    for code in ["IE_COL_N04_CRIME_TRAJECTORY", "IE_COL_N05_INFRASTRUCTURE_RESILIENCE", "IE_COL_N07_WATER_SECURITY"]:
+        real = 0
+        for z in targets:
+            r = await eng.compute_one(z, code)
+            if not r.is_stub:
+                real += 1
+            processed += 1
+        out["recompute"][code] = {"zonas": len(targets), "reales": real}
+        if on_progress is not None:
+            await on_progress(processed, code)
+    out["processed"] = processed
+    return out
+
+
 async def _moat_feeders_runner(db, task_id: str):
-    """Background task — misma lógica que corría síncrona en refresh_moat_feeders.
-    Progreso/resultado en ie_recompute_tasks (mismo patrón que /scores/recompute-all)."""
+    """Background task del endpoint — envuelve moat_feeders_core con el bookkeeping de ie_recompute_tasks."""
     started = datetime.now(timezone.utc)
     out: Dict[str, Any] = {"feeders": {}, "recompute": {}}
     errors: List[str] = []
     processed = 0
+
+    async def _prog(p, code):
+        nonlocal processed
+        processed = p
+        await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+            "processed": p, "last_zone": code, "updated_at": datetime.now(timezone.utc),
+        }})
+
     try:
-        # 1) Ingestas de dato real (cada una fail-soft)
-        try:
-            import sacmex_water_ingest as sw
-            out["feeders"]["sacmex_water"] = await sw.ingest_sacmex_water(db)
-        except Exception as e:  # noqa: BLE001
-            out["feeders"]["sacmex_water"] = {"ok": False, "error": str(e)[:160]}
-        try:
-            import fgj_trajectory_ingest as ft
-            out["feeders"]["fgj_trajectory"] = await ft.ingest_fgj_trajectory(db)
-        except Exception as e:  # noqa: BLE001
-            out["feeders"]["fgj_trajectory"] = {"ok": False, "error": str(e)[:160]}
-        try:
-            import seismic_zone_ingest as sz
-            out["feeders"]["seismic_zone"] = await sz.ingest_seismic_zones(db)
-        except Exception as e:  # noqa: BLE001
-            out["feeders"]["seismic_zone"] = {"ok": False, "error": str(e)[:160]}
-        # 2) Recompute de los 3 scores sobre las colonias con dato nuevo
-        eng = ScoreEngine(db)
-        targets: set = set()
-        for col, field in [("sacmex_zone_colonia", None), ("fgj_trajectory_zone", None), ("seismic_zone_colonia", None)]:
-            targets |= set(await db[col].distinct("zone_id"))
-        for code in ["IE_COL_N04_CRIME_TRAJECTORY", "IE_COL_N05_INFRASTRUCTURE_RESILIENCE", "IE_COL_N07_WATER_SECURITY"]:
-            real = 0
-            for z in targets:
-                r = await eng.compute_one(z, code)
-                if not r.is_stub:
-                    real += 1
-                processed += 1
-            out["recompute"][code] = {"zonas": len(targets), "reales": real}
-            await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
-                "processed": processed, "last_zone": code, "updated_at": datetime.now(timezone.utc),
-            }})
+        out = await moat_feeders_core(db, on_progress=_prog)
+        processed = out.get("processed", processed)
     except Exception as e:  # noqa: BLE001
         errors.append(str(e)[:200])
     finished = datetime.now(timezone.utc)
