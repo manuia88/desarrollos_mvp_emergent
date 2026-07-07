@@ -248,6 +248,10 @@ async def superadmin_indices(
             "zona_top": top["zona"] if top else None,
             "idm_top": top["idm"]["valor"] if top else None,
             "grado_A": sum(1 for r in rows if r["idm"]["letra"] == "A"),
+            # Escala REAL del índice (esta sesión: de 16 seed → universo completo)
+            "colonias_universo": len(universo),
+            "con_ids_real": len(dem_map),                                          # demanda observada → IDS real
+            "con_iab_real": sum(1 for c in universo if abs_map.get(c.get("name"))),  # absorción real → IAB real
         },
         "leyenda": [{"key": k, **v} for k, v in ix.INDICES_META.items()],
         "idm_meta": ix.IDM_META,

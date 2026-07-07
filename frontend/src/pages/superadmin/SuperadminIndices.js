@@ -200,7 +200,9 @@ export default function SuperadminIndices({ embedded }) {
       {/* KPIs de la malla */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 18 }}>
         {[
-          ['IDM promedio', kpis.avg_idm ?? '—', <Gauge key="g" size={15} />],
+          ['Colonias cubiertas', kpis.colonias_universo ?? '—', <Gauge key="g" size={15} />],
+          ['Con demanda real (IDS)', kpis.con_ids_real ?? '—', null],
+          ['IDM promedio', kpis.avg_idm ?? '—', null],
           ['Zona más fuerte', kpis.zona_top || '—', null],
           ['IDM más alto', kpis.idm_top ?? '—', null],
           ['Zonas grado A', kpis.grado_A ?? '—', null],
