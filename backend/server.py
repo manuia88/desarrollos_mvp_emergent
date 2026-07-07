@@ -587,6 +587,10 @@ from routes.risk_alerts import router as risk_alerts_router
 from natural_risk_engine import ensure_indexes as ensure_natural_indexes
 from perception_risk_engine import ensure_indexes as ensure_perception_indexes
 app.include_router(risk_alerts_router)
+# Watchlist de alertas de riesgo (opt-in público) — el router existía pero nunca se
+# montó → el formulario público daba 404 y las alertas por email estaban muertas. Conectado.
+from routes.watchlist import router as watchlist_router, ensure_indexes as ensure_watchlist_indexes
+app.include_router(watchlist_router)
 
 # W3.5 — Public API v1 + Stripe Billing
 from routes.public_api_v1 import router as public_api_v1_router
@@ -1874,6 +1878,10 @@ async def startup():
         await ensure_bulk_ingest_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] bulk ingest indexes failed: {e}")
+    try:
+        await ensure_watchlist_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] watchlist indexes failed: {e}")
     try:
         await ensure_connector_indexes(db)
     except Exception as e:
