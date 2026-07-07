@@ -12,18 +12,44 @@ apply_inline_patch · build_diff · run) → diferidas a integration tests Wave 
 
 NO toca infra · NO modifica código existente · solo lectura.
 """
+import asyncio
+import re
+
 import pytest
 
 from bulk_ingest_engine import (
     parse_folder_id,
     _group_by_project,
+    _list_folder_recursive,
     _stub_extraction,
     effective_extracted,
     _validate_patch,
+    FOLDER_MIME,
     EDITABLE_TOP_LEVEL,
     EDITABLE_PRICE_RANGE,
     EDITABLE_UNIT_KEYS,
 )
+
+
+def _fake_drive_service(tree):
+    """svc falso: files().list(q="'FID' in parents ...").execute() → hijos de FID según `tree`."""
+    class _Exec:
+        def __init__(self, files):
+            self._files = files
+        def execute(self):
+            return {"files": self._files, "nextPageToken": None}
+
+    class _Files:
+        def list(self, q=None, **kw):
+            m = re.search(r"'([^']+)' in parents", q or "")
+            fid = m.group(1) if m else ""
+            return _Exec(tree.get(fid, []))
+
+    class _Svc:
+        def files(self):
+            return _Files()
+
+    return _Svc()
 
 
 pytestmark = pytest.mark.unit
@@ -274,3 +300,49 @@ def test_editable_constants_intact():
     assert EDITABLE_UNIT_KEYS == {
         "unit_number", "type", "bedrooms", "bathrooms", "size_m2", "price_mxn",
     }
+
+
+# ─── _list_folder_recursive: recorre subcarpetas anidadas a CUALQUIER profundidad ─────
+
+def test_list_folder_recursive_descends_any_depth(monkeypatch):
+    """carpeta → sub → sub-sub → sub-sub-sub con 10 PDFs: los 10 se recolectan y se atribuyen
+    a la subcarpeta de PRIMER nivel (= el proyecto), no se pierden por estar anidados."""
+    tree = {
+        "ROOT": [{"id": "Sub", "name": "Torre Aurora", "mimeType": FOLDER_MIME}],
+        "Sub": [{"id": "SubSub", "name": "Documentos", "mimeType": FOLDER_MIME}],
+        "SubSub": [{"id": "SubSubSub", "name": "Planos", "mimeType": FOLDER_MIME}],
+        "SubSubSub": [
+            {"id": f"pdf{i}", "name": f"doc{i}.pdf", "mimeType": "application/pdf"}
+            for i in range(10)
+        ],
+    }
+    import drive_engine
+    monkeypatch.setattr(drive_engine, "_drive_service", lambda conn: _fake_drive_service(tree))
+    files = asyncio.run(_list_folder_recursive({}, "ROOT"))
+    assert len(files) == 10                                    # llegó al fondo (antes: 0)
+    assert all(f["parent_folder_id"] == "Sub" for f in files)  # todo bajo la subcarpeta directa
+    assert all(f["parent_folder_name"] == "Torre Aurora" for f in files)
+    groups = _group_by_project(files, "ROOT")
+    assert len(groups) == 1                                    # = un solo proyecto
+
+
+def test_list_folder_recursive_two_projects_and_root_file(monkeypatch):
+    """dos subcarpetas de primer nivel = dos proyectos; un archivo suelto en la raíz = proyecto raíz."""
+    tree = {
+        "ROOT": [
+            {"id": "A", "name": "Proyecto A", "mimeType": FOLDER_MIME},
+            {"id": "B", "name": "Proyecto B", "mimeType": FOLDER_MIME},
+            {"id": "rootpdf", "name": "portada.pdf", "mimeType": "application/pdf"},
+        ],
+        "A": [{"id": "a1", "name": "a1.pdf", "mimeType": "application/pdf"},
+              {"id": "Anest", "name": "mas", "mimeType": FOLDER_MIME}],
+        "Anest": [{"id": "a2", "name": "a2.pdf", "mimeType": "application/pdf"}],
+        "B": [{"id": "b1", "name": "b1.pdf", "mimeType": "application/pdf"}],
+    }
+    import drive_engine
+    monkeypatch.setattr(drive_engine, "_drive_service", lambda conn: _fake_drive_service(tree))
+    files = asyncio.run(_list_folder_recursive({}, "ROOT"))
+    groups = _group_by_project(files, "ROOT")
+    assert len(groups) == 3                       # A (con su anidado), B, y la raíz
+    a_files = [f for f in files if f["parent_folder_id"] == "A"]
+    assert {f["id"] for f in a_files} == {"a1", "a2"}   # el anidado a2 quedó bajo A

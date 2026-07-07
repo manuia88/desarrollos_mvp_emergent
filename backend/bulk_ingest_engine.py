@@ -2,8 +2,9 @@
 
 Pipeline (async):
   1. Resolve folder_id from drive URL
-  2. List Drive contents (recursive 1 level → group subfolders as projects)
-  3. Per project: download up to 5 PDFs + 1 spreadsheet → Claude Haiku extract
+  2. List Drive contents (recursive ANY depth → cada subcarpeta directa = 1 proyecto,
+     hereda TODO lo anidado bajo ella; archivos sueltos en la raíz = 1 proyecto raíz)
+  3. Per project: download up to 12 PDFs + 1 spreadsheet → Claude Haiku extract
   4. Dedup against existing developments (rapidfuzz WRatio on name+address)
   5. Insert item record with decision (auto_approve / pending_review)
   6. If auto_approve → INSERT in developments+units+project_assets immediately
@@ -28,8 +29,9 @@ from typing import Any, Dict, List, Optional, Tuple
 log = logging.getLogger("dmx.bulk_ingest")
 
 CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
-MAX_FILES_PER_FOLDER = 200
-MAX_KEY_FILES_PER_PROJECT = 5
+MAX_FILES_PER_FOLDER = 400        # tope global de archivos listados por job (seguridad)
+MAX_KEY_FILES_PER_PROJECT = 12    # PDFs/planos leídos por proyecto (a más, más costo de IA)
+MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
 PDF_MIMES = {"application/pdf"}
 SPREADSHEET_MIMES = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -91,7 +93,11 @@ async def _resolve_drive_conn(db, target_dev_org_id: Optional[str]) -> Optional[
 # ─── Drive operations (sync wrappers via run_in_executor) ─────────────────────
 
 async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[Dict[str, Any]]:
-    """Return all files in folder + 1-level subfolders, with `parent_folder_id` annotation."""
+    """Todos los archivos bajo `folder_id` a CUALQUIER profundidad. Cada archivo se atribuye a la
+    subcarpeta de PRIMER nivel de la que desciende (= el proyecto); los archivos sueltos en la raíz
+    van al grupo raíz. Recorre subcarpetas anidadas (DFS, máx `MAX_TREE_DEPTH` niveles) hasta el tope
+    global `MAX_FILES_PER_FOLDER`. Así una carpeta general → sub → sub-sub → … con PDFs adentro se
+    agrupa bien: el proyecto es la subcarpeta directa y hereda TODO lo que cuelga de ella."""
     from drive_engine import _drive_service
     svc = await asyncio.to_thread(_drive_service, conn)
 
@@ -113,22 +119,31 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
     root_items = await asyncio.to_thread(_list_in, folder_id)
     all_files: List[Dict[str, Any]] = []
 
-    # Files at root
+    # Archivos sueltos en la raíz → grupo raíz
     for f in root_items:
-        if f.get("mimeType") == FOLDER_MIME:
-            continue
-        all_files.append({**f, "parent_folder_id": folder_id, "parent_folder_name": ""})
+        if f.get("mimeType") != FOLDER_MIME:
+            all_files.append({**f, "parent_folder_id": folder_id, "parent_folder_name": ""})
 
-    # 1-level subfolders → each is a project
-    for f in root_items:
-        if f.get("mimeType") == FOLDER_MIME:
-            sub_items = await asyncio.to_thread(_list_in, f["id"])
-            for sf in sub_items:
-                if sf.get("mimeType") == FOLDER_MIME:
-                    continue
-                all_files.append({**sf, "parent_folder_id": f["id"], "parent_folder_name": f["name"]})
-        if len(all_files) >= MAX_FILES_PER_FOLDER:
-            break
+    # Cada subcarpeta de primer nivel = un proyecto; recolecta TODO lo anidado (cualquier nivel)
+    for top in root_items:
+        if top.get("mimeType") != FOLDER_MIME or len(all_files) >= MAX_FILES_PER_FOLDER:
+            continue
+        proj_id, proj_name = top["id"], top.get("name") or ""
+        stack: List[Tuple[str, int]] = [(top["id"], 1)]   # (folder_id, depth)
+        visited: set = set()
+        while stack and len(all_files) < MAX_FILES_PER_FOLDER:
+            fid, depth = stack.pop()
+            if fid in visited or depth > MAX_TREE_DEPTH:
+                continue
+            visited.add(fid)
+            for it in await asyncio.to_thread(_list_in, fid):
+                if it.get("mimeType") == FOLDER_MIME:
+                    stack.append((it["id"], depth + 1))
+                else:
+                    # todo lo que cuelga de la subcarpeta directa se atribuye a ESE proyecto
+                    all_files.append({**it, "parent_folder_id": proj_id, "parent_folder_name": proj_name})
+                    if len(all_files) >= MAX_FILES_PER_FOLDER:
+                        break
 
     return all_files[:MAX_FILES_PER_FOLDER]
 
