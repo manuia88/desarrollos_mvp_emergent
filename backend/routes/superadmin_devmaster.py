@@ -23,6 +23,38 @@ async def _project_doc(db, pid: str) -> Dict[str, Any]:
             or await db.developments.find_one({"id": pid}, {"_id": 0}) or {})
 
 
+async def _effective_counts_by_dev(db, devs: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Conteos de inventario EFECTIVOS (units_total/available/sold/reserved) por dev, HONRANDO las
+    ediciones manuales del dev (developer_unit_overrides) — misma lógica canónica que la ficha pública
+    (_enrich_listing) y el cubo. Antes los paneles de oferta leían el conteo crudo del seed e ignoraban
+    las ediciones. Batch (1 query de overrides). Solo devuelve entrada para devs CON overrides; los demás
+    caen al conteo del seed (idéntico a antes → cero regresión)."""
+    ids = [d.get("id") for d in devs if d.get("id")]
+    if not ids:
+        return {}
+    ov_by_dev: Dict[str, Dict[str, Any]] = {}
+    try:
+        async for ov in db.developer_unit_overrides.find({"dev_id": {"$in": ids}}, {"_id": 0}):
+            ov_by_dev.setdefault(ov.get("dev_id"), {})[ov.get("unit_id")] = ov
+    except Exception:
+        return {}
+    if not ov_by_dev:
+        return {}
+    from routes.public import _apply_overlay, _merge_units, _aggregates_from_units
+    out: Dict[str, Dict[str, Any]] = {}
+    by_id = {d.get("id"): d for d in devs}
+    for did, ov in ov_by_dev.items():
+        d = by_id.get(did)
+        if not d:
+            continue
+        try:
+            eff = _merge_units(_apply_overlay(d).get("units") or [], ov)
+            out[did] = _aggregates_from_units(eff)
+        except Exception:
+            pass
+    return out
+
+
 async def _catalog_rows(db) -> List[Dict[str, Any]]:
     """Filas ligeras de TODOS los proyectos (sin portada) — base de la lista y del comparativo."""
     from routes.dev_project_full import project_full, project_readiness
@@ -519,9 +551,10 @@ async def _donde_construir(db, zona=None, segmento=None):
 
     # 2. OFERTA — units_available distribuidas en las bandas que cruza cada desarrollo
     supply_cells: Dict[tuple, Dict[str, Any]] = {}     # (zona, banda) → agg
+    eff = await _effective_counts_by_dev(db, devs)     # honra ediciones de inventario del dev
     for d in devs:
         z = d.get("colonia")
-        avail = d.get("units_available") or 0
+        avail = (eff.get(d["id"]) or d).get("units_available") or 0
         if not z or avail <= 0:
             continue
         bands = _band_overlaps(d.get("price_from"), d.get("price_to")) or [_band_label(d.get("price_from"))]
@@ -1217,11 +1250,13 @@ async def _stock_soldout(db, zona=None, segmento=None, dev_ids=None):
     zona_med = {z: sorted(v)[len(v) // 2] for z, v in zona_prices.items()}
 
     proyectos = []
+    eff = await _effective_counts_by_dev(db, devs)   # honra ediciones de inventario del dev
     for d in devs:
-        tot = d.get("units_total") or 0
-        avail = d.get("units_available") or 0
-        sold = d.get("units_sold") or 0
-        resv = d.get("units_reserved") or 0
+        _c = eff.get(d["id"]) or d
+        tot = _c.get("units_total") or 0
+        avail = _c.get("units_available") or 0
+        sold = _c.get("units_sold") or 0
+        resv = _c.get("units_reserved") or 0
         mom = _months_on_market(d)
         colocadas = sold + resv
         sellthrough = round(colocadas / tot * 100) if tot else 0
@@ -1557,6 +1592,7 @@ async def _competencia_red(db, zona=None, segmento=None):
     from data_developments import DEVELOPMENTS
 
     devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+    eff = await _effective_counts_by_dev(db, devs)   # honra ediciones de inventario del dev
     leads_by_dev: Dict[str, int] = {}
     won_by_dev: Dict[str, int] = {}
     try:
@@ -1600,7 +1636,7 @@ async def _competencia_red(db, zona=None, segmento=None):
                 continue
             c = celda.setdefault((z, b), {"zona": z, "banda": b, "proyectos": 0, "unidades": 0, "leads": 0})
             c["proyectos"] += 1
-            c["unidades"] += d.get("units_available") or 0
+            c["unidades"] += (eff.get(d["id"]) or d).get("units_available") or 0
             c["leads"] += leads_by_dev.get(d["id"], 0)
     disputadas = sorted([c for c in celda.values() if c["proyectos"] >= 2],
                         key=lambda x: (-x["proyectos"], -x["unidades"]))[:8]
@@ -1635,9 +1671,10 @@ async def _competencia_red(db, zona=None, segmento=None):
     # ── 4. Inventario zombie (mucho stock + nula tracción) ──────────────────────────
     zombies = []
     for d in devs:
-        tot = d.get("units_total") or 0
-        avail = d.get("units_available") or 0
-        sold = (d.get("units_sold") or 0) + (d.get("units_reserved") or 0)
+        _c = eff.get(d["id"]) or d
+        tot = _c.get("units_total") or 0
+        avail = _c.get("units_available") or 0
+        sold = (_c.get("units_sold") or 0) + (_c.get("units_reserved") or 0)
         sellthrough = round(sold / tot * 100) if tot else 0
         if avail >= 8 and sellthrough < 35 and leads_by_dev.get(d["id"], 0) == 0:
             zombies.append({"project_id": d["id"], "nombre": d.get("name"), "zona": d.get("colonia"),
