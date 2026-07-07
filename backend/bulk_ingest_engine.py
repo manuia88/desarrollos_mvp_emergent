@@ -52,6 +52,31 @@ INGEST_MIMES = PDF_MIMES | SPREADSHEET_MIMES | NATIVE_DOC_MIMES | {
 # Folder mime is filtered separately
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
+# ─── Priorización de archivos para la extracción ──────────────────────────────
+# La lista de precios / brochure / inventario tienen los DATOS (precio, disponibilidad, unidades).
+# Los planos individuales, renders y fotos casi no aportan texto → van al final (y las imágenes se
+# ingieren aparte como galería). Puntuamos por nombre de archivo + carpeta inmediata.
+_PRIO_ALTA = ("precio", "disponibilidad", "lista de precio", "inventario", "cotiza", "disponible")
+_PRIO_MEDIA = ("brochure", "presentaci", "ficha", "acabado", "amenidad", "memoria", "entrega")
+_DEPRIO_PLANO = ("nivel ", "planta baja", "roof garden", "roofgarden", "semisotano", "semisótano",
+                 "asignacion estacion", "asignación estacion", "conjunto")
+_DEPRIO_VISUAL = ("render", "fachada", "interior", "patio", "foto", "detalle", "video")
+
+
+def _file_priority(f: Dict[str, Any]) -> int:
+    """Puntúa un archivo por lo probable que sea de DATOS. Alto = leer primero."""
+    n = ((f.get("name") or "") + " " + (f.get("immediate_folder") or "")).lower()
+    if any(k in n for k in _PRIO_ALTA):
+        return 100
+    if any(k in n for k in _PRIO_MEDIA):
+        return 70
+    # planos individuales por depto: H122_DEP-206, DEP 12, etc. → poco dato, al final
+    if re.search(r"dep[-_ ]?\d", n) or any(k in n for k in _DEPRIO_PLANO):
+        return -40
+    if any(k in n for k in _DEPRIO_VISUAL):
+        return -20
+    return 10   # PDF genérico
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -155,20 +180,22 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
         if top.get("mimeType") != FOLDER_MIME or len(all_files) >= MAX_FILES_PER_FOLDER:
             continue
         proj_id, proj_name = top["id"], top.get("name") or ""
-        stack: List[Tuple[str, int]] = [(top["id"], 1)]   # (folder_id, depth)
+        stack: List[Tuple[str, int, str]] = [(top["id"], 1, proj_name)]   # (folder_id, depth, nombre carpeta)
         visited: set = set()
         proj_count = 0
         while stack and len(all_files) < MAX_FILES_PER_FOLDER and proj_count < MAX_FILES_PER_PROJECT_LIST:
-            fid, depth = stack.pop()
+            fid, depth, fname = stack.pop()
             if fid in visited or depth > MAX_TREE_DEPTH:
                 continue
             visited.add(fid)
             for it in await asyncio.to_thread(_list_in, fid):
                 if it.get("mimeType") == FOLDER_MIME:
-                    stack.append((it["id"], depth + 1))
+                    stack.append((it["id"], depth + 1, it.get("name") or ""))
                 else:
-                    # todo lo que cuelga de la subcarpeta directa se atribuye a ESE proyecto
-                    all_files.append({**it, "parent_folder_id": proj_id, "parent_folder_name": proj_name})
+                    # todo lo que cuelga de la subcarpeta directa se atribuye a ESE proyecto;
+                    # `immediate_folder` = la carpeta donde vive (señal "DISPONIBILIDAD Y PRECIOS" etc.)
+                    all_files.append({**it, "parent_folder_id": proj_id, "parent_folder_name": proj_name,
+                                      "immediate_folder": fname})
                     proj_count += 1
                     if proj_count >= MAX_FILES_PER_PROJECT_LIST or len(all_files) >= MAX_FILES_PER_FOLDER:
                         break
@@ -213,12 +240,18 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "lng": null o float,
   "total_units": int,
   "price_range": {"min_mxn": int|null, "max_mxn": int|null},
+  "delivery_date": "string|null (fecha de entrega, p.ej. SEP/2026)",
+  "maintenance_fee_mxn": int|null,
   "amenities": ["string", ...],
   "units": [
-    {"unit_number": "string", "type": "depto|casa|townhouse|loft", "bedrooms": int, "bathrooms": int, "size_m2": int|null, "price_mxn": int|null}
+    {"unit_number": "string", "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft",
+     "bedrooms": int|null, "bathrooms": int|null, "size_m2": int|null, "size_m2_total": int|null,
+     "storage": "string|null (bodega)", "parking": "string|null (cajones)", "price_mxn": int|null}
   ],
   "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
+IMPORTANTE: la LISTA DE PRECIOS / DISPONIBILIDAD es tu fuente principal — extrae CADA depto con su precio,
+m², disponibilidad, bodega y cajón. Si un depto aparece "apartado"/"vendido" márcalo en status.
 En "_confidence" califica QUÉ TAN SEGURO estás de cada grupo (1.0 = explícito en el documento · 0.5 = inferido · 0.2 = adivinado). Sé honesto: si el precio no aparece claro, pon price bajo.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
@@ -716,14 +749,17 @@ async def run(db, job_id: str) -> None:
         for gkey, gdata in groups.items():
             items_total += 1
             project_name_hint = gdata["parent_folder_name"]
-            # Pick key files: max 5 PDFs + 1 spreadsheet (or first 5 if no PDFs)
-            pdfs = [f for f in gdata["files"] if f.get("mimeType") in PDF_MIMES]
+            # Selección PRIORIZADA: primero los archivos de DATOS (lista de precios, disponibilidad,
+            # brochure, inventario), luego genéricos; planos individuales/renders/fotos al final. Así la
+            # lista de precios SIEMPRE se lee aunque haya 30 planos. Las hojas (inventario) siempre entran.
+            docs = [f for f in gdata["files"] if f.get("mimeType") in (PDF_MIMES | NATIVE_DOC_MIMES)]
             sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES]
-            others = [f for f in gdata["files"] if f.get("mimeType") in INGEST_MIMES and f not in pdfs and f not in sheets]
-            key_files = (pdfs[:MAX_KEY_FILES_PER_PROJECT]
-                         + sheets[:1]
-                         + others[:max(0, MAX_KEY_FILES_PER_PROJECT - len(pdfs[:MAX_KEY_FILES_PER_PROJECT]))])
-            key_files = key_files[:MAX_KEY_FILES_PER_PROJECT + 1]
+            imgs = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")]
+            # imágenes SOLO si parecen de datos (lista de precios escaneada), no renders/fotos → visión
+            data_imgs = [f for f in imgs if _file_priority(f) >= 70]
+            ranked = sorted(docs + data_imgs, key=_file_priority, reverse=True)
+            key_files = ranked[:MAX_KEY_FILES_PER_PROJECT] + sheets[:2]
+            key_files = key_files[:MAX_KEY_FILES_PER_PROJECT + 2]
 
             # Download (best-effort, don't fail entire item)
             payloads: List[Tuple[bytes, str, str]] = []
