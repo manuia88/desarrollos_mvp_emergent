@@ -24,7 +24,7 @@ const NEU_COLOR = 'rgba(240,235,224,0.70)';
 const SOURCES = ['google_search', 'twitter_x', 'reddit', 'news_web'];
 const SENTIMENTS = ['positive', 'neutral', 'negative'];
 
-export default function SuperadminReputationMonitor() {
+export default function SuperadminReputationMonitor({ embedded }) {
   const { t } = useTranslation('common');
   const tt = (k, fb) => t(`reputationMonitor.${k}`, fb);
 
@@ -101,7 +101,7 @@ export default function SuperadminReputationMonitor() {
   const topNegative = stats?.top_negative_urls || [];
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W7.AS.6"
         title={tt('title', 'Monitor de Reputación')}

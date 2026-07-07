@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Building2, Users, CalendarDays, MapPin, BarChart3,
   TrendingUp, FolderOpen, Settings, Shield, Activity,
   Search, Layers, Home,
-  ClipboardList, LineChart, FileText, Database, Eye,
+  ClipboardList, LineChart, FileText, Database,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, GitMerge, ShieldCheck, Swords,
@@ -236,16 +236,8 @@ const SUPERADMIN_NAV = [
   {
     tier: 4, label: 'Operación', section_key: 'operacion',
     items: [
-      // ─ System health ─
+      // Hub de Operación & Seguridad — 15 pantallas (salud/auditoría/fraude/integridad/plataforma) en 1 (metodología Hub de Mercado)
       { key: 'operacion',            to: '/superadmin/operacion',            label: 'Operación & Seguridad',  Icon: ShieldCheck },
-      // ─ Audit & compliance ─
-      // ─ Fraud & risk ─
-      // W5.FF3 · Feature Visibility Matrix (GoHighLevel-style snapshot grants)
-      { key: 'feature-visibility',     to: '/superadmin/feature-visibility',     label: 'Feature Visibility',     Icon: GitMerge },
-      // W5.25 · Widget Embed Analytics (dominios externos que embeben widgets)
-      { key: 'widget-embeds',          to: '/superadmin/widget-embeds',          label: 'Widget Embeds',          Icon: Link },
-      // W7.AS.6 · Reputation Monitor (Brand24-style · 4 sources · sentiment · alerts)
-      { key: 'reputation-monitor',     to: '/superadmin/reputation-monitor',     label: 'Reputation Monitor',     Icon: Eye },
     ],
   },
   // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────

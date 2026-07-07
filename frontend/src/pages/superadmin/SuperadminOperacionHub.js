@@ -10,7 +10,7 @@
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { HeartPulse, Eye, BarChart3, ScrollText, ShieldCheck, ListChecks, AlertTriangle, ShieldAlert, Siren, Copy, GitMerge } from 'lucide-react';
+import { HeartPulse, Eye, BarChart3, ScrollText, ShieldCheck, ListChecks, AlertTriangle, ShieldAlert, Siren, Copy, GitMerge, ToggleRight, Link as LinkIcon } from 'lucide-react';
 
 const SuperadminHealth = lazy(() => import('./SuperadminHealth'));
 const SuperadminObservabilityPage = lazy(() => import('./SuperadminObservabilityPage'));
@@ -24,6 +24,10 @@ const SuperadminFraudAlerts = lazy(() => import('./SuperadminFraudAlerts'));
 const SuperadminRiskAlerts = lazy(() => import('./SuperadminRiskAlerts'));
 const SuperadminDuplicates = lazy(() => import('./SuperadminDuplicates'));
 const SuperadminEntityResolution = lazy(() => import('./SuperadminEntityResolution'));
+// Plataforma & marca (antes 3 rutas sueltas del sidebar de operación)
+const SuperadminFeatureVisibility = lazy(() => import('./SuperadminFeatureVisibility'));
+const SuperadminWidgetEmbeds = lazy(() => import('./SuperadminWidgetEmbeds'));
+const SuperadminReputationMonitor = lazy(() => import('./SuperadminReputationMonitor'));
 
 const TABS = [
   { k: 'health', label: 'Salud sistema', Icon: HeartPulse, grupo: 'Salud & Observabilidad', Page: SuperadminHealth },
@@ -38,6 +42,9 @@ const TABS = [
   { k: 'risk-alerts', label: 'Alertas de riesgo', Icon: AlertTriangle, grupo: 'Fraude & Riesgo', Page: SuperadminRiskAlerts },
   { k: 'duplicates', label: 'Duplicados', Icon: Copy, grupo: 'Integridad de datos', Page: SuperadminDuplicates },
   { k: 'entity-resolution', label: 'Resolución de entidades', Icon: GitMerge, grupo: 'Integridad de datos', Page: SuperadminEntityResolution },
+  { k: 'feature-visibility', label: 'Visibilidad de funciones', Icon: ToggleRight, grupo: 'Plataforma & marca', Page: SuperadminFeatureVisibility },
+  { k: 'widget-embeds', label: 'Widgets embebidos', Icon: LinkIcon, grupo: 'Plataforma & marca', Page: SuperadminWidgetEmbeds },
+  { k: 'reputation-monitor', label: 'Reputación de marca', Icon: Eye, grupo: 'Plataforma & marca', Page: SuperadminReputationMonitor },
 ];
 
 export default function SuperadminOperacionHub() {

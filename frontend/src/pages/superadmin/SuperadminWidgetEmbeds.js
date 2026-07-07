@@ -67,7 +67,7 @@ function formatDate(iso) {
   }
 }
 
-export default function SuperadminWidgetEmbeds() {
+export default function SuperadminWidgetEmbeds({ embedded }) {
   const { t } = useTranslation();
   const tt = (k, opts) => t(`widget_embeds.${k}`, opts);
 
@@ -120,7 +120,7 @@ export default function SuperadminWidgetEmbeds() {
   }
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow={tt('eyebrow')}
         title={tt('title')}

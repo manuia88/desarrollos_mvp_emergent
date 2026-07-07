@@ -99,7 +99,6 @@ const WorkflowHistoryPage = lazy(() => import('./pages/portal/asesor/WorkflowHis
 // W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation)
 const MarketplaceTemplatesPage = lazy(() => import('./pages/portal/asesor/MarketplaceTemplatesPage'));
 // W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style)
-const SuperadminReputationMonitor = lazy(() => import('./pages/superadmin/SuperadminReputationMonitor'));
 // W7.AS.1 — Lead Enrichment Clay-style (Superadmin cost monitoring)
 // W5.10 — Social/Ads Meta multi-tenant (Asesor connect + campaigns · Superadmin monitoring)
 const SocialAdsConnectPage = lazy(() => import('./pages/portal/asesor/SocialAdsConnectPage'));
@@ -185,9 +184,7 @@ const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/Superadmin
 const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
 const SuperadminTerminalZona = lazy(() => import('./pages/superadmin/SuperadminTerminalZona'));
 // W5.FF3 — UI Visibility Matrix
-const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/SuperadminFeatureVisibility'));
 // W5.25 — Widget Embed Analytics
-const SuperadminWidgetEmbeds = lazy(() => import('./pages/superadmin/SuperadminWidgetEmbeds'));
 // W5.16 — Social Cards Renderer
 
 // Developer portal
@@ -752,7 +749,7 @@ function AppRouter() {
       <Route path="/portal/asesor/marketplace-templates" element={<AdvisorRoute Page={MarketplaceTemplatesPage} />} />
       <Route path="/superadmin/marketplace-templates" element={<Navigate to="/superadmin/monetizacion?tab=templates" replace />} />
       {/* W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style) */}
-      <Route path="/superadmin/reputation-monitor" element={<SuperadminRoute Page={SuperadminReputationMonitor} />} />
+      <Route path="/superadmin/reputation-monitor" element={<Navigate to="/superadmin/operacion?tab=reputation-monitor" replace />} />
       {/* W7.AS.1 — Lead Enrichment (Superadmin cost monitoring) */}
       <Route path="/superadmin/lead-enrichment" element={<Navigate to="/superadmin/monetizacion?tab=enrichment" replace />} />
       {/* W5.10 — Social/Ads Meta multi-tenant (2 asesor + 1 superadmin) */}
@@ -1017,9 +1014,9 @@ function AppRouter() {
       <Route path="/superadmin/fraud-patterns" element={<Navigate to="/superadmin/operacion?tab=fraud-patterns" replace />} />
       <Route path="/superadmin/audit-chain" element={<Navigate to="/superadmin/operacion?tab=audit-chain" replace />} />
       {/* W5.FF3 · UI Feature Visibility Matrix */}
-      <Route path="/superadmin/feature-visibility" element={<SuperadminRoute Page={SuperadminFeatureVisibility} />} />
+      <Route path="/superadmin/feature-visibility" element={<Navigate to="/superadmin/operacion?tab=feature-visibility" replace />} />
       {/* W5.25 · Widget Embed Analytics */}
-      <Route path="/superadmin/widget-embeds" element={<SuperadminRoute Page={SuperadminWidgetEmbeds} />} />
+      <Route path="/superadmin/widget-embeds" element={<Navigate to="/superadmin/operacion?tab=widget-embeds" replace />} />
       {/* W5.16 · Social Cards Renderer */}
       <Route path="/superadmin/social-cards" element={<Navigate to="/superadmin/crecimiento?tab=social-cards" replace />} />
       <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />

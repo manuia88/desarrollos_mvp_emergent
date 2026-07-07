@@ -64,7 +64,7 @@ const inputStyle = {
   width: 240,
 };
 
-export default function SuperadminFeatureVisibility() {
+export default function SuperadminFeatureVisibility({ embedded }) {
   const [catalog, setCatalog] = useState([]);
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -218,7 +218,7 @@ export default function SuperadminFeatureVisibility() {
   };
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <PageHeader
         eyebrow="W5.FF3"
         title="Feature Visibility"

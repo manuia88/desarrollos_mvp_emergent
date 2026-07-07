@@ -97,8 +97,8 @@ export default function FeatureMatrixGrid({ users, catalog, onToggle, busyKey })
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
-            <tr key={u.user_id} data-testid={`matrix-row-${u.user_id}`}>
+          {users.map((u, i) => (
+            <tr key={`${u.user_id}-${i}`} data-testid={`matrix-row-${u.user_id}`}>
               <td style={ROW_LABEL}>
                 <div>{u.name || u.email || u.user_id}</div>
                 <div style={ROW_META}>
