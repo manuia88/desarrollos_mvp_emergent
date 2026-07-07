@@ -109,19 +109,33 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
     van al grupo raíz. Recorre subcarpetas anidadas (DFS, máx `MAX_TREE_DEPTH` niveles) hasta el tope
     global `MAX_FILES_PER_FOLDER`. Así una carpeta general → sub → sub-sub → … con PDFs adentro se
     agrupa bien: el proyecto es la subcarpeta directa y hereda TODO lo que cuelga de ella."""
+    import time
     from drive_engine import _drive_service
     svc = await asyncio.to_thread(_drive_service, conn)
+    is_api_key = bool(conn and conn.get("_mode") == "api_key")   # el key comparte cuota → throttle
 
     def _list_in(fid: str) -> List[Dict[str, Any]]:
         out = []
         q = f"'{fid}' in parents and trashed = false"
         page_token = None
         while True:
-            resp = svc.files().list(
-                q=q, fields="files(id,name,mimeType,modifiedTime,size),nextPageToken",
-                pageSize=200, pageToken=page_token,
-                supportsAllDrives=True, includeItemsFromAllDrives=True,
-            ).execute()
+            # Reintenta con backoff si Google throttlea (API key comparte cuota / anti-abuso "Sorry…").
+            resp = None
+            for attempt in range(5):
+                try:
+                    resp = svc.files().list(
+                        q=q, fields="files(id,name,mimeType,modifiedTime,size),nextPageToken",
+                        pageSize=200, pageToken=page_token,
+                        supportsAllDrives=True, includeItemsFromAllDrives=True,
+                    ).execute()
+                    break
+                except Exception as e:  # noqa: BLE001
+                    if attempt == 4:
+                        log.warning(f"[bulk_ingest] list falló en {fid} tras reintentos: {str(e)[:120]}")
+                        return out
+                    time.sleep(1.5 * (2 ** attempt))   # 1.5s, 3s, 6s, 12s
+            if is_api_key:
+                time.sleep(0.25)   # respira entre páginas para no disparar el anti-abuso del key
             out.extend(resp.get("files", []) or [])
             page_token = resp.get("nextPageToken")
             if not page_token:
