@@ -143,15 +143,17 @@ export default function SuperadminGranularidad({ embedded }) {
 
           {stubDx && (
             <Card style={{ padding: '14px 18px', marginBottom: 20 }}>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>Diagnóstico de stubs IE — qué falta para des-stubear ({stubDx.total_recetas_stub} recetas)</div>
-              <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>El botón de arriba recomputa las stub STALE (dato ya existe). El resto necesita la acción de abajo — honesto, no se fabrica dato.</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Diagnóstico IE — real vs proxy por receta ({stubDx.total_recetas_incompletas} recetas con proxy/stub)</div>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>El recompute diario des-stubea lo que tiene dato real; el resto queda como <b>proxy etiquetado</b> (mediana de pares, "estimado") — nunca vacío, nunca inventado. stub=0 permanente.</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <tbody>
-                  {Object.entries(stubDx.por_status).sort((a, b) => b[1].zonas_stub - a[1].zonas_stub).map(([st, v]) => (
+                  {Object.entries(stubDx.por_status).sort((a, b) => (b[1].zonas_proxy + b[1].zonas_stub) - (a[1].zonas_proxy + a[1].zonas_stub)).map(([st, v]) => (
                     <tr key={st} style={{ borderTop: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '8px 10px', width: 1 }}><Badge tone={STUB_STATUS_TONE[st] || 'neutral'}>{v.recetas}</Badge></td>
                       <td style={{ padding: '8px 10px', fontWeight: 500 }}>{STUB_STATUS_LABEL[st] || st}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#666' }}>{v.zonas_stub.toLocaleString()} zonas-stub</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#666' }}>
+                        {(v.zonas_proxy || 0).toLocaleString()} proxy{v.zonas_stub ? ` · ${v.zonas_stub.toLocaleString()} stub` : ''}
+                      </td>
                       <td style={{ padding: '8px 10px', color: '#888', fontSize: 12 }}>{(stubDx.detalle.find((d) => d.status === st) || {}).accion}</td>
                     </tr>
                   ))}
@@ -194,7 +196,9 @@ export default function SuperadminGranularidad({ embedded }) {
                       <div style={{ padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6 }}>
                         {fa.drill.items.map((it) => (
                           <div key={it.receta} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 8px', background: '#f7f7f8', borderRadius: 4 }}>
-                            <span style={{ fontFamily: 'monospace', color: it.stub ? '#aaa' : '#333' }}>{it.receta}{it.stub ? ' (stub)' : ''}</span>
+                            <span style={{ fontFamily: 'monospace', color: it.stub ? '#aaa' : (it.proxy ? '#b8860b' : '#333') }}>
+                              {it.receta}{it.stub ? ' (stub)' : (it.proxy ? ' (estimado)' : '')}
+                            </span>
                             <strong>{it.valor != null ? Number(it.valor).toFixed(0) : '—'}</strong>
                           </div>
                         ))}
