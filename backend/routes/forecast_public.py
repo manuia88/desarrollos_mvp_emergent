@@ -106,6 +106,7 @@ async def forecast_zone(
         "model_type": zf.get("model_type"),
         "arima_order": zf.get("arima_order"),
         "mape_test": zf.get("mape_test"),
+        "basis": zf.get("basis") or "observed",   # "proxy" = historia estimada (backfill) · "observed" = real
         "model_fitted_at": zf.get("fitted_at"),
         "cache_hit": False,
     }
@@ -169,6 +170,7 @@ async def forecast_property(
         "pricing_model": out.get("pricing_model"),
         "horizons": filtered_horizons,
         "narrative": narrative,
+        "basis": out.get("basis") or "observed",   # "proxy" = historia estimada · "observed" = real
         "zone_forecast_fitted_at": out.get("zone_forecast_fitted_at"),
         "cache_hit": False,
     }

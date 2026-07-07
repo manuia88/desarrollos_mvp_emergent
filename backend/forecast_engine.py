@@ -42,7 +42,7 @@ async def _load_history(db, zone_slug: str) -> List[Dict[str, Any]]:
     """Cargar últimos `TRAINING_WINDOW_MONTHS` snapshots DRPI por zona (asc)."""
     cursor = db.drpi_snapshots.find(
         {"zone_id": zone_slug, "available": True},
-        {"_id": 0, "period": 1, "index_value": 1},
+        {"_id": 0, "period": 1, "index_value": 1, "source": 1},
     ).sort("period", -1).limit(TRAINING_WINDOW_MONTHS)
     rows = [r async for r in cursor]
     rows.reverse()
@@ -196,6 +196,11 @@ async def fit_zone_forecast(db, zone_slug: str) -> Dict[str, Any]:
     mape = _compute_mape_test(values)
     now = datetime.now(timezone.utc)
 
+    # Etiqueta de origen de la historia: si algún snapshot es backfill proxy, el forecast es
+    # "estimado" (no observado) → el front lo muestra como tal. Cuando entre historia real por
+    # zona, el retrain revierte automáticamente a "observed". Cero-dato-inventado: va etiquetado.
+    basis = "proxy" if any((r.get("source") == "proxy_backfill") for r in history) else "observed"
+
     doc = {
         "id": _new_id("fc"),
         "zone_slug": zone_slug,
@@ -207,6 +212,7 @@ async def fit_zone_forecast(db, zone_slug: str) -> Dict[str, Any]:
         "n_periods": n,
         "training_window_days": n * 30,
         "mape_test": mape,
+        "basis": basis,
         "available": True,
         "fitted_at": now.isoformat(),
         "fitted_at_dt": now,
@@ -291,6 +297,7 @@ async def predict_property_forecast(
         "avm_high": round(avm_high, 0),
         "pricing_model": avm.get("pricing_model"),
         "horizons": horizons_out,
+        "basis": (zf or {}).get("basis") or "observed",   # propaga la etiqueta proxy/observed de la zona
         "zone_forecast_fitted_at": (zf or {}).get("fitted_at"),
     }
 

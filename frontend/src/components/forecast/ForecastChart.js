@@ -212,8 +212,8 @@ export default function ForecastChart({ mode, slug, params, hideIfEmpty = false 
   if (error) {
     if (hideIfEmpty) return null;   // ficha: no mostrar caja muerta cuando no hay datos de la zona
     return (
-      <section data-testid="forecast-chart" aria-label="Proyección no disponible" style={cardStyle}>
-        <ErrorState message="Forecast no disponible para esta zona." />
+      <section data-testid="forecast-chart" aria-label="Pronóstico en preparación" style={cardStyle}>
+        <ErrorState message="El pronóstico de esta zona está en preparación — seguimos acumulando su historia de precios." />
       </section>
     );
   }
@@ -230,6 +230,11 @@ export default function ForecastChart({ mode, slug, params, hideIfEmpty = false 
   return (
     <section data-testid="forecast-chart" aria-label="Proyección multi-horizonte" style={cardStyle}>
       <HeaderBadge narrative={data.narrative} delta={delta12} />
+      {data.basis === 'proxy' && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(120,120,140,0.95)', margin: '2px 0 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span aria-hidden="true">≈</span> Estimado — la historia de precios de esta zona está en preparación; se afina con datos reales.
+        </div>
+      )}
 
       <div style={{ width: '100%', height: 240 }}>
         <ResponsiveContainer>
