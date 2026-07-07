@@ -1452,6 +1452,16 @@ async def csrf_cookie_origin_guard(request, call_next):
 @app.exception_handler(Exception)
 async def _unhandled_exception_handler(request: Request, exc: Exception):
     from fastapi.responses import JSONResponse
+    # Ruido de cliente que cerró la conexión a media respuesta (cerró el navegador, canceló) —
+    # NO es una falla de la app. Antes se logueaba como ERROR con traceback ensuciando el monitoreo.
+    if type(exc).__name__ in (
+        "ClientDisconnect", "LocalProtocolError", "ConnectionResetError",
+        "BrokenPipeError", "CancelledError",
+    ):
+        logging.getLogger("dmx.error").debug(
+            f"[client-disconnect] {request.method} {request.url.path}: {type(exc).__name__}"
+        )
+        return JSONResponse(status_code=499, content={"detail": "client disconnected"})
     ref = uuid.uuid4().hex[:8]
     logging.getLogger("dmx.error").exception(
         f"[unhandled] ref={ref} {request.method} {request.url.path}: "
