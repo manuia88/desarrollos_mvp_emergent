@@ -80,7 +80,7 @@ function RecipeCard({ recipe, onDone }) {
   );
 }
 
-export default function SuperadminRecipesCoverage() {
+export default function SuperadminRecipesCoverage({ embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showInternas, setShowInternas] = useState(false);
@@ -96,7 +96,7 @@ export default function SuperadminRecipesCoverage() {
   const visible = showInternas ? items : items.filter(i => i.estado !== 'interna');
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <PageHeader
         eyebrow="DATOS · COBERTURA"

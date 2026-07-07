@@ -72,7 +72,7 @@ function ProjectCard({ p, onClick }) {
   );
 }
 
-export default function SuperadminCatalogPulse({ user, onLogout }) {
+export default function SuperadminCatalogPulse({ user, onLogout, embedded }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [view, setView] = useState('resumen'); // resumen | catalogo
@@ -85,7 +85,7 @@ export default function SuperadminCatalogPulse({ user, onLogout }) {
   }, []);
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div>
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Pulso del catálogo</h1>

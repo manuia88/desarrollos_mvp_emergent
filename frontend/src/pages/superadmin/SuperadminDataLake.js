@@ -241,7 +241,7 @@ function ConfirmTriggerModal({ onConfirm, onClose, busy }) {
   );
 }
 
-export default function SuperadminDataLake({ user, onLogout }) {
+export default function SuperadminDataLake({ user, onLogout, embedded }) {
   const [runs, setRuns] = useState([]);
   const [runsTally, setRunsTally] = useState({ ok_7d: 0, total_7d: 0, last_run: null,
                                                 total: 0 });
@@ -330,7 +330,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
       ) : 0;
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-data-lake">
         {toast && (
           <div data-testid="data-lake-toast" style={{

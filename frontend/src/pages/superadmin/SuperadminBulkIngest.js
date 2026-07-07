@@ -134,7 +134,7 @@ function JobDetailDrawer({ jobId, onClose, onBulkApprove }) {
   );
 }
 
-export default function SuperadminBulkIngest({ user, onLogout }) {
+export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState({ items: [], total: 0 });
   const [reviewItems, setReviewItems] = useState({ items: [], total: 0 });
@@ -225,7 +225,7 @@ export default function SuperadminBulkIngest({ user, onLogout }) {
   const STATUS_CHIPS = [['all', 'Todos'], ['pending', 'Pendientes'], ['extracting', 'Extrayendo'], ['reviewing', 'Revisión'], ['completed', 'Completos'], ['failed', 'Fallidos']];
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-bulk-ingest">
         {toast && (
           <div style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>

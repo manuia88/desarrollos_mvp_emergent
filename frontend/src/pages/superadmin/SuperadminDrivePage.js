@@ -16,7 +16,7 @@ function fmtAgo(iso) {
   return `hace ${Math.floor(h / 24)} d`;
 }
 
-export default function SuperadminDrivePage({ user, onLogout }) {
+export default function SuperadminDrivePage({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
@@ -43,7 +43,7 @@ export default function SuperadminDrivePage({ user, onLogout }) {
   const configured = data?.configured;
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div>
         <div style={{ marginBottom: 22 }}>
           <div className="eyebrow">Moat #2 · Phase 7.11</div>

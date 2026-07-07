@@ -274,7 +274,7 @@ function CronTab() {
   );
 }
 
-export default function SuperadminGovDataMx() {
+export default function SuperadminGovDataMx({ embedded }) {
   const { t } = useTranslation('common');
   const [tab, setTab] = useState('api');
   const [stats, setStats] = useState(null);
@@ -286,7 +286,7 @@ export default function SuperadminGovDataMx() {
   }, [tab]);
 
   return (
-    <SuperadminLayout>
+    <SuperadminLayout bare={embedded}>
       <div data-testid="superadmin-gov-data-mx-page" style={{ padding: 24, fontFamily: 'DM Sans, sans-serif', color: CREAM }}>
         <header style={{ marginBottom: 22 }}>
           <div style={{

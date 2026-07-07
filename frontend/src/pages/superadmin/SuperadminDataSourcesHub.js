@@ -379,7 +379,7 @@ function InsightsExternosPanel() {
   );
 }
 
-export default function SuperadminDataSourcesHub({ user, onLogout }) {
+export default function SuperadminDataSourcesHub({ user, onLogout, embedded }) {
   const [data, setData] = useState({ items: [], counts: {} });
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
@@ -456,7 +456,7 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
   ];
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="superadmin-data-hub">
         <style>{`@keyframes connectorPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } }`}</style>
 

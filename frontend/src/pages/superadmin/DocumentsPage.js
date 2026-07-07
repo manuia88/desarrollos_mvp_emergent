@@ -7,7 +7,7 @@ import { FileText, Database } from '../../components/icons';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function DocumentsPage({ user, onLogout }) {
+export default function DocumentsPage({ user, onLogout, embedded }) {
   const [developments, setDevelopments] = useState([]);
   const [activeDevId, setActiveDevId] = useState(null);
   const [search, setSearch] = useState('');
@@ -51,7 +51,7 @@ export default function DocumentsPage({ user, onLogout }) {
   const activeDev = developments.find(d => d.id === activeDevId);
 
   return (
-    <SuperadminLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout} bare={embedded}>
       <div>
         <div style={{ marginBottom: 22 }}>
           <div className="eyebrow">Moat #2 · Phase 7.1</div>

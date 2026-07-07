@@ -207,17 +207,11 @@ const SUPERADMIN_NAV = [
   {
     tier: 2, label: 'Datos', section_key: 'datos',
     items: [
-      { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',  label: 'Ingesta masiva',   Icon: FolderUp },
-      { key: 'conectores',   to: '/superadmin/data-sources', label: 'Conectores',       Icon: Plug },
-      { key: 'recipes-coverage', to: '/superadmin/recipes-coverage', label: 'Cobertura de Datos', Icon: Database },
-      { key: 'drive',        to: '/superadmin/drive',        label: 'Drive',            Icon: FolderOpen },
-      { key: 'documents',    to: '/superadmin/documents',    label: 'Documentos',       Icon: FileText },
-      { key: 'data-lake',    to: '/superadmin/data-lake',    label: 'Data Lake',        Icon: Database },
-      { key: 'hub-mercado', to: '/superadmin/mercado', label: 'Hub de Mercado', Icon: TrendingUp },
+      // Hub de Datos & Fuentes — 8 pantallas de plomería (ingesta/almacén/cobertura) en 1 (metodología Hub de Mercado)
+      { key: 'datos-hub',    to: '/superadmin/datos',        label: 'Datos & Fuentes',  Icon: Database },
+      // Superficies drill-down insignia: se quedan top-level (NO enterrar en pestañas)
+      { key: 'hub-mercado',  to: '/superadmin/mercado',      label: 'Hub de Mercado',   Icon: TrendingUp },
       { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
-      { key: 'catalog-pulse', to: '/superadmin/catalog-pulse', label: 'Pulso del catálogo', Icon: Activity },
-      // ─ W6.MOV.2 · Gov Data MX External Sources (3 tracks) ─
-      { key: 'gov-data-mx',  to: '/superadmin/gov-data-mx',  label: 'Gov Data MX',      Icon: Database },
     ],
   },
   {
