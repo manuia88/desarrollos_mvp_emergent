@@ -173,8 +173,10 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "amenities": ["string", ...],
   "units": [
     {"unit_number": "string", "type": "depto|casa|townhouse|loft", "bedrooms": int, "bathrooms": int, "size_m2": int|null, "price_mxn": int|null}
-  ]
+  ],
+  "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
+En "_confidence" califica QUÉ TAN SEGURO estás de cada grupo (1.0 = explícito en el documento · 0.5 = inferido · 0.2 = adivinado). Sé honesto: si el precio no aparece claro, pon price bajo.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
 Responde EXCLUSIVAMENTE con JSON, sin markdown."""
@@ -355,6 +357,7 @@ def _stub_extraction(name: str) -> Dict[str, Any]:
         "price_range": {"min_mxn": None, "max_mxn": None},
         "amenities": [],
         "units": [],
+        "_confidence": {"project_name": 0.2, "address": 0.0, "price": 0.0, "units": 0.0},
         "_low_confidence": True,
         "_stub": True,
     }
@@ -664,6 +667,15 @@ async def run(db, job_id: str) -> None:
                 decision = "auto_approve"  # exact match auto-merge candidate via bulk-approve
             else:
                 decision = "pending_review"
+
+            # Gate de confianza por campo (upgrade #2): NO auto-aprobar un precio dudoso — a revisión
+            # humana. Evita que la IA meta un precio adivinado al catálogo sin ojo encima.
+            _conf = extracted.get("_confidence") or {}
+            _price_conf = _conf.get("price")
+            _has_price = bool((extracted.get("price_range") or {}).get("min_mxn"))
+            if decision == "auto_approve" and _has_price and isinstance(_price_conf, (int, float)) and _price_conf < 0.6:
+                decision = "pending_review"
+                extracted["_needs_review"] = "precio de baja confianza (IA)"
 
             item_id = f"bii_{secrets.token_urlsafe(10)}"
             item_doc = {
