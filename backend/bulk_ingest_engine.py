@@ -202,9 +202,21 @@ def _extract_text_from_bytes(b: bytes, mime: str, fname: str) -> str:
                 wb = load_workbook(io.BytesIO(b), data_only=True, read_only=True)
                 parts = []
                 for ws in wb.worksheets:
-                    parts.append(f"[Hoja: {ws.title}]")
-                    for row in ws.iter_rows(values_only=True):
-                        parts.append("\t".join(str(c) if c is not None else "" for c in row))
+                    # Filas como TABLA MARKDOWN (columnas explícitas) → la IA lee la tabla de unidades
+                    # sin alucinar (antes era tab-separado, más ambiguo).
+                    rows = [[("" if c is None else str(c).strip()) for c in row]
+                            for row in ws.iter_rows(values_only=True)]
+                    rows = [r for r in rows if any(cell for cell in r)]   # salta filas vacías
+                    if not rows:
+                        continue
+                    width = max(len(r) for r in rows)
+                    def _pad(r):
+                        return r + [""] * (width - len(r))
+                    parts.append(f"\n[Hoja: {ws.title}]")
+                    parts.append("| " + " | ".join(_pad(rows[0])) + " |")
+                    parts.append("| " + " | ".join(["---"] * width) + " |")
+                    for r in rows[1:]:
+                        parts.append("| " + " | ".join(_pad(r)) + " |")
                 return "\n".join(parts)[:30000]
             except Exception as e:  # noqa: BLE001
                 log.warning(f"[bulk_ingest] xlsx text extract falló ({fname}): {e}")
@@ -350,6 +362,22 @@ def _stub_extraction(name: str) -> Dict[str, Any]:
 
 # ─── Dedup ────────────────────────────────────────────────────────────────────
 
+_ADDR_FILLER = {"calle", "av", "avenida", "c", "col", "colonia", "no", "num", "numero",
+                "int", "interior", "depto", "departamento", "piso", "cdmx", "mexico",
+                "ciudad", "de", "del", "la", "el", "los", "las", "esq"}
+
+
+def _norm_addr(s: str) -> str:
+    """Normaliza nombre+dirección para dedup: sin acentos, sin puntuación, sin palabras de relleno
+    (calle/av/col/#), espacios colapsados → matching más robusto que el fuzzy sobre texto crudo."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", (s or "").lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = re.sub(r"[^\w\s]", " ", s)
+    toks = [t for t in s.split() if t and t not in _ADDR_FILLER]
+    return " ".join(toks)
+
+
 async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: Optional[str]) -> Dict[str, Any]:
     """Return {best_match_dev_id, score, similar_matches[{dev_id,score,name}]}."""
     try:
@@ -357,7 +385,7 @@ async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: O
     except Exception:
         return {"best_match_dev_id": None, "score": None, "similar_matches": []}
 
-    query_str = f"{extracted.get('project_name', '')} {extracted.get('address_full', '')}".lower().strip()
+    query_str = _norm_addr(f"{extracted.get('project_name', '')} {extracted.get('address_full', '')}")
     if not query_str:
         return {"best_match_dev_id": None, "score": None, "similar_matches": []}
 
@@ -367,7 +395,7 @@ async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: O
 
     matches: List[Tuple[str, float, str]] = []
     async for d in db.developments.find(q, {"_id": 0, "id": 1, "name": 1, "address": 1, "ciudad": 1}):
-        cand = f"{d.get('name', '')} {d.get('address', '')} {d.get('ciudad', '')}".lower().strip()
+        cand = _norm_addr(f"{d.get('name', '')} {d.get('address', '')} {d.get('ciudad', '')}")
         if not cand:
             continue
         score = fuzz.WRatio(query_str, cand) / 100.0
