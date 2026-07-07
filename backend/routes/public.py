@@ -1693,7 +1693,7 @@ async def _published_wizard_cards(db):
     out = []
     try:
         async for p in db.projects.find(
-            {"marketplace_published": {"$ne": False}, "colonia_id": {"$nin": [None, ""]}, "price_from": {"$gt": 0}},
+            {"marketplace_published": {"$nin": [False, "pending"]}, "colonia_id": {"$nin": [None, ""]}, "price_from": {"$gt": 0}},
             {"_id": 0}).limit(500):
             c = _project_to_dev_card(p)
             if c:
@@ -2139,7 +2139,7 @@ async def get_development(dev_id: str, request: Request):
         pub = await db.developments.find_one({"id": dev_id}, {"_id": 0})
         if not pub:
             # DEV PUBLICA → MARKETPLACE: ficha de un proyecto del wizard (db.projects) convertido a tarjeta.
-            _proj = await db.projects.find_one({"id": dev_id, "marketplace_published": {"$ne": False}}, {"_id": 0})
+            _proj = await db.projects.find_one({"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0})
             if _proj:
                 pub = _project_to_dev_card(_proj)
         if not pub:

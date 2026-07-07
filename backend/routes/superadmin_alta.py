@@ -179,7 +179,8 @@ async def alta_proyecto(body: AltaProyectoBody, request: Request):
         "amenities": body.amenidades or [],
         "legal_status": "sin_contrato",
         "created_via": "superadmin_manual", "created_by_id": user.user_id,
-        "status": "active", "created_at": now, "updated_at": now,
+        "status": "active", "marketplace_published": "pending",  # aprobación pre-publicar
+        "created_at": now, "updated_at": now,
     }
     await db.projects.insert_one(dict(doc))
     await _audit(db, user, "create", "development", slug,

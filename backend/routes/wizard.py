@@ -373,6 +373,10 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         "lng": ub.get("lng"),
         # Estado legal declarado por el dev (B1.3 · los documentos van aparte a di_documents)
         "legal_status": (payload.legal or {}).get("estado") or "sin_contrato",
+        # Aprobación pre-publicar: los proyectos NUEVOS entran ocultos ('pending') y solo aparecen en
+        # el marketplace cuando superadmin o el dev los aprueba (marketplace_published=True). Los
+        # proyectos ya existentes (sin este campo) NO se tocan → cero regresión.
+        "marketplace_published": "pending",
         # Metadata
         "created_via": "wizard",
         "wizard_source": payload.ia_source or "manual",

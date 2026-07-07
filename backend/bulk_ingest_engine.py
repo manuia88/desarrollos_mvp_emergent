@@ -437,6 +437,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         "price_max_mxn": (extracted.get("price_range") or {}).get("max_mxn"),
         "amenities": extracted.get("amenities") or [],
         "status": "active",
+        "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
         "source": "bulk_ingest",
         "source_job_id": item.get("job_id"),
         "created_at": now,
