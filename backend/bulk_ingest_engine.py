@@ -78,6 +78,33 @@ def _file_priority(f: Dict[str, Any]) -> int:
     return 10   # PDF genérico
 
 
+# ─── Detección de carpetas-PROYECTO (cada dev arma su Drive distinto) ─────────
+# Palabras de ESTATUS/FUNCIÓN: si el nombre de una carpeta es SOLO estas palabras, es un CONTENEDOR
+# (p.ej. "ENTREGA INMEDIATA", "Fichas", "Desarrollos Vendidos") → hay que entrar a buscar los proyectos
+# adentro. Si el nombre tiene además un identificador (p.ej. "Cervantes 101 - ENTREGA INMEDIATA"), es proyecto.
+_FOLDER_STOPWORDS = {"preventa", "entrega", "inmediata", "vendido", "vendidos", "disponible",
+                     "disponibles", "en", "venta", "y", "material", "informativo", "fichas", "ficha",
+                     "cotizador", "rentas", "de", "del", "la", "el", "los", "las", "desarrollos",
+                     "proyectos", "catalogo", "catálogo", "zona", "e", "inmediatas"}
+# Carpetas que NO son proyectos ni contenedores de proyectos → saltar del todo
+_SKIP_FOLDER = ("sin marca", "comision", "comisiones", "curriculum", "aliado", "plantilla", "formato",
+                "escenario", "historico", "histórico", "inflacion", "inflación", "politica", "política",
+                "proceso", "documentos para contrato", "recorrido", "link fotos")
+
+
+def _folder_is_skip(name: str) -> bool:
+    return any(k in (name or "").lower() for k in _SKIP_FOLDER)
+
+
+def _folder_is_container(name: str) -> bool:
+    """True si el nombre es SOLO palabras de estatus/función (→ contenedor, no proyecto)."""
+    toks = [t for t in re.sub(r"[^\w\s]", " ", (name or "").lower()).split() if t]
+    if not toks:
+        return False
+    residual = [t for t in toks if t not in _FOLDER_STOPWORDS]
+    return len(residual) == 0
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -175,12 +202,29 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
         if f.get("mimeType") != FOLDER_MIME:
             all_files.append({**f, "parent_folder_id": folder_id, "parent_folder_name": ""})
 
-    # Cada subcarpeta de primer nivel = un proyecto; recolecta TODO lo anidado (cualquier nivel)
+    # Resolver las carpetas-PROYECTO reales: cada dev arma su Drive distinto. Las subcarpetas cuyo
+    # nombre es SOLO estatus/función (PREVENTA, ENTREGA INMEDIATA, Fichas, Cotizador, Desarrollos
+    # Vendidos…) son CONTENEDORES → se entra a buscar los proyectos adentro. Material/comisiones/CV se saltan.
+    project_folders: List[Tuple[str, str]] = []   # (id, nombre)
     for top in root_items:
-        if top.get("mimeType") != FOLDER_MIME or len(all_files) >= MAX_FILES_PER_FOLDER:
+        if top.get("mimeType") != FOLDER_MIME:
             continue
-        proj_id, proj_name = top["id"], top.get("name") or ""
-        stack: List[Tuple[str, int, str]] = [(top["id"], 1, proj_name)]   # (folder_id, depth, nombre carpeta)
+        name = top.get("name") or ""
+        if _folder_is_skip(name):
+            continue
+        if _folder_is_container(name):
+            for sub in await asyncio.to_thread(_list_in, top["id"]):
+                sname = sub.get("name") or ""
+                if sub.get("mimeType") == FOLDER_MIME and not _folder_is_skip(sname):
+                    project_folders.append((sub["id"], sname))
+        else:
+            project_folders.append((top["id"], name))
+
+    # Cada carpeta-proyecto resuelta: recolecta TODO lo anidado (cualquier nivel)
+    for proj_id, proj_name in project_folders:
+        if len(all_files) >= MAX_FILES_PER_FOLDER:
+            break
+        stack: List[Tuple[str, int, str]] = [(proj_id, 1, proj_name)]   # (folder_id, depth, nombre carpeta)
         visited: set = set()
         proj_count = 0
         while stack and len(all_files) < MAX_FILES_PER_FOLDER and proj_count < MAX_FILES_PER_PROJECT_LIST:

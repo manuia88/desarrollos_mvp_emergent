@@ -378,3 +378,28 @@ def test_parse_llm_json_no_object_raises():
     from bulk_ingest_engine import _parse_llm_json
     with pytest.raises(Exception):
         _parse_llm_json("no hay json aqui")
+
+
+# ─── detección de carpeta-proyecto vs contenedor (devs con estructura distinta) ──
+
+def test_folder_container_pure_status_is_container():
+    from bulk_ingest_engine import _folder_is_container
+    assert _folder_is_container("ENTREGA INMEDIATA") is True
+    assert _folder_is_container("PREVENTA") is True
+    assert _folder_is_container("Fichas") is True
+    assert _folder_is_container("Desarrollos Vendidos") is True
+
+
+def test_folder_project_with_name_is_not_container():
+    from bulk_ingest_engine import _folder_is_container
+    assert _folder_is_container("Cervantes 101 - ENTREGA INMEDIATA") is False
+    assert _folder_is_container("SLP96 (VENDIDO)") is False
+    assert _folder_is_container("Amsterdam 257") is False
+
+
+def test_folder_skip_material_and_cv():
+    from bulk_ingest_engine import _folder_is_skip
+    assert _folder_is_skip("MATERIALES SIN MARCA") is True
+    assert _folder_is_skip("historico de inflacion") is True
+    assert _folder_is_skip("Comisiones base") is True
+    assert _folder_is_skip("Cervantes 101") is False
