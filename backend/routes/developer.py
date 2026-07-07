@@ -849,7 +849,14 @@ async def dev_indices(request: Request):
         a = city_abs.get(c.get("name")) or {}
         return {"absorcion_pct": round(a["sold"] / a["total"] * 100, 1)} if a.get("total") else {}
 
-    ix.ensure_index_distributions(COLONIAS, ctx_fn=_city_ctx)
+    # Universo COMPLETO (1,812) para el banding, no solo 16 seed — evita envenenar _INDEX_DIST
+    # si este endpoint corre primero (el guard de _DIST_N ya auto-cura, esto lo cierra del todo).
+    try:
+        from routes.dmx_indices import _all_colonias
+        _universo = await _all_colonias(get_db(request))
+    except Exception:
+        _universo = COLONIAS
+    ix.ensure_index_distributions(_universo, ctx_fn=_city_ctx)
 
     col_by_name = {c["name"]: c for c in COLONIAS}
     zonas = []

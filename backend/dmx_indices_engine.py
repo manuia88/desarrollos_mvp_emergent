@@ -224,14 +224,21 @@ def build_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None) -> Di
         for i in r["indices"]:
             g[i["key"]].append(i["valor"])
         g["IDM"].append(r["idm"]["valor"])
-    global _INDEX_DIST
+    global _INDEX_DIST, _DIST_N
     _INDEX_DIST = {city: {k: _mn.dist_from_values(v) for k, v in g.items()} for city, g in grids.items()}
+    _DIST_N = len(colonias)
     return _INDEX_DIST
 
 
+# población con la que se construyó _INDEX_DIST (para no dejar el caché envenenado con 16 seed
+# si ese caller corre primero: si llega un universo ≥1.5× mayor, se reconstruye).
+_DIST_N: int = 0
+
+
 def ensure_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None, refresh: bool = False) -> Dict[str, Dict[str, Dict[str, Any]]]:
-    """Garantiza que las distribuciones por ciudad estén listas (lazy · idempotente)."""
-    if _INDEX_DIST and not refresh:
+    """Garantiza que las distribuciones por ciudad estén listas (lazy · idempotente).
+    Reconstruye si llega una población MUCHO mayor (first-writer-wins ya no envenena con 16 seed)."""
+    if _INDEX_DIST and not refresh and len(colonias) <= _DIST_N * 1.5:
         return _INDEX_DIST
     return build_index_distributions(colonias, ctx_fn)
 
