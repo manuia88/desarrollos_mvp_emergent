@@ -47,6 +47,7 @@ function ScoreRow({ label, score }) {
 
 
 function BreakdownModal({ data, onClose }) {
+  if (!data || !data.scores) return null;
   return (
     <div data-testid="badge-breakdown-modal" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.STICKY,
@@ -155,8 +156,8 @@ export function ComplianceBadgeInline({ devId }) {
 // ─── 3-dot summary for legajo header ────────────────────────────────────────
 export function ComplianceDotStrip({ devId }) {
   const [data, setData] = useState(null);
-  useEffect(() => { if (devId) fetchBadge(devId).then(setData); }, [devId]);
-  if (!data) return null;
+  useEffect(() => { if (devId) fetchBadge(devId).then(setData).catch(() => setData(null)); }, [devId]);
+  if (!data || !data.scores) return null;   // dev sin badge (o id inexistente) → no crashea
   const dot = (score) => {
     const tier = score?.tier;
     return tier === 'green' ? '#22c55e' : tier === 'amber' ? '#f59e0b' : tier === 'red' ? '#ef4444' : 'rgba(148,163,184,0.4)';
