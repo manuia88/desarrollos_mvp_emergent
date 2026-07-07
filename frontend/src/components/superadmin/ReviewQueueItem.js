@@ -47,6 +47,8 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
   const dedup = item.dedup || {};
   const matches = dedup.similar_matches || [];
   const lowConf = e._low_confidence || e._stub;
+  const conf = e._confidence || {};          // confianza por campo de la IA (upgrade sesión)
+  const geocoded = !!e._geocoded;            // lat/lng completadas por geocoding
   const priceMin = fmtMxn(e?.price_range?.min_mxn);
   const priceMax = fmtMxn(e?.price_range?.max_mxn);
   const overrideCount = (item.extracted_overrides || []).length;
@@ -90,6 +92,28 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
       {toast && (
         <div data-testid={`review-toast-${item.id}`} style={{ alignSelf: 'flex-end', padding: '4px 10px', borderRadius: 9999, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.30)', color: '#4ADE80', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700 }}>
           {toast}
+        </div>
+      )}
+
+      {/* Confianza por campo de la IA (color) + geocodificado — upgrades de esta sesión */}
+      {(Object.keys(conf).length > 0 || geocoded) && (
+        <div data-testid={`review-conf-${item.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.05em', color: 'rgba(240,235,224,0.45)' }}>Confianza IA</span>
+          {[['nombre', conf.project_name], ['dirección', conf.address], ['precio', conf.price], ['unidades', conf.units]]
+            .filter(([, v]) => typeof v === 'number')
+            .map(([lbl, v]) => {
+              const c = v >= 0.7 ? '#4ADE80' : (v >= 0.4 ? '#FACC15' : '#F87171');
+              return (
+                <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, background: `${c}1f`, border: `1px solid ${c}55`, color: c }}>
+                  {lbl} {Math.round(v * 100)}%
+                </span>
+              );
+            })}
+          {geocoded && (
+            <span style={{ padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.4)', color: '#A5B4FC' }}>
+              📍 geocodificado
+            </span>
+          )}
         </div>
       )}
 
