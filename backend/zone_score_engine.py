@@ -118,6 +118,28 @@ def _score_denue_density(businesses_per_km2: Optional[float]) -> float:
 
 # ─── Main compute ──────────────────────────────────────────────────────────────
 
+async def _drpi_liquidez(db, zone_id: str):
+    """Deriva la dimensión LIQUIDEZ del momentum del DRPI (índice hedónico base 100 en drpi_snapshots):
+    zonas con apreciación reciente más fuerte = mercado más caliente/líquido. Reemplaza el placeholder
+    fijo de 50. Devuelve (score_0_100, is_proxy) o None si no hay DRPI. is_proxy=True si el DRPI de la
+    zona viene del backfill proxy (→ liquidez sigue marcada 'estimado')."""
+    rows = await db.drpi_snapshots.find(
+        {"zone_id": zone_id, "available": True},
+        {"_id": 0, "period": 1, "index_value": 1, "source": 1},
+    ).sort("period", -1).limit(13).to_list(13)
+    if len(rows) < 2:
+        return None
+    is_proxy = any(r.get("source") == "proxy_backfill" for r in rows)
+    latest = float(rows[0].get("index_value") or 0)
+    oldest = float(rows[-1].get("index_value") or 0)
+    if oldest <= 0:
+        return None
+    months = max(1, len(rows) - 1)
+    yoy = (latest / oldest - 1) * 100 * (12.0 / months)   # apreciación anualizada de la ventana
+    liquidez = max(5.0, min(98.0, 50.0 + yoy * 2.5))       # +6% YoY → ~65 · plano → 50 · caída → <50
+    return liquidez, is_proxy
+
+
 async def compute_zone_score(
     db, zone_id: str, tier: str = "colonia",
 ) -> Dict[str, Any]:
@@ -161,7 +183,16 @@ async def compute_zone_score(
         avg_rental = avg_price * 0.004
 
     # ── Dimension scores ──
-    dim_liquidez      = 50.0   # placeholder until DRPI W3.3
+    # W3.3 — Liquidez REAL desde el momentum del DRPI (antes placeholder fijo 50).
+    dim_liquidez      = 50.0
+    liquidez_placeholder = True
+    try:
+        dl = await _drpi_liquidez(db, zone_id)
+        if dl is not None:
+            dim_liquidez, _dl_proxy = dl
+            liquidez_placeholder = _dl_proxy   # real DRPI → False · proxy → sigue 'estimado'
+    except Exception as e:
+        log.warning(f"[score] drpi liquidez failed {zone_id}: {e}")
     dim_supply        = _score_supply_pressure(kpis)
     dim_demand        = _score_demand_growth(leads_now, leads_prev)
     # W3.4A — Risk score real (sustituye placeholder)
@@ -204,7 +235,7 @@ async def compute_zone_score(
         "components": components,
         "formula_version": FORMULA_VERSION,
         "placeholder_flags": {
-            "liquidez": True,   # DRPI W3.3 pending integration into Zone Score
+            "liquidez": liquidez_placeholder,   # W3.3 · False si DRPI real · True si proxy/sin dato
             "risk": False,      # W3.4A active (SESNSP V1)
         },
         "computed_at": _iso(),
