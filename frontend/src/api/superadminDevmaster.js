@@ -16,6 +16,22 @@ export async function fetchDevmasterProjects(filters = {}) {
   return r.json();
 }
 
+export async function fetchPendingApproval() {
+  const r = await fetch(`${API}/api/superadmin/devmaster/pending-approval`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar la cola de aprobación');
+  return r.json();
+}
+
+export async function approveProject(projectId, published = true) {
+  const r = await fetch(`${API}/api/superadmin/devmaster/project/${projectId}/marketplace`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ published }),
+  });
+  if (!r.ok) throw new Error('No se pudo aprobar el proyecto');
+  return r.json();
+}
+
 export async function fetchDevmasterProject(projectId) {
   const r = await fetch(`${API}/api/superadmin/devmaster/project/${projectId}`, { credentials: 'include' });
   if (!r.ok) throw new Error('No se pudo cargar la ficha del desarrollo');

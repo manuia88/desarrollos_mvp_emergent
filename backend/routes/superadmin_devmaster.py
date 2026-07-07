@@ -156,6 +156,25 @@ async def list_projects(request: Request, zona: Optional[str] = None, segmento: 
     return {"total": len(filtered), "total_catalogo": len(rows), "facetas": facetas, "proyectos": filtered}
 
 
+@router.get("/pending-approval")
+async def pending_approval(request: Request):
+    """Proyectos NUEVOS esperando aprobación para salir al marketplace (marketplace_published='pending').
+    El superadmin los revisa y aprueba con POST /project/{id}/marketplace (o el dev desde su portal)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    out = []
+    async for p in db.projects.find(
+            {"marketplace_published": "pending"},
+            {"_id": 0, "id": 1, "name": 1, "colonia": 1, "colonia_id": 1, "price_from": 1,
+             "developer_id": 1, "created_via": 1, "created_at": 1, "total_units": 1}
+    ).sort("created_at", -1).limit(200):
+        # completo = tiene colonia + precio (si no, ni siquiera aparecería al aprobar)
+        p["completo"] = bool(p.get("colonia_id") and (p.get("price_from") or 0) > 0)
+        out.append(p)
+    return {"total": len(out), "proyectos": out}
+
+
 # ─── Fase 1 · Ficha completa del proyecto (concentrado + analítica + solo-superadmin) ─
 def _pct_rank(values: List[float], v: float) -> int:
     vals = [x for x in values if isinstance(x, (int, float))]

@@ -7,7 +7,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Search } from 'lucide-react';
-import { fetchDevmasterProjects, ASSET_BASE } from '../../api/superadminDevmaster';
+import { fetchDevmasterProjects, ASSET_BASE, fetchPendingApproval, approveProject } from '../../api/superadminDevmaster';
 import DesarrollosPanorama from './DesarrollosPanorama';
 import DondeConstruir from './DondeConstruir';
 import GustoMercado from './GustoMercado';
@@ -22,6 +22,62 @@ const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUp
 const dim = { color: 'var(--sa-text-dim)' };
 const mute = { color: 'var(--sa-text-mute)' };
 const selStyle = { background: 'var(--bg-card)', border: '1px solid var(--sa-border)', color: 'var(--sa-text)', borderRadius: 10, padding: '8px 11px', fontSize: 12.5 };
+
+// Cola de aprobación: proyectos nuevos en 'pending' esperando salir al marketplace.
+function PendingApprovalBanner() {
+  const [pend, setPend] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const load = useCallback(() => { fetchPendingApproval().then(r => setPend(r.proyectos || [])).catch(() => setPend([])); }, []);
+  useEffect(() => { load(); }, [load]);
+  if (!pend || pend.length === 0) return null;
+  const aprobar = async (id) => {
+    setBusy(id);
+    try { await approveProject(id, true); setPend(p => p.filter(x => x.id !== id)); }
+    catch (e) { /* fail-soft */ }
+    finally { setBusy(null); }
+  };
+  return (
+    <div data-testid="pending-approval" style={{
+      background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+      borderRadius: 14, padding: '14px 16px', marginBottom: 16,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#F59E0B' }}>
+          ⏳ Pendientes de aprobar · {pend.length}
+        </span>
+        <span style={{ fontSize: 11.5, ...mute }}>proyectos nuevos ocultos del marketplace hasta que los apruebes</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {pend.slice(0, 12).map(p => (
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            background: 'var(--bg-card)', border: '1px solid var(--sa-border)', borderRadius: 10, padding: '8px 12px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sa-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name || p.id}</div>
+              <div style={{ fontSize: 11.5, ...dim }}>
+                {cap(p.colonia) || 'sin colonia'} · {mxn(p.price_from)} · {p.total_units || '?'} u · vía {cap(p.created_via) || '—'}
+                {!p.completo && <span style={{ color: '#F59E0B', marginLeft: 6 }}>· falta colonia/precio</span>}
+              </div>
+            </div>
+            <button
+              onClick={() => aprobar(p.id)}
+              disabled={!p.completo || busy === p.id}
+              data-testid={`aprobar-${p.id}`}
+              title={p.completo ? 'Publicar al marketplace' : 'Completa colonia y precio antes de publicar'}
+              style={{
+                flexShrink: 0, cursor: p.completo ? 'pointer' : 'not-allowed',
+                background: p.completo ? 'rgba(16,185,129,0.16)' : 'var(--bg-card)',
+                border: `1px solid ${p.completo ? 'rgba(16,185,129,0.45)' : 'var(--sa-border)'}`,
+                color: p.completo ? '#10B981' : 'var(--sa-text-mute)',
+                borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'DM Sans',
+              }}>
+              {busy === p.id ? '…' : 'Aprobar'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Card({ p, onClick }) {
   return (
@@ -108,6 +164,8 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
           <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
         </div>
       </div>
+
+      <PendingApprovalBanner />
 
       {/* Fila secundaria · lentes de Inteligencia */}
       {view === 'inteligencia' && (
