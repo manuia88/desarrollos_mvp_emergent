@@ -32,6 +32,10 @@ CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
 MAX_FILES_PER_FOLDER = 2000       # tope global de archivos listados por job (seguridad)
 MAX_FILES_PER_PROJECT_LIST = 60   # tope de archivos LISTADOS por proyecto (evita que un proyecto con
                                   # muchas fotos se coma el presupuesto global y tape a los demás)
+# Modelo para EXTRACCIÓN (listas de precios + planos): Sonnet 5 (claude-sonnet-5, GA jun-2026 — verificado
+# en docs oficiales platform.claude.com; Sonnet 4.6 ya es legacy). La disponibilidad/precios NO pueden salir
+# mal (decisión founder 07-08). Haiku queda para tareas baratas del resto del sistema. Override por env.
+BULK_INGEST_MODEL = os.environ.get("BULK_INGEST_MODEL", "claude-sonnet-5")
 MAX_KEY_FILES_PER_PROJECT = 15    # PDFs DESCARGADOS+leídos por proyecto (datos primero + planos para
                                   # cruzar por unidad; a más, más costo de IA)
 MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
@@ -292,25 +296,43 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "amenities": ["string", ...],
   "units": [
     {"unit_number": "string", "prototype": "string|null (tipo/modelo, p.ej. 'Tipo 02', 'B', 'PH')",
-     "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft",
+     "level": int|null (nivel/piso: dedúcelo del número — 201→2, 1105→11, PB/GH→0; null si no es deducible),
+     "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft|garden house|penthouse",
      "bedrooms": int|null, "bathrooms": int|null, "size_m2": int|null, "size_m2_total": int|null,
-     "m2_interior": int|null, "m2_balcony": int|null, "m2_terrace": int|null, "m2_roof_garden": int|null,
-     "storage": "string|null (bodega)", "parking": "string|null (cajones)", "price_mxn": int|null}
+     "m2_interior": int|null, "m2_balcony": float|null, "m2_terrace": float|null, "m2_roof_garden": float|null,
+     "patio_m2": float|null,
+     "storage_count": int|null (columna #BOD/bodegas: el NÚMERO; null si la columna está VACÍA),
+     "parking": "string|null (cajones — copia el número EXACTO de la columna #EST)",
+     "parking_type": "individual|tandem|null", "vista": "string|null (exterior/interior/parque…)",
+     "price_mxn": int|null,
+     "credito_mxn": int|null, "enganche_mxn": int|null, "reservacion_mxn": int|null,
+     "contrato_mxn": int|null, "a_diferir_mxn": int|null}
   ],
   "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
-IMPORTANTE: la LISTA DE PRECIOS / DISPONIBILIDAD es tu fuente principal — extrae CADA depto con su precio,
-m², disponibilidad, bodega y cajón. Si un depto aparece "apartado"/"vendido" márcalo en status.
-CRUCE DE PLANOS (CLAVE): las listas de precios casi nunca traen el DESGLOSE de m² (interior/balcón/terraza/roof
-garden) — eso vive en los PLANOS. Si hay planos (nombres tipo "DEP-206", "H122_DEP-201", "Tipo 02", "Prototipo B"):
-1) cruza por NÚMERO DE UNIDAD cuando el plano es por depto (DEP-206 → unidad 206);
-2) cruza por PROTOTIPO cuando el plano es por modelo (depto 102 usa el plano del "Tipo 02"/"Prototipo 02") — asigna el
-   mismo desglose a TODAS las unidades de ese prototipo;
-3) del plano toma m2_interior, m2_balcony, m2_terrace, m2_roof_garden (y verifica recámaras/baños/m² totales).
-Si la lista de precios no trae recámaras/baños pero el plano sí, tómalos del plano.
-FALLBACK DE PRECIO: si la lista da precio por PROTOTIPO/tipo (no por número de depto), asigna ese precio a cada
-unidad de ese prototipo — no dejes price_mxn null si el prototipo tiene precio.
-En "_confidence" califica QUÉ TAN SEGURO estás de cada grupo (1.0 = explícito en el documento · 0.5 = inferido · 0.2 = adivinado). Sé honesto: si el precio no aparece claro, pon price bajo.
+REGLA #1 — DISPONIBILIDAD (LA MÁS IMPORTANTE, prohibido equivocarse):
+· La lista de precios/disponibilidad muestra el inventario DISPONIBLE HOY. Extrae unidades SOLO de la lista
+  MÁS RECIENTE (mira la fecha en el documento). NO agregues deptos que solo aparecen en brochures, planos o
+  cotizaciones viejas — si no están en la lista actual es porque probablemente YA SE VENDIERON.
+· status "apartado"/"vendido" SOLO si el documento lo dice EXPLÍCITAMENTE (etiqueta, columna de estatus,
+  texto "apartado"/"vendido"/"no disponible", tachado). Un renglón sombreado o de otro color NO es evidencia
+  suficiente → déjalo "disponible". NUNCA adivines el estatus.
+REGLA #2 — NO INVENTAR (copia exacta):
+· Si la lista NO trae columna de recámaras/baños → null (el cruce de planos los completa después).
+· #BOD/bodega vacío → storage_count null. NO asumas que hay bodega.
+· Cajones (#EST): copia el número EXACTO de la fila. m²: copia los decimales tal cual (85.16, no 85).
+REGLA #3 — FORMA DE PAGO: si la lista trae columnas de pago por unidad (CRÉDITO, ENGANCHE, RESERVACIÓN,
+CONTRATO, A DIFERIR o similares), extráelas en los campos *_mxn. Son la base del cotizador.
+CRUCE DE PLANOS: el DESGLOSE de m² (interior/balcón/terraza/roof) vive en los PLANOS. Si hay planos
+("DEP-206", "Tipo 02", "Prototipo B"): 1) cruza por NÚMERO (DEP-206 → unidad 206); 2) cruza por PROTOTIPO
+(depto 102 usa el plano del "Tipo 02") y asigna el desglose a TODAS las unidades de ese prototipo;
+3) toma m2_interior, m2_balcony, m2_terrace, m2_roof_garden y verifica recámaras/baños.
+PROTOTIPO POR TERMINACIÓN: los deptos que terminan igual suelen compartir prototipo (101/201/301 → "01" ·
+202/302/402 → "02"). Si el plano o las configuraciones lo confirman (mismas recámaras/baños/m²), asigna esa
+terminación como prototype. Si las configuraciones difieren, NO lo asumas.
+FALLBACK DE PRECIO: si la lista da precio por PROTOTIPO (no por depto), asigna ese precio a cada unidad del
+prototipo — no dejes price_mxn null si el prototipo tiene precio.
+En "_confidence" califica QUÉ TAN SEGURO estás (1.0 = explícito · 0.5 = inferido · 0.2 = adivinado). Sé honesto.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
 Responde EXCLUSIVAMENTE con JSON, sin markdown."""
@@ -463,7 +485,7 @@ async def extract_bulk_project(
         try:
             session_id = f"bulk-ingest-{secrets.token_urlsafe(8)}"
             chat = LlmChat(api_key=api_key, session_id=session_id, system_message=EXTRACTION_PROMPT)
-            chat = chat.with_model("anthropic", "claude-haiku-4-5").with_max_tokens(8000)
+            chat = chat.with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(8000)
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
             data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
@@ -682,7 +704,7 @@ async def extract_plan_breakdowns(payloads: List[Tuple[bytes, str, str]]) -> Tup
                     for b, _ in batch]
             nombres = "\n".join(f"- {fn}" for _, fn in batch)
             chat = LlmChat(api_key="", session_id=f"plan-pass-{secrets.token_urlsafe(6)}",
-                           system_message=PLAN_PROMPT).with_model("anthropic", "claude-haiku-4-5").with_max_tokens(4000)
+                           system_message=PLAN_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(4000)
             resp = await chat.send_message(UserMessage(
                 text=f"Planos adjuntos (en este orden):\n{nombres}\n\nDevuelve el JSON.", file_contents=imgs))
             data = _parse_llm_json(resp or "")
@@ -722,6 +744,103 @@ def _apply_plan_breakdowns(extracted: Dict[str, Any], planos: List[Dict[str, Any
         if u != antes:
             filled += 1
     return filled
+
+
+# ─── Prototipo por TERMINACIÓN (founder 07-08) ────────────────────────────────
+# "101, 201, 301 es prototipo 01 · 202, 302, 402 es prototipo 02". Cuando la lista no trae prototipo
+# explícito, la terminación del número lo delata — PERO solo se asume si las configuraciones del grupo
+# COINCIDEN (mismas recámaras/baños y m² casi iguales). El pase de planos después lo confirma/enriquece.
+
+def _derive_prototypes(extracted: Dict[str, Any]) -> int:
+    units = extracted.get("units") or []
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for u in units:
+        if u.get("prototype"):
+            continue
+        un = str(u.get("unit_number") or "").strip()
+        m = re.fullmatch(r"(?:[A-Za-z]{0,4}[-_ ]?)?(\d{3,4})[-_ ]?([A-Za-z]?)", un)
+        if not m:
+            continue
+        term = m.group(1)[-2:] + (m.group(2) or "").upper()   # 101→'01' · 1105→'05' · 302B→'02B'
+        groups.setdefault(term, []).append(u)
+    n = 0
+    for term, us in groups.items():
+        if len(us) < 2:
+            continue   # un solo depto con esa terminación no prueba un prototipo
+        beds = {u.get("bedrooms") for u in us if u.get("bedrooms") is not None}
+        baths = {u.get("bathrooms") for u in us if u.get("bathrooms") is not None}
+        m2s = [u.get("size_m2") or u.get("m2_interior") for u in us if (u.get("size_m2") or u.get("m2_interior"))]
+        m2_ok = (not m2s) or (min(m2s) >= max(m2s) * 0.97)    # ±3% (variación por nivel)
+        if len(beds) <= 1 and len(baths) <= 1 and m2_ok:
+            for u in us:
+                u["prototype"] = term
+                n += 1
+    return n
+
+
+# ─── Clasificación de imágenes (founder 07-08) ────────────────────────────────
+# Multimedia = SOLO renders. Foto real de obra → tab Avance de obra (con fecha). Foto de depto muestra →
+# NO se muestra. Clasificamos al ingerir y guardamos image_kind en project_assets.
+
+IMAGE_KIND_PROMPT = """Clasifica CADA imagen adjunta de un desarrollo inmobiliario. Tipos:
+- render: imagen 3D/generada por computadora (fachada, interior idealizado, amenidad render, masterplan 3D)
+- obra: FOTO REAL de construcción/avance de obra (estructura, andamios, obra gris, maquinaria, excavación)
+- muestra: FOTO REAL de un depto muestra/piloto (amueblado o con acabados, para enseñar)
+- otro: logos, mapas, planos escaneados, documentos, personas, cualquier otra cosa
+Devuelve SOLO JSON: {"imagenes": [{"archivo": "nombre", "kind": "render|obra|muestra|otro"}]}
+En el mismo ORDEN en que van adjuntas. Si dudas entre render y muestra: los renders tienen iluminación
+perfecta/irreal y bordes limpios; las fotos reales tienen imperfecciones, reflejos y desorden natural."""
+
+
+async def classify_project_images(payloads: List[Tuple[bytes, str, str]]) -> Dict[str, str]:
+    """Clasifica imágenes en lotes de 4 → {filename: kind}. Fail-soft (dict parcial o vacío)."""
+    import base64 as _b64
+    from llm_client import LlmChat, UserMessage, ImageContent
+    out: Dict[str, str] = {}
+    lote = [(b, m, fn) for b, m, fn in payloads if len(b) <= 8 * 1024 * 1024][:24]
+    for i in range(0, len(lote), 4):
+        batch = lote[i:i + 4]
+        try:
+            imgs = [ImageContent(image_base64=_b64.b64encode(b).decode(),
+                                 media_type=(m if (m or "").startswith("image/") else "image/jpeg"))
+                    for b, m, _ in batch]
+            nombres = "\n".join(f"{j + 1}. {fn}" for j, (_, _, fn) in enumerate(batch))
+            chat = LlmChat(api_key="", session_id=f"img-kind-{secrets.token_urlsafe(6)}",
+                           system_message=IMAGE_KIND_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(1000)
+            resp = await chat.send_message(UserMessage(text=f"Imágenes adjuntas:\n{nombres}", file_contents=imgs))
+            data = _parse_llm_json(resp or "")
+            for p in (data.get("imagenes") or []) if isinstance(data, dict) else []:
+                if isinstance(p, dict) and p.get("archivo") and p.get("kind") in ("render", "obra", "muestra", "otro"):
+                    out[p["archivo"]] = p["kind"]
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[bulk_ingest] clasificación de imágenes (lote {i // 4 + 1}): {e}")
+    return out
+
+
+def _group_content_hash(files: List[Dict[str, Any]]) -> str:
+    """Huella del CONTENIDO del proyecto en Drive (md5/modifiedTime/size de cada archivo, ya vienen en el
+    listado — cero descargas). Si no cambió desde la última corrida procesada → no re-extraer (cero tokens)."""
+    import hashlib
+    parts = sorted(f"{f.get('id')}:{f.get('md5Checksum') or f.get('modifiedTime')}:{f.get('size')}"
+                   for f in (files or []))
+    return hashlib.md5("|".join(parts).encode()).hexdigest()
+
+
+_PAY_KEYS = ("credito_mxn", "enganche_mxn", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn")
+
+
+def _payment_fields(u: Dict[str, Any], price: Optional[float]) -> Dict[str, Any]:
+    """Extrae la FORMA DE PAGO por unidad (crédito/enganche/reservación/contrato/a diferir) + calcula los
+    PORCENTAJES sobre el precio (la 'forma de pago base' que pidió el founder). Solo montos > 0."""
+    out: Dict[str, Any] = {}
+    for k in _PAY_KEYS:
+        v = _num(u.get(k))
+        out[k] = int(v) if (v is not None and v > 0) else None
+    if price:
+        for k in _PAY_KEYS:
+            if out.get(k):
+                out[k.replace("_mxn", "_pct")] = round(out[k] / float(price) * 100, 1)
+    return out
 
 
 # ─── Insert into developments + units + project_assets ────────────────────────
@@ -806,6 +925,9 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         _park_raw = u.get("parking")
         _park_digits = re.sub(r"[^\d]", "", str(_park_raw or ""))
         _park_n = int(_park_digits) if _park_digits else (1 if _park_raw else 0)
+        # bodega: SOLO si la lista lo dice (#BOD con número o texto de bodega) — antes se inventaba
+        _bod_n = _num(u.get("storage_count"))
+        _bodega = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
         unit_doc = {
             "id": f"unit_{secrets.token_urlsafe(10)}",
             "development_id": dev_id,
@@ -814,6 +936,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "unit_number": u.get("unit_number") or f"U{secrets.token_hex(3)}",
             "type": u.get("type") or "depto",
             "prototype": u.get("prototype") or u.get("type") or "depto",
+            "level": u.get("level"),
             "bedrooms": u.get("bedrooms"),
             "bathrooms": u.get("bathrooms"),
             # canónico (front + filtros + semilla)
@@ -823,8 +946,14 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "m2_balcony": u.get("m2_balcony"),
             "m2_terrace": u.get("m2_terrace"),
             "m2_roof_garden": u.get("m2_roof_garden"),
+            "patio_m2": u.get("patio_m2"),
             "parking_spots": _park_n,
-            "bodega": bool(u.get("storage")),
+            "parking_type": u.get("parking_type"),
+            "vista": u.get("vista"),
+            "bodega": _bodega,
+            "storage_count": (int(_bod_n) if _bod_n and _bod_n > 0 else None),
+            # forma de pago por unidad (crédito/enganche/reservación/contrato/a diferir + % sobre precio)
+            **_payment_fields(u, _price),
             "price": _price,
             "price_display": (f"${int(_price):,}" if _price else None),
             # legacy (lo que lee dmx_cube_feed.db_unit_to_atom) — se conservan para no romper el cubo
@@ -839,7 +968,8 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         }
         await db.units.insert_one(dict(unit_doc))
 
-    # Assets — store Drive references
+    # Assets — store Drive references (+clasificación de imagen: render/obra/muestra → tabs correctos)
+    _kinds = item.get("image_kinds") or {}
     for f in item.get("source_files", []):
         asset = {
             "id": f"asset_{secrets.token_urlsafe(10)}",
@@ -848,6 +978,8 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "drive_file_id": f.get("file_id"),
             "filename": f.get("name"),
             "mime": f.get("mime"),
+            "image_kind": _kinds.get(f.get("name")),
+            "captured_at": now,               # fecha de extracción (avance de obra la muestra)
             "source": "bulk_ingest",
             "created_at": now,
         }
@@ -886,8 +1018,9 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             if _sm2:
                 upd.update({"m2_privative": u.get("m2_interior") or _sm2, "size_m2": _sm2,
                             "m2_total": u.get("size_m2_total") or _sm2})
-            # DESGLOSE de m² (del pase de planos) + prototipo — solo si la extracción los trae (no borrar lo que hay)
-            for _k in ("m2_balcony", "m2_terrace", "m2_roof_garden"):
+            # DESGLOSE de m² (del pase de planos) + campos finos — solo si la extracción los trae (no borrar lo que hay)
+            for _k in ("m2_balcony", "m2_terrace", "m2_roof_garden", "patio_m2", "level",
+                       "parking_type", "vista"):
                 if u.get(_k) is not None:
                     upd[_k] = u.get(_k)
             if u.get("prototype"):
@@ -896,9 +1029,14 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
                 upd["parking_spots"] = int(_pd) if _pd else (1 if u.get("parking") else 0)
                 upd["parking"] = u.get("parking")
-            if u.get("storage") is not None:
-                upd["bodega"] = bool(u.get("storage"))
-                upd["storage"] = u.get("storage")
+            _bod_n = _num(u.get("storage_count"))
+            if _bod_n is not None or u.get("storage") is not None:
+                upd["bodega"] = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
+                if _bod_n and _bod_n > 0:
+                    upd["storage_count"] = int(_bod_n)
+            # forma de pago por unidad (montos + % sobre el precio vigente)
+            _pay = _payment_fields(u, _price or existing.get("price"))
+            upd.update({k: v for k, v in _pay.items() if v is not None})
             # HISTÓRICO #1 · precio CAMBIÓ → price_events. Solo si había precio antes (rellenar un precio que
             # faltaba NO es un cambio de mercado → no ensuciar el histórico). Fail-open.
             old_price = existing.get("price") or existing.get("price_mxn")
@@ -953,6 +1091,34 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "source": "bulk_ingest_merge",
                 "created_at": now,
             })
+    # REGLA DE DISPONIBILIDAD (founder 07-08): la lista de precios ES el inventario disponible HOY. Un depto
+    # nuestro que YA NO aparece en la lista nueva → se VENDIÓ (por eso salió de la lista). Solo con lista
+    # significativa (≥3 unidades) y solo sobre unidades que vinieron de ingesta (no toca ediciones del dev).
+    # Registra unit_status_events con days_to_sell → absorción REAL del proyecto.
+    new_nos = {_norm_unit_no(u.get("unit_number")) for u in (extracted.get("units") or []) if u.get("unit_number")}
+    if len(new_nos) >= 3:
+        async for old in db.units.find(
+                {"development_id": target_dev_id, "status": {"$ne": "vendido"},
+                 "source": {"$in": ["bulk_ingest", "bulk_ingest_merge"]}}, {"_id": 0}):
+            if _norm_unit_no(old.get("unit_number")) in new_nos:
+                continue
+            try:
+                ev = {"unit_id": old.get("id"), "dev_id": target_dev_id, "unit_number": old.get("unit_number"),
+                      "old_status": old.get("status"), "new_status": "vendido", "changed_at": now,
+                      "source": "reingesta_ausente", "price": old.get("price") or old.get("price_mxn"),
+                      "sold_at": now, "nota": "ya no aparece en la lista de precios nueva"}
+                try:
+                    import datetime as _dt
+                    created = _dt.datetime.fromisoformat(str(old.get("created_at")).replace("Z", "+00:00"))
+                    ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
+                except Exception:  # noqa: BLE001
+                    pass
+                await db.units.update_one({"id": old["id"]}, {"$set": {"status": "vendido", "updated_at": now}})
+                await db.unit_status_events.insert_one(ev)
+                log.info(f"[bulk_ingest] {target_dev_id} unidad {old.get('unit_number')} → VENDIDO (ausente de la lista)")
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[bulk_ingest] ausente→vendido {old.get('unit_number')}: {e}")
+
     # las unidades cambiaron → re-sincroniza el átomo del dev (cubo/granularidad al día). Fail-open.
     try:
         from dmx_cube_feed import sync_ingested_to_atom
@@ -960,17 +1126,22 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
     except Exception:  # noqa: BLE001
         pass
 
+    # assets: UPSERT por archivo de Drive (antes cada re-ingesta APPENDEABA los mismos → duplicados sin fin)
+    _kinds = item.get("image_kinds") or {}
     for f in item.get("source_files", []):
-        await db.project_assets.insert_one({
-            "id": f"asset_{secrets.token_urlsafe(10)}",
-            "development_id": target_dev_id,
-            "type": "drive_reference",
-            "drive_file_id": f.get("file_id"),
-            "filename": f.get("name"),
-            "mime": f.get("mime"),
-            "source": "bulk_ingest_merge",
-            "created_at": now,
-        })
+        if not f.get("file_id"):
+            continue
+        _set = {"filename": f.get("name"), "mime": f.get("mime"), "updated_at": now}
+        if _kinds.get(f.get("name")):
+            _set["image_kind"] = _kinds[f.get("name")]
+        await db.project_assets.update_one(
+            {"development_id": target_dev_id, "drive_file_id": f.get("file_id")},
+            {"$set": _set,
+             "$setOnInsert": {"id": f"asset_{secrets.token_urlsafe(10)}", "development_id": target_dev_id,
+                              "type": "drive_reference", "drive_file_id": f.get("file_id"),
+                              "captured_at": now, "source": "bulk_ingest_merge", "created_at": now}},
+            upsert=True,
+        )
 
 
 # ─── Email notification ───────────────────────────────────────────────────────
@@ -1059,6 +1230,28 @@ async def run(db, job_id: str) -> None:
         for gkey, gdata in groups.items():
             items_total += 1
             project_name_hint = gdata["parent_folder_name"]
+
+            # DEDUP POR HASH (pipeline §3): si los archivos del proyecto NO cambiaron desde la última corrida
+            # procesada, saltar la extracción completa (cero descargas, cero tokens). La huella sale del listado.
+            content_hash = _group_content_hash(gdata["files"])
+            try:
+                _prev = await db.bulk_ingest_items.find_one(
+                    {"target_dev_org_id": target_org, "project_folder_name": project_name_hint,
+                     "source_content_hash": content_hash,
+                     "decision": {"$in": ["approved", "merged", "skipped_unchanged"]}},
+                    {"_id": 0, "inserted_dev_id": 1})
+            except Exception:  # noqa: BLE001
+                _prev = None
+            if _prev and _prev.get("inserted_dev_id"):
+                items_auto += 1
+                await db.bulk_ingest_items.insert_one({
+                    "id": f"bii_{secrets.token_urlsafe(10)}", "job_id": job_id,
+                    "target_dev_org_id": target_org, "project_folder_name": project_name_hint,
+                    "source_content_hash": content_hash, "decision": "skipped_unchanged",
+                    "inserted_dev_id": _prev["inserted_dev_id"], "ai_cost_mxn": 0.0, "created_at": _iso(),
+                })
+                log.info(f"[bulk_ingest] {project_name_hint}: sin cambios en Drive → saltado (hash)")
+                continue
             # Selección PRIORIZADA: primero los archivos de DATOS (lista de precios, disponibilidad,
             # brochure, inventario), luego genéricos; planos individuales/renders/fotos al final. Así la
             # lista de precios SIEMPRE se lee aunque haya 30 planos. Las hojas (inventario) siempre entran.
@@ -1086,6 +1279,15 @@ async def run(db, job_id: str) -> None:
                 extracted, cost_mxn = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")
 
+            # PROTOTIPO POR TERMINACIÓN (founder): 101/201/301 → '01' cuando la lista no lo trae explícito,
+            # validando que las configuraciones coincidan. ANTES del pase de planos (que cruza por prototipo).
+            try:
+                _np = _derive_prototypes(extracted)
+                if _np:
+                    log.info(f"[bulk_ingest] {gkey}: prototipo derivado por terminación en {_np} unidades")
+            except Exception:  # noqa: BLE001
+                pass
+
             # PASE DE PLANOS (modo profundo): si a las unidades les falta el desglose de m², leer los PLANOS
             # (2ª pasada) y cruzarlos por número de depto o prototipo. Fail-soft — nunca tira la ingesta.
             try:
@@ -1108,12 +1310,34 @@ async def run(db, job_id: str) -> None:
             except Exception as e:  # noqa: BLE001
                 error_log.append(f"plan pass failed {gkey}: {e}")
 
+            # CLASIFICACIÓN DE IMÁGENES (founder): render → Multimedia · foto de obra → Avance de obra ·
+            # depto muestra → NO se muestra. Se clasifica al ingerir y viaja en item_doc → project_assets.
+            image_kinds: Dict[str, str] = {}
+            try:
+                img_files = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")][:24]
+                if img_files:
+                    img_payloads: List[Tuple[bytes, str, str]] = []
+                    for imf in img_files:
+                        try:
+                            ib, im = await _download_file_bytes(conn, imf["id"], imf.get("mimeType", ""))
+                            img_payloads.append((ib, im, imf.get("name", "")))
+                        except Exception:  # noqa: BLE001
+                            continue
+                    if img_payloads:
+                        image_kinds = await classify_project_images(img_payloads)
+                        cost_mxn += 0.25 * max(1, len(img_payloads) // 4)
+                        log.info(f"[bulk_ingest] {gkey}: {len(image_kinds)} imágenes clasificadas "
+                                 f"({sum(1 for k in image_kinds.values() if k == 'render')} renders, "
+                                 f"{sum(1 for k in image_kinds.values() if k == 'obra')} obra)")
+            except Exception as e:  # noqa: BLE001
+                error_log.append(f"image classify failed {gkey}: {e}")
+
             # W2.3 SA4 — feature_key tagging for AI cost observatory
             if cost_mxn > 0:
                 try:
                     from ai_budget import track_ai_call
                     await track_ai_call(
-                        db, target_org or "bulk_ingest", "claude-haiku-4-5",
+                        db, target_org or "bulk_ingest", BULK_INGEST_MODEL,
                         0, "bulk_ingest_haiku",
                         tokens_in=2000, tokens_out=400,
                         feature_key="bulk_ingest_haiku",
@@ -1155,6 +1379,8 @@ async def run(db, job_id: str) -> None:
                     for f in gdata["files"][:50]
                 ],
                 "project_folder_name": project_name_hint,
+                "source_content_hash": content_hash,   # dedup por hash en la próxima corrida
+                "image_kinds": image_kinds,            # render/obra/muestra/otro → project_assets
                 "extracted": extracted,
                 "dedup": dedup,
                 "decision": decision,
@@ -1194,6 +1420,31 @@ async def run(db, job_id: str) -> None:
                 items_pending += 1
 
             await db.bulk_ingest_items.insert_one(dict(item_doc))
+
+        # CARPETAS NUEVAS / RETIRADAS del Drive (pregunta del founder 07-08):
+        # · Carpeta NUEVA → entra sola como proyecto nuevo (insert arriba, queda 'pending' de aprobar).
+        # · Carpeta RETIRADA → el dev ingerido del org que NO apareció en este scan se MARCA
+        #   missing_from_drive_at (visible en superadmin). NUNCA se borra ni despublica solo — decisión humana.
+        try:
+            if target_org and items_total > 0:
+                seen_ids = set()
+                async for it in db.bulk_ingest_items.find(
+                        {"job_id": job_id, "inserted_dev_id": {"$nin": [None, ""]}},
+                        {"_id": 0, "inserted_dev_id": 1}):
+                    seen_ids.add(it["inserted_dev_id"])
+                q_org = {"source": "bulk_ingest",
+                         "$or": [{"dev_org_id": target_org}, {"developer_id": target_org}]}
+                async for d in db.developments.find(q_org, {"_id": 0, "id": 1}):
+                    if d["id"] in seen_ids:
+                        await db.developments.update_one(
+                            {"id": d["id"]},
+                            {"$set": {"last_seen_in_drive": _iso()}, "$unset": {"missing_from_drive_at": ""}})
+                    else:
+                        await db.developments.update_one(
+                            {"id": d["id"], "missing_from_drive_at": {"$exists": False}},
+                            {"$set": {"missing_from_drive_at": _iso()}})
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[bulk_ingest] marca carpetas retiradas falló: {e}")
 
         status = "completed" if items_failed == 0 or (items_auto + items_pending) > 0 else "failed"
         await db.bulk_ingest_jobs.update_one(

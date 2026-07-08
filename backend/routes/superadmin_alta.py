@@ -630,14 +630,18 @@ async def proyecto_full(project_id: str, request: Request):
             out["historicos"]["estatus"].append(e)
     except Exception:
         pass
-    # DOCUMENTOS (planos/brochure/listas de Drive) — fail-open
+    # DOCUMENTOS (planos/brochure/listas de Drive) + clasificación de imagen (render/obra/muestra) — fail-open
     try:
         docs = []
-        async for a in db.project_assets.find({"development_id": project_id}, {"_id": 0, "filename": 1, "mime": 1, "type": 1, "drive_file_id": 1}).limit(100):
+        async for a in db.project_assets.find(
+                {"development_id": project_id},
+                {"_id": 0, "filename": 1, "mime": 1, "type": 1, "drive_file_id": 1,
+                 "image_kind": 1, "captured_at": 1}).limit(200):
             docs.append(a)
         out["documentos"] = docs
     except Exception:
         out["documentos"] = []
+    out["photos"] = doc.get("photos") or []
     return out
 
 

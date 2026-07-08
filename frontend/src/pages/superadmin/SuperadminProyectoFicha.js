@@ -251,37 +251,132 @@ function TabUnidades({ f, onSaved, setMsg }) {
   );
 }
 
-// ─── Tab: Multimedia — fotos y renders del Drive del proyecto (vía proxy OAuth) ─────────────────
-function TabMultimedia({ f }) {
-  const API = process.env.REACT_APP_BACKEND_URL;
-  const imgs = (f.documentos || []).filter((d) => (d.mime || '').startsWith('image/') && d.drive_file_id);
-  const fotos = f.photos || [];
-  const src = (d) => `${API}/api/superadmin/alta/proyecto/${encodeURIComponent(f.id)}/archivo/${encodeURIComponent(d.drive_file_id)}`;
+// ─── Multimedia / Avance de obra / Planos por prototipo (reglas founder 07-08) ──────────────────
+// Multimedia = SOLO renders · foto de obra → Avance de obra (con fecha de extracción) · depto muestra NO se
+// muestra. La clasificación (image_kind) la hace la IA al ingerir; imágenes viejas sin clasificar se marcan.
+const assetSrc = (f, d) => `${process.env.REACT_APP_BACKEND_URL}/api/superadmin/alta/proyecto/${encodeURIComponent(f.id)}/archivo/${encodeURIComponent(d.drive_file_id)}`;
+
+function ImgGrid({ f, items, emptyMsg, dateLabel }) {
   return (
-    <div style={card}>
-      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: 'var(--cream)' }}>Fotos y renders · {imgs.length + fotos.length}</span>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>
-        Imágenes que llegaron con la ingesta desde el Drive del dev. Los PDFs (planos, listas) viven en Documentos.
-      </div>
+    <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, marginTop: 14 }}>
-        {fotos.map((p, i) => (
-          <a key={`p${i}`} href={p} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)' }}>
-            <img src={p} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </a>
-        ))}
-        {imgs.map((d, i) => (
-          <a key={`d${i}`} href={src(d)} target="_blank" rel="noreferrer" title={d.filename}
+        {items.map((d, i) => (
+          <a key={i} href={assetSrc(f, d)} target="_blank" rel="noreferrer" title={d.filename}
             style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)', position: 'relative' }}>
-            <img src={src(d)} alt={d.filename || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 8px', fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.85)', background: 'rgba(0,0,0,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.filename}</span>
+            <img src={assetSrc(f, d)} alt={d.filename || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 8px', fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.85)', background: 'rgba(0,0,0,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {dateLabel && d.captured_at ? `${fecha(d.captured_at)} · ` : ''}{d.filename}
+            </span>
           </a>
         ))}
       </div>
-      {!imgs.length && !fotos.length && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', marginTop: 14 }}>
-          Aún sin fotos ni renders ligados. Llegan solos cuando la carpeta del Drive los tiene (jpg/png/webp).
+      {!items.length && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', marginTop: 14 }}>{emptyMsg}</div>}
+    </>
+  );
+}
+
+function TabMultimedia({ f }) {
+  const imgs = (f.documentos || []).filter((d) => (d.mime || '').startsWith('image/') && d.drive_file_id);
+  const renders = imgs.filter((d) => d.image_kind === 'render');
+  const sinClasificar = imgs.filter((d) => !d.image_kind);
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div style={card}>
+        <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: 'var(--cream)' }}>Renders · {renders.length}</span>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>
+          Solo renders del proyecto. Las fotos de obra viven en "Avance de obra"; las de depto muestra no se muestran.
+        </div>
+        <ImgGrid f={f} items={renders} emptyMsg="Aún sin renders clasificados. Llegan solos con la ingesta (la IA los separa de las fotos reales)." />
+      </div>
+      {!!sinClasificar.length && (
+        <div style={card}>
+          <span style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: 'rgba(240,235,224,0.7)' }}>Sin clasificar aún · {sinClasificar.length}</span>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', marginTop: 4 }}>Imágenes de ingestas anteriores — se clasifican en la próxima corrida.</div>
+          <ImgGrid f={f} items={sinClasificar.slice(0, 12)} emptyMsg="" />
         </div>
       )}
+    </div>
+  );
+}
+
+function TabObra({ f }) {
+  const obra = (f.documentos || []).filter((d) => (d.mime || '').startsWith('image/') && d.drive_file_id && d.image_kind === 'obra');
+  return (
+    <div style={card}>
+      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: 'var(--cream)' }}>Avance de obra · {obra.length}</span>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>
+        Fotos REALES de construcción con la fecha en que se extrajeron del Drive — la línea de tiempo del avance.
+      </div>
+      <ImgGrid f={f} items={obra} dateLabel emptyMsg="Aún sin fotos de obra clasificadas. Cuando el Drive traiga fotos de construcción, aparecen aquí con su fecha." />
+    </div>
+  );
+}
+
+// ─── Tab: Planos por prototipo (founder: depa 102 → plano del 'Tipo 02') ────────────────────────
+const _normProtoJs = (s) => String(s || '').toLowerCase().replace(/\b(tipo|prototipo|modelo|planta)\b/g, '').replace(/[^a-z0-9]/g, '');
+const _normUnitJs = (s) => {
+  let t = String(s || '').replace(/\b(dep|depto|departamento|unidad|u)\b/gi, ' ').replace(/[^A-Za-z0-9 ]/g, '');
+  const m = t.replace(/ /g, '').match(/\d+[A-Za-z]*/g);
+  return (m ? m[m.length - 1] : t).toUpperCase();
+};
+
+function TabPlanos({ f }) {
+  const unidades = f.unidades || [];
+  const planosPdf = (f.documentos || []).filter((d) => (d.mime || '') === 'application/pdf' && d.drive_file_id
+    && /plano|planta|prototipo|tipo |dep[-_ ]?\d|unidad/i.test(d.filename || ''));
+  // agrupa unidades por prototipo (el derivado por terminación o el explícito)
+  const grupos = {};
+  unidades.forEach((u) => {
+    const p = u.prototype && u.prototype !== 'depto' ? String(u.prototype) : null;
+    const key = p || '(sin prototipo)';
+    (grupos[key] = grupos[key] || []).push(u);
+  });
+  // liga planos a cada grupo: por prototipo en el nombre O por número de alguna unidad del grupo
+  const planosDe = (key, us) => {
+    const np = _normProtoJs(key);
+    const unos = new Set(us.map((u) => _normUnitJs(u.unit_number)));
+    return planosPdf.filter((d) => {
+      const n = d.filename || '';
+      if (np && _normProtoJs(n).includes(np) && /plano|planta|prototipo|tipo/i.test(n)) return true;
+      const mm = n.replace(/[^A-Za-z0-9 ]/g, '').replace(/ /g, '').match(/\d+[A-Za-z]*/g);
+      return !!(mm && mm.some((tok) => unos.has(tok.toUpperCase())));
+    });
+  };
+  const keys = Object.keys(grupos).sort();
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      {keys.map((k) => {
+        const us = grupos[k];
+        const u0 = us[0] || {};
+        const pls = planosDe(k, us);
+        return (
+          <div key={k} style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: 'var(--cream)' }}>
+                {k === '(sin prototipo)' ? 'Sin prototipo asignado' : `Prototipo ${k}`}
+              </span>
+              <span style={chip('rgba(255,255,255,0.06)', 'rgba(255,255,255,0.14)', 'rgba(240,235,224,0.7)')}>{us.length} deptos</span>
+              {u0.bedrooms != null && <span style={chip('rgba(192,132,252,0.12)', 'rgba(192,132,252,0.3)', '#E9D5FF')}>{u0.bedrooms} rec · {u0.bathrooms ?? '?'} baños</span>}
+              {u0.m2_total != null && <span style={chip('rgba(96,165,250,0.12)', 'rgba(96,165,250,0.3)', '#BFDBFE')}>{num(u0.m2_total, 2)} m²</span>}
+              {u0.m2_balcony != null && <span style={chip('rgba(96,165,250,0.10)', 'rgba(96,165,250,0.25)', '#BFDBFE')}>balcón {num(u0.m2_balcony, 2)}</span>}
+              {u0.m2_roof_garden != null && <span style={chip('rgba(96,165,250,0.10)', 'rgba(96,165,250,0.25)', '#BFDBFE')}>roof {num(u0.m2_roof_garden, 2)}</span>}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)', marginTop: 6 }}>
+              Deptos: {us.map((u) => u.unit_number).join(' · ')}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {pls.map((d, i) => (
+                <a key={i} href={assetSrc(f, d)} target="_blank" rel="noreferrer"
+                  style={{ ...chip('rgba(var(--theme-rgb),0.12)', 'rgba(var(--theme-rgb),0.4)', 'var(--theme)'), textDecoration: 'none', padding: '6px 12px' }}>
+                  <FileText size={12} /> {String(d.filename || '').slice(0, 46)}
+                </a>
+              ))}
+              {!pls.length && <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.45)' }}>Sin plano ligado — si el Drive trae el plano de este prototipo, se liga solo.</span>}
+            </div>
+          </div>
+        );
+      })}
+      {!keys.length && <div style={{ ...card, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)' }}>Sin unidades aún.</div>}
     </div>
   );
 }
@@ -436,7 +531,8 @@ function TabDocumentos({ f }) {
 
 // ─── Página ──────────────────────────────────────────────────────────────────
 const TABS = [
-  ['resumen', 'Resumen', Building2], ['unidades', 'Unidades', TrendingUp], ['multimedia', 'Multimedia', FileText],
+  ['resumen', 'Resumen', Building2], ['unidades', 'Unidades', TrendingUp], ['planos', 'Planos', FileText],
+  ['multimedia', 'Multimedia', FileText], ['obra', 'Avance de obra', Building2],
   ['amenidades', 'Amenidades', Check], ['scores', 'Zona y scores', MapPin], ['historicos', 'Históricos', TrendingUp],
   ['documentos', 'Documentos', FileText],
 ];
@@ -479,7 +575,9 @@ export default function SuperadminProyectoFicha() {
       </div>
       {tab === 'resumen' && <TabResumen f={f} onSaved={load} setMsg={setMsg} />}
       {tab === 'unidades' && <TabUnidades f={f} onSaved={load} setMsg={setMsg} />}
+      {tab === 'planos' && <TabPlanos f={f} />}
       {tab === 'multimedia' && <TabMultimedia f={f} />}
+      {tab === 'obra' && <TabObra f={f} />}
       {tab === 'amenidades' && <TabAmenidades f={f} onSaved={load} setMsg={setMsg} />}
       {tab === 'scores' && <TabScores f={f} />}
       {tab === 'historicos' && <TabHistoricos f={f} />}
