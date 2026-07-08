@@ -142,6 +142,16 @@ def _iso() -> str:
 FOLDER_RE = re.compile(r"/folders/([a-zA-Z0-9_-]{10,})")
 
 
+_FILE_URL_RE = re.compile(r"(?:spreadsheets|document|file)/d/([a-zA-Z0-9_-]{10,})")
+
+
+def parse_drive_file_id(url: str) -> Optional[str]:
+    """URL de ARCHIVO de Drive (Sheets/Docs/file) → id. Una lista de precios puede vivir directo en un
+    Google Sheets multi-pestaña (founder 07-08) — se ingiere como proyecto de un solo archivo."""
+    m = _FILE_URL_RE.search(url or "")
+    return m.group(1) if m else None
+
+
 def parse_folder_id(url: str) -> Optional[str]:
     if not url:
         return None
@@ -1009,6 +1019,67 @@ def _group_content_hash(files: List[Dict[str, Any]]) -> str:
     return hashlib.md5((PIPELINE_VERSION + "|" + "|".join(parts)).encode()).hexdigest()
 
 
+def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
+                        building: Dict[str, Any], project_name: str) -> Dict[str, Any]:
+    """GATE DE CONSISTENCIA (gratis, corre en cada ingesta): ¿el dato extraído CUADRA? Devuelve score 0-100
+    con las razones. Score bajo → el proyecto NO se auto-aprueba (founder: cero basura al marketplace)."""
+    checks: List[Dict[str, Any]] = []
+
+    def _c(nombre, ok, detalle=""):
+        checks.append({"check": nombre, "ok": bool(ok), "detalle": detalle})
+
+    units = extracted.get("units") or []
+    # 1 · aritmética de m²: priv + balcón + terraza + roof ≈ total (±0.6 por redondeos)
+    bad_m2 = []
+    for u in units:
+        tot = u.get("size_m2_total")
+        parts = [u.get("m2_interior") or u.get("size_m2"), u.get("m2_balcony"),
+                 u.get("m2_terrace"), u.get("m2_roof_garden"), u.get("patio_m2")]
+        suma = sum(float(x) for x in parts if x)
+        if tot and suma and abs(float(tot) - suma) > 0.6 and suma > (parts[0] or 0):
+            bad_m2.append(f"{u.get('unit_number')}: {suma:.2f}≠{tot}")
+    _c("aritmetica_m2", not bad_m2, "; ".join(bad_m2[:4]))
+    # 2 · precio/m² sano (vivienda MX: 15k–250k por m²)
+    raros = []
+    for u in units:
+        p, m2 = u.get("price_mxn"), (u.get("size_m2_total") or u.get("size_m2"))
+        if p and m2 and not (15000 <= p / float(m2) <= 250000):
+            raros.append(f"{u.get('unit_number')}: ${p/float(m2):,.0f}/m²")
+    _c("precio_m2_sano", not raros, "; ".join(raros[:4]))
+    # 3 · % de unidades con precio
+    conp = sum(1 for u in units if u.get("price_mxn"))
+    _c("cobertura_precio", (conp / len(units) >= 0.6) if units else True,
+       f"{conp}/{len(units)} con precio")
+    # 4 · ANTI-CONTAMINACIÓN: la lista elegida debe mencionar al proyecto (caza 'UNICO COYOACAN_LP'
+    #     metida en la carpeta de ICON CONDESA)
+    toks = [t for t in re.findall(r"[a-záéíóú0-9]{4,}", (project_name or "").lower())
+            if t not in ("casa", "torre", "depto", "residencial", "preventa", "entrega", "inmediata")]
+    conta = []
+    for f in (plan.get("listas_precios") or []):
+        fn = (f.get("name") or "").lower()
+        if toks and not any(t in fn for t in toks) and re.search(r"[a-z]{4,}", fn.replace("lp", "")):
+            otros = re.findall(r"[a-záéíóú]{5,}", fn)
+            if otros and not any(t in fn for t in toks):
+                conta.append(f.get("name"))
+    _c("lista_es_del_proyecto", not conta, "; ".join(conta[:2]))
+    # 5 · unidades ≤ edificio (si hay mapa)
+    if building.get("total_units_edificio"):
+        _c("unidades_vs_edificio", len(units) <= building["total_units_edificio"] + 2,
+           f"{len(units)} listadas vs {building['total_units_edificio']} en edificio")
+    # 6 · prototipos sanos (no m² como nombre: '92.48')
+    protos_raros = {str(u.get("prototype")) for u in units
+                    if u.get("prototype") and re.fullmatch(r"\d{2,3}\.\d+", str(u.get("prototype")))}
+    _c("prototipos_sanos", not protos_raros, "; ".join(list(protos_raros)[:3]))
+    # 7 · hay fuente de inventario
+    _c("fuente_inventario", bool(plan.get("listas_precios") or plan.get("fichas_por_depto")),
+       "sin lista ni fichas")
+
+    ok_n = sum(1 for c in checks if c["ok"])
+    score = round(ok_n / len(checks) * 100)
+    return {"score": score, "publicable": score >= 85 and bool(units),
+            "checks": checks}
+
+
 _PAY_KEYS = ("credito_mxn", "enganche_mxn", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn")
 
 
@@ -1428,21 +1499,57 @@ async def run(db, job_id: str) -> None:
             )
             return
 
-        folder_id = parse_folder_id(job.get("drive_folder_url", ""))
-        if not folder_id:
-            await db.bulk_ingest_jobs.update_one(
-                {"id": job_id},
-                {"$set": {"status": "failed", "completed_at": _iso(),
-                          "error_log": [f"Invalid drive URL: {job.get('drive_folder_url')}"]}},
-            )
-            return
+        src_url = job.get("drive_folder_url", "")
+        _dropbox_blobs: Dict[str, bytes] = {}
 
-        files = await _list_folder_recursive(conn, folder_id)
-        groups = _group_by_project(files, folder_id)
+        async def _fetch(f: Dict[str, Any]) -> Tuple[bytes, str]:
+            """Bytes de un archivo sin importar la FUENTE (Drive u Dropbox-zip)."""
+            if _dropbox_blobs:
+                return _dropbox_blobs[f["id"]], f.get("mimeType") or "application/octet-stream"
+            return await _download_file_bytes(conn, f["id"], f.get("mimeType", ""))
 
+        from dropbox_source import is_dropbox_url, fetch_tree as _dropbox_tree
+        file_id = None if is_dropbox_url(src_url) else parse_drive_file_id(src_url)
+        if is_dropbox_url(src_url):
+            # DROPBOX (share público, sin token): zip → mismo árbol/pipeline
+            files, _dropbox_blobs = await _dropbox_tree(src_url)
+            root_name = (files[0]["id"].split("/")[0] if files else "Dropbox")
+            groups = {"dropbox": {"parent_folder_name": root_name, "files": files}}
+            # si el zip trae varias carpetas raíz → cada una es un proyecto
+            _roots: Dict[str, List[Dict[str, Any]]] = {}
+            for f in files:
+                _roots.setdefault(f["id"].split("/")[0], []).append(f)
+            if len(_roots) > 1:
+                groups = {k: {"parent_folder_name": k, "files": v} for k, v in _roots.items()}
+        elif file_id:
+            # ARCHIVO directo (Google Sheets multi-pestaña = lista de precios viva)
+            svc_meta = await asyncio.to_thread(
+                lambda: __import__("drive_engine")._drive_service(conn).files().get(
+                    fileId=file_id, fields="id,name,mimeType", supportsAllDrives=True).execute())
+            f_entry = {"id": file_id, "name": svc_meta.get("name"), "mimeType": svc_meta.get("mimeType"),
+                       "immediate_folder": None}
+            groups = {"file": {"parent_folder_name": svc_meta.get("name") or "Hoja de precios",
+                               "files": [f_entry]}}
+            files = [f_entry]
+        else:
+            folder_id = parse_folder_id(src_url)
+            if not folder_id:
+                await db.bulk_ingest_jobs.update_one(
+                    {"id": job_id},
+                    {"$set": {"status": "failed", "completed_at": _iso(),
+                              "error_log": [f"URL no reconocida: {src_url}"]}},
+                )
+                return
+            files = await _list_folder_recursive(conn, folder_id)
+            groups = _group_by_project(files, folder_id)
+
+        dry_run = bool(job.get("dry_run"))
+        only_project = (job.get("only_project") or "").strip().lower()
         for gkey, gdata in groups.items():
-            items_total += 1
             project_name_hint = gdata["parent_folder_name"]
+            if only_project and only_project not in (project_name_hint or "").lower():
+                continue
+            items_total += 1
 
             # DEDUP POR HASH (pipeline §3): si los archivos del proyecto NO cambiaron desde la última corrida
             # procesada, saltar la extracción completa (cero descargas, cero tokens). La huella sale del listado.
@@ -1501,7 +1608,7 @@ async def run(db, job_id: str) -> None:
             payloads: List[Tuple[bytes, str, str]] = []
             for f in key_files:
                 try:
-                    data, eff_mime = await _download_file_bytes(conn, f["id"], f.get("mimeType", ""))
+                    data, eff_mime = await _fetch(f)
                     payloads.append((data, eff_mime, f.get("name", "")))
                 except Exception as e:
                     error_log.append(f"download failed {f.get('id')}: {e}")
@@ -1555,7 +1662,7 @@ async def run(db, job_id: str) -> None:
                         plano_payloads: List[Tuple[bytes, str, str]] = []
                         for pf in plano_files:
                             try:
-                                pb, pm = await _download_file_bytes(conn, pf["id"], pf.get("mimeType", ""))
+                                pb, pm = await _fetch(pf)
                                 plano_payloads.append((pb, pm, pf.get("name", "")))
                             except Exception as e:  # noqa: BLE001
                                 error_log.append(f"plano download failed {pf.get('id')}: {e}")
@@ -1596,7 +1703,7 @@ async def run(db, job_id: str) -> None:
                     img_payloads: List[Tuple[bytes, str, str]] = []
                     for imf in img_files:
                         try:
-                            ib, im = await _download_file_bytes(conn, imf["id"], imf.get("mimeType", ""))
+                            ib, im = await _fetch(imf)
                             img_payloads.append((ib, im, imf.get("name", "")))
                         except Exception:  # noqa: BLE001
                             continue
@@ -1652,6 +1759,14 @@ async def run(db, job_id: str) -> None:
                 decision = "pending_review"
                 extracted["_needs_review"] = "extracción fallida o incompleta (timeout / sin datos legibles)"
 
+            # GATE DE CONSISTENCIA: score de confianza + razones (siempre; gratis)
+            validacion = validate_extraction(extracted, plan or {}, building, project_name_hint)
+            if decision == "auto_approve" and not validacion["publicable"]:
+                decision = "pending_review"
+                extracted.setdefault("_needs_review",
+                                     f"consistencia {validacion['score']}/100: " +
+                                     "; ".join(c["check"] for c in validacion["checks"] if not c["ok"]))
+
             item_id = f"bii_{secrets.token_urlsafe(10)}"
             item_doc = {
                 "id": item_id,
@@ -1666,6 +1781,7 @@ async def run(db, job_id: str) -> None:
                 "image_kinds": image_kinds,            # render/obra/muestra/otro → project_assets
                 "recon_plan": {k: ([f.get("name") for f in v] if isinstance(v, list) and v and isinstance(v[0], dict) else v)
                                for k, v in (plan or {}).items()},   # LINAJE: qué leyó y por qué
+                "validacion": validacion,              # score de consistencia 0-100 + checks
                 "anchored": _anchored,                 # ¿hubo lista de precios? (gate de ausente=vendido)
                 "extracted": extracted,
                 "dedup": dedup,
@@ -1674,6 +1790,13 @@ async def run(db, job_id: str) -> None:
                 "ai_cost_mxn": cost_mxn,
                 "created_at": _iso(),
             }
+
+            if dry_run:
+                # SIMULACRO: guarda TODO el análisis (plan/extracción/validación) sin tocar la plataforma
+                item_doc["decision"] = "dry_run"
+                await db.bulk_ingest_items.insert_one(dict(item_doc))
+                items_auto += 1
+                continue
 
             _match_id = dedup.get("best_match_dev_id")
             if decision == "auto_approve" and _match_id and (score or 0) >= 0.85:

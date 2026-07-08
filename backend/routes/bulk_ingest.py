@@ -54,6 +54,8 @@ async def _require_superadmin(request: Request):
 class StartBody(BaseModel):
     drive_folder_url: str
     target_dev_org_id: Optional[str] = None
+    dry_run: bool = False              # SIMULACRO: analiza y extrae sin escribir a la plataforma
+    only_project: Optional[str] = None # filtra a UN proyecto (substring del nombre de carpeta)
 
 
 class RejectBody(BaseModel):
@@ -80,9 +82,11 @@ async def start_job(body: StartBody, request: Request):
     user = await _require_superadmin(request)
     db = _db(request)
 
-    folder_id = bie.parse_folder_id(body.drive_folder_url)
-    if not folder_id:
-        raise HTTPException(400, "URL de carpeta Drive inválida")
+    from dropbox_source import is_dropbox_url
+    _ok_url = (bie.parse_folder_id(body.drive_folder_url) or bie.parse_drive_file_id(body.drive_folder_url)
+               or is_dropbox_url(body.drive_folder_url))
+    if not _ok_url:
+        raise HTTPException(400, "URL no reconocida (carpeta Drive, archivo Sheets o share de Dropbox)")
 
     # Verify drive connection available
     conn = await bie._resolve_drive_conn(db, body.target_dev_org_id)
@@ -94,6 +98,8 @@ async def start_job(body: StartBody, request: Request):
         "id": job_id,
         "drive_folder_url": body.drive_folder_url,
         "target_dev_org_id": body.target_dev_org_id,
+        "dry_run": bool(body.dry_run),
+        "only_project": body.only_project,
         "status": "pending",
         "items_total": 0,
         "items_auto_approved": 0,
