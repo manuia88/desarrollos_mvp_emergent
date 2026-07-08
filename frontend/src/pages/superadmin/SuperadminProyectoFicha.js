@@ -127,7 +127,36 @@ function TabResumen({ f, onSaved, setMsg }) {
   );
 }
 
-// ─── Tab: Unidades (lista de precios editable por fila) ─────────────────────
+// ─── Tab: Unidades — tabla con GRUPOS de columnas (spec founder img-3): UNIDAD · M² DESGLOSADOS ·
+// CARACTERÍSTICAS · ADICIONALES · FORMA DE PAGO · PRECIO. Editable por fila. ────────────────────
+const GRP = {
+  unidad: 'rgba(255,255,255,0.045)',
+  m2: 'rgba(96,165,250,0.10)',        // azul
+  caract: 'rgba(192,132,252,0.10)',   // morado
+  extra: 'rgba(232,121,249,0.08)',    // violeta
+  pago: 'rgba(251,191,36,0.09)',      // ámbar
+  precio: 'rgba(52,211,153,0.10)',    // verde
+};
+const grpTh = (bg) => ({ ...th, background: bg, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.14)' });
+const colTh = (bg) => ({ ...th, background: bg });
+const num = (v, dec = 0) => (v == null || v === '' ? '—' : Number(v).toLocaleString('es-MX', { maximumFractionDigits: dec }));
+const pctTxt = (v) => (v == null ? '' : ` (${v}%)`);
+
+function M2Total({ u }) {
+  // "127 m² · 115+12bal" — el total con su fórmula de desglose (spec founder)
+  const parts = [];
+  if (u.m2_privative) parts.push(num(u.m2_privative, 2));
+  if (u.m2_balcony) parts.push(`${num(u.m2_balcony, 2)}bal`);
+  if (u.m2_terrace) parts.push(`${num(u.m2_terrace, 2)}ter`);
+  if (u.m2_roof_garden) parts.push(`${num(u.m2_roof_garden, 2)}rg`);
+  return (
+    <div>
+      <div style={{ fontWeight: 700 }}>{u.m2_total != null ? `${num(u.m2_total, 2)} m²` : '—'}</div>
+      {parts.length > 1 && <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.45)' }}>{parts.join('+')}</div>}
+    </div>
+  );
+}
+
 function TabUnidades({ f, onSaved, setMsg }) {
   const [edit, setEdit] = useState(null);   // {unitId, price, status, bedrooms, bathrooms, m2_total}
   const [busy, setBusy] = useState(false);
@@ -152,27 +181,50 @@ function TabUnidades({ f, onSaved, setMsg }) {
         <span style={chip('rgba(242,99,91,0.14)', 'rgba(242,99,91,0.3)', '#FCA5A5')}>{r.vendido || 0} vendidos</span>
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Depto</th><th style={th}>Tipo</th><th style={th}>Rec</th><th style={th}>Baños</th>
-            <th style={th}>m² tot</th><th style={th}>Cajones</th><th style={th}>Bodega</th><th style={th}>Precio</th>
-            <th style={th}>Estado</th><th style={th} />
-          </tr></thead>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
+          <thead>
+            <tr>
+              <th colSpan={3} style={grpTh(GRP.unidad)}>Unidad</th>
+              <th colSpan={5} style={grpTh(GRP.m2)}>M² desglosados</th>
+              <th colSpan={3} style={grpTh(GRP.caract)}>Características</th>
+              <th colSpan={3} style={grpTh(GRP.extra)}>Adicionales</th>
+              <th colSpan={3} style={grpTh(GRP.pago)}>Forma de pago</th>
+              <th colSpan={3} style={grpTh(GRP.precio)}>Precio</th>
+            </tr>
+            <tr>
+              <th style={colTh(GRP.unidad)}>Depto</th><th style={colTh(GRP.unidad)}>Proto.</th><th style={colTh(GRP.unidad)}>Nivel</th>
+              <th style={colTh(GRP.m2)}>M² priv.</th><th style={colTh(GRP.m2)}>Balcón</th><th style={colTh(GRP.m2)}>Terraza</th><th style={colTh(GRP.m2)}>RG priv.</th><th style={colTh(GRP.m2)}>M² totales</th>
+              <th style={colTh(GRP.caract)}>Rec.</th><th style={colTh(GRP.caract)}>Baños</th><th style={colTh(GRP.caract)}>Cajones</th>
+              <th style={colTh(GRP.extra)}>Tipo cajón</th><th style={colTh(GRP.extra)}>Bodega</th><th style={colTh(GRP.extra)}>Vista</th>
+              <th style={colTh(GRP.pago)}>Enganche</th><th style={colTh(GRP.pago)}>Crédito</th><th style={colTh(GRP.pago)}>Reservación</th>
+              <th style={colTh(GRP.precio)}>Precio</th><th style={colTh(GRP.precio)}>Estado</th><th style={colTh(GRP.precio)} />
+            </tr>
+          </thead>
           <tbody>
             {(f.unidades || []).map((u) => {
               const isEd = edit && edit.unitId === u.id;
               return (
                 <tr key={u.id || u.unit_number}>
                   <td style={{ ...td, fontWeight: 700 }}>{u.unit_number}</td>
-                  <td style={td}>{u.prototype || u.type || '—'}</td>
-                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 52 }} type="number" value={edit.bedrooms} onChange={(e) => setEdit({ ...edit, bedrooms: e.target.value })} /> : (u.bedrooms ?? '—')}</td>
-                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 52 }} type="number" value={edit.bathrooms} onChange={(e) => setEdit({ ...edit, bathrooms: e.target.value })} /> : (u.bathrooms ?? '—')}</td>
-                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 68 }} type="number" value={edit.m2_total} onChange={(e) => setEdit({ ...edit, m2_total: e.target.value })} /> : (u.m2_total ?? '—')}</td>
+                  <td style={td}>{u.prototype && u.prototype !== 'depto' ? <span style={chip('rgba(255,255,255,0.06)', 'rgba(255,255,255,0.14)', 'rgba(240,235,224,0.8)')}>{String(u.prototype).slice(0, 10)}</span> : '—'}</td>
+                  <td style={td}>{u.level ?? '—'}</td>
+                  <td style={td}>{u.m2_privative != null ? num(u.m2_privative, 2) : '—'}</td>
+                  <td style={td}>{u.m2_balcony != null ? num(u.m2_balcony, 2) : '—'}</td>
+                  <td style={td}>{u.m2_terrace != null ? num(u.m2_terrace, 2) : '—'}</td>
+                  <td style={td}>{u.m2_roof_garden != null ? num(u.m2_roof_garden, 2) : '—'}</td>
+                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 72 }} type="number" value={edit.m2_total} onChange={(e) => setEdit({ ...edit, m2_total: e.target.value })} /> : <M2Total u={u} />}</td>
+                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 48 }} type="number" value={edit.bedrooms} onChange={(e) => setEdit({ ...edit, bedrooms: e.target.value })} /> : (u.bedrooms ?? '—')}</td>
+                  <td style={td}>{isEd ? <input style={{ ...tdInp, width: 48 }} type="number" value={edit.bathrooms} onChange={(e) => setEdit({ ...edit, bathrooms: e.target.value })} /> : (u.bathrooms ?? '—')}</td>
                   <td style={td}>{u.parking_spots ?? '—'}</td>
-                  <td style={td}>{u.bodega ? 'Sí' : '—'}</td>
-                  <td style={{ ...td, whiteSpace: 'nowrap' }}>{isEd ? <input style={{ ...tdInp, width: 110 }} type="number" value={edit.price} onChange={(e) => setEdit({ ...edit, price: e.target.value })} /> : mxn(u.price)}</td>
+                  <td style={td}>{u.parking_type ? (u.parking_type === 'tandem' ? 'Tándem' : 'Individual') : '—'}</td>
+                  <td style={td}>{u.bodega ? (u.storage_count ? `${u.storage_count}` : 'Sí') : '—'}</td>
+                  <td style={td}>{u.vista || '—'}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.enganche_mxn ? <>{mxn(u.enganche_mxn)}<span style={{ color: '#FCD34D', fontSize: 10.5 }}>{pctTxt(u.enganche_pct)}</span></> : '—'}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.credito_mxn ? <>{mxn(u.credito_mxn)}<span style={{ color: '#FCD34D', fontSize: 10.5 }}>{pctTxt(u.credito_pct)}</span></> : '—'}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.reservacion_mxn ? mxn(u.reservacion_mxn) : '—'}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap', fontWeight: 700 }}>{isEd ? <input style={{ ...tdInp, width: 105 }} type="number" value={edit.price} onChange={(e) => setEdit({ ...edit, price: e.target.value })} /> : mxn(u.price)}</td>
                   <td style={td}>{isEd ? (
-                    <select style={{ ...tdInp, width: 110 }} value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
+                    <select style={{ ...tdInp, width: 108 }} value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
                       <option value="disponible">disponible</option><option value="reservado">reservado</option><option value="vendido">vendido</option>
                     </select>) : <StChip st={u.status} />}
                   </td>
@@ -195,6 +247,41 @@ function TabUnidades({ f, onSaved, setMsg }) {
         </table>
         {!(f.unidades || []).length && <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)' }}>Este proyecto aún no tiene lista de precios cargada.</div>}
       </div>
+    </div>
+  );
+}
+
+// ─── Tab: Multimedia — fotos y renders del Drive del proyecto (vía proxy OAuth) ─────────────────
+function TabMultimedia({ f }) {
+  const API = process.env.REACT_APP_BACKEND_URL;
+  const imgs = (f.documentos || []).filter((d) => (d.mime || '').startsWith('image/') && d.drive_file_id);
+  const fotos = f.photos || [];
+  const src = (d) => `${API}/api/superadmin/alta/proyecto/${encodeURIComponent(f.id)}/archivo/${encodeURIComponent(d.drive_file_id)}`;
+  return (
+    <div style={card}>
+      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: 'var(--cream)' }}>Fotos y renders · {imgs.length + fotos.length}</span>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>
+        Imágenes que llegaron con la ingesta desde el Drive del dev. Los PDFs (planos, listas) viven en Documentos.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, marginTop: 14 }}>
+        {fotos.map((p, i) => (
+          <a key={`p${i}`} href={p} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)' }}>
+            <img src={p} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </a>
+        ))}
+        {imgs.map((d, i) => (
+          <a key={`d${i}`} href={src(d)} target="_blank" rel="noreferrer" title={d.filename}
+            style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)', position: 'relative' }}>
+            <img src={src(d)} alt={d.filename || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 8px', fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.85)', background: 'rgba(0,0,0,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.filename}</span>
+          </a>
+        ))}
+      </div>
+      {!imgs.length && !fotos.length && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', marginTop: 14 }}>
+          Aún sin fotos ni renders ligados. Llegan solos cuando la carpeta del Drive los tiene (jpg/png/webp).
+        </div>
+      )}
     </div>
   );
 }
@@ -349,8 +436,9 @@ function TabDocumentos({ f }) {
 
 // ─── Página ──────────────────────────────────────────────────────────────────
 const TABS = [
-  ['resumen', 'Resumen', Building2], ['unidades', 'Unidades', TrendingUp], ['amenidades', 'Amenidades', Check],
-  ['scores', 'Zona y scores', MapPin], ['historicos', 'Históricos', TrendingUp], ['documentos', 'Documentos', FileText],
+  ['resumen', 'Resumen', Building2], ['unidades', 'Unidades', TrendingUp], ['multimedia', 'Multimedia', FileText],
+  ['amenidades', 'Amenidades', Check], ['scores', 'Zona y scores', MapPin], ['historicos', 'Históricos', TrendingUp],
+  ['documentos', 'Documentos', FileText],
 ];
 
 export default function SuperadminProyectoFicha() {
@@ -391,6 +479,7 @@ export default function SuperadminProyectoFicha() {
       </div>
       {tab === 'resumen' && <TabResumen f={f} onSaved={load} setMsg={setMsg} />}
       {tab === 'unidades' && <TabUnidades f={f} onSaved={load} setMsg={setMsg} />}
+      {tab === 'multimedia' && <TabMultimedia f={f} />}
       {tab === 'amenidades' && <TabAmenidades f={f} onSaved={load} setMsg={setMsg} />}
       {tab === 'scores' && <TabScores f={f} />}
       {tab === 'historicos' && <TabHistoricos f={f} />}

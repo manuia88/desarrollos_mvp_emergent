@@ -641,6 +641,33 @@ async def proyecto_full(project_id: str, request: Request):
     return out
 
 
+@router.get(PREFIX + "/proyecto/{project_id}/archivo/{file_id}")
+async def proyecto_archivo(project_id: str, file_id: str, request: Request):
+    """Sirve un archivo del Drive del proyecto (foto/render/plano) vía OAuth — el navegador no puede leer
+    archivos privados de Drive directo. Solo archivos LIGADOS al proyecto (project_assets) → no es un proxy
+    abierto. Alimenta el tab Multimedia de la Ficha Unificada."""
+    await _require_superadmin(request)
+    db = _db(request)
+    asset = await db.project_assets.find_one(
+        {"development_id": project_id, "drive_file_id": file_id}, {"_id": 0, "mime": 1, "filename": 1})
+    if not asset:
+        raise HTTPException(404, "Archivo no ligado a este proyecto")
+    try:
+        from bulk_ingest_engine import _resolve_drive_conn, _download_file_bytes
+        conn = await _resolve_drive_conn(db, None)
+        if not conn:
+            raise HTTPException(503, "Sin conexión a Drive")
+        data, eff_mime = await _download_file_bytes(conn, file_id, asset.get("mime") or "")
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"No se pudo descargar de Drive: {e}")
+    from fastapi.responses import Response
+    return Response(content=data, media_type=eff_mime or asset.get("mime") or "application/octet-stream",
+                    headers={"Cache-Control": "private, max-age=3600",
+                             "Content-Disposition": f"inline; filename=\"{(asset.get('filename') or 'archivo')[:80]}\""})
+
+
 async def _audit(db, user, accion: str, entidad: str, eid: str, after: Dict[str, Any]) -> None:
     try:
         from audit_log import log_mutation
