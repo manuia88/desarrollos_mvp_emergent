@@ -47,14 +47,16 @@ async def eval_golden(db, path):
                                          {"_id": 0, "id": 1, "name": 1})
     if not dev:
         return {"golden": os.path.basename(path), "error": "proyecto no encontrado en db.developments"}
+    import re as _re
+    _k = lambda s: _re.sub(r"[^A-Z0-9]", "", str(s or "").upper())   # "B 1402" == "B1402"
     units = {}
     async for u in db.units.find({"development_id": dev["id"]}, {"_id": 0}):
-        units[str(u.get("unit_number") or "").upper()] = u
+        units[_k(u.get("unit_number"))] = u
 
     total = ok = 0
     fallas = []
     for exp in g["unidades_esperadas"]:
-        un = exp["unit_number"].upper()
+        un = _k(exp["unit_number"])
         real = units.get(un)
         if not real:
             fallas.append(f"  ✗ {un}: NO EXISTE en db.units (esperado en la lista)")
@@ -72,12 +74,28 @@ async def eval_golden(db, path):
     # regla de ausencia → vendido
     for un in g.get("vendidas_por_ausencia", []):
         total += 1
-        real = units.get(un.upper())
+        real = units.get(_k(un))
         if real is None or (real.get("status") or "").lower() == "vendido":
             ok += 1
         else:
             fallas.append(f"  ✗ {un}: ausente de la lista → debía ser 'vendido', está '{real.get('status')}'")
 
+    # hechos del EDIFICIO (dev_esperado) — max_level/total_units/torres desde el mapa de planos
+    ddoc = await db.developments.find_one({"id": dev["id"]}, {"_id": 0})
+    for field, val in (g.get("dev_esperado") or {}).items():
+        total += 1
+        got = ddoc.get(field)
+        if got == val or (isinstance(val, list) and sorted(got or []) == sorted(val)):
+            ok += 1
+        else:
+            fallas.append(f"  ✗ dev.{field}: esperado {val!r} · extraído {got!r}")
+    # anti-fantasma: la lista trae N — más unidades en db = inventario inventado
+    if g.get("unidades_maximas"):
+        total += 1
+        if len(units) <= g["unidades_maximas"]:
+            ok += 1
+        else:
+            fallas.append(f"  ✗ FANTASMAS: {len(units)} unidades en db, la lista solo trae {g['unidades_maximas']}")
     return {"golden": os.path.basename(path), "dev": dev["name"], "campos": total, "correctos": ok,
             "exactitud": round(ok / total, 4) if total else 0.0, "fallas": fallas}
 

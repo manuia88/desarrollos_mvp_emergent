@@ -1,0 +1,21 @@
+{
+  "_descripcion": "CASO DORADO #2 — Over Santa Fe (forma de carpeta: lista en subcarpeta + planos por prototipo en TORRE A/B). Verdad transcrita por el founder desde la lista oficial CLASS. Valida: recon encuentra la lista aunque esté anidada · torres · mapa del edificio · anti-fantasma.",
+  "project_name_regex": "Over Santa Fe",
+  "unidades_esperadas": [
+    {"unit_number": "B1402", "m2_balcony": 9.80, "m2_roof_garden": null, "bodega": true,
+     "parking_spots": 2, "m2_privative": 92.48, "m2_total": 102.28, "price": 7999000,
+     "credito_mxn": 6000000, "enganche_mxn": 1999000, "reservacion_mxn": 50000,
+     "contrato_mxn": 1200000, "a_diferir_mxn": 749000, "status": "disponible"},
+    {"unit_number": "B1502", "m2_balcony": 0, "m2_roof_garden": null, "bodega": true,
+     "parking_spots": 2, "m2_privative": 92.48, "m2_total": 92.48, "price": 7584000,
+     "credito_mxn": 5690000, "enganche_mxn": 1894000, "reservacion_mxn": 50000,
+     "contrato_mxn": 1140000, "a_diferir_mxn": 704000, "status": "disponible"},
+    {"unit_number": "B1602", "m2_balcony": 0, "m2_roof_garden": null, "bodega": true,
+     "parking_spots": 2, "m2_privative": 92.48, "m2_total": 92.48, "price": 7774000,
+     "credito_mxn": 5830000, "enganche_mxn": 1944000, "reservacion_mxn": 50000,
+     "contrato_mxn": 1170000, "a_diferir_mxn": 724000, "status": "disponible"}
+  ],
+  "dev_esperado": {"max_level": 17, "total_units": 136, "torres": ["A", "B"]},
+  "unidades_maximas": 3,
+  "_regla_maximas": "La lista SOLO trae 3 disponibles. Más unidades en db.units = inventario FANTASMA (el bug que el founder cachó). El edificio completo vive en dev.total_units/max_level, NO como unidades falsas."
+}

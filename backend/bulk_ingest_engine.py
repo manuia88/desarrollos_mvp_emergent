@@ -30,8 +30,8 @@ log = logging.getLogger("dmx.bulk_ingest")
 
 CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
 MAX_FILES_PER_FOLDER = 2000       # tope global de archivos listados por job (seguridad)
-MAX_FILES_PER_PROJECT_LIST = 60   # tope de archivos LISTADOS por proyecto (evita que un proyecto con
-                                  # muchas fotos se coma el presupuesto global y tape a los demás)
+MAX_FILES_PER_PROJECT_LIST = 600  # tope de archivos LISTADOS por proyecto (el recon ve el árbol COMPLETO;
+                                  # con 60 la lista de precios de Over quedó fuera y la IA nunca la vio)
 # Modelo para EXTRACCIÓN (listas de precios + planos): Sonnet 5 (claude-sonnet-5, GA jun-2026 — verificado
 # en docs oficiales platform.claude.com; Sonnet 4.6 ya es legacy). La disponibilidad/precios NO pueden salir
 # mal (decisión founder 07-08). Haiku queda para tareas baratas del resto del sistema. Override por env.
@@ -642,6 +642,107 @@ async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: O
     }
 
 
+# ─── PASO 0 · RECONOCIMIENTO (founder 07-08: "que la IA lea la estructura para detectar patrones") ────────
+# La IA ve el ÁRBOL COMPLETO de carpetas/archivos del proyecto (texto barato, sin descargas, SIN topes de 60)
+# y produce el PLAN DE LECTURA: qué archivo es la lista de precios, cuál es brochure, cuáles son planos por
+# prototipo, qué torres hay, qué falta. Así el pipeline funciona con CUALQUIER estructura de Drive — la de
+# CLASS hoy o la del siguiente dev mañana — sin heurísticas ciegas. El plan queda guardado (linaje).
+
+RECON_PROMPT = """Eres el RECONOCEDOR de carpetas de proyectos inmobiliarios. Te doy el árbol COMPLETO de
+archivos de UN proyecto (carpeta/archivo, numerados). NO ves el contenido — solo nombres, carpetas y tipos.
+Los nombres dicen qué contienen ("Disponibilidad y precios", "TORRE A", "PLANOS", "Presentación",
+"101,201,301.pdf" = plano del prototipo que comparten esos deptos).
+
+Devuelve SOLO JSON:
+{
+  "listas_precios": [índices de TODAS las listas de precios / disponibilidad / inventario — la fuente de
+                     verdad del inventario. Busca por nombre Y por carpeta contenedora],
+  "brochure": [índices de presentación/brochure (máx 2, el más completo primero)],
+  "planos_prototipo": [índices de planos POR PROTOTIPO o por depto ("Tipo A", "101,201,301...", "DEP-206").
+                       TODOS los que existan],
+  "planos_nivel": [índices de plantas de NIVEL/conjunto ("PLANTA NIVEL 2", "conjunto")],
+  "torres": ["A","B"] (si la estructura revela torres/fases; [] si no),
+  "etapa_carpeta": "preventa|construccion|entrega_inmediata|null" (si el NOMBRE de alguna carpeta lo dice,
+                    p.ej. "Over Santa Fe - Entrega Inmediata"),
+  "faltantes": ["lista_precios"|"brochure"|"planos"] (lo que NO encontraste),
+  "estructura": "1 línea: cómo está organizada esta carpeta"
+}
+REGLAS: si NO hay lista de precios, decláralo en faltantes — NUNCA propongas usar planos o cotizaciones como
+inventario. Las cotizaciones individuales ("opcion 2", "cotización") NO son listas de precios. Responde SOLO JSON."""
+
+
+async def recon_plan(project_name: str, files: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Paso 0: árbol completo → plan de lectura (1 llamada barata, solo texto). Fail-soft: {} = usar heurística."""
+    from llm_client import LlmChat, UserMessage
+    lines = [f"[{i}] {(f.get('immediate_folder') or '(raíz)')}/{f.get('name')} ({(f.get('mimeType') or '?').split('/')[-1]})"
+             for i, f in enumerate(files)]
+    tree = "\n".join(lines[:3000])   # tope de SEGURIDAD altísimo — el árbol es texto, no descargas
+    try:
+        chat = LlmChat(api_key="", session_id=f"recon-{secrets.token_urlsafe(6)}",
+                       system_message=RECON_PROMPT).with_model("anthropic", BULK_INGEST_MODEL)\
+            .with_max_tokens(2000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
+        resp = await chat.send_message(UserMessage(text=f"PROYECTO: {project_name}\nÁRBOL ({len(files)} archivos):\n{tree}"))
+        plan = _parse_llm_json(resp or "")
+        if not isinstance(plan, dict):
+            return {}
+
+        def _pick(key, cap):
+            out = []
+            for idx in (plan.get(key) or [])[:cap]:
+                try:
+                    out.append(files[int(idx)])
+                except (ValueError, TypeError, IndexError):
+                    continue
+            return out
+        return {
+            "listas_precios": _pick("listas_precios", 8),
+            "brochure": _pick("brochure", 2),
+            "planos_prototipo": _pick("planos_prototipo", 80),
+            "planos_nivel": _pick("planos_nivel", 6),
+            "torres": [t for t in (plan.get("torres") or []) if isinstance(t, str)][:6],
+            "etapa_carpeta": plan.get("etapa_carpeta"),
+            "faltantes": plan.get("faltantes") or [],
+            "estructura": str(plan.get("estructura") or "")[:300],
+        }
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] recon falló ({project_name}): {e}")
+        return {}
+
+
+def _building_map_from_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
+    """MAPA DEL EDIFICIO determinista (cero tokens): los nombres de los planos-por-prototipo ENUMERAN los
+    deptos que comparten prototipo ("101,201,301,401.pdf" en carpeta "TORRE A"). De ahí salen las unidades
+    TOTALES del edificio, niveles reales, depas por piso y la torre de cada depto — aunque la lista de
+    precios solo traiga los disponibles."""
+    unidades: Dict[str, Dict[str, Any]] = {}
+    for f in (plan.get("planos_prototipo") or []):
+        name = str(f.get("name") or "")
+        folder = str(f.get("immediate_folder") or "")
+        m = re.search(r"(?i)\btorre\s*([A-Z0-9]+)", folder + " " + name)
+        torre = m.group(1).upper() if m else None
+        base = re.sub(r"(?i)opci[oó]n\s*\d+|\.pdf$", "", name)
+        for n in re.findall(r"\b(\d{3,4}[A-Za-z]?)\b", base):
+            key = f"{torre or ''}-{n}".strip("-")
+            unidades.setdefault(key, {"torre": torre, "numero": n})
+    if not unidades:
+        return {}
+    niveles = []
+    por_piso: Dict[str, int] = {}
+    for u in unidades.values():
+        m = re.fullmatch(r"(\d{3,4})[A-Za-z]?", u["numero"])
+        if m:
+            lv = int(m.group(1)[:-2])
+            niveles.append(lv)
+            k = f"{u['torre'] or ''}:{lv}"
+            por_piso[k] = por_piso.get(k, 0) + 1
+    return {
+        "total_units_edificio": len(unidades),
+        "max_level": max(niveles) if niveles else None,
+        "depas_por_piso": max(por_piso.values()) if por_piso else None,
+        "torres": sorted({u["torre"] for u in unidades.values() if u["torre"]}),
+    }
+
+
 # ─── PASE DE PLANOS (modo profundo) ───────────────────────────────────────────
 # Las listas de precios casi nunca traen el DESGLOSE de m² (interior/balcón/terraza/roof) — eso vive en los
 # PLANOS. Este pase lee SOLO los planos (2ª llamada a Claude, lotes de 3 PDFs) y cruza el desglose a las
@@ -831,13 +932,16 @@ async def classify_project_images(payloads: List[Tuple[bytes, str, str]]) -> Dic
     return out
 
 
+PIPELINE_VERSION = "v2-recon"   # cambiarla invalida los hashes → re-proceso completo con el pipeline nuevo
+
+
 def _group_content_hash(files: List[Dict[str, Any]]) -> str:
     """Huella del CONTENIDO del proyecto en Drive (md5/modifiedTime/size de cada archivo, ya vienen en el
     listado — cero descargas). Si no cambió desde la última corrida procesada → no re-extraer (cero tokens)."""
     import hashlib
     parts = sorted(f"{f.get('id')}:{f.get('md5Checksum') or f.get('modifiedTime')}:{f.get('size')}"
                    for f in (files or []))
-    return hashlib.md5("|".join(parts).encode()).hexdigest()
+    return hashlib.md5((PIPELINE_VERSION + "|" + "|".join(parts)).encode()).hexdigest()
 
 
 _PAY_KEYS = ("credito_mxn", "enganche_mxn", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn")
@@ -919,6 +1023,9 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         # etapa: si la entrega dice "inmediata" el proyecto YA está terminado — 'preventa' era contradictorio
         "stage": ("entrega" if re.search(r"(?i)inmediata", str(extracted.get("delivery_date") or ""))
                   else (extracted.get("stage") or "preventa")),
+        "max_level": (extracted.get("_building") or {}).get("max_level"),
+        "depas_por_piso": (extracted.get("_building") or {}).get("depas_por_piso"),
+        "torres": (extracted.get("_building") or {}).get("torres") or [],
         "status": "active",
         "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
         "source": "bulk_ingest",
@@ -1107,12 +1214,37 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "source": "bulk_ingest_merge",
                 "created_at": now,
             })
+    # HECHOS DEL DEV (edificio/etapa/entrega): el re-ingest también refresca el doc del proyecto.
+    try:
+        _dev_patch: Dict[str, Any] = {}
+        _b = extracted.get("_building") or {}
+        if _b.get("total_units_edificio"):
+            _dev_patch["total_units"] = _b["total_units_edificio"]
+        if _b.get("max_level"):
+            _dev_patch["max_level"] = _b["max_level"]
+        if _b.get("depas_por_piso"):
+            _dev_patch["depas_por_piso"] = _b["depas_por_piso"]
+        if _b.get("torres"):
+            _dev_patch["torres"] = _b["torres"]
+        if extracted.get("stage"):
+            _dev_patch["stage"] = extracted["stage"]
+        if extracted.get("delivery_date"):
+            _dev_patch["delivery_estimate"] = extracted["delivery_date"]
+        if extracted.get("maintenance_fee_mxn"):
+            _dev_patch["maintenance_fee_mxn"] = extracted["maintenance_fee_mxn"]
+        if _dev_patch:
+            _dev_patch["updated_at"] = now
+            await db.developments.update_one({"id": target_dev_id}, {"$set": _dev_patch})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] dev facts refresh: {e}")
+
     # REGLA DE DISPONIBILIDAD (founder 07-08): la lista de precios ES el inventario disponible HOY. Un depto
     # nuestro que YA NO aparece en la lista nueva → se VENDIÓ (por eso salió de la lista). Solo con lista
     # significativa (≥3 unidades) y solo sobre unidades que vinieron de ingesta (no toca ediciones del dev).
     # Registra unit_status_events con days_to_sell → absorción REAL del proyecto.
     new_nos = {_unit_identity(u.get("unit_number")) for u in (extracted.get("units") or []) if u.get("unit_number")}
-    if len(new_nos) >= 3:
+    _anchored = item.get("anchored", True)   # sin lista de precios anclada NO se marca vendido (anti-falsos)
+    if _anchored and len(new_nos) >= 3:
         async for old in db.units.find(
                 {"development_id": target_dev_id, "status": {"$ne": "vendido"},
                  "source": {"$in": ["bulk_ingest", "bulk_ingest_merge"]}}, {"_id": 0}):
@@ -1268,17 +1400,31 @@ async def run(db, job_id: str) -> None:
                 })
                 log.info(f"[bulk_ingest] {project_name_hint}: sin cambios en Drive → saltado (hash)")
                 continue
-            # Selección PRIORIZADA: primero los archivos de DATOS (lista de precios, disponibilidad,
-            # brochure, inventario), luego genéricos; planos individuales/renders/fotos al final. Así la
-            # lista de precios SIEMPRE se lee aunque haya 30 planos. Las hojas (inventario) siempre entran.
-            docs = [f for f in gdata["files"] if f.get("mimeType") in (PDF_MIMES | NATIVE_DOC_MIMES)]
-            sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES]
-            imgs = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")]
-            # imágenes SOLO si parecen de datos (lista de precios escaneada), no renders/fotos → visión
-            data_imgs = [f for f in imgs if _file_priority(f) >= 70]
-            ranked = sorted(docs + data_imgs, key=_file_priority, reverse=True)
-            key_files = ranked[:MAX_KEY_FILES_PER_PROJECT] + sheets[:2]
-            key_files = key_files[:MAX_KEY_FILES_PER_PROJECT + 2]
+            # PASO 0 · RECONOCIMIENTO: la IA lee el ÁRBOL COMPLETO y decide QUÉ leer (founder 07-08:
+            # "que la IA lea la estructura para detectar patrones" — funciona con cualquier Drive).
+            plan = await recon_plan(project_name_hint, gdata["files"])
+            cost_mxn = 0.10 if plan else 0.0
+            building = _building_map_from_plan(plan) if plan else {}
+            if plan:
+                log.info(f"[bulk_ingest] recon {gkey}: listas={len(plan.get('listas_precios') or [])} "
+                         f"brochure={len(plan.get('brochure') or [])} planos={len(plan.get('planos_prototipo') or [])} "
+                         f"torres={plan.get('torres')} faltantes={plan.get('faltantes')} · {plan.get('estructura')}")
+
+            # SELECCIÓN DIRIGIDA por el plan: listas de precios (TODAS) + brochure. Fallback a la heurística
+            # vieja SOLO si el recon falló por completo (fail-soft, nunca ciego a propósito).
+            if plan and (plan.get("listas_precios") or plan.get("brochure")):
+                key_files = list(plan.get("listas_precios") or []) + list(plan.get("brochure") or [])
+                sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES
+                          and _file_priority(f) >= 70][:2]
+                key_files = key_files + [s for s in sheets if s.get("id") not in {k.get("id") for k in key_files}]
+            else:
+                docs = [f for f in gdata["files"] if f.get("mimeType") in (PDF_MIMES | NATIVE_DOC_MIMES)]
+                sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES]
+                imgs = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")]
+                data_imgs = [f for f in imgs if _file_priority(f) >= 70]
+                ranked = sorted(docs + data_imgs, key=_file_priority, reverse=True)
+                key_files = ranked[:MAX_KEY_FILES_PER_PROJECT] + sheets[:2]
+                key_files = key_files[:MAX_KEY_FILES_PER_PROJECT + 2]
 
             # Download (best-effort, don't fail entire item)
             payloads: List[Tuple[bytes, str, str]] = []
@@ -1290,10 +1436,27 @@ async def run(db, job_id: str) -> None:
                     error_log.append(f"download failed {f.get('id')}: {e}")
 
             try:
-                extracted, cost_mxn = await extract_bulk_project(project_name_hint, payloads)
+                extracted, _c = await extract_bulk_project(project_name_hint, payloads)
+                cost_mxn += _c
             except Exception as e:
-                extracted, cost_mxn = _stub_extraction(project_name_hint), 0.0
+                extracted, _c = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")
+
+            # ANTI-FANTASMA (founder): sin lista de precios NO hay inventario — NUNCA inventar unidades desde
+            # planos/cotizaciones. El proyecto va a revisión con el motivo claro.
+            _anchored = bool(plan.get("listas_precios")) if plan else bool(extracted.get("units"))
+            if plan and not plan.get("listas_precios"):
+                extracted["units"] = []
+                extracted["_needs_review"] = "sin lista de precios visible en la carpeta (recon)"
+
+            # HECHOS DEL EDIFICIO (mapa determinista desde nombres de planos + carpeta):
+            # unidades TOTALES reales, niveles, depas por piso, torres, etapa desde el nombre de carpeta.
+            if building:
+                extracted["_building"] = building
+                if building.get("total_units_edificio"):
+                    extracted["total_units"] = building["total_units_edificio"]
+            if plan.get("etapa_carpeta") in ("preventa", "construccion", "entrega_inmediata"):
+                extracted["stage"] = "entrega" if plan["etapa_carpeta"] == "entrega_inmediata" else plan["etapa_carpeta"]
 
             # PROTOTIPO POR TERMINACIÓN (founder): 101/201/301 → '01' cuando la lista no lo trae explícito,
             # validando que las configuraciones coincidan. ANTES del pase de planos (que cruza por prototipo).
@@ -1308,7 +1471,8 @@ async def run(db, job_id: str) -> None:
             # (2ª pasada) y cruzarlos por número de depto o prototipo. Fail-soft — nunca tira la ingesta.
             try:
                 if _needs_plan_pass(extracted):
-                    plano_files = [f for f in gdata["files"] if _is_plano(f)][:9]
+                    plano_files = (list(plan.get("planos_prototipo") or [])[:9] if plan
+                                   else [f for f in gdata["files"] if _is_plano(f)][:9])
                     if plano_files:
                         plano_payloads: List[Tuple[bytes, str, str]] = []
                         for pf in plano_files:
@@ -1401,6 +1565,9 @@ async def run(db, job_id: str) -> None:
                 "project_folder_name": project_name_hint,
                 "source_content_hash": content_hash,   # dedup por hash en la próxima corrida
                 "image_kinds": image_kinds,            # render/obra/muestra/otro → project_assets
+                "recon_plan": {k: ([f.get("name") for f in v] if isinstance(v, list) and v and isinstance(v[0], dict) else v)
+                               for k, v in (plan or {}).items()},   # LINAJE: qué leyó y por qué
+                "anchored": _anchored,                 # ¿hubo lista de precios? (gate de ausente=vendido)
                 "extracted": extracted,
                 "dedup": dedup,
                 "decision": decision,
