@@ -1641,10 +1641,11 @@ async def run(db, job_id: str) -> None:
             groups = _group_by_project(files, folder_id)
 
         dry_run = bool(job.get("dry_run"))
-        only_project = (job.get("only_project") or "").strip().lower()
+        # only_project acepta VARIOS filtros separados por "|" (examen de eficiencia: 3-5 proyectos/drive)
+        only_projects = [p.strip().lower() for p in (job.get("only_project") or "").split("|") if p.strip()]
         for gkey, gdata in groups.items():
             project_name_hint = gdata["parent_folder_name"]
-            if only_project and only_project not in (project_name_hint or "").lower():
+            if only_projects and not any(p in (project_name_hint or "").lower() for p in only_projects):
                 continue
             items_total += 1
 
