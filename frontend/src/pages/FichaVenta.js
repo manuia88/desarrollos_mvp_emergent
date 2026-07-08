@@ -320,7 +320,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                     <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkA}>Detalles del modelo</button>
                     <span style={{ color: C.line }}>·</span>
                     <button onClick={() => onSelectUnit(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={linkA}>Ver mis números →</button>
-                    <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: m.avail > 0 && m.avail <= 3 ? C.red : m.avail === 0 ? C.faint : C.green, marginLeft: 'auto' }}>{m.avail === 0 ? 'Agotado' : `${m.avail} disponible${m.avail === 1 ? '' : 's'}`}</span>
+                    <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: m.avail > 0 && m.avail <= 3 ? C.red : m.avail === 0 ? C.faint : C.green, marginLeft: 'auto' }}>{m.avail === 0 ? 'Agotado' : m.us.length > m.avail ? `Quedan ${m.avail} de ${m.us.length} del modelo` : `${m.avail} disponible${m.avail === 1 ? '' : 's'}`}</span>
                   </div>
                 </div>
               </div>
@@ -472,6 +472,9 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 24, color: BLUE, marginTop: 2, letterSpacing: '-0.01em' }}>{money(u.price)}</div>
                 <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 4 }}>{specs}</div>
                 <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: est.c, marginTop: 6 }}>{est.l}{dispoDate ? ` · disponible ${dispoDate}` : ''}</div>
+                {(() => { const sibs = groups[u.prototype || '?'] || []; const sa = sibs.filter((x) => x.status === 'disponible').length; return sibs.length > 1 && sa > 0 && sibs.length > sa ? (
+                  <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: sa <= 3 ? C.red : C.ink2, marginTop: 4 }}>Quedan {sa} de {sibs.length} del modelo {protoName(u.prototype)}</div>
+                ) : null; })()}
                 {a && (
                   <div style={{ marginTop: 14, padding: '12px 15px', borderRadius: R_CARD, background: C.accentSoft, border: `1px solid ${C.accent}33` }}>
                     <DmxChip /><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontFamily: FONT, fontWeight: 700, fontSize: 15, color: AVM_COLOR[a.color] || C.ink }}><span style={{ width: 9, height: 9, borderRadius: 9999, background: AVM_COLOR[a.color] || C.faint }} />{AVM_LABEL[a.etiqueta] || a.etiqueta}{a.diff_pct != null ? ` · ${a.diff_pct > 0 ? '+' : ''}${a.diff_pct}% vs zona` : ''}</div>

@@ -75,6 +75,37 @@ class ForceMatchBody(BaseModel):
     mode: Literal["merge", "approve_as_new"] = "merge"
 
 
+class MineHistoryBody(BaseModel):
+    drive_folder_url: str
+    only_project: Optional[str] = None
+    execute: bool = False              # False = PLAN gratis (default) · True = minado pagado (GO explícito)
+    max_listas: int = Field(12, ge=1, le=30)
+
+
+# ─── 0.5) POST /mine-history · MINADOR DE HISTÓRICOS RETRO (idea #1 founder) ─────────────────
+# Las listas VIEJAS del drive ("Versiones Antiguas", listas fechadas) son historia de precios y
+# ventas que hoy se tira. execute=False (default) = plan GRATIS; execute=True SOLO con GO del founder.
+
+@router.post(PREFIX + "/mine-history")
+async def mine_history(body: MineHistoryBody, request: Request):
+    user = await _require_superadmin(request)
+    db = _db(request)
+    conn = await bie._resolve_drive_conn(db, None)
+    if not conn:
+        raise HTTPException(400, "Sin conexión a Drive (OAuth o GOOGLE_DRIVE_API_KEY)")
+    from historic_miner import mine
+    res = await mine(db, conn, body.drive_folder_url, only_project=body.only_project,
+                     plan_only=not body.execute, max_listas=body.max_listas)
+    if body.execute:
+        try:
+            from audit_log import log_mutation
+            await log_mutation(db, user, "mine_history", "bulk_ingest", body.drive_folder_url,
+                               before=None, after=res, request=request)
+        except Exception as _e:
+            log.warning("[audit] log_mutation perdido (mine_history): %s", _e)
+    return res
+
+
 # ─── 1) POST /start ───────────────────────────────────────────────────────────
 
 @router.post(PREFIX + "/start")

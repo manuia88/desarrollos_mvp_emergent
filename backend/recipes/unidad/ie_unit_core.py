@@ -170,3 +170,26 @@ class IEUnitM2Value(UnitRecipe):
             f"Precio/m² unit: {unit_pm2:,.0f} MXN",
             "Score 0-100 (más alto = más accesible vs edificio)",
         ]
+
+@register
+class IEUnitEscasezPrototipo(UnitRecipe):
+    code = "IE_UNIT_ESCASEZ_PROTOTIPO"
+    version = "1.0"
+    tier_logic = "higher_better"
+    description = "Escasez del PROTOTIPO de esta unidad: % colocado entre sus hermanas (idea #2 founder — urgencia real, no inventada)."
+
+    def apply_unit(self, unit, ctx):
+        hermanas = [unit] + list(ctx.get("same_proto") or [])
+        if len(hermanas) < 2:
+            return None
+        disp = sum(1 for u in hermanas if (u.get("status") or "disponible") == "disponible")
+        colocado = 1.0 - disp / len(hermanas)
+        return round(colocado * 100.0, 1)
+
+    def explanation_unit(self, unit, ctx, value):
+        hermanas = [unit] + list(ctx.get("same_proto") or [])
+        disp = sum(1 for u in hermanas if (u.get("status") or "disponible") == "disponible")
+        return [
+            f"Quedan {disp} de {len(hermanas)} unidades del prototipo {unit.get('prototype')}",
+            f"{value:.0f}% del prototipo ya colocado — escasez real del modelo",
+        ]

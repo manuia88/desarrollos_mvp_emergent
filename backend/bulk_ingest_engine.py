@@ -742,8 +742,9 @@ REGLAS: si NO hay lista de precios, decláralo en faltantes — NUNCA propongas 
 inventario. Las cotizaciones individuales ("opcion 2", "cotización") NO son listas de precios. Responde SOLO JSON."""
 
 
-async def recon_plan(project_name: str, files: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Paso 0: árbol completo → plan de lectura (1 llamada barata, solo texto). Fail-soft: {} = usar heurística."""
+async def recon_plan(project_name: str, files: List[Dict[str, Any]], hints: Optional[str] = None) -> Dict[str, Any]:
+    """Paso 0: árbol completo → plan de lectura (1 llamada barata, solo texto). Fail-soft: {} = usar heurística.
+    hints = huella del drive (idea #4): advertencias aprendidas de correcciones manuales previas."""
     from llm_client import LlmChat, UserMessage
     lines = [f"[{i}] {(f.get('immediate_folder') or '(raíz)')}/{f.get('name')} ({(f.get('mimeType') or '?').split('/')[-1]})"
              for i, f in enumerate(files)]
@@ -752,7 +753,8 @@ async def recon_plan(project_name: str, files: List[Dict[str, Any]]) -> Dict[str
         chat = LlmChat(api_key="", session_id=f"recon-{secrets.token_urlsafe(6)}",
                        system_message=RECON_PROMPT).with_model("anthropic", BULK_INGEST_MODEL)\
             .with_max_tokens(2000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
-        resp = await chat.send_message(UserMessage(text=f"PROYECTO: {project_name}\nÁRBOL ({len(files)} archivos):\n{tree}"))
+        extra = f"\n{hints}\n" if hints else ""
+        resp = await chat.send_message(UserMessage(text=f"PROYECTO: {project_name}{extra}\nÁRBOL ({len(files)} archivos):\n{tree}"))
         plan = _parse_llm_json(resp or "")
         if not isinstance(plan, dict):
             return {}
@@ -1219,6 +1221,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         # etapa: si la entrega dice "inmediata" el proyecto YA está terminado — 'preventa' era contradictorio
         "stage": ("entrega" if re.search(r"(?i)inmediata", str(extracted.get("delivery_date") or ""))
                   else (extracted.get("stage") or "preventa")),
+        "absorcion_resumen": extracted.get("_resumen"),   # disponibles/vendidas/% colocado (señal de mercado)
         "max_level": (extracted.get("_building") or {}).get("max_level") or extracted.get("niveles_edificio"),
         "depas_por_piso": (extracted.get("_building") or {}).get("depas_por_piso") or extracted.get("depas_por_piso"),
         "torres": (extracted.get("_building") or {}).get("torres") or [],
@@ -1427,6 +1430,8 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             _dev_patch["delivery_estimate"] = extracted["delivery_date"]
         if extracted.get("maintenance_fee_mxn"):
             _dev_patch["maintenance_fee_mxn"] = extracted["maintenance_fee_mxn"]
+        if extracted.get("_resumen"):
+            _dev_patch["absorcion_resumen"] = extracted["_resumen"]
         if _dev_patch:
             _dev_patch["updated_at"] = now
             await db.developments.update_one({"id": target_dev_id}, {"$set": _dev_patch})
@@ -1461,6 +1466,25 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 log.info(f"[bulk_ingest] {target_dev_id} unidad {old.get('unit_number')} → VENDIDO (ausente de la lista)")
             except Exception as e:  # noqa: BLE001
                 log.warning(f"[bulk_ingest] ausente→vendido {old.get('unit_number')}: {e}")
+
+    # IDEA #5 · SNAPSHOT COMPETITIVO REAL: cada ingesta alimenta la inteligencia de competencia por colonia
+    # (precio/m² mediano, disponibles, % colocado) → battle cards / radar del dev con datos REALES. Fail-open.
+    try:
+        _us2 = extracted.get("units") or []
+        _ppm2 = sorted(u["price_mxn"] / float(u.get("size_m2_total") or u.get("size_m2"))
+                       for u in _us2 if u.get("price_mxn") and (u.get("size_m2_total") or u.get("size_m2")))
+        if _ppm2:
+            await db.dev_competitor_price_snapshots.insert_one({
+                "project_id": target_dev_id, "dev_org_id": dev.get("developer_id") or dev.get("dev_org_id"),
+                "zone_id": dev.get("colonia_id"), "colonia_id": dev.get("colonia_id"),
+                "price_m2_median": round(_ppm2[len(_ppm2) // 2]),
+                "price_min": min(u["price_mxn"] for u in _us2 if u.get("price_mxn")),
+                "price_max": max(u["price_mxn"] for u in _us2 if u.get("price_mxn")),
+                "units_available": sum(1 for u in _us2 if (u.get("status") or "disponible") == "disponible"),
+                "pct_colocado": (extracted.get("_resumen") or {}).get("pct_colocado"),
+                "ts": now, "source": "ingesta"})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] snapshot competitivo: {e}")
 
     # las unidades cambiaron → re-sincroniza el átomo del dev (cubo/granularidad al día). Fail-open.
     try:
@@ -1633,7 +1657,12 @@ async def run(db, job_id: str) -> None:
                 continue
             # PASO 0 · RECONOCIMIENTO: la IA lee el ÁRBOL COMPLETO y decide QUÉ leer (founder 07-08:
             # "que la IA lea la estructura para detectar patrones" — funciona con cualquier Drive).
-            plan = await recon_plan(project_name_hint, gdata["files"])
+            try:
+                from extraction_profiles import profile_hints
+                _huella = await profile_hints(db, folder_id)
+            except Exception:  # noqa: BLE001
+                _huella = None
+            plan = await recon_plan(project_name_hint, gdata["files"], hints=_huella)
             cost_mxn = 0.10 if plan else 0.0
             building = _building_map_from_plan(plan) if plan else {}
             if plan:
@@ -1871,10 +1900,24 @@ async def run(db, job_id: str) -> None:
                 _vend = sum(1 for u in _us if u.get("status") == "vendido")
                 _apar = sum(1 for u in _us if u.get("status") in ("apartado", "reservado"))
                 _tot_ed = extracted.get("total_units") or (building or {}).get("total_units_edificio")
+                def _seg(keyfn):
+                    d: Dict[str, Dict[str, int]] = {}
+                    for u in _us:
+                        k = keyfn(u)
+                        if k in (None, "", "None"):
+                            continue
+                        row = d.setdefault(str(k), {"disponibles": 0, "vendidas": 0, "apartadas": 0})
+                        st = u.get("status") or "disponible"
+                        row["disponibles" if st == "disponible" else ("vendidas" if st == "vendido" else "apartadas")] += 1
+                    return d
                 extracted["_resumen"] = {
                     "disponibles": _disp, "vendidas_en_lista": _vend, "apartadas": _apar,
                     "total_edificio": _tot_ed,
                     "pct_colocado": (round((1 - _disp / _tot_ed) * 100) if (_tot_ed and _tot_ed >= _disp) else None),
+                    # HIPERSEGMENTACIÓN (founder): escasez por PROTOTIPO, por NIVEL y por TORRE
+                    "por_prototipo": _seg(lambda u: u.get("prototype")),
+                    "por_nivel": _seg(lambda u: u.get("level")),
+                    "por_torre": _seg(lambda u: (re.match(r"(?i)^([A-Z])[ -]?\d", str(u.get("unit_number") or "")) or [None, None])[1]),
                 }
             except Exception:  # noqa: BLE001
                 pass
@@ -2123,7 +2166,16 @@ async def apply_inline_patch(db, item_id: str, patch: Dict[str, Any], user_id: s
         {"id": item_id},
         {"$push": {"extracted_overrides": override}, "$set": {"updated_at": _iso()}},
     )
-    return await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    updated = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    # IDEA #4 · HUELLA: la corrección manual es una LECCIÓN sobre cómo estructura la info este drive
+    try:
+        from extraction_profiles import record_correction
+        job = await db.bulk_ingest_jobs.find_one({"id": updated.get("job_id")}, {"_id": 0, "folder_url": 1})
+        fkey = parse_folder_id((job or {}).get("folder_url") or "") or ""
+        await record_correction(db, fkey, updated.get("project_folder_name") or "", patch)
+    except Exception as _e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] huella no registrada: {_e}")
+    return updated
 
 
 async def build_diff(db, item: Dict[str, Any], target_dev_id: str) -> Dict[str, Any]:

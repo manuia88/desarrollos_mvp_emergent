@@ -40,7 +40,7 @@ def invalidate_cache() -> None:
 
 # atributos cuyo impacto reportamos en el ranker (binarios → % sobre precio/m²)
 AMENITY_ATTRS = ["has_roof", "has_terraza", "has_balcon", "has_bodega", "parking_2plus"]
-CONT_ATTRS = ["m2", "recamaras", "banos", "n_parking"]
+CONT_ATTRS = ["m2", "recamaras", "banos", "n_parking", "piso"]  # piso: premium por altura (idea #3)
 
 
 def _iso() -> str:
@@ -67,6 +67,7 @@ def _atom_row(a: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "recamaras": float(interior.get("recamaras") or 0),
         "banos": float(interior.get("banos_completos") or 0),
         "n_parking": float(n_park),
+        "piso": float((a.get("position") or {}).get("piso") or 0),
         "parking_2plus": 1.0 if n_park >= 2 else 0.0,
         "has_roof": 1.0 if (areas.get("m2_roof_garden_privado") or 0) > 0 else 0.0,
         "has_terraza": 1.0 if (areas.get("m2_terraza") or 0) > 0 else 0.0,

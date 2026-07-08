@@ -594,6 +594,9 @@ async def proyecto_full(project_id: str, request: Request):
                       "maintenance_fee_mxn": doc.get("maintenance_fee_mxn"),
                       "stage": doc.get("stage"), "marketplace_published": doc.get("marketplace_published")},
         "amenidades": doc.get("amenities") or doc.get("amenidades") or [],
+        "absorcion": doc.get("absorcion_resumen"),   # disponibles vs edificio · % colocado
+        "edificio": {"max_level": doc.get("max_level"), "depas_por_piso": doc.get("depas_por_piso"),
+                     "torres": doc.get("torres") or []},
         "unidades": unidades, "unidades_resumen": resumen,
     }
     # Overlay rico del dev (servicios/sistema/pagos) si existe — fail-open
