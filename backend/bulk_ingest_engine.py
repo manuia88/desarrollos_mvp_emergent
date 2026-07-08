@@ -487,6 +487,11 @@ def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
     for u in (data.get("units") or []):
         if not isinstance(u, dict):
             continue
+        # FIX rev #6: descartar filas BASURA (encabezados/subtotales/vacías sin ninguna señal real) — antes
+        # inflaban len(units) → el total del edificio (FIX 3) y la absorción salían mal.
+        if not (u.get("unit_number") or u.get("prototype") or u.get("price_mxn")
+                or u.get("price_min_mxn") or u.get("size_m2") or u.get("size_m2_total")):
+            continue
         p = _num(u.get("price_mxn")); u["price_mxn"] = int(p) if (p is not None and p > 0) else None
         # FIX 4 (examen 07-08): listas de RANGO (precio por tipo/prototipo con min–max) — conservar ambos
         pmn = _num(u.get("price_min_mxn")); u["price_min_mxn"] = int(pmn) if (pmn is not None and pmn > 0) else None
@@ -979,6 +984,28 @@ def _norm_proto(s: Any) -> str:
     return re.sub(r"[^a-z0-9]", "", t.lower())
 
 
+def _torre_de_nombre(name: str) -> Optional[str]:
+    """Token de TORRE desde el nombre de una lista/archivo ('Lista Torre A'→'A', 'Precios B SF'→'B').
+    None si el nombre no distingue torre (rev #3: la torre debe entrar a la clave de unión multi-lista)."""
+    m = re.search(r"(?i)\btorre\s*([A-Z0-9]{1,3})\b", name or "")
+    if m:
+        return m.group(1).upper()
+    # patrón 'Coyoacan A SF' / 'Precios ... B ...': una sola letra suelta A-F como token de torre
+    m2 = re.search(r"(?i)(?:precios?|lista|coyoac[aá]n|torre)\b.*?\b([A-F])\b", name or "")
+    return m2.group(1).upper() if m2 else None
+
+
+def _lista_son_versiones(listas: List[Dict[str, Any]]) -> bool:
+    """¿Las listas son VERSIONES FECHADAS del mismo inventario (no torres distintas)? (rev #1)
+    Versiones = ≥2 traen fecha en el nombre Y NO hay ≥2 tokens de torre distintos → se usa la más
+    reciente como autoridad (no se unen, que resucitaría vendidos). Multi-torre = se unen."""
+    if len(listas) < 2:
+        return False
+    con_fecha = sum(1 for f in listas if _fecha_de_nombre(f.get("name") or ""))
+    torres = {t for t in (_torre_de_nombre(f.get("name") or "") for f in listas) if t}
+    return con_fecha >= 2 and len(torres) < 2
+
+
 async def extract_plan_breakdowns(payloads: List[Tuple[bytes, str, str]]) -> Tuple[List[Dict[str, Any]], float]:
     """Lee planos en LOTES de 3 PDFs nativos por llamada. Devuelve (lista de desgloses, costo MXN). Fail-soft."""
     import base64 as _b64
@@ -1200,17 +1227,16 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
     _c("inventario_no_vacio", not (_tiene_fuente and len(units) == 0),
        f"recon halló {_n_listas} fuente(s) de inventario pero se extrajeron 0 unidades" if (_tiene_fuente and not units)
        else f"{len(units)} unidades", critical=True)
-    # 10 · EDIFICIO COHERENTE (FIX 3): total del edificio debe ser ≥ unidades listadas y nunca 1 con varias
-    #      unidades (Casa Roma 350: total=1 con 34 reales). Cruza brochure(texto)+planos+lista.
-    _tot_dec = extracted.get("total_units") or (building or {}).get("total_units_edificio")
+    # 10 · EDIFICIO COHERENTE (FIX 3 + rev #5): comparar unidades listadas contra el total de fuentes
+    #      INDEPENDIENTES (brochure/planos) — NO contra total_units ya reconciliado (que incluye len(units) y
+    #      haría el check trivialmente verdadero). Si listamos MÁS unidades que las que dice el brochure/planos,
+    #      es contaminación o filas duplicadas/basura.
+    _tot_indep = extracted.get("_total_independiente") or (building or {}).get("total_units_edificio")
     _edi_ok = True
     _edi_det = ""
-    if _tot_dec and len(units) > _tot_dec + 2:
+    if _tot_indep and len(units) > _tot_indep + 2:
         _edi_ok = False
-        _edi_det = f"{len(units)} unidades listadas > {_tot_dec} declaradas en edificio"
-    elif _tot_dec == 1 and len(units) > 1:
-        _edi_ok = False
-        _edi_det = f"total_units=1 pero hay {len(units)} unidades"
+        _edi_det = f"{len(units)} unidades listadas > {_tot_indep} declaradas por brochure/planos"
     _c("edificio_coherente", _edi_ok, _edi_det)
 
     ok_n = sum(1 for c in checks if c["ok"])
@@ -1829,7 +1855,9 @@ async def run(db, job_id: str) -> None:
                         ex_b, c_b = await extract_bulk_project(project_name_hint, batch)
                         cst += c_b
                         for u in (ex_b.get("units") or []):
-                            if u.get("unit_number"):
+                            # rev #2: aceptar por CUALQUIER ancla (fichas de casas/modelos sin número tienen
+                            # el identificador en prototype/precio, no en unit_number)
+                            if u.get("unit_number") or u.get("prototype") or u.get("price_mxn") or u.get("price_min_mxn"):
                                 all_units.append(u)
                         for k in ("address_full", "colonia", "alcaldia", "delivery_date",
                                   "maintenance_fee_mxn", "amenities", "price_range"):
@@ -1839,7 +1867,9 @@ async def run(db, job_id: str) -> None:
                         error_log.append(f"ficha batch {bi // 3 + 1} failed {gkey}: {e}")
                 _seen_u = {}
                 for u in all_units:
-                    k = _unit_identity(u.get("unit_number"))
+                    # rev #2: degradar a prototipo cuando no hay número (no colapsar todas las filas sin número
+                    # en la clave '' → una sola unidad); fichas distintas sin número no deben pisarse
+                    k = _unit_identity(u.get("unit_number")) or _norm_proto(u.get("prototype")) or _iso()
                     if k not in _seen_u or (u.get("price_mxn") and not _seen_u[k].get("price_mxn")):
                         _seen_u[k] = u
                 _ex["units"] = list(_seen_u.values())
@@ -1864,6 +1894,11 @@ async def run(db, job_id: str) -> None:
                 merged = None
                 all_units: List[Dict[str, Any]] = []
                 for li in _listas:
+                    # tope de presupuesto DENTRO del multi-lista (rev #7): no seguir gastando si ya se rebasó
+                    if _job_cost + (cst - base_cost) >= _budget_cap:
+                        error_log.append(f"tope de presupuesto en multi-lista {gkey}: se detuvo antes de {li.get('name')}")
+                        break
+                    torre_lista = _torre_de_nombre(li.get("name") or "")   # rev #3: torre para la clave de unión
                     try:
                         lb, lm = await _fetch(li)
                     except Exception as e:  # noqa: BLE001
@@ -1877,7 +1912,11 @@ async def run(db, job_id: str) -> None:
                         error_log.append(f"lista extract failed {li.get('name')}: {e}")
                         continue
                     for u in (ex_l.get("units") or []):
-                        if u.get("unit_number"):
+                        # rev #2: aceptar filas con CUALQUIER ancla (unidad, prototipo o precio) — las listas de
+                        # RANGO por tipo (Bilú/Xenter) no traen unit_number y antes se tiraban → cascarón vacío
+                        if u.get("unit_number") or u.get("prototype") or u.get("price_mxn") or u.get("price_min_mxn"):
+                            if torre_lista and not u.get("_torre"):
+                                u["_torre"] = torre_lista
                             all_units.append(u)
                     if merged is None:
                         merged = {k: v for k, v in ex_l.items() if k != "units"}
@@ -1886,10 +1925,14 @@ async def run(db, job_id: str) -> None:
                             if k != "units" and v and not merged.get(k):
                                 merged[k] = v
                 merged = merged or {"project_name": project_name_hint}
-                # UNIÓN por identidad (torre+número): preferir la fila CON precio
+                # UNIÓN por identidad TORRE+número (rev #3: sin la torre, A-101 y B-101 colisionaban y se perdía
+                # media torre). Sin unit_number, degrada a prototipo (rev #2). Preferir la fila CON precio.
+                def _ukey(u):
+                    base = _unit_identity(u.get("unit_number")) or _norm_proto(u.get("prototype")) or _iso()
+                    return f"{u.get('_torre') or ''}:{base}"
                 _seen = {}
                 for u in all_units:
-                    idk = _unit_identity(u.get("unit_number"))
+                    idk = _ukey(u)
                     if idk not in _seen or (u.get("price_mxn") and not _seen[idk].get("price_mxn")):
                         _seen[idk] = u
                 merged["units"] = list(_seen.values())
@@ -1897,12 +1940,23 @@ async def run(db, job_id: str) -> None:
                          f"({sum(1 for u in merged['units'] if u.get('price_mxn'))} con precio)")
                 return merged, cst
 
+            # TOPE DE PRESUPUESTO pre-extracción (rev #7): el recon (barato) ya se gastó; antes de disparar la
+            # extracción CARA, si ya rebasamos el tope, detener la corrida (no dejar que un solo proyecto multi-
+            # lista se pase de largo). El check al inicio del loop solo veía proyectos anteriores.
+            if _job_cost + cost_mxn >= _budget_cap:
+                log.warning(f"[bulk_ingest] TOPE ${_budget_cap} alcanzado tras recon (gastado ${_job_cost + cost_mxn:.1f}) "
+                            f"→ se detiene antes de extraer {project_name_hint}")
+                await db.bulk_ingest_jobs.update_one({"id": job_id},
+                    {"$set": {"budget_stopped_at": project_name_hint, "budget_cap_mxn": _budget_cap}})
+                break
             try:
                 if _fichas and not _listas:
                     extracted, _c = await extract_bulk_project(project_name_hint, payloads[:2])  # brochure/contexto
                     extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn + _c)
-                elif len(_listas) >= 2:
-                    # MULTI-LISTA (típico multi-torre): extraer cada lista por separado y unir
+                elif len(_listas) >= 2 and not _lista_son_versiones(_listas):
+                    # MULTI-TORRE real (varias torres, no versiones fechadas del mismo inventario, rev #1):
+                    # extraer cada lista por separado y unir. Las VERSIONES fechadas caen al camino single-call
+                    # (abajo) donde la IA aplica REGLA #1 = usar solo la lista MÁS RECIENTE.
                     extracted, cost_mxn = await _extract_por_lista(cost_mxn)
                     # si por alguna razón no rindió y hay fichas, cae al camino de fichas
                     if not (extracted.get("units") or []) and _fichas:
@@ -1940,13 +1994,18 @@ async def run(db, job_id: str) -> None:
             # FIX 3 (examen 07-08): RECONCILIAR el total del edificio de las TRES fuentes — brochure (texto que
             # la IA extrajo en total_units), planos (mapa determinista) y lista (unidades contadas). Se toma el
             # MÁXIMO creíble → mata "total_units=1" cuando el brochure dice 34 y evita subcontar multi-torre.
-            _cands_tot = [x for x in (extracted.get("total_units"),
-                                      (building or {}).get("total_units_edificio"),
-                                      len(extracted.get("units") or [])) if x]
+            # Se guarda el total de fuentes INDEPENDIENTES (brochure/planos, SIN contar la propia lista) para que
+            # el gate de coherencia lo compare contra len(units) — si no, el check quedaría muerto (rev #5).
+            _tot_brochure = extracted.get("total_units")           # lo que la IA leyó del brochure/presentación
+            _tot_planos = (building or {}).get("total_units_edificio")
+            _tot_indep = max([x for x in (_tot_brochure, _tot_planos) if x] or [0]) or None
+            extracted["_total_independiente"] = _tot_indep
+            _cands_tot = [x for x in (_tot_brochure, _tot_planos, len(extracted.get("units") or [])) if x]
             if _cands_tot:
                 extracted["total_units"] = max(_cands_tot)
+            _lvls_unidades = [u.get("level") for u in (extracted.get("units") or []) if u.get("level")]
             _cands_lvl = [x for x in ((building or {}).get("max_level"), extracted.get("niveles_edificio"),
-                                      max((u.get("level") or 0) for u in (extracted.get("units") or [])) or None) if x]
+                                      (max(_lvls_unidades) if _lvls_unidades else None)) if x]
             if _cands_lvl:
                 extracted["niveles_edificio"] = max(_cands_lvl)
             if plan.get("etapa_carpeta") in ("preventa", "construccion", "entrega_inmediata"):

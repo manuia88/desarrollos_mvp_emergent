@@ -37,13 +37,15 @@ def test_fix1_lista_con_unidades_pasa():
 
 # ── FIX 3 · edificio coherente ───────────────────────────────────────────────
 def test_fix3_edificio_incoherente_marca_check():
+    """Más unidades listadas que las declaradas por brochure/planos (fuente independiente) = incoherencia.
+    (El caso 'total_units=1' que veía el examen ahora lo arregla la reconciliación ANTES de validar; el
+    check queda como backstop contra contaminación/duplicados usando _total_independiente.)"""
     v = bie.validate_extraction(
-        {"units": [{"unit_number": "101", "price_mxn": 3e6, "size_m2_total": 50},
-                   {"unit_number": "102", "price_mxn": 3e6, "size_m2_total": 50}],
-         "total_units": 1},
+        {"units": [{"unit_number": str(100 + i), "price_mxn": 3e6, "size_m2_total": 50} for i in range(5)],
+         "_total_independiente": 1},
         {"listas_precios": [{"name": "LP.pdf"}]}, {}, "CasaRoma350")
     check = next(c for c in v["checks"] if c["check"] == "edificio_coherente")
-    assert check["ok"] is False
+    assert check["ok"] is False   # 5 listadas > 1 declarada + 2 tolerancia
 
 
 # ── FIX 4 · listas de rango (baños float + min/max) ──────────────────────────
@@ -98,3 +100,47 @@ def test_fix5_pct_colocado_requiere_total_mayor_a_disponibles():
     assert pct(0, 0) is None        # sin datos
     assert pct(5, 5) is None        # total == disponibles → no inventar 0%
     assert pct(5, 20) == 75         # caso real
+
+
+# ── REVISIÓN ADVERSARIAL · 7 hallazgos confirmados de los propios fixes ──────
+def test_rev1_versiones_vs_torres():
+    """rev #1: dos listas FECHADAS del mismo inventario = versiones (no unir); dos torres = multi-torre (unir)."""
+    versiones = [{"name": "PRECIOS X 15 MAYO 24.pdf"}, {"name": "PRECIOS X 30 JUNIO 24.pdf"}]
+    torres = [{"name": "Lista Torre A.pdf"}, {"name": "Lista Torre B.pdf"}]
+    assert bie._lista_son_versiones(versiones) is True    # → camino single-call (usa la más reciente)
+    assert bie._lista_son_versiones(torres) is False      # → camino multi-lista (une torres)
+
+
+def test_rev3_torre_desde_nombre():
+    """rev #3: la torre debe salir del nombre de la lista para entrar a la clave de unión."""
+    assert bie._torre_de_nombre("Lista Torre B.pdf") == "B"
+    assert bie._torre_de_nombre("VP_Lista_de_Precios Coyoacan A SF.pdf") == "A"
+    assert bie._torre_de_nombre("Precios generales.pdf") is None
+
+
+def test_rev4_reconciliacion_niveles_units_vacio_no_crashea():
+    """rev #4 (CRÍTICO): la reconciliación de max_level NO debe reventar con units=[] (cascarón vacío)."""
+    _lvls = [u.get("level") for u in [] if u.get("level")]
+    cands = [x for x in (None, None, (max(_lvls) if _lvls else None)) if x]
+    assert cands == []   # sin ValueError
+
+
+def test_rev6_sanitize_filtra_filas_basura():
+    """rev #6: filas sin ninguna señal real (encabezados/subtotales) no inflan len(units)."""
+    out = bie._sanitize_extraction({"units": [
+        {"unit_number": "101", "price_mxn": 3_000_000},
+        {"prototype": "TipoB", "price_min_mxn": 5_000_000},   # fila de rango válida (sin unit_number)
+        {"foo": None, "bar": None, "unit_number": None},      # basura
+    ]})
+    assert len(out["units"]) == 2   # se cae solo la basura; la de rango sobrevive
+
+
+def test_rev5_edificio_coherente_usa_total_independiente():
+    """rev #5: el check compara len(units) contra el total INDEPENDIENTE (brochure/planos), no el reconciliado."""
+    # 34 unidades listadas pero brochure declara 20 → incoherencia detectable
+    v = bie.validate_extraction(
+        {"units": [{"unit_number": str(100 + i), "price_mxn": 3e6, "size_m2_total": 50} for i in range(34)],
+         "_total_independiente": 20},
+        {"listas_precios": [{"name": "LP.pdf"}]}, {}, "Proyecto")
+    check = next(c for c in v["checks"] if c["check"] == "edificio_coherente")
+    assert check["ok"] is False
