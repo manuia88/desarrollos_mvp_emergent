@@ -376,7 +376,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
       {/* Desktop sidebar */}
       <aside
-        className={`sidebar-portal hidden md:flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || useDevV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
+        className={`sidebar-portal relative z-30 hidden md:flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || useDevV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
         data-testid="portal-sidebar"
         aria-label="Barra lateral de navegación"
       >
@@ -400,7 +400,10 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <ImpersonationBanner />
         {/* Topbar */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(var(--frame-fg),0.08)] bg-[var(--frame-panel)] shrink-0" data-testid="portal-topbar" role="banner">
+        {/* relative z-30: el contenido de la página (ej. sa-main del home superadmin, z-1) creaba stacking
+            context y se pintaba ENCIMA del dropdown del usuario → los clics en "Cerrar sesión" caían en las
+            tarjetas KPI de abajo (bug founder 07-08). El header SIEMPRE va sobre el contenido. */}
+        <header className="relative z-30 flex items-center gap-3 px-4 py-3 border-b border-[rgba(var(--frame-fg),0.08)] bg-[var(--frame-panel)] shrink-0" data-testid="portal-topbar" role="banner">
           {/* Mobile hamburger */}
           <button
             className="md:hidden text-[rgba(var(--frame-fg),0.6)] hover:text-[var(--frame-primary)] transition-colors"

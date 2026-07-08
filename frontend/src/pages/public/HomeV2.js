@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../App';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav, Aurora } from '../../components/ui';
 import FadeUp from '../../components/animations/FadeUp';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
@@ -143,6 +144,20 @@ export default function HomeV2() {
   const [zona, setZona] = useState('');
   const [faq, setFaq] = useState(0);
   const go = () => nav(zona ? `/zona/${encodeURIComponent(zona)}?ver=propiedades` : '/marketplace');
+
+  // ?login=1 → abre el modal de login (destino de los redirects de rutas protegidas). El viejo LandingPage
+  // lo manejaba; al promover HomeV2 a home oficial este cable se perdió → quien salía de sesión y volvía a
+  // una ruta protegida aterrizaba aquí SIN modal (bug founder 07-08).
+  const { user: _authUser, loading: _authLoading, openAuth } = useAuth();
+  const _loc = useLocation();
+  useEffect(() => {
+    if (_authLoading) return;
+    const params = new URLSearchParams(_loc.search);
+    if (params.get('login') === '1' && !_authUser) {
+      openAuth('login');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_authLoading, _loc.search, _authUser]);
 
   // Colonias del API real (/api/colonias) con fallback a la estática (resiliencia).
   const [colonias, setColonias] = useState(COLONIAS_STATIC);
