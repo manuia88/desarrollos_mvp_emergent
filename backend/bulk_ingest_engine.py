@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple
 log = logging.getLogger("dmx.bulk_ingest")
 
 CLAUDE_SEMAPHORE = asyncio.Semaphore(10)
-MAX_FILES_PER_FOLDER = 2000       # tope global de archivos listados por job (seguridad)
+MAX_FILES_PER_FOLDER = 6000       # tope global de archivos listados por job (EDIFOR pegó 2000)
 MAX_FILES_PER_PROJECT_LIST = 600  # tope de archivos LISTADOS por proyecto (el recon ve el árbol COMPLETO;
                                   # con 60 la lista de precios de Over quedó fuera y la IA nunca la vio)
 # Modelo para EXTRACCIÓN (listas de precios + planos): Sonnet 5 (claude-sonnet-5, GA jun-2026 — verificado
@@ -97,14 +97,30 @@ _FOLDER_STOPWORDS = {"preventa", "entrega", "inmediata", "vendido", "vendidos", 
 # Carpetas que NO son proyectos ni contenedores de proyectos → saltar del todo
 _SKIP_FOLDER = ("sin marca", "comision", "comisiones", "curriculum", "aliado", "plantilla", "formato",
                 "escenario", "historico", "histórico", "inflacion", "inflación", "politica", "política",
-                "proceso", "documentos para contrato", "recorrido", "link fotos")
+                "proceso", "documentos para contrato", "recorrido", "link fotos",
+                # 07-08 · drives reales: versiones viejas contaminan · facturas/brokers/marketing no son proyectos
+                "versiones antiguas", "version antigua", "old version", "facturas", "factura", "brokers",
+                "broker", "registro", "contacto", "contact", "why ", "buying proc", "aniversary",
+                "chill out", "maps & locations", "acerca de", "carta convenio", "cuenta bancaria")
 
 
 def _folder_is_skip(name: str) -> bool:
     return any(k in (name or "").lower() for k in _SKIP_FOLDER)
 
 
+_CONTAINER_KEYWORDS = ("developments", "desarrollos", "proyectos", "re-ventas", "reventas",
+                       "casas premium", "townhouses", "torres", "inventario general")
+
+
 def _folder_is_container(name: str) -> bool:
+    # contiene palabra-contenedor (aunque traiga marca/número: "4_DEVELOPMENTS", "2.- PROYECTOS DE TSALACH")
+    _n = (name or "").lower()
+    if any(k in _n for k in _CONTAINER_KEYWORDS):
+        return True
+    return _folder_is_container_stopwords(name)
+
+
+def _folder_is_container_stopwords(name: str) -> bool:
     """True si el nombre es SOLO palabras de estatus/función (→ contenedor, no proyecto)."""
     toks = [t for t in re.sub(r"[^\w\s]", " ", (name or "").lower()).split() if t]
     if not toks:
@@ -336,6 +352,11 @@ PROTOTIPO POR TERMINACIÓN: los deptos que terminan igual suelen compartir proto
 terminación como prototype. Si las configuraciones difieren, NO lo asumas.
 FALLBACK DE PRECIO: si la lista da precio por PROTOTIPO (no por depto), asigna ese precio a cada unidad del
 prototipo — no dejes price_mxn null si el prototipo tiene precio.
+FICHAS POR DEPTO: si los documentos son FICHAS individuales (un PDF por depto: "Albert_PH1", "Depto_207"),
+CADA ficha es UNA unidad DISPONIBLE — extrae su número (del nombre del archivo y el contenido), precio, m²
+y características. El conjunto de fichas ES el inventario disponible.
+PRODUCTO: si detectas que NO es vivienda nueva (oficinas/local/bodega/terreno/rentas/reventas), dilo en
+"_producto" y NO inventes unidades residenciales.
 En "_confidence" califica QUÉ TAN SEGURO estás (1.0 = explícito · 0.5 = inferido · 0.2 = adivinado). Sé honesto.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
@@ -656,17 +677,27 @@ Los nombres dicen qué contienen ("Disponibilidad y precios", "TORRE A", "PLANOS
 Devuelve SOLO JSON:
 {
   "listas_precios": [índices de TODAS las listas de precios / disponibilidad / inventario — la fuente de
-                     verdad del inventario. Busca por nombre Y por carpeta contenedora],
-  "brochure": [índices de presentación/brochure (máx 2, el más completo primero)],
+                     verdad del inventario. Busca por nombre Y carpeta, BILINGÜE: "lista de precios", "LP",
+                     "precios", "PRECIOS X FECHA", "disponibilidad", "inventario", "inventory", "pricing",
+                     "PREVENTA.pdf" (los devs suelen meter precios en su presentación de preventa)],
+  "fichas_por_depto": [índices cuando el inventario NO es una lista sino UN PDF POR DEPTO
+                       ("Albert_PH1.pdf", "AVC1129_Depto_207.pdf", "Sevilla_D005.pdf") — el CONJUNTO de
+                       fichas ES la disponibilidad y cada una trae su precio. NO confundir con "opcion 2/3"
+                       (variantes de pago de un mismo depto = cotizaciones, van en ninguno)],
+  "brochure": [índices de presentación/brochure/factsheet (máx 2, el más completo primero)],
   "planos_prototipo": [índices de planos POR PROTOTIPO o por depto ("Tipo A", "101,201,301...", "DEP-206").
                        TODOS los que existan],
   "planos_nivel": [índices de plantas de NIVEL/conjunto ("PLANTA NIVEL 2", "conjunto")],
   "torres": ["A","B"] (si la estructura revela torres/fases; [] si no),
-  "etapa_carpeta": "preventa|construccion|entrega_inmediata|null" (si el NOMBRE de alguna carpeta lo dice,
-                    p.ej. "Over Santa Fe - Entrega Inmediata"),
+  "etapa_carpeta": "preventa|construccion|entrega_inmediata|agotado|null" (del NOMBRE de carpeta:
+                    "- Entrega Inmediata", "(Preventa - Pre Sale)", "(VENDIDO)" → agotado),
+  "producto": "residencial|oficinas|local|bodega|terreno|renta|reventa|mixto" (qué se vende aquí:
+              "WORK LAB"/oficinas, "BODEGA", "RE-VENTAS", "Disponibles renta" NO son residencial nuevo),
   "faltantes": ["lista_precios"|"brochure"|"planos"] (lo que NO encontraste),
   "estructura": "1 línea: cómo está organizada esta carpeta"
 }
+IGNORA para extracción: "Versiones Antiguas"/old, Facturas, Brokers, Registro, marketing genérico
+(aliados, why us, aniversary), cuentas bancarias, contratos, cartas (sensibles — jamás públicos).
 REGLAS: si NO hay lista de precios, decláralo en faltantes — NUNCA propongas usar planos o cotizaciones como
 inventario. Las cotizaciones individuales ("opcion 2", "cotización") NO son listas de precios. Responde SOLO JSON."""
 
@@ -696,6 +727,8 @@ async def recon_plan(project_name: str, files: List[Dict[str, Any]]) -> Dict[str
             return out
         return {
             "listas_precios": _pick("listas_precios", 8),
+            "fichas_por_depto": _pick("fichas_por_depto", 45),
+            "producto": str(plan.get("producto") or "residencial"),
             "brochure": _pick("brochure", 2),
             "planos_prototipo": _pick("planos_prototipo", 80),
             "planos_nivel": _pick("planos_nivel", 6),
@@ -760,8 +793,40 @@ Para CADA plano adjunto lee su tabla/cuadro de áreas y devuelve SOLO JSON:
 Un plano puede ser por PROTOTIPO (aplica a varias unidades) o por DEPTO específico. null si el dato no
 aparece — NO inventes. Responde EXCLUSIVAMENTE con JSON."""
 
+# Archivos SENSIBLES (drives reales traen cuentas bancarias, contratos, cartas con nombres de clientes):
+# se guardan como referencia interna pero NUNCA salen al público ni a Multimedia.
+_SENSITIVE_RE = re.compile(r"(?i)cuenta|contrato|carta[ _-]?(oferta|apartado|convenio)|factura|\bcv[ _.]|curricul|"
+                           r"comisi[oó]n|apartado|promesa|bur[oó]|ine\b|pasaporte|convenio")
+
+
+def _is_sensitive_name(name: str) -> bool:
+    return bool(_SENSITIVE_RE.search(name or ""))
+
+
 _PLANO_KEYWORDS = ("plano", "planta tipo", "prototipo", "tipo ", "unidad", "depto", "departamento")
 _PLAN_FIELDS = ("m2_interior", "m2_balcony", "m2_terrace", "m2_roof_garden")
+
+
+_MESES = {"enero":1,"febrero":2,"marzo":3,"abril":4,"mayo":5,"junio":6,"julio":7,
+          "agosto":8,"septiembre":9,"octubre":10,"noviembre":11,"diciembre":12}
+
+
+def _fecha_de_nombre(name: str) -> Optional[str]:
+    """'PRECIOS CADIZ 15 ABRIL 24'→'2024-04-15' · 'LP SLP96 MARZO 2025'→'2025-03-01' · '(10-04-24)'→'2024-04-10'.
+    Para elegir la lista MÁS RECIENTE y fechar el histórico."""
+    n = (name or "").lower()
+    m = re.search(r"(\d{1,2})?\s*(" + "|".join(_MESES) + r")\s*(\d{2,4})", n)
+    if m:
+        d = int(m.group(1) or 1); mes = _MESES[m.group(2)]; a = int(m.group(3))
+        a = a + 2000 if a < 100 else a
+        return f"{a:04d}-{mes:02d}-{min(d,28):02d}"
+    m = re.search(r"\((\d{1,2})-(\d{1,2})-(\d{2,4})\)", n)
+    if m:
+        d, mes, a = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        a = a + 2000 if a < 100 else a
+        if 1 <= mes <= 12:
+            return f"{a:04d}-{mes:02d}-{min(d,28):02d}"
+    return None
 
 
 def _is_plano(f: Dict[str, Any]) -> bool:
@@ -1412,8 +1477,14 @@ async def run(db, job_id: str) -> None:
 
             # SELECCIÓN DIRIGIDA por el plan: listas de precios (TODAS) + brochure. Fallback a la heurística
             # vieja SOLO si el recon falló por completo (fail-soft, nunca ciego a propósito).
-            if plan and (plan.get("listas_precios") or plan.get("brochure")):
-                key_files = list(plan.get("listas_precios") or []) + list(plan.get("brochure") or [])
+            # listas con FECHA en el nombre → la MÁS RECIENTE primero (y esa fecha viaja al histórico)
+            _listas = list(plan.get("listas_precios") or []) if plan else []
+            if len(_listas) > 1:
+                _listas.sort(key=lambda f: _fecha_de_nombre(f.get("name") or "") or "0000", reverse=True)
+            _fichas = list(plan.get("fichas_por_depto") or []) if plan else []
+            if plan and (_listas or _fichas or plan.get("brochure")):
+                # forma fichas-por-depto: SIN lista, el conjunto de fichas es la disponibilidad (Drive DECA)
+                key_files = _listas + (_fichas if not _listas else []) + list(plan.get("brochure") or [])
                 sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES
                           and _file_priority(f) >= 70][:2]
                 key_files = key_files + [s for s in sheets if s.get("id") not in {k.get("id") for k in key_files}]
@@ -1444,10 +1515,17 @@ async def run(db, job_id: str) -> None:
 
             # ANTI-FANTASMA (founder): sin lista de precios NO hay inventario — NUNCA inventar unidades desde
             # planos/cotizaciones. El proyecto va a revisión con el motivo claro.
-            _anchored = bool(plan.get("listas_precios")) if plan else bool(extracted.get("units"))
-            if plan and not plan.get("listas_precios"):
+            _anchored = bool(_listas or _fichas) if plan else bool(extracted.get("units"))
+            if plan and not (_listas or _fichas):
                 extracted["units"] = []
-                extracted["_needs_review"] = "sin lista de precios visible en la carpeta (recon)"
+                extracted["_needs_review"] = "sin lista de precios NI fichas por depto visibles (recon)"
+            # PRODUCTO: solo RESIDENCIAL nuevo entra al marketplace (founder: no oficinas/terrenos/rentas/reventas)
+            _producto = (plan or {}).get("producto") or "residencial"
+            if _producto not in ("residencial", "mixto"):
+                extracted["_needs_review"] = f"producto excluido: {_producto} (solo residencial nuevo)"
+                extracted["_producto"] = _producto
+            if plan and plan.get("etapa_carpeta") == "agotado":
+                extracted["_needs_review"] = "proyecto marcado VENDIDO/agotado en el Drive (histórico, no publicar)"
 
             # HECHOS DEL EDIFICIO (mapa determinista desde nombres de planos + carpeta):
             # unidades TOTALES reales, niveles, depas por piso, torres, etapa desde el nombre de carpeta.
@@ -1494,7 +1572,26 @@ async def run(db, job_id: str) -> None:
             # depto muestra → NO se muestra. Se clasifica al ingerir y viaja en item_doc → project_assets.
             image_kinds: Dict[str, str] = {}
             try:
-                img_files = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")][:24]
+                _all_imgs = [f for f in gdata["files"] if (f.get("mimeType") or "").startswith("image/")]
+                # 1º por CARPETA (gratis y más fiable): DEPTO MUESTRA→muestra · RENDERS/INTERIORES/EXTERIORES/
+                # AMENIDADES→render · FOTOS/OBRA/AVANCE/DRON→obra · sensibles→otro
+                _FK = (("muestra", "muestra"), ("render", "render"), ("interior", "render"),
+                       ("exterior", "render"), ("amenidad", "render"), ("amenities", "render"),
+                       ("vistas", "render"), ("obra", "obra"), ("avance", "obra"), ("dron", "obra"),
+                       ("fotos", "obra"))
+                pend = []
+                for f in _all_imgs:
+                    nm = f.get("name") or ""
+                    fol = (f.get("immediate_folder") or "").lower()
+                    if _is_sensitive_name(nm):
+                        image_kinds[nm] = "otro"
+                        continue
+                    kind = next((k for kw, k in _FK if kw in fol), None)
+                    if kind:
+                        image_kinds[nm] = kind
+                    elif not nm.lower().endswith(".avif"):   # visión no soporta avif
+                        pend.append(f)
+                img_files = pend[:24]
                 if img_files:
                     img_payloads: List[Tuple[bytes, str, str]] = []
                     for imf in img_files:
@@ -1548,6 +1645,8 @@ async def run(db, job_id: str) -> None:
             if decision == "auto_approve" and _has_price and isinstance(_price_conf, (int, float)) and _price_conf < 0.6:
                 decision = "pending_review"
                 extracted["_needs_review"] = "precio de baja confianza (IA)"
+            if decision == "auto_approve" and extracted.get("_needs_review"):
+                decision = "pending_review"
             # Extracción FALLIDA (timeout/stub, sin unidades) → NUNCA auto-aprobar/mergear: a revisión con motivo.
             if decision == "auto_approve" and extracted.get("_low_confidence") and not (extracted.get("units") or []):
                 decision = "pending_review"
