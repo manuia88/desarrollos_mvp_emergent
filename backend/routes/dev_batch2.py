@@ -440,6 +440,9 @@ async def competitor_history(competitor_id: str, request: Request):
     db = _db(request)
     from data_developments import DEVELOPMENTS_BY_ID, inventory_stats
     comp = DEVELOPMENTS_BY_ID.get(competitor_id)
+    if not comp:  # INGESTA/WIZARD: comparar contra competidor ingerido también (antes 404)
+        from ingested_reader import resolve_dev_doc
+        comp = await resolve_dev_doc(db, competitor_id)
     if not comp:
         raise HTTPException(404, "Competidor no encontrado")
 
@@ -602,6 +605,9 @@ async def ie_project_breakdown(project_id: str, request: Request):
     db = _db(request)
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:  # INGESTA/WIZARD: analítica del dev también sobre inventario ingerido (antes 404)
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
     from tenant_scope import assert_dev_project
@@ -767,6 +773,9 @@ async def ie_improve_recommendations(project_id: str, request: Request, code: st
     db = _db(request)
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:  # INGESTA/WIZARD: analítica del dev también sobre inventario ingerido (antes 404)
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
     from tenant_scope import assert_dev_project
@@ -1157,6 +1166,9 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
     db = _db(request)
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:  # INGESTA/WIZARD: analítica del dev también sobre inventario ingerido (antes 404)
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
     from tenant_scope import assert_dev_project
@@ -1338,6 +1350,9 @@ async def simulate_competitor_price_update(competitor_id: str, payload: Competit
     db = _db(request)
     from data_developments import DEVELOPMENTS_BY_ID
     comp = DEVELOPMENTS_BY_ID.get(competitor_id)
+    if not comp:  # INGESTA/WIZARD: comparar contra competidor ingerido también (antes 404)
+        from ingested_reader import resolve_dev_doc
+        comp = await resolve_dev_doc(db, competitor_id)
     if not comp:
         raise HTTPException(404, "Competidor no encontrado")
 
