@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.llm_client")
 
@@ -61,6 +61,9 @@ class LlmChat:
         self._model: Optional[str] = None
         self._max_tokens = 1024
         self._timeout: Optional[float] = None   # None → LLM_TIMEOUT_SECONDS (60s, anti-DoS)
+        # COSTO REAL (07-08): la API devuelve el consumo de tokens de CADA respuesta. Se guarda aquí para que
+        # el llamador calcule el costo real (antes la ingesta usaba un estimado fijo Haiku $0.50 que mentía ~3×).
+        self.last_usage: Optional[Dict[str, int]] = None
 
     # ── fluent setters (igual que la librería) ──
     def with_model(self, provider: str, model: Optional[str] = None) -> "LlmChat":
@@ -96,17 +99,51 @@ class LlmChat:
             text = message if isinstance(message, str) else str(message)
         images = list(getattr(message, "file_contents", []) or [])
         if self._provider == "openai":
-            return await _openai_chat(self._system, text, self._model or _DEFAULT_OPENAI, self._max_tokens)
-        return await _anthropic_chat(self._system, text, self._model or _DEFAULT_ANTHROPIC, self._max_tokens,
-                                     images, timeout=self._timeout)
+            out, usage = await _openai_chat(self._system, text, self._model or _DEFAULT_OPENAI, self._max_tokens)
+        else:
+            out, usage = await _anthropic_chat(self._system, text, self._model or _DEFAULT_ANTHROPIC,
+                                               self._max_tokens, images, timeout=self._timeout)
+        self.last_usage = usage
+        return out
 
     # send_pulse: en la lib era una variante; aquí se comporta igual que send_message (devuelve el texto).
     async def send_pulse(self, message: Any) -> str:
         return await self.send_message(message)
 
 
+def _usage_dict(resp: Any) -> Dict[str, int]:
+    """Normaliza el objeto usage del SDK a un dict simple (input/output/cache tokens)."""
+    u = getattr(resp, "usage", None)
+    if not u:
+        return {}
+    return {
+        "input_tokens": int(getattr(u, "input_tokens", 0) or getattr(u, "prompt_tokens", 0) or 0),
+        "output_tokens": int(getattr(u, "output_tokens", 0) or getattr(u, "completion_tokens", 0) or 0),
+        "cache_read_tokens": int(getattr(u, "cache_read_input_tokens", 0) or 0),
+        "cache_write_tokens": int(getattr(u, "cache_creation_input_tokens", 0) or 0),
+    }
+
+
+# Precios USD por millón de tokens (Sonnet-class, GA jun-2026). Override por env si cambian.
+_PRICE_IN_USD = float(os.environ.get("LLM_PRICE_IN_USD_PER_MTOK", "3.0"))
+_PRICE_OUT_USD = float(os.environ.get("LLM_PRICE_OUT_USD_PER_MTOK", "15.0"))
+_USD_MXN = float(os.environ.get("USD_MXN", "18.5"))
+
+
+def estimate_cost_mxn(usage: Optional[Dict[str, int]], model: str = "") -> float:
+    """Costo REAL en MXN de una llamada, a partir del consumo de tokens que devolvió la API.
+    Los tokens de PDF nativo/visión ya vienen contados en input_tokens → refleja el costo verdadero."""
+    if not usage:
+        return 0.0
+    tin = (usage.get("input_tokens", 0) + usage.get("cache_write_tokens", 0)
+           + int(usage.get("cache_read_tokens", 0) * 0.1))   # cache read ~10% del precio
+    tout = usage.get("output_tokens", 0)
+    usd = (tin / 1_000_000) * _PRICE_IN_USD + (tout / 1_000_000) * _PRICE_OUT_USD
+    return round(usd * _USD_MXN, 3)
+
+
 async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: int,
-                          images: Optional[list] = None, timeout: Optional[float] = None) -> str:
+                          images: Optional[list] = None, timeout: Optional[float] = None):
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY no configurado")
@@ -141,10 +178,10 @@ async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: i
         messages=[{"role": "user", "content": content}],
     )
     parts = [getattr(b, "text", "") for b in (resp.content or []) if getattr(b, "type", "") == "text"]
-    return "".join(parts).strip()
+    return "".join(parts).strip(), _usage_dict(resp)
 
 
-async def _openai_chat(system: str, user_text: str, model: str, max_tokens: int) -> str:
+async def _openai_chat(system: str, user_text: str, model: str, max_tokens: int):
     key = os.environ.get("OPENAI_API_KEY")
     if not key:
         raise RuntimeError("OPENAI_API_KEY no configurado")
@@ -159,7 +196,7 @@ async def _openai_chat(system: str, user_text: str, model: str, max_tokens: int)
         max_tokens=max_tokens or 1024,
         messages=msgs,
     )
-    return (resp.choices[0].message.content or "").strip()
+    return (resp.choices[0].message.content or "").strip(), _usage_dict(resp)
 
 
 class OpenAIImageGeneration:

@@ -347,9 +347,11 @@ Devuelve SOLO JSON válido con la siguiente estructura:
      "parking": "string|null (cajones — copia el número EXACTO de la columna #EST)",
      "parking_type": "individual|tandem|null", "vista": "string|null (exterior/interior/parque…)",
      "price_mxn": int|null,
+     "price_min_mxn": int|null, "price_max_mxn": int|null,
      "credito_mxn": int|null, "enganche_mxn": int|null, "reservacion_mxn": int|null,
      "contrato_mxn": int|null, "a_diferir_mxn": int|null}
   ],
+  "_lista_tipo": "unidad|rango|null (rango = tabla de precios por TIPO/PROTOTIPO con min–max, no por depto)",
   "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
 REGLA #1 — DISPONIBILIDAD (LA MÁS IMPORTANTE, prohibido equivocarse):
@@ -362,6 +364,11 @@ REGLA #1 — DISPONIBILIDAD (LA MÁS IMPORTANTE, prohibido equivocarse):
 REGLA #1.5 — ETIQUETAS EXACTAS DE M²: BALCÓN ≠ TERRAZA ≠ PATIO ≠ ROOF GARDEN. Respeta la COLUMNA/etiqueta
 del documento: si dice TERRAZA va en m2_terrace, si dice BALCÓN en m2_balcony — NUNCA las intercambies
 (validación founder: Casa Condesa decía TERRAZA y se guardó como balcón).
+REGLA #1.6 — LISTAS DE RANGO (examen 07-08, Bilú/Xenter): algunas listas dan precio por TIPO/PROTOTIPO con
+un RANGO (min–máx) en vez de por departamento. Marca "_lista_tipo":"rango" y por cada tipo llena price_min_mxn
+y price_max_mxn (NO price_mxn). NUNCA inventes status "disponible" si la tabla de rangos NO trae columna de
+estatus → déjalo null. Baños: conserva los MEDIOS (2.5, no 2). Si además hay filas de unidades individuales
+con precio único (ej. "13-N2", "PH A"), ESAS sí van como unidades con price_mxn.
 REGLA #2 — NO INVENTAR (copia exacta):
 · Si la lista NO trae columna de recámaras/baños → null (el cruce de planos los completa después).
 · #BOD/bodega vacío → storage_count null. NO asumas que hay bodega.
@@ -481,11 +488,17 @@ def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(u, dict):
             continue
         p = _num(u.get("price_mxn")); u["price_mxn"] = int(p) if (p is not None and p > 0) else None
+        # FIX 4 (examen 07-08): listas de RANGO (precio por tipo/prototipo con min–max) — conservar ambos
+        pmn = _num(u.get("price_min_mxn")); u["price_min_mxn"] = int(pmn) if (pmn is not None and pmn > 0) else None
+        pmx = _num(u.get("price_max_mxn")); u["price_max_mxn"] = int(pmx) if (pmx is not None and pmx > 0) else None
+        if u.get("price_min_mxn") and u.get("price_max_mxn") and u["price_min_mxn"] > u["price_max_mxn"]:
+            u["price_min_mxn"], u["price_max_mxn"] = u["price_max_mxn"], u["price_min_mxn"]
         # m² con DECIMALES (85.16, no 85) — el gate dorado cachó que aquí se redondeaba (int) y se perdía el dato
         s = _num(u.get("size_m2")); u["size_m2"] = round(float(s), 2) if (s is not None and s > 0) else None
         st = _num(u.get("size_m2_total")); u["size_m2_total"] = round(float(st), 2) if (st is not None and st > 0) else u.get("size_m2_total")
         b = _num(u.get("bedrooms")); u["bedrooms"] = int(b) if (b is not None and 0 <= b <= 20) else None
-        ba = _num(u.get("bathrooms")); u["bathrooms"] = int(ba) if (ba is not None and 0 <= ba <= 20) else None
+        # FIX 4: baños con MEDIOS (2.5) — antes int() truncaba 2.5→2 (examen Bilú perdió los .5 en 17 unidades)
+        ba = _num(u.get("bathrooms")); u["bathrooms"] = (round(float(ba) * 2) / 2) if (ba is not None and 0 <= ba <= 20) else None
         clean_units.append(u)
     if "units" in data:
         data["units"] = clean_units
@@ -503,6 +516,39 @@ async def _geocode_address(address: str, colonia: Optional[str] = None,
     except Exception as e:  # noqa: BLE001
         log.warning(f"[bulk_ingest] geocode falló: {e}")
         return None, None
+
+
+# Límite DURO de la API para imágenes en base64 = 10MB. base64 infla ~33%, así que el RAW debe quedar
+# < ~7MB o revienta (examen 07-08: imágenes de 8-11MB tiraban la clasificación). Se reescalan con PIL.
+_IMG_RAW_CAP = int(7.2 * 1024 * 1024)
+
+
+def _fit_image_bytes(b: bytes, mime: str) -> Optional[Tuple[bytes, str]]:
+    """Devuelve (bytes, mime) de una imagen que CABE en el límite base64 de la API. Reescala si hace falta.
+    None si no es imagen procesable. Fail-soft: si PIL no puede, regresa el original solo si ya cabía."""
+    if b is None:
+        return None
+    if len(b) <= _IMG_RAW_CAP:
+        return b, (mime if (mime or "").startswith("image/") else "image/jpeg")
+    try:
+        import io
+        from PIL import Image
+        im = Image.open(io.BytesIO(b))
+        im = im.convert("RGB")
+        # baja resolución en pasos hasta que el JPEG comprimido quepa
+        for max_side in (2600, 2000, 1600, 1200, 900):
+            w, h = im.size
+            scale = min(1.0, max_side / max(w, h))
+            resized = im.resize((max(1, int(w * scale)), max(1, int(h * scale)))) if scale < 1.0 else im
+            buf = io.BytesIO()
+            resized.save(buf, format="JPEG", quality=82, optimize=True)
+            data = buf.getvalue()
+            if len(data) <= _IMG_RAW_CAP:
+                return data, "image/jpeg"
+        return None   # ni al mínimo cupo → mejor omitir que reventar la llamada
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] downscale imagen falló: {e}")
+        return None
 
 
 async def extract_bulk_project(
@@ -545,9 +591,13 @@ async def extract_bulk_project(
             elif mime.startswith("image/") or nm.endswith((".jpg", ".jpeg", ".png", ".webp")):
                 try:
                     from llm_client import ImageContent  # type: ignore
-                    imagenes.append(ImageContent(image_base64=_b64.b64encode(b).decode(),
-                                                 media_type=mime if mime.startswith("image/") else "image/jpeg"))
-                    content_parts.append(f"\n=== {fname} (imagen adjunta) ===")
+                    fit = _fit_image_bytes(b, mime)   # reescala si pasa el límite base64 de la API
+                    if fit:
+                        fb, fm = fit
+                        imagenes.append(ImageContent(image_base64=_b64.b64encode(fb).decode(), media_type=fm))
+                        content_parts.append(f"\n=== {fname} (imagen adjunta) ===")
+                    else:
+                        content_parts.append(f"- Archivo: {fname} (imagen demasiado grande, omitida)")
                 except Exception:  # noqa: BLE001
                     content_parts.append(f"- Archivo: {fname} ({mime})")
             else:
@@ -560,6 +610,8 @@ async def extract_bulk_project(
             chat = chat.with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(8000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
+            from llm_client import estimate_cost_mxn
+            _cost = estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)   # COSTO REAL por tokens (no estimado fijo)
             try:
                 data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
             except ValueError:
@@ -569,6 +621,7 @@ async def extract_bulk_project(
                 resp = await chat.send_message(UserMessage(
                     text="Tu respuesta anterior no fue JSON. RESPONDE ÚNICAMENTE el objeto JSON del "
                          "proyecto según el esquema — sin texto antes ni después."))
+                _cost += estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
                 data = _parse_llm_json(resp or "")
             if not isinstance(data, dict):
                 # la IA devolvió una lista u otra cosa (p.ej. una carpeta que no es un proyecto) →
@@ -584,9 +637,9 @@ async def extract_bulk_project(
                     data.get("colonia"), data.get("alcaldia"))
                 if _lat is not None and _lng is not None:
                     data["lat"], data["lng"], data["_geocoded"] = _lat, _lng, True
-            # Approx cost: 0.50 MXN per call (Haiku ballpark) — caller side records
-            # the budget event via track_ai_call (db handle lives there).
-            return data, 0.50
+            # COSTO REAL en MXN (tokens de la API) — reemplaza el estimado fijo Haiku $0.50 que mentía ~3×
+            data["_ai_usage"] = chat.last_usage
+            return data, _cost
         except Exception as e:
             log.warning(f"[bulk_ingest] extraction failed for {project_name_hint}: {e}")
             return _stub_extraction(project_name_hint), 0.0
@@ -759,7 +812,7 @@ inventario. Las cotizaciones individuales ("opcion 2", "cotización") NO son lis
 async def recon_plan(project_name: str, files: List[Dict[str, Any]], hints: Optional[str] = None) -> Dict[str, Any]:
     """Paso 0: árbol completo → plan de lectura (1 llamada barata, solo texto). Fail-soft: {} = usar heurística.
     hints = huella del drive (idea #4): advertencias aprendidas de correcciones manuales previas."""
-    from llm_client import LlmChat, UserMessage
+    from llm_client import LlmChat, UserMessage, estimate_cost_mxn
     lines = [f"[{i}] {(f.get('immediate_folder') or '(raíz)')}/{f.get('name')} ({(f.get('mimeType') or '?').split('/')[-1]})"
              for i, f in enumerate(files)]
     tree = "\n".join(lines[:3000])   # tope de SEGURIDAD altísimo — el árbol es texto, no descargas
@@ -792,6 +845,7 @@ async def recon_plan(project_name: str, files: List[Dict[str, Any]], hints: Opti
             "etapa_carpeta": plan.get("etapa_carpeta"),
             "faltantes": plan.get("faltantes") or [],
             "estructura": str(plan.get("estructura") or "")[:300],
+            "_recon_cost_mxn": estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL),
         }
     except Exception as e:  # noqa: BLE001
         log.warning(f"[bulk_ingest] recon falló ({project_name}): {e}")
@@ -1033,7 +1087,14 @@ async def classify_project_images(payloads: List[Tuple[bytes, str, str]]) -> Dic
     import base64 as _b64
     from llm_client import LlmChat, UserMessage, ImageContent
     out: Dict[str, str] = {}
-    lote = [(b, m, fn) for b, m, fn in payloads if len(b) <= 8 * 1024 * 1024][:24]
+    # reescala las que pasan el límite base64 (antes se saltaban a 8MB pero base64 las inflaba >10MB → error 400)
+    lote = []
+    for b, m, fn in payloads:
+        fit = _fit_image_bytes(b, m)
+        if fit:
+            lote.append((fit[0], fit[1], fn))
+        if len(lote) >= 24:
+            break
     for i in range(0, len(lote), 4):
         batch = lote[i:i + 4]
         try:
@@ -1071,8 +1132,8 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
     con las razones. Score bajo → el proyecto NO se auto-aprueba (founder: cero basura al marketplace)."""
     checks: List[Dict[str, Any]] = []
 
-    def _c(nombre, ok, detalle=""):
-        checks.append({"check": nombre, "ok": bool(ok), "detalle": detalle})
+    def _c(nombre, ok, detalle="", critical=False):
+        checks.append({"check": nombre, "ok": bool(ok), "detalle": detalle, "critical": bool(critical)})
 
     units = extracted.get("units") or []
     # 1 · aritmética de m²: priv + balcón + terraza + roof ≈ total (±0.6 por redondeos)
@@ -1130,13 +1191,37 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
             incoh.append(f"proto {pr}: ${min(vals):,.0f}–${max(vals):,.0f}/m²")
     _c("coherencia_precio_m2_proto", not incoh, "; ".join(incoh[:3]))
     # 8 · hay fuente de inventario
-    _c("fuente_inventario", bool(plan.get("listas_precios") or plan.get("fichas_por_depto")),
-       "sin lista ni fichas")
+    _tiene_fuente = bool(plan.get("listas_precios") or plan.get("fichas_por_depto"))
+    _c("fuente_inventario", _tiene_fuente, "sin lista ni fichas")
+    # 9 · CONTRATO DE COBERTURA (FIX 1, examen 07-08 — el bug más grave): si el recon SÍ encontró listas/fichas
+    #     pero la extracción devolvió CERO unidades, es un CASCARÓN VACÍO (timeout/prosa) que se estaba
+    #     auto-calificando 100. CRÍTICO → nunca publica. Caza Terralia/CasaRoma151/UnicoCoyoacan.
+    _n_listas = len(plan.get("listas_precios") or []) + len(plan.get("fichas_por_depto") or [])
+    _c("inventario_no_vacio", not (_tiene_fuente and len(units) == 0),
+       f"recon halló {_n_listas} fuente(s) de inventario pero se extrajeron 0 unidades" if (_tiene_fuente and not units)
+       else f"{len(units)} unidades", critical=True)
+    # 10 · EDIFICIO COHERENTE (FIX 3): total del edificio debe ser ≥ unidades listadas y nunca 1 con varias
+    #      unidades (Casa Roma 350: total=1 con 34 reales). Cruza brochure(texto)+planos+lista.
+    _tot_dec = extracted.get("total_units") or (building or {}).get("total_units_edificio")
+    _edi_ok = True
+    _edi_det = ""
+    if _tot_dec and len(units) > _tot_dec + 2:
+        _edi_ok = False
+        _edi_det = f"{len(units)} unidades listadas > {_tot_dec} declaradas en edificio"
+    elif _tot_dec == 1 and len(units) > 1:
+        _edi_ok = False
+        _edi_det = f"total_units=1 pero hay {len(units)} unidades"
+    _c("edificio_coherente", _edi_ok, _edi_det)
 
     ok_n = sum(1 for c in checks if c["ok"])
     score = round(ok_n / len(checks) * 100)
-    return {"score": score, "publicable": score >= 85 and bool(units),
-            "checks": checks}
+    _critical_fail = any(c["critical"] and not c["ok"] for c in checks)
+    # publicable: score alto + hay unidades + NINGÚN check crítico reprobado. Un crítico reprobado
+    # también APLANA el score a ≤50 para que sea imposible que se cuele por umbral.
+    if _critical_fail:
+        score = min(score, 50)
+    return {"score": score, "publicable": score >= 85 and bool(units) and not _critical_fail,
+            "critical_fail": _critical_fail, "checks": checks}
 
 
 def _parking_count(raw) -> int:
@@ -1643,10 +1728,20 @@ async def run(db, job_id: str) -> None:
         dry_run = bool(job.get("dry_run"))
         # only_project acepta VARIOS filtros separados por "|" (examen de eficiencia: 3-5 proyectos/drive)
         only_projects = [p.strip().lower() for p in (job.get("only_project") or "").split("|") if p.strip()]
+        # TOPE DE PRESUPUESTO por corrida (founder 07-08: nunca gastar de más sin avisar). El job puede pasar
+        # su propio tope; default alto. Al alcanzarlo, se DETIENE y registra qué proyectos quedaron sin procesar.
+        _budget_cap = float(job.get("max_mxn") or os.environ.get("BULK_INGEST_MAX_MXN_PER_JOB", "500"))
+        _job_cost = 0.0
         for gkey, gdata in groups.items():
             project_name_hint = gdata["parent_folder_name"]
             if only_projects and not any(p in (project_name_hint or "").lower() for p in only_projects):
                 continue
+            if _job_cost >= _budget_cap:
+                log.warning(f"[bulk_ingest] TOPE DE PRESUPUESTO ${_budget_cap} alcanzado (gastado ${_job_cost:.1f}) "
+                            f"→ se detiene antes de {project_name_hint}")
+                await db.bulk_ingest_jobs.update_one({"id": job_id},
+                    {"$set": {"budget_stopped_at": project_name_hint, "budget_cap_mxn": _budget_cap}})
+                break
             items_total += 1
 
             # DEDUP POR HASH (pipeline §3): si los archivos del proyecto NO cambiaron desde la última corrida
@@ -1678,7 +1773,7 @@ async def run(db, job_id: str) -> None:
             except Exception:  # noqa: BLE001
                 _huella = None
             plan = await recon_plan(project_name_hint, gdata["files"], hints=_huella)
-            cost_mxn = 0.10 if plan else 0.0
+            cost_mxn = float((plan or {}).get("_recon_cost_mxn") or 0.0)   # COSTO REAL del recon (tokens)
             building = _building_map_from_plan(plan) if plan else {}
             if plan:
                 log.info(f"[bulk_ingest] recon {gkey}: listas={len(plan.get('listas_precios') or [])} "
@@ -1752,10 +1847,66 @@ async def run(db, job_id: str) -> None:
                          f"({sum(1 for u in _ex['units'] if u.get('price_mxn'))} con precio)")
                 return _ex, cst
 
+            async def _extract_por_lista(base_cost):
+                """FIX 2 (examen 07-08): MULTI-TORRE. Con varias listas (una por torre A/B/C), extraer CADA una
+                por separado (payload chico = menos timeouts/respuestas vacías) y UNIR las unidades. Antes se
+                bundleaba todo en 1 llamada y la IA solo rendía la primera torre (Splendor 22/38, Panorama 8/55)."""
+                # contexto compartido: el primer brochure (identidad/amenidades) va con cada lista
+                broch = list(plan.get("brochure") or [])[:1]
+                broch_payloads = []
+                for bf in broch:
+                    try:
+                        bb, bm = await _fetch(bf)
+                        broch_payloads.append((bb, bm, bf.get("name", "")))
+                    except Exception:  # noqa: BLE001
+                        continue
+                cst = base_cost
+                merged = None
+                all_units: List[Dict[str, Any]] = []
+                for li in _listas:
+                    try:
+                        lb, lm = await _fetch(li)
+                    except Exception as e:  # noqa: BLE001
+                        error_log.append(f"lista download failed {li.get('id')}: {e}")
+                        continue
+                    try:
+                        ex_l, c_l = await extract_bulk_project(
+                            project_name_hint, [(lb, lm, li.get("name", ""))] + broch_payloads)
+                        cst += c_l
+                    except Exception as e:  # noqa: BLE001
+                        error_log.append(f"lista extract failed {li.get('name')}: {e}")
+                        continue
+                    for u in (ex_l.get("units") or []):
+                        if u.get("unit_number"):
+                            all_units.append(u)
+                    if merged is None:
+                        merged = {k: v for k, v in ex_l.items() if k != "units"}
+                    else:
+                        for k, v in ex_l.items():
+                            if k != "units" and v and not merged.get(k):
+                                merged[k] = v
+                merged = merged or {"project_name": project_name_hint}
+                # UNIÓN por identidad (torre+número): preferir la fila CON precio
+                _seen = {}
+                for u in all_units:
+                    idk = _unit_identity(u.get("unit_number"))
+                    if idk not in _seen or (u.get("price_mxn") and not _seen[idk].get("price_mxn")):
+                        _seen[idk] = u
+                merged["units"] = list(_seen.values())
+                log.info(f"[bulk_ingest] {gkey}: {len(_listas)} listas → {len(merged['units'])} unidades unidas "
+                         f"({sum(1 for u in merged['units'] if u.get('price_mxn'))} con precio)")
+                return merged, cst
+
             try:
                 if _fichas and not _listas:
                     extracted, _c = await extract_bulk_project(project_name_hint, payloads[:2])  # brochure/contexto
                     extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn + _c)
+                elif len(_listas) >= 2:
+                    # MULTI-LISTA (típico multi-torre): extraer cada lista por separado y unir
+                    extracted, cost_mxn = await _extract_por_lista(cost_mxn)
+                    # si por alguna razón no rindió y hay fichas, cae al camino de fichas
+                    if not (extracted.get("units") or []) and _fichas:
+                        extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn)
                 else:
                     extracted, _c = await extract_bulk_project(project_name_hint, payloads)
                     cost_mxn += _c
@@ -1786,8 +1937,18 @@ async def run(db, job_id: str) -> None:
             # unidades TOTALES reales, niveles, depas por piso, torres, etapa desde el nombre de carpeta.
             if building:
                 extracted["_building"] = building
-                if building.get("total_units_edificio"):
-                    extracted["total_units"] = building["total_units_edificio"]
+            # FIX 3 (examen 07-08): RECONCILIAR el total del edificio de las TRES fuentes — brochure (texto que
+            # la IA extrajo en total_units), planos (mapa determinista) y lista (unidades contadas). Se toma el
+            # MÁXIMO creíble → mata "total_units=1" cuando el brochure dice 34 y evita subcontar multi-torre.
+            _cands_tot = [x for x in (extracted.get("total_units"),
+                                      (building or {}).get("total_units_edificio"),
+                                      len(extracted.get("units") or [])) if x]
+            if _cands_tot:
+                extracted["total_units"] = max(_cands_tot)
+            _cands_lvl = [x for x in ((building or {}).get("max_level"), extracted.get("niveles_edificio"),
+                                      max((u.get("level") or 0) for u in (extracted.get("units") or [])) or None) if x]
+            if _cands_lvl:
+                extracted["niveles_edificio"] = max(_cands_lvl)
             if plan.get("etapa_carpeta") in ("preventa", "construccion", "entrega_inmediata"):
                 extracted["stage"] = "entrega" if plan["etapa_carpeta"] == "entrega_inmediata" else plan["etapa_carpeta"]
 
@@ -1911,29 +2072,40 @@ async def run(db, job_id: str) -> None:
             # edificio → % colocado instantáneo (Londres: 11 disp / 72 edificio = 85% absorbido). Oro de mercado.
             try:
                 _us = extracted.get("units") or []
-                _disp = sum(1 for u in _us if (u.get("status") or "disponible") == "disponible")
-                _vend = sum(1 for u in _us if u.get("status") == "vendido")
-                _apar = sum(1 for u in _us if u.get("status") in ("apartado", "reservado"))
-                _tot_ed = extracted.get("total_units") or (building or {}).get("total_units_edificio")
-                def _seg(keyfn):
-                    d: Dict[str, Dict[str, int]] = {}
-                    for u in _us:
-                        k = keyfn(u)
-                        if k in (None, "", "None"):
-                            continue
-                        row = d.setdefault(str(k), {"disponibles": 0, "vendidas": 0, "apartadas": 0})
-                        st = u.get("status") or "disponible"
-                        row["disponibles" if st == "disponible" else ("vendidas" if st == "vendido" else "apartadas")] += 1
-                    return d
-                extracted["_resumen"] = {
-                    "disponibles": _disp, "vendidas_en_lista": _vend, "apartadas": _apar,
-                    "total_edificio": _tot_ed,
-                    "pct_colocado": (round((1 - _disp / _tot_ed) * 100) if (_tot_ed and _tot_ed >= _disp) else None),
-                    # HIPERSEGMENTACIÓN (founder): escasez por PROTOTIPO, por NIVEL y por TORRE
-                    "por_prototipo": _seg(lambda u: u.get("prototype")),
-                    "por_nivel": _seg(lambda u: u.get("level")),
-                    "por_torre": _seg(lambda u: (re.match(r"(?i)^([A-Z])[ -]?\d", str(u.get("unit_number") or "")) or [None, None])[1]),
-                }
+                # FIX 5 (examen 07-08): SIN unidades extraídas NO se puede calcular absorción — no inventar
+                # "0 disponibles / 100% colocado" (Casa Roma 350 daba pct=100 con units=[]). Absorción = desconocida.
+                if not _us:
+                    extracted["_resumen"] = {"disponibles": None, "vendidas_en_lista": None, "apartadas": None,
+                                             "total_edificio": extracted.get("total_units"), "pct_colocado": None,
+                                             "_sin_inventario": True}
+                else:
+                    _disp = sum(1 for u in _us if (u.get("status") or "disponible") == "disponible")
+                    _vend = sum(1 for u in _us if u.get("status") == "vendido")
+                    _apar = sum(1 for u in _us if u.get("status") in ("apartado", "reservado"))
+                    _tot_ed = extracted.get("total_units") or (building or {}).get("total_units_edificio")
+
+                    def _seg(keyfn):
+                        d: Dict[str, Dict[str, int]] = {}
+                        for u in _us:
+                            k = keyfn(u)
+                            if k in (None, "", "None"):
+                                continue
+                            row = d.setdefault(str(k), {"disponibles": 0, "vendidas": 0, "apartadas": 0})
+                            st = u.get("status") or "disponible"
+                            row["disponibles" if st == "disponible" else ("vendidas" if st == "vendido" else "apartadas")] += 1
+                        return d
+                    extracted["_resumen"] = {
+                        "disponibles": _disp, "vendidas_en_lista": _vend, "apartadas": _apar,
+                        "total_edificio": _tot_ed,
+                        # pct_colocado SOLO si el total del edificio es una fuente REAL (brochure/planos), no la
+                        # propia lista: si total==disponibles el % sería 0 falso; requiere total > disponibles.
+                        "pct_colocado": (round((1 - _disp / _tot_ed) * 100)
+                                         if (_tot_ed and _tot_ed > _disp) else None),
+                        # HIPERSEGMENTACIÓN (founder): escasez por PROTOTIPO, por NIVEL y por TORRE
+                        "por_prototipo": _seg(lambda u: u.get("prototype")),
+                        "por_nivel": _seg(lambda u: u.get("level")),
+                        "por_torre": _seg(lambda u: (re.match(r"(?i)^([A-Z])[ -]?\d", str(u.get("unit_number") or "")) or [None, None])[1]),
+                    }
             except Exception:  # noqa: BLE001
                 pass
 
@@ -1945,6 +2117,7 @@ async def run(db, job_id: str) -> None:
                                      f"consistencia {validacion['score']}/100: " +
                                      "; ".join(c["check"] for c in validacion["checks"] if not c["ok"]))
 
+            _job_cost += float(cost_mxn or 0.0)   # presupuesto acumulado real de la corrida
             item_id = f"bii_{secrets.token_urlsafe(10)}"
             item_doc = {
                 "id": item_id,
