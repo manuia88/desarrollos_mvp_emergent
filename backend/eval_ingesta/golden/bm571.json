@@ -1,0 +1,30 @@
+{
+  "_descripcion": "CASO DORADO #1 — Barranca del Muerto BM 571. Verdad terrestre transcrita A MANO por el founder desde la lista de precios oficial de CLASS (06/07/2026). La extracción DEBE reproducir esto campo por campo.",
+  "project_name_regex": "Barranca del Muerto|BM ?571",
+  "lista_fecha": "2026-07-06",
+  "unidades_esperadas": [
+    {"unit_number": "GH01", "m2_balcony": 0, "patio_m2": 0, "m2_roof_garden": null, "bodega": false,
+     "parking_spots": 0, "m2_privative": 40.11, "m2_total": 40.11, "price": 3522000,
+     "credito_mxn": 2640000, "enganche_mxn": 882000, "reservacion_mxn": 50000,
+     "contrato_mxn": 350000, "a_diferir_mxn": 482000, "status": "disponible"},
+    {"unit_number": "201", "m2_balcony": 10.15, "m2_roof_garden": null, "bodega": false,
+     "parking_spots": 2, "m2_privative": 85.16, "m2_total": 95.31, "price": 6281000,
+     "credito_mxn": 4710000, "enganche_mxn": 1571000, "reservacion_mxn": 50000,
+     "contrato_mxn": 630000, "a_diferir_mxn": 891000, "status": "disponible"},
+    {"unit_number": "202", "m2_balcony": 10.15, "m2_roof_garden": null, "bodega": false,
+     "parking_spots": 2, "m2_privative": 85.16, "m2_total": 95.31, "price": 5786000,
+     "credito_mxn": 4340000, "enganche_mxn": 1446000, "reservacion_mxn": 50000,
+     "contrato_mxn": 580000, "a_diferir_mxn": 816000, "status": "disponible",
+     "_nota": "fila sombreada en el PDF — el sombreado NO es estatus; debe quedar disponible"},
+    {"unit_number": "302", "m2_balcony": 10.15, "m2_roof_garden": null, "bodega": false,
+     "parking_spots": 2, "m2_privative": 85.16, "m2_total": 95.31, "price": 5888000,
+     "credito_mxn": 4420000, "enganche_mxn": 1468000, "reservacion_mxn": 50000,
+     "contrato_mxn": 590000, "a_diferir_mxn": 828000, "status": "disponible"},
+    {"unit_number": "PH02", "m2_balcony": 10.15, "m2_roof_garden": 57.98, "bodega": false,
+     "parking_spots": 2, "m2_privative": 85.16, "m2_total": 153.29, "price": 7165000,
+     "credito_mxn": 5370000, "enganche_mxn": 1795000, "reservacion_mxn": 50000,
+     "contrato_mxn": 720000, "a_diferir_mxn": 1025000, "status": "disponible"}
+  ],
+  "vendidas_por_ausencia": ["301", "401", "402", "GH02", "PH01"],
+  "_regla_ausencia": "Estos deptos existían de una ingesta anterior pero YA NO están en la lista nueva → deben quedar status=vendido (regla: la lista ES el inventario disponible)."
+}

@@ -36,6 +36,9 @@ MAX_FILES_PER_PROJECT_LIST = 60   # tope de archivos LISTADOS por proyecto (evit
 # en docs oficiales platform.claude.com; Sonnet 4.6 ya es legacy). La disponibilidad/precios NO pueden salir
 # mal (decisión founder 07-08). Haiku queda para tareas baratas del resto del sistema. Override por env.
 BULK_INGEST_MODEL = os.environ.get("BULK_INGEST_MODEL", "claude-sonnet-5")
+# Timeout LLM para la ingesta (job de fondo): Sonnet leyendo 15 docs + PDFs nativos tarda >60s legítimamente.
+# El tope global de 60s (anti-DoS) sigue intacto para los caminos de usuario.
+BULK_INGEST_LLM_TIMEOUT = float(os.environ.get("BULK_INGEST_LLM_TIMEOUT", "300"))
 MAX_KEY_FILES_PER_PROJECT = 15    # PDFs DESCARGADOS+leídos por proyecto (datos primero + planos para
                                   # cruzar por unidad; a más, más costo de IA)
 MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
@@ -298,8 +301,8 @@ Devuelve SOLO JSON válido con la siguiente estructura:
     {"unit_number": "string", "prototype": "string|null (tipo/modelo, p.ej. 'Tipo 02', 'B', 'PH')",
      "level": int|null (nivel/piso: dedúcelo del número — 201→2, 1105→11, PB/GH→0; null si no es deducible),
      "status": "disponible|apartado|vendido|null", "type": "depto|casa|townhouse|loft|garden house|penthouse",
-     "bedrooms": int|null, "bathrooms": int|null, "size_m2": int|null, "size_m2_total": int|null,
-     "m2_interior": int|null, "m2_balcony": float|null, "m2_terrace": float|null, "m2_roof_garden": float|null,
+     "bedrooms": int|null, "bathrooms": int|null, "size_m2": float|null, "size_m2_total": float|null,
+     "m2_interior": float|null, "m2_balcony": float|null, "m2_terrace": float|null, "m2_roof_garden": float|null,
      "patio_m2": float|null,
      "storage_count": int|null (columna #BOD/bodegas: el NÚMERO; null si la columna está VACÍA),
      "parking": "string|null (cajones — copia el número EXACTO de la columna #EST)",
@@ -411,7 +414,9 @@ def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(u, dict):
             continue
         p = _num(u.get("price_mxn")); u["price_mxn"] = int(p) if (p is not None and p > 0) else None
-        s = _num(u.get("size_m2")); u["size_m2"] = int(s) if (s is not None and s > 0) else None
+        # m² con DECIMALES (85.16, no 85) — el gate dorado cachó que aquí se redondeaba (int) y se perdía el dato
+        s = _num(u.get("size_m2")); u["size_m2"] = round(float(s), 2) if (s is not None and s > 0) else None
+        st = _num(u.get("size_m2_total")); u["size_m2_total"] = round(float(st), 2) if (st is not None and st > 0) else u.get("size_m2_total")
         b = _num(u.get("bedrooms")); u["bedrooms"] = int(b) if (b is not None and 0 <= b <= 20) else None
         ba = _num(u.get("bathrooms")); u["bathrooms"] = int(ba) if (ba is not None and 0 <= ba <= 20) else None
         clean_units.append(u)
@@ -485,7 +490,7 @@ async def extract_bulk_project(
         try:
             session_id = f"bulk-ingest-{secrets.token_urlsafe(8)}"
             chat = LlmChat(api_key=api_key, session_id=session_id, system_message=EXTRACTION_PROMPT)
-            chat = chat.with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(8000)
+            chat = chat.with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(8000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
             data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
@@ -676,11 +681,19 @@ def _needs_plan_pass(extracted: Dict[str, Any]) -> bool:
 
 
 def _norm_unit_no(s: Any) -> str:
-    """'DEP-206'/'Depto 206' → '206' · '102-A' → '102A' (token alfanumérico con dígitos, sin prefijos ni guiones)."""
+    """Para CRUZAR PLANOS: 'DEP-206'/'Depto 206' → '206' · '102-A' → '102A' (token con dígitos, sin prefijos).
+    OJO: colapsa GH01/PH01 → '01' — NO usar para identidad de unidad (usar _unit_identity)."""
     t = re.sub(r"(?i)\b(dep|depto|departamento|unidad|u)\b", " ", str(s or ""))
     t = re.sub(r"[^A-Za-z0-9 ]", "", t)          # quita guiones/puntos → '102-A' se vuelve '102A'
     m = re.findall(r"\d+[A-Za-z]*", t.replace(" ", ""))
     return (m[-1] if m else re.sub(r"[^A-Za-z0-9]", "", str(s or ""))).upper()
+
+
+def _unit_identity(s: Any) -> str:
+    """IDENTIDAD de unidad (comparar deptos entre listas): quita solo prefijos DEP/DEPTO/UNIDAD y separadores,
+    CONSERVA letras significativas → 'GH01'≠'PH01'≠'101' (el gate dorado cachó la colisión GH01/PH01→'01')."""
+    t = re.sub(r"(?i)^(departamento|depto|dep|unidad|u)[-_ .]*", "", str(s or "").strip())
+    return re.sub(r"[^A-Za-z0-9]", "", t).upper()
 
 
 def _norm_proto(s: Any) -> str:
@@ -704,7 +717,7 @@ async def extract_plan_breakdowns(payloads: List[Tuple[bytes, str, str]]) -> Tup
                     for b, _ in batch]
             nombres = "\n".join(f"- {fn}" for _, fn in batch)
             chat = LlmChat(api_key="", session_id=f"plan-pass-{secrets.token_urlsafe(6)}",
-                           system_message=PLAN_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(4000)
+                           system_message=PLAN_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(4000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
             resp = await chat.send_message(UserMessage(
                 text=f"Planos adjuntos (en este orden):\n{nombres}\n\nDevuelve el JSON.", file_contents=imgs))
             data = _parse_llm_json(resp or "")
@@ -806,7 +819,7 @@ async def classify_project_images(payloads: List[Tuple[bytes, str, str]]) -> Dic
                     for b, m, _ in batch]
             nombres = "\n".join(f"{j + 1}. {fn}" for j, (_, _, fn) in enumerate(batch))
             chat = LlmChat(api_key="", session_id=f"img-kind-{secrets.token_urlsafe(6)}",
-                           system_message=IMAGE_KIND_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(1000)
+                           system_message=IMAGE_KIND_PROMPT).with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(1000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
             resp = await chat.send_message(UserMessage(text=f"Imágenes adjuntas:\n{nombres}", file_contents=imgs))
             data = _parse_llm_json(resp or "")
             for p in (data.get("imagenes") or []) if isinstance(data, dict) else []:
@@ -1029,11 +1042,11 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
                 upd["parking_spots"] = int(_pd) if _pd else (1 if u.get("parking") else 0)
                 upd["parking"] = u.get("parking")
+            # BODEGA: la lista nueva es la verdad — se escribe SIEMPRE (antes el condicional dejaba vivo un
+            # bodega=True inventado por una ingesta vieja; el gate dorado lo cachó en las 5 unidades de BM571).
             _bod_n = _num(u.get("storage_count"))
-            if _bod_n is not None or u.get("storage") is not None:
-                upd["bodega"] = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
-                if _bod_n and _bod_n > 0:
-                    upd["storage_count"] = int(_bod_n)
+            upd["bodega"] = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
+            upd["storage_count"] = int(_bod_n) if (_bod_n and _bod_n > 0) else None
             # forma de pago por unidad (montos + % sobre el precio vigente)
             _pay = _payment_fields(u, _price or existing.get("price"))
             upd.update({k: v for k, v in _pay.items() if v is not None})
@@ -1095,12 +1108,12 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
     # nuestro que YA NO aparece en la lista nueva → se VENDIÓ (por eso salió de la lista). Solo con lista
     # significativa (≥3 unidades) y solo sobre unidades que vinieron de ingesta (no toca ediciones del dev).
     # Registra unit_status_events con days_to_sell → absorción REAL del proyecto.
-    new_nos = {_norm_unit_no(u.get("unit_number")) for u in (extracted.get("units") or []) if u.get("unit_number")}
+    new_nos = {_unit_identity(u.get("unit_number")) for u in (extracted.get("units") or []) if u.get("unit_number")}
     if len(new_nos) >= 3:
         async for old in db.units.find(
                 {"development_id": target_dev_id, "status": {"$ne": "vendido"},
                  "source": {"$in": ["bulk_ingest", "bulk_ingest_merge"]}}, {"_id": 0}):
-            if _norm_unit_no(old.get("unit_number")) in new_nos:
+            if _unit_identity(old.get("unit_number")) in new_nos:
                 continue
             try:
                 ev = {"unit_id": old.get("id"), "dev_id": target_dev_id, "unit_number": old.get("unit_number"),
@@ -1368,6 +1381,10 @@ async def run(db, job_id: str) -> None:
             if decision == "auto_approve" and _has_price and isinstance(_price_conf, (int, float)) and _price_conf < 0.6:
                 decision = "pending_review"
                 extracted["_needs_review"] = "precio de baja confianza (IA)"
+            # Extracción FALLIDA (timeout/stub, sin unidades) → NUNCA auto-aprobar/mergear: a revisión con motivo.
+            if decision == "auto_approve" and extracted.get("_low_confidence") and not (extracted.get("units") or []):
+                decision = "pending_review"
+                extracted["_needs_review"] = "extracción fallida o incompleta (timeout / sin datos legibles)"
 
             item_id = f"bii_{secrets.token_urlsafe(10)}"
             item_doc = {

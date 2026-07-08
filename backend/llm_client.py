@@ -60,6 +60,7 @@ class LlmChat:
         self._provider = "anthropic"
         self._model: Optional[str] = None
         self._max_tokens = 1024
+        self._timeout: Optional[float] = None   # None → LLM_TIMEOUT_SECONDS (60s, anti-DoS)
 
     # ── fluent setters (igual que la librería) ──
     def with_model(self, provider: str, model: Optional[str] = None) -> "LlmChat":
@@ -79,6 +80,15 @@ class LlmChat:
         self._system = msg or ""
         return self
 
+    def with_timeout(self, seconds: Any) -> "LlmChat":
+        """Timeout POR LLAMADA (jobs de fondo pesados, ej. ingesta con PDFs nativos: Sonnet puede tardar
+        >60s legítimamente). El default global de 60s (anti-DoS) sigue protegiendo los caminos de usuario."""
+        try:
+            self._timeout = max(10.0, min(float(seconds), 900.0))
+        except Exception:  # noqa: BLE001
+            pass
+        return self
+
     # ── envío ──
     async def send_message(self, message: Any) -> str:
         text = getattr(message, "text", None)
@@ -87,14 +97,16 @@ class LlmChat:
         images = list(getattr(message, "file_contents", []) or [])
         if self._provider == "openai":
             return await _openai_chat(self._system, text, self._model or _DEFAULT_OPENAI, self._max_tokens)
-        return await _anthropic_chat(self._system, text, self._model or _DEFAULT_ANTHROPIC, self._max_tokens, images)
+        return await _anthropic_chat(self._system, text, self._model or _DEFAULT_ANTHROPIC, self._max_tokens,
+                                     images, timeout=self._timeout)
 
     # send_pulse: en la lib era una variante; aquí se comporta igual que send_message (devuelve el texto).
     async def send_pulse(self, message: Any) -> str:
         return await self.send_message(message)
 
 
-async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: int, images: Optional[list] = None) -> str:
+async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: int,
+                          images: Optional[list] = None, timeout: Optional[float] = None) -> str:
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY no configurado")
@@ -102,7 +114,8 @@ async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: i
     model = _MODEL_ALIASES.get(model, model) or _DEFAULT_ANTHROPIC
     # LLM-NO-TIMEOUT (audit v2): timeout DURO en el cliente → un LLM colgado no ocupa un worker ~600s (anti-DoS).
     # Protege a los ~87 call-sites sin tocarlos. Configurable por env. max_retries acotado.
-    _timeout = float(os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
+    # `timeout` explícito (with_timeout) lo sube SOLO para jobs de fondo pesados (ingesta con PDFs nativos).
+    _timeout = timeout or float(os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
     client = AsyncAnthropic(api_key=key, timeout=_timeout, max_retries=2)
     # Visión: si vienen imágenes (ImageContent), el contenido es una lista [texto, imagen…]; si no, texto plano.
     if images:
