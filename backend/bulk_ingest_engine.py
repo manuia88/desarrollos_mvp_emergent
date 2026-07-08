@@ -282,7 +282,9 @@ async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[D
 
 
 def _group_by_project(files: List[Dict[str, Any]], root_folder_id: str) -> Dict[str, Dict[str, Any]]:
-    """Group files by parent_folder_id. Files at root → 1 group keyed by root id."""
+    """Group files by parent_folder_id. Files at root → 1 group keyed by root id.
+    Carpetas HOMÓNIMAS se FUSIONAN: el mismo proyecto suele venir partido en 2 carpetas con el mismo
+    nombre (validación 07-08: dos 'AVC 1129' — una con fichas, otra con la lista de precios)."""
     groups: Dict[str, Dict[str, Any]] = {}
     for f in files:
         key = f.get("parent_folder_id") or root_folder_id
@@ -293,7 +295,15 @@ def _group_by_project(files: List[Dict[str, Any]], root_folder_id: str) -> Dict[
                 "files": [],
             }
         groups[key]["files"].append(f)
-    return groups
+    # fusión por nombre normalizado (espacios/mayúsculas): "Albert 38 " == "Albert 38" · "BOLIVAR 577" == "Bolivar 577"
+    merged: Dict[str, Dict[str, Any]] = {}
+    for g in groups.values():
+        norm = re.sub(r"\s+", " ", (g["parent_folder_name"] or "").strip().lower())
+        if norm in merged and norm != "proyecto principal":
+            merged[norm]["files"].extend(g["files"])
+        else:
+            merged[norm] = g
+    return {g["parent_folder_id"]: g for g in merged.values()}
 
 
 async def _download_file_bytes(conn: Dict[str, Any], file_id: str, mime: str) -> Tuple[bytes, str]:
@@ -371,6 +381,21 @@ En "_confidence" califica QUÉ TAN SEGURO estás (1.0 = explícito · 0.5 = infe
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
 Responde EXCLUSIVAMENTE con JSON, sin markdown."""
+
+
+def _texto_ilegible(t: str) -> bool:
+    """La capa de texto del PDF está CORRUPTA (validación AVC 07-08): glifos encimados
+    ('$66666655555,,,000...') o columnas rotadas ('o ic e r P' = 'Precio' al revés). En esos casos el
+    texto MIENTE — hay que leer el PDF como IMAGEN (visión)."""
+    if not t:
+        return False
+    if re.search(r"(.)\1{9,}", t):                      # runs absurdos del mismo carácter
+        return True
+    low = t.lower()
+    if any(k in low for k in ("oicerp", "otnematrap", "nedrag foor", "n ó ic a v r e s e r",
+                              "o ic e r p", "s a z a r r e t")):   # palabras clave AL REVÉS/espaciadas
+        return True
+    return False
 
 
 def _extract_text_from_bytes(b: bytes, mime: str, fname: str) -> str:
@@ -496,7 +521,7 @@ async def extract_bulk_project(
             texto = _extract_text_from_bytes(b, mime, fname)
             nm = (fname or "").lower()
             import base64 as _b64
-            if texto and len(texto.strip()) >= 120:
+            if texto and len(texto.strip()) >= 120 and not _texto_ilegible(texto):
                 content_parts.append(f"\n=== {fname} ===\n{texto[:8000]}")
             elif (mime == "application/pdf" or nm.endswith(".pdf")) and pdf_docs < 3 and len(b) <= 10 * 1024 * 1024:
                 # OCR (#2): PDF escaneado (poco/ningún texto) → DOCUMENTO nativo (Claude lee la imagen de la página)
@@ -1080,6 +1105,23 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
             "checks": checks}
 
 
+def _parking_count(raw) -> int:
+    """CONTEO de cajones desde el texto real de las listas (validación AVC 07-08): '28 y 29'→2 ·
+    '34 down'→1 (es el NÚMERO del cajón, no el conteo) · '2'→2 · '07'→1 · 'incluido'→1 · vacío→0."""
+    s = str(raw or "").strip()
+    if not s:
+        return 0
+    toks = re.findall(r"\d+", s)
+    if not toks:
+        return 1
+    if len(toks) > 1:
+        return len(toks)                      # '28 y 29' = 2 cajones identificados
+    t = toks[0]
+    if len(t) == 1 and int(t) <= 6:
+        return int(t)                          # '2' = conteo típico de lista
+    return 1                                   # '34'/'07' = identificador de UN cajón
+
+
 _PAY_KEYS = ("credito_mxn", "enganche_mxn", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn")
 
 
@@ -1182,8 +1224,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         _sm2t = u.get("size_m2_total") or u.get("size_m2")
         _price = u.get("price_mxn")
         _park_raw = u.get("parking")
-        _park_digits = re.sub(r"[^\d]", "", str(_park_raw or ""))
-        _park_n = int(_park_digits) if _park_digits else (1 if _park_raw else 0)
+        _park_n = _parking_count(_park_raw)
         # bodega: SOLO si la lista lo dice (#BOD con número o texto de bodega) — antes se inventaba
         _bod_n = _num(u.get("storage_count"))
         _bodega = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
@@ -1285,7 +1326,7 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             if u.get("prototype"):
                 upd["prototype"] = u.get("prototype")
             if u.get("parking") is not None:
-                _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
+                _pd = None  # (conteo real vía _parking_count)
                 upd["parking_spots"] = int(_pd) if _pd else (1 if u.get("parking") else 0)
                 upd["parking"] = u.get("parking")
             # BODEGA: la lista nueva es la verdad — se escribe SIEMPRE (antes el condicional dejaba vivo un
@@ -1329,7 +1370,7 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                     log.warning(f"[bulk_ingest] status_event: {e}")
             await db.units.update_one({"id": existing["id"]}, {"$set": upd})
         else:
-            _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
+            _pd = None  # (conteo real vía _parking_count)
             await db.units.insert_one({
                 "id": f"unit_{secrets.token_urlsafe(10)}",
                 "development_id": target_dev_id,
@@ -1342,7 +1383,7 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "m2_privative": u.get("m2_interior") or _sm2, "m2_total": u.get("size_m2_total") or _sm2,
                 "m2_balcony": u.get("m2_balcony"), "m2_terrace": u.get("m2_terrace"),
                 "m2_roof_garden": u.get("m2_roof_garden"),
-                "parking_spots": (int(_pd) if _pd else (1 if u.get("parking") else 0)),
+                "parking_spots": _parking_count(u.get("parking")),
                 "bodega": bool(u.get("storage")), "storage": u.get("storage"), "parking": u.get("parking"),
                 "size_m2": _sm2, "price": _price, "price_mxn": _price,
                 "price_display": (f"${int(_price):,}" if _price else None),
@@ -1613,9 +1654,54 @@ async def run(db, job_id: str) -> None:
                 except Exception as e:
                     error_log.append(f"download failed {f.get('id')}: {e}")
 
+            async def _extract_desde_fichas(base_extracted, base_cost):
+                """FICHAS-POR-DEPTO por LOTES: cada ficha = 1 unidad con su precio adentro. Devuelve (extracted, cost)."""
+                _ex = base_extracted or {"project_name": project_name_hint}
+                all_units = list(_ex.get("units") or [])
+                ficha_payloads = []
+                for pf in _fichas:
+                    try:
+                        pb, pm = await _fetch(pf)
+                        ficha_payloads.append((pb, pm, pf.get("name", "")))
+                    except Exception:  # noqa: BLE001
+                        continue
+                cst = base_cost
+                for bi in range(0, len(ficha_payloads), 3):
+                    batch = ficha_payloads[bi:bi + 3]
+                    try:
+                        ex_b, c_b = await extract_bulk_project(project_name_hint, batch)
+                        cst += c_b
+                        for u in (ex_b.get("units") or []):
+                            if u.get("unit_number"):
+                                all_units.append(u)
+                        for k in ("address_full", "colonia", "alcaldia", "delivery_date",
+                                  "maintenance_fee_mxn", "amenities", "price_range"):
+                            if not _ex.get(k) and ex_b.get(k):
+                                _ex[k] = ex_b[k]
+                    except Exception as e:  # noqa: BLE001
+                        error_log.append(f"ficha batch {bi // 3 + 1} failed {gkey}: {e}")
+                _seen_u = {}
+                for u in all_units:
+                    k = _unit_identity(u.get("unit_number"))
+                    if k not in _seen_u or (u.get("price_mxn") and not _seen_u[k].get("price_mxn")):
+                        _seen_u[k] = u
+                _ex["units"] = list(_seen_u.values())
+                log.info(f"[bulk_ingest] {gkey}: fichas por lotes → {len(_ex['units'])} unidades "
+                         f"({sum(1 for u in _ex['units'] if u.get('price_mxn'))} con precio)")
+                return _ex, cst
+
             try:
-                extracted, _c = await extract_bulk_project(project_name_hint, payloads)
-                cost_mxn += _c
+                if _fichas and not _listas:
+                    extracted, _c = await extract_bulk_project(project_name_hint, payloads[:2])  # brochure/contexto
+                    extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn + _c)
+                else:
+                    extracted, _c = await extract_bulk_project(project_name_hint, payloads)
+                    cost_mxn += _c
+                    # FALLBACK lista→fichas: la lista existe pero no rindió unidades (escaneada/vieja/ilegible)
+                    # y HAY fichas vivas → el inventario sale de las fichas (validación AVC 07-08).
+                    if _fichas and not (extracted.get("units") or []):
+                        log.info(f"[bulk_ingest] {gkey}: lista sin unidades → fallback a {len(_fichas)} fichas")
+                        extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn)
             except Exception as e:
                 extracted, _c = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")

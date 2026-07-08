@@ -26,6 +26,20 @@ _STATUS_ES = {
 }
 
 
+def _parking_count_txt(raw) -> int:
+    """'28 y 29'→2 · '34 down'→1 · '2'→2 · '07'→1 (identificador) · vacío→0."""
+    s = str(raw or "").strip()
+    if not s:
+        return 0
+    toks = re.findall(r"\d+", s)
+    if not toks:
+        return 1
+    if len(toks) > 1:
+        return len(toks)
+    t = toks[0]
+    return int(t) if (len(t) == 1 and int(t) <= 6) else 1
+
+
 def _parking_int(u: Dict[str, Any]) -> int:
     """cajones como entero: usa parking_spots si existe; si no, extrae dígitos del string 'parking' ('2 cajones' → 2)."""
     if u.get("parking_spots") is not None:
@@ -33,14 +47,7 @@ def _parking_int(u: Dict[str, Any]) -> int:
             return int(u.get("parking_spots") or 0)
         except (TypeError, ValueError):
             return 0
-    raw = u.get("parking")
-    if raw is None:
-        return 0
-    digits = re.sub(r"[^\d]", "", str(raw))
-    if digits:
-        return int(digits)
-    # 'parking' es texto sin número (ej. 'incluido') → cuenta como 1 cajón
-    return 1 if str(raw).strip() else 0
+    return _parking_count_txt(u.get("parking"))
 
 
 def normalize_unit(u: Dict[str, Any]) -> Dict[str, Any]:
