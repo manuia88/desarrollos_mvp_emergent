@@ -330,6 +330,8 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "lng": null o float,
   "total_units": int|null (unidades TOTALES del EDIFICIO — búscalas en el brochure "X departamentos".
     Si SOLO tienes la lista de disponibilidad NO cuentes sus filas: eso es inventario disponible, usa null),
+  "niveles_edificio": int|null (pisos TOTALES del edificio — del brochure/presentación),
+  "depas_por_piso": int|null (departamentos por piso — del brochure o plantas tipo),
   "price_range": {"min_mxn": int|null, "max_mxn": int|null},
   "delivery_date": "string|null (fecha de entrega, p.ej. SEP/2026)",
   "maintenance_fee_mxn": int|null,
@@ -357,6 +359,9 @@ REGLA #1 — DISPONIBILIDAD (LA MÁS IMPORTANTE, prohibido equivocarse):
 · status "apartado"/"vendido" SOLO si el documento lo dice EXPLÍCITAMENTE (etiqueta, columna de estatus,
   texto "apartado"/"vendido"/"no disponible", tachado). Un renglón sombreado o de otro color NO es evidencia
   suficiente → déjalo "disponible". NUNCA adivines el estatus.
+REGLA #1.5 — ETIQUETAS EXACTAS DE M²: BALCÓN ≠ TERRAZA ≠ PATIO ≠ ROOF GARDEN. Respeta la COLUMNA/etiqueta
+del documento: si dice TERRAZA va en m2_terrace, si dice BALCÓN en m2_balcony — NUNCA las intercambies
+(validación founder: Casa Condesa decía TERRAZA y se guardó como balcón).
 REGLA #2 — NO INVENTAR (copia exacta):
 · Si la lista NO trae columna de recámaras/baños → null (el cruce de planos los completa después).
 · #BOD/bodega vacío → storage_count null. NO asumas que hay bodega.
@@ -1095,7 +1100,20 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
     protos_raros = {str(u.get("prototype")) for u in units
                     if u.get("prototype") and re.fullmatch(r"\d{2,3}\.\d+", str(u.get("prototype")))}
     _c("prototipos_sanos", not protos_raros, "; ".join(list(protos_raros)[:3]))
-    # 7 · hay fuente de inventario
+    # 7 · coherencia $/m² por PROTOTIPO (founder: hermanos del mismo proto deben costar parecido por m²;
+    #     >25% de spread = probable error de lectura o total de m² ambiguo)
+    por_proto: Dict[str, List[float]] = {}
+    for u in units:
+        p, m2 = u.get("price_mxn"), (u.get("size_m2_total") or u.get("size_m2"))
+        pr = u.get("prototype")
+        if p and m2 and pr:
+            por_proto.setdefault(str(pr), []).append(p / float(m2))
+    incoh = []
+    for pr, vals in por_proto.items():
+        if len(vals) >= 2 and min(vals) > 0 and (max(vals) / min(vals) - 1) > 0.25:
+            incoh.append(f"proto {pr}: ${min(vals):,.0f}–${max(vals):,.0f}/m²")
+    _c("coherencia_precio_m2_proto", not incoh, "; ".join(incoh[:3]))
+    # 8 · hay fuente de inventario
     _c("fuente_inventario", bool(plan.get("listas_precios") or plan.get("fichas_por_depto")),
        "sin lista ni fichas")
 
@@ -1201,8 +1219,8 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         # etapa: si la entrega dice "inmediata" el proyecto YA está terminado — 'preventa' era contradictorio
         "stage": ("entrega" if re.search(r"(?i)inmediata", str(extracted.get("delivery_date") or ""))
                   else (extracted.get("stage") or "preventa")),
-        "max_level": (extracted.get("_building") or {}).get("max_level"),
-        "depas_por_piso": (extracted.get("_building") or {}).get("depas_por_piso"),
+        "max_level": (extracted.get("_building") or {}).get("max_level") or extracted.get("niveles_edificio"),
+        "depas_por_piso": (extracted.get("_building") or {}).get("depas_por_piso") or extracted.get("depas_por_piso"),
         "torres": (extracted.get("_building") or {}).get("torres") or [],
         "status": "active",
         "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
@@ -1844,6 +1862,22 @@ async def run(db, job_id: str) -> None:
             if decision == "auto_approve" and extracted.get("_low_confidence") and not (extracted.get("units") or []):
                 decision = "pending_review"
                 extracted["_needs_review"] = "extracción fallida o incompleta (timeout / sin datos legibles)"
+
+            # RESUMEN DE ABSORCIÓN (founder): la lista trae los DISPONIBLES; el brochure/mapa el TOTAL del
+            # edificio → % colocado instantáneo (Londres: 11 disp / 72 edificio = 85% absorbido). Oro de mercado.
+            try:
+                _us = extracted.get("units") or []
+                _disp = sum(1 for u in _us if (u.get("status") or "disponible") == "disponible")
+                _vend = sum(1 for u in _us if u.get("status") == "vendido")
+                _apar = sum(1 for u in _us if u.get("status") in ("apartado", "reservado"))
+                _tot_ed = extracted.get("total_units") or (building or {}).get("total_units_edificio")
+                extracted["_resumen"] = {
+                    "disponibles": _disp, "vendidas_en_lista": _vend, "apartadas": _apar,
+                    "total_edificio": _tot_ed,
+                    "pct_colocado": (round((1 - _disp / _tot_ed) * 100) if (_tot_ed and _tot_ed >= _disp) else None),
+                }
+            except Exception:  # noqa: BLE001
+                pass
 
             # GATE DE CONSISTENCIA: score de confianza + razones (siempre; gratis)
             validacion = validate_extraction(extracted, plan or {}, building, project_name_hint)
