@@ -22,8 +22,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger("dmx.historic_miner")
 
-_HIST_FOLDER_RE = re.compile(r"(?i)versione?s?\s+antigua|old\s+version|hist[oó]rico")
+_HIST_FOLDER_RE = re.compile(r"(?i)versione?s?\s+antigua|old\s+version|hist[oó]rico|vendido|sold|cerrado|entregado")
 _LISTA_NAME_RE = re.compile(r"(?i)precio|lista|disponib|inventar|\blp[ _]")
+_ACABADOS_RE = re.compile(r"(?i)acabado|especificacion")   # "LISTA DE ACABADOS" NO es lista de precios
 
 
 async def find_candidates(conn, folder_url: str, only_project: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -44,7 +45,7 @@ async def find_candidates(conn, folder_url: str, only_project: Optional[str] = N
         fechadas = []
         for f in g["files"]:
             nm = f.get("name") or ""
-            if _LISTA_NAME_RE.search(nm.lower()):
+            if _LISTA_NAME_RE.search(nm.lower()) and not _ACABADOS_RE.search(nm):
                 fecha = bie._fecha_de_nombre(nm)
                 if fecha:
                     fechadas.append({"project": pname, "file_id": f["id"], "name": nm,
@@ -63,7 +64,7 @@ async def find_candidates(conn, folder_url: str, only_project: Optional[str] = N
         out, tok = [], None
         while True:
             r = _svc.files().list(q=f"'{fid}' in parents and trashed = false",
-                                  fields="nextPageToken,files(id,name,mimeType)", pageSize=200,
+                                  fields="nextPageToken,files(id,name,mimeType,modifiedTime)", pageSize=200,
                                   supportsAllDrives=True, includeItemsFromAllDrives=True,
                                   pageToken=tok).execute()
             out += r.get("files", [])
@@ -79,24 +80,31 @@ async def find_candidates(conn, folder_url: str, only_project: Optional[str] = N
                 nm = it.get("name") or ""
                 if it.get("mimeType") == FOLDER_MIME:
                     res.extend(_walk_hist(it["id"], f"{base}/{nm}"))
-                elif _LISTA_NAME_RE.search(nm.lower()):
+                elif _LISTA_NAME_RE.search(nm.lower()) and not _ACABADOS_RE.search(nm):
                     res.append({"file_id": it["id"], "name": nm, "carpeta": base,
-                                "fecha": bie._fecha_de_nombre(nm)})
+                                "fecha": bie._fecha_de_nombre(nm) or (it.get("modifiedTime") or "")[:10] or None})
         except Exception as e:  # noqa: BLE001
             log.warning(f"[miner] walk hist {base}: {e}")
         return res
 
     root_items = await asyncio.to_thread(_ls, folder_id)
     for it in root_items:
-        if _HIST_FOLDER_RE.search(it.get("name") or ""):
-            hist = await asyncio.to_thread(_walk_hist, it["id"], it.get("name") or "hist")
+        nm_folder = it.get("name") or ""
+        if _HIST_FOLDER_RE.search(nm_folder):
+            # ¿carpeta de desarrollos VENDIDOS/cerrados? → cada subcarpeta es un dev completo ya
+            # colocado: su lista final es el CIERRE del proyecto (comparable histórico de la zona)
+            cerrados = bool(re.search(r"(?i)vendido|sold|cerrado|entregado", nm_folder))
+            hist = await asyncio.to_thread(_walk_hist, it["id"], nm_folder)
             for h in hist:
                 # el proyecto se infiere de la subcarpeta dentro de la histórica (o del nombre del archivo)
                 proj = (h.get("carpeta") or "").split("/")[-1] or h["name"]
+                if proj == nm_folder:
+                    proj = re.sub(r"(?i)\.pdf$|lista de precios|precios", "", h["name"]).strip(" _-·") or proj
                 if only_project and only_project.lower() not in (proj + " " + h["name"]).lower():
                     continue
                 out.append({"project": proj, "file_id": h["file_id"], "name": h["name"],
-                            "fecha": h.get("fecha"), "origen": "carpeta_historica"})
+                            "fecha": h.get("fecha"),
+                            "origen": "desarrollo_vendido" if cerrados else "carpeta_historica"})
     return out
 
 
@@ -106,15 +114,20 @@ async def mine(db, conn, folder_url: str, only_project: Optional[str] = None,
     import bulk_ingest_engine as bie
 
     cands = await find_candidates(conn, folder_url, only_project)
+    # dedupe: el mismo archivo puede aparecer por dos orígenes (lista fechada + carpeta de vendidos)
+    _vistos: set = set()
+    cands = [c for c in cands if not (c["file_id"] in _vistos or _vistos.add(c["file_id"]))]
     # idempotencia: fuera los ya minados
     nuevos = []
     for c in cands:
         ya = await db.lista_snapshots.find_one({"file_id": c["file_id"]}, {"_id": 0, "file_id": 1})
         if not ya:
             nuevos.append(c)
+    from collections import Counter
     plan = {"candidatos": len(cands), "nuevos": len(nuevos),
+            "por_origen": dict(Counter(c["origen"] for c in nuevos)),
             "costo_estimado_mxn": round(len(nuevos[:max_listas]) * 0.6, 1),
-            "muestras": [{k: c[k] for k in ("project", "name", "fecha", "origen")} for c in nuevos[:15]]}
+            "muestras": [{k: c[k] for k in ("project", "name", "fecha", "origen")} for c in nuevos[:40]]}
     if plan_only:
         return {"plan": plan, "ejecutado": False}
 
@@ -130,7 +143,33 @@ async def mine(db, conn, folder_url: str, only_project: Optional[str] = None,
             if not units:
                 continue
             snap = {"dev_name": c["project"], "fecha": c["fecha"], "file_id": c["file_id"],
-                    "source_file": c["name"], "units": units, "retro": True, "minado_at": bie._iso()}
+                    "source_file": c["name"], "units": units, "retro": True, "minado_at": bie._iso(),
+                    "cerrado": c["origen"] == "desarrollo_vendido"}
+            # comparable de ZONA retro: un dev vendido con colonia identificada = punto REAL en la
+            # curva histórica de precios de esa colonia → misma colección que consumen battle cards
+            try:
+                from routes.wizard import _resolve_colonia_id
+                _col = await _resolve_colonia_id(db, ex.get("colonia") or ex.get("address_full"),
+                                                 ex.get("alcaldia")) \
+                    if (ex.get("colonia") or ex.get("alcaldia") or ex.get("address_full")) else None
+                _pm2 = sorted(u2["price"] / float(un.get("size_m2_total") or un.get("size_m2"))
+                              for u2, un in ((x, next((e for e in (ex.get("units") or [])
+                                                       if e.get("unit_number") == x["unit_number"]), {})) for x in units)
+                              if u2.get("price") and (un.get("size_m2_total") or un.get("size_m2")))
+                if _col and _pm2:
+                    snap["colonia_id"] = _col
+                    snap["price_m2_median"] = round(_pm2[len(_pm2) // 2])
+                    ya_cs = await db.dev_competitor_price_snapshots.find_one(
+                        {"source": "retro_lista", "file_id": c["file_id"]}, {"_id": 1})
+                    if not ya_cs:
+                        await db.dev_competitor_price_snapshots.insert_one({
+                            "project_name": c["project"], "colonia_id": _col, "zone_id": _col,
+                            "price_m2_median": snap["price_m2_median"],
+                            "units_available": sum(1 for x in units if x.get("status") == "disponible"),
+                            "cerrado": snap["cerrado"], "ts": c["fecha"], "file_id": c["file_id"],
+                            "source": "retro_lista"})
+            except Exception as _e:  # noqa: BLE001
+                log.warning(f"[miner] comparable zona {c['name']}: {_e}")
             # liga al dev REAL si existe (por nombre)
             dev = await db.developments.find_one(
                 {"name": {"$regex": re.escape(c["project"].split("(")[0].strip()[:18]), "$options": "i"}},
