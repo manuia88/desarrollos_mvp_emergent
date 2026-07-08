@@ -111,7 +111,8 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const [rank, setRank] = useState(null);
   // Cross-Portal v2 · la foto de portada REAL del dev viene en el listado (batch · sin fetch por
   // tarjeta = ruta caliente). Si la subió, va primero; el resto del carrusel usa las del seed.
-  const seedPhotos = dev.photos || [];
+  // Renders de la INGESTA llegan como rutas relativas /api/... (los sirve el backend desde el Drive) → prefijo API.
+  const seedPhotos = (dev.photos || []).map((p) => (typeof p === 'string' && p.startsWith('/api/') ? `${API}${p}` : p));
   const photos = dev.hero_photo ? [`${API}${dev.hero_photo}`, ...seedPhotos] : seedPhotos;
   const hue = dev.developer?.logo_hue || 231;
 

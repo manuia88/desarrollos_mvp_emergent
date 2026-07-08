@@ -89,7 +89,11 @@ const m2of = (u) => u.m2_total || u.m2_privative || null;
 const ESTADO = { disponible: { l: 'Disponible', c: C.green }, reservado: { l: 'Reservado', c: C.amber }, apartado: { l: 'Apartado', c: C.amber }, vendido: { l: 'Vendido', c: C.faint }, bloqueado: { l: 'No disp.', c: C.faint } };
 const AVM_COLOR = { rojo: C.red, naranja: '#ea580c', amarillo: '#d97706', ambar: '#d97706', verde: C.green, gris: C.faint };
 const AVM_LABEL = { bajo: 'Buen precio', justo: 'En línea', alto: 'Sobre mercado' };
-const planoOf = (dev, u) => u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || null;
+// Rutas relativas /api/... (renders/planos servidos por el backend desde el Drive) → prefijar con el API base.
+const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
+const assetUrl = (p) => (p && typeof p === 'string' && p.startsWith('/api/') ? `${API_BASE}${p}` : p);
+const planoOf = (dev, u) => assetUrl(u.plano_url) || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || null;
+const esPdf = (u, p) => (u && u.plano_mime === 'application/pdf') || /\.pdf($|\?)/i.test(p || '');
 
 // sub-nav — orden de apartments.com
 // Nota: Tu dinero (calculadoras), Confianza y el mapa/crédito quedan EN STANDBY (founder) para clonar
@@ -173,7 +177,7 @@ function Section({ id, title, refEl, children, note }) {
 const heroArrow = (side) => ({ position: 'absolute', [side]: 12, top: '50%', transform: 'translateY(-50%)', width: 38, height: 38, borderRadius: 9999, background: 'rgba(255,255,255,0.85)', border: 'none', color: C.ink, fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(16,24,40,0.18)', zIndex: 2 });
 // §3 Galería hero: mosaico bento + flechas en la celda grande + overlay 3D + píldora multi-segmento con conteos
 function Gallery({ dev, scans = [], hasVideo, onOpen }) {
-  const photos = dev.photos || [];
+  const photos = (dev.photos || []).map(assetUrl);
   const [err, setErr] = useState({});
   const [heroI, setHeroI] = useState(0);
   const Img = ({ i, onClick }) => (err[i] || !photos[i])
@@ -213,7 +217,7 @@ function Gallery({ dev, scans = [], hasVideo, onOpen }) {
 
 // ════════════════════ GALERÍA MODAL (tabs de media: Fotos · Planos · 3D · Video) ════════════════════
 function GalleryModal({ dev, scans, startAt, startTab, onClose }) {
-  const photos = dev.photos || [];
+  const photos = (dev.photos || []).map(assetUrl);
   const planos = [...new Set((dev.units || []).map((u) => planoOf(dev, u)).filter(Boolean))];
   const video = dev.video_url || dev.video || null;
   const tabs = [['fotos', `Fotos (${photos.length})`], planos.length && ['planos', `Planos (${planos.length})`], scans.length && ['tour', `Recorridos 3D (${scans.length})`], video && ['video', 'Video']].filter(Boolean);
@@ -299,14 +303,14 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {models.map((m) => {
-          const plano = planoOf(dev, m.us[0]) || (dev.photos || [])[0];
+          const plano = planoOf(dev, m.us[0]) || assetUrl((dev.photos || [])[0]);
           const show = expanded[m.proto] ? m.us : m.us.slice(0, 3);
           const specs = [m.beds.length ? (m.beds[0] === m.beds[m.beds.length - 1] ? bedLabel(m.beds[0]) : `${m.beds[0]}–${m.beds[m.beds.length - 1]} rec`) : null, m.baths.length ? `${m.baths[0]} baños` : null, m.m2min ? (m.m2min === m.m2max ? `${m.m2min} m²` : `${m.m2min}–${m.m2max} m²`) : null].filter(Boolean).join(' · ');
           return (
             <div key={m.proto} className="dmx-card" style={{ ...box, overflow: 'hidden' }}>
               <div style={{ display: 'flex', gap: 16, padding: 16, flexWrap: 'wrap' }}>
                 <button onClick={() => onOpenModel(m.us.find((u) => u.status === 'disponible') || m.us[0])} style={{ width: 128, height: 96, borderRadius: 8, overflow: 'hidden', flex: 'none', background: C.bgSoft, border: `1px solid ${C.line}`, padding: 0, cursor: 'pointer' }}>
-                  {plano ? <img src={plano} alt={`Plano ${protoName(m.proto)}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</span>}
+                  {plano ? (esPdf(m.us[0], plano) ? <object data={plano} type="application/pdf" aria-label={`Plano ${protoName(m.proto)}`} style={{ width: '100%', height: '100%' }} /> : <img src={plano} alt={`Plano ${protoName(m.proto)}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />) : <span style={{ fontFamily: FONT, color: C.faint }}>{protoName(m.proto)}</span>}
                 </button>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: C.ink, letterSpacing: '-0.01em' }}>{protoName(m.proto)}</div>
@@ -383,7 +387,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
   const u = allUnits.find((x) => (x.id || x.unit_number) === uid) || initUnit || allUnits[0];
   if (!u) return null;
   const developer = dev.developer || {};
-  const plano = planoOf(dev, u) || (dev.photos || [])[0];
+  const plano = planoOf(dev, u) || assetUrl((dev.photos || [])[0]);
   const a = avm[u.id];
   const est = ESTADO[u.status] || ESTADO.disponible;
   const specs = [u.bedrooms != null && `${u.bedrooms} rec`, u.bathrooms != null && `${u.bathrooms} baños`, m2of(u) && `${m2of(u)} m²`, u.parking_spots && `${u.parking_spots} estac.`].filter(Boolean).join(' · ');
@@ -496,7 +500,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
             <div style={{ position: 'sticky', top: 44 }}>
               <div className="dmx-card" style={{ ...box, padding: 12 }}>
                 <div style={{ position: 'relative', borderRadius: R_CARD, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>
-                  {plano ? <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(u.prototype)}</div>}
+                  {plano ? (esPdf(u, plano) ? <object data={plano} type="application/pdf" aria-label={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%' }} /> : <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />) : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{protoName(u.prototype)}</div>}
                   {plano && <button onClick={() => setExpand(true)} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
                 </div>
                 <div style={{ textAlign: 'center', fontFamily: HEAD, fontSize: 13, fontWeight: 700, color: C.ink2, marginTop: 10 }}>{protoName(u.prototype)}</div>
@@ -672,7 +676,7 @@ function MensajeModal({ dev, unit, onClose }) {
 function CompartirModal({ dev, onClose }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== 'undefined' ? window.location.href : '';
-  const photo = (dev.photos || [])[0];
+  const photo = assetUrl((dev.photos || [])[0]);
   const addr = dev.address_full || dev.street || [dev.colonia, dev.alcaldia].filter(Boolean).join(', ');
   const copy = async () => { try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch (e) { /* noop */ } };
   const mail = `mailto:?subject=${encodeURIComponent(dev.name)}&body=${encodeURIComponent(`Mira este desarrollo: ${dev.name} — ${url}`)}`;
@@ -806,7 +810,7 @@ function TabGeneral({ dev }) {
   const parkR = rng(units.map((u) => u.parking_spots)) || dev.parking_range;
   const m2R = rng(units.map(m2of)) || dev.m2_range;
   const nUnits = dev.units_total || dev.total_units || units.length || null;
-  const protos = [...new Set(units.map((u) => u.prototype).filter(Boolean))].length || null;
+  const protos = [...new Set(units.map((u) => u.prototype).filter((p) => p && p !== 'depto' && p !== 'casa'))].length || null;
   const tipo = dev.property_type ? titleCase(dev.property_type) : 'Departamentos';
   const pm2s = units.map((u) => (u.price && m2of(u)) ? u.price / m2of(u) : null).filter(Boolean).sort((a, b) => a - b);
   const pm2 = pm2s.length ? pm2s[Math.floor(pm2s.length / 2)] : null;
@@ -823,8 +827,13 @@ function TabGeneral({ dev }) {
   const avail = dev.units_available != null ? dev.units_available : units.filter((u) => u.status === 'disponible').length;
   const chip = { fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink2, background: C.bgSoft, border: `1px solid ${CARD_LINE}`, borderRadius: 9999, padding: '6px 13px' };
   const amen = (dev.config || {}).amenidades || dev.amenities || [];
-  const levels = [...new Set(units.map((u) => u.level).filter((x) => x != null))].length;
-  const depasPiso = (levels && nUnits) ? Math.round(nUnits / levels) : null;
+  // Niveles = el piso MÁS ALTO conocido (la lista solo trae pisos con inventario → contar pisos distintos
+  // decía "4 niveles" en una torre de 9). Depas por piso = máximo de deptos vistos en un mismo piso.
+  const _lvls = units.map((u) => u.level).filter((x) => x != null);
+  const levels = _lvls.length ? Math.max(..._lvls) : null;
+  const _porPiso = {};
+  _lvls.forEach((l) => { _porPiso[l] = (_porPiso[l] || 0) + 1; });
+  const depasPiso = Object.keys(_porPiso).length ? Math.max(...Object.values(_porPiso)) : null;
   const GREY = '#9aa0ae';   // vendidas (gris legible, no se confunde con vacío)
   const Leg = ({ color, label, n }) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: FONT, fontSize: 13, color: C.ink2 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: color, flex: 'none' }} /><b style={{ color: C.ink }}>{n}</b> {label}</span>;
   const seg = (n) => `${(n / total) * 100}%`;

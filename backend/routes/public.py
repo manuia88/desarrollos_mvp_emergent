@@ -154,11 +154,14 @@ def _norm_stage(s, delivery=None):
     """Solo 2 etapas de cara al comprador: PREVENTA o ENTREGA INMEDIATA. Clasifica por la FECHA de entrega (no solo
     la etiqueta): si la entrega ya llegó (fecha pasada o este mes) = ENTREGA INMEDIATA; si falta, = PREVENTA. Así
     nunca sale el contradictorio 'preventa · entrega ya'."""
-    if str(s or "").lower() in ("entrega_inmediata", "entregado", "lista", "listo"):
+    if str(s or "").lower() in ("entrega", "entrega_inmediata", "entregado", "lista", "listo"):
         return "entrega_inmediata"
     if delivery:
         import re as _re
         from datetime import datetime as _dt
+        # la ingesta trae el TEXTO real del dev ("ENTREGA INMEDIATA") — no es fecha, pero es explícito
+        if _re.search(r"(?i)inmediata", str(delivery)):
+            return "entrega_inmediata"
         m = _re.match(r"(\d{4})-(\d{1,2})", str(delivery))
         if m:
             now = _dt.utcnow()
@@ -2162,8 +2165,14 @@ async def get_development(dev_id: str, request: Request):
     # el cotizador y la lista de disponibilidad dejan de salir vacías (auditoría 07-07). Fail-open.
     if not out.get("units"):
         try:
-            from ingested_reader import units_for_dev
+            from ingested_reader import units_for_dev, attach_planos, sobre_mercado_pct, public_photos
             out["units"] = await units_for_dev(db, dev_id)
+            # plano del prototipo por unidad (depa 102 → plano del 'Tipo 02') + "sobre mercado %" (vs AVM colonia)
+            await attach_planos(db, dev_id, out["units"])
+            await sobre_mercado_pct(db, out.get("colonia_id"), out["units"])
+            # fotos públicas = SOLO renders clasificados (obra→avance · depto muestra NUNCA sale)
+            if not out.get("photos"):
+                out["photos"] = await public_photos(db, dev_id)
         except Exception:
             pass
     # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
@@ -2272,6 +2281,44 @@ async def get_development(dev_id: str, request: Request):
     return out
 
 
+@router.get("/api/developments/{dev_id}/archivo/{file_id}")
+async def dev_archivo_publico(dev_id: str, file_id: str, request: Request):
+    """Sirve un RENDER o PLANO del Drive del proyecto al MARKETPLACE público. Candados: (1) el proyecto debe
+    estar PUBLICADO (aprobado por superadmin), (2) el archivo debe estar ligado al proyecto, (3) solo imágenes
+    clasificadas render/obra o PDFs de plano — una foto de depto muestra NUNCA sale (regla founder). El
+    navegador no puede leer Drive privado directo; esto lo puentea vía OAuth con caché de 1 día."""
+    db = request.app.state.db
+    pub = await db.developments.find_one(
+        {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+    if not pub:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    asset = await db.project_assets.find_one(
+        {"development_id": dev_id, "drive_file_id": file_id},
+        {"_id": 0, "mime": 1, "filename": 1, "image_kind": 1})
+    if not asset:
+        raise HTTPException(404, "Archivo no ligado a este proyecto")
+    mime = asset.get("mime") or ""
+    fn = (asset.get("filename") or "").lower()
+    import re as _re
+    es_imagen_publica = mime.startswith("image/") and asset.get("image_kind") in ("render", "obra")
+    es_plano_pdf = mime == "application/pdf" and bool(_re.search(r"plano|planta|prototipo|tipo[ _-]|dep[-_ ]?\d", fn))
+    if not (es_imagen_publica or es_plano_pdf):
+        raise HTTPException(403, "Este archivo no es público")
+    try:
+        from bulk_ingest_engine import _resolve_drive_conn, _download_file_bytes
+        conn = await _resolve_drive_conn(db, None)
+        if not conn:
+            raise HTTPException(503, "Sin conexión a Drive")
+        data, eff_mime = await _download_file_bytes(conn, file_id, mime)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"No se pudo leer el archivo: {e}")
+    from fastapi.responses import Response
+    return Response(content=data, media_type=eff_mime or mime,
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 @router.get("/api/developments/{dev_id}/units")
 async def list_dev_units(
     dev_id: str, request: Request,
@@ -2296,8 +2343,9 @@ async def list_dev_units(
                 {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
         if not pub:
             raise HTTPException(404, "Desarrollo no encontrado")
-        from ingested_reader import units_for_dev
+        from ingested_reader import units_for_dev, attach_planos
         units = await units_for_dev(db, dev_id)
+        await attach_planos(db, dev_id, units)   # plano del prototipo por unidad (founder 07-08)
     # Fusiona las ediciones MANUALES del dev → el comprador ve el dato vivo (mismo helper que la ficha).
     units = await _apply_unit_overrides(db, dev_id, units)
     if status:

@@ -150,6 +150,74 @@ def dev_doc_to_card(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+async def public_photos(db, dev_id: str, limit: int = 12) -> List[str]:
+    """Fotos PÚBLICAS del proyecto ingerido: RENDERS primero; si el Drive no trae renders, fotos de OBRA
+    (reales, honestas — mejor que placeholder). Depto MUESTRA jamás sale (regla founder). Rutas relativas
+    /api/... que sirve el endpoint público gated; el front las prefija con su API base."""
+    out: List[str] = []
+    try:
+        for kind in ("render", "obra"):
+            async for a in db.project_assets.find(
+                    {"development_id": dev_id, "image_kind": kind},
+                    {"_id": 0, "drive_file_id": 1}).limit(limit):
+                if a.get("drive_file_id"):
+                    out.append(f"/api/developments/{dev_id}/archivo/{a['drive_file_id']}")
+            if out:
+                break
+    except Exception:
+        pass
+    return out
+
+
+_PLANO_NAME_RE = re.compile(r"(?i)plano|planta|prototipo|tipo[ _-]|dep[-_ ]?\d")
+
+
+def _norm_token(s: Any) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
+
+
+async def attach_planos(db, dev_id: str, units: List[Dict[str, Any]]) -> int:
+    """Liga el PLANO del Drive a cada unidad (por número de depto o por prototipo — founder: 'depa 102 usa el
+    plano del Tipo 02'). Escribe plano_url (+plano_mime) in-place. Fail-open; devuelve # unidades ligadas."""
+    if not units:
+        return 0
+    try:
+        planos = []
+        async for a in db.project_assets.find(
+                {"development_id": dev_id, "mime": "application/pdf"},
+                {"_id": 0, "drive_file_id": 1, "filename": 1}).limit(300):
+            fn = a.get("filename") or ""
+            if a.get("drive_file_id") and _PLANO_NAME_RE.search(fn):
+                planos.append({"fid": a["drive_file_id"], "fn": fn, "norm": _norm_token(fn),
+                               "toks": set((re.findall(r"\d+[A-Za-z]*", re.sub(r"[^A-Za-z0-9 ]", "", fn))))})
+        if not planos:
+            return 0
+        n = 0
+        for u in units:
+            un = str(u.get("unit_number") or "")
+            un_tok = re.sub(r"[^A-Za-z0-9]", "", un).upper()
+            proto = _norm_token(u.get("prototype") if u.get("prototype") not in (None, "depto", "casa") else "")
+            hit = None
+            # 1º por número de depto exacto en el nombre del plano
+            for p in planos:
+                if un_tok and any(t.upper() == un_tok for t in p["toks"]):
+                    hit = p
+                    break
+            # 2º por prototipo ('tipo 02' / '02' en el nombre)
+            if not hit and proto:
+                for p in planos:
+                    if proto in p["norm"]:
+                        hit = p
+                        break
+            if hit:
+                u["plano_url"] = f"/api/developments/{dev_id}/archivo/{hit['fid']}"
+                u["plano_mime"] = "application/pdf"
+                n += 1
+        return n
+    except Exception:
+        return 0
+
+
 async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str, Any]]) -> int:
     """'Sobre mercado +X%' POR UNIDAD (spec founder): $/m² de la unidad vs $/m² de mercado de su colonia
     (colonia_valoracion.market_m2 — AVM con muestra real). Escribe sobre_mercado_pct en cada unidad (in-place).
@@ -221,6 +289,9 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
             units = await units_for_dev(db, d.get("id"))
             card["units"] = units
             apply_unit_aggregates(card, units)
+            # fotos de la TARJETA del marketplace = renders clasificados (antes salía el placeholder oscuro)
+            if not card.get("photos"):
+                card["photos"] = await public_photos(db, d.get("id"), limit=6)
             out.append(card)
     except Exception:
         pass

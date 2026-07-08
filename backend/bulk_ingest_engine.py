@@ -292,7 +292,8 @@ Devuelve SOLO JSON válido con la siguiente estructura:
   "alcaldia": "string|null (alcaldía/municipio, p.ej. 'Cuauhtémoc')",
   "lat": null o float,
   "lng": null o float,
-  "total_units": int,
+  "total_units": int|null (unidades TOTALES del EDIFICIO — búscalas en el brochure "X departamentos".
+    Si SOLO tienes la lista de disponibilidad NO cuentes sus filas: eso es inventario disponible, usa null),
   "price_range": {"min_mxn": int|null, "max_mxn": int|null},
   "delivery_date": "string|null (fecha de entrega, p.ej. SEP/2026)",
   "maintenance_fee_mxn": int|null,
@@ -915,7 +916,9 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         "delivery_estimate": extracted.get("delivery_date"),
         "maintenance_fee_mxn": extracted.get("maintenance_fee_mxn"),
         "amenities": extracted.get("amenities") or [],
-        "stage": extracted.get("stage") or "preventa",   # sin stage → absorción/etapa lo ignoraban (default seguro)
+        # etapa: si la entrega dice "inmediata" el proyecto YA está terminado — 'preventa' era contradictorio
+        "stage": ("entrega" if re.search(r"(?i)inmediata", str(extracted.get("delivery_date") or ""))
+                  else (extracted.get("stage") or "preventa")),
         "status": "active",
         "marketplace_published": "pending",   # aprobación pre-publicar (contenido ingerido → revisar antes de ir público)
         "source": "bulk_ingest",
