@@ -314,6 +314,10 @@ async def engagement_units(
         raise HTTPException(500, "Datos seed no disponibles")
     project = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
     if not project:
+        # INGESTA/WIZARD: engagement por unidad también sobre inventario ingerido (units desde db.units).
+        from ingested_reader import resolve_dev_doc
+        project = await resolve_dev_doc(db, project_id)
+    if not project:
         raise HTTPException(404, "Proyecto no encontrado")
 
     units = project.get("units") or []

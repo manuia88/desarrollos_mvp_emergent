@@ -722,7 +722,22 @@ async def what_to_build(db, colonia: Optional[str] = None, colonias: Optional[Li
     supply = defaultdict(int)
     supply_by_col = defaultdict(lambda: defaultdict(int))   # feature -> colonia -> unidades en oferta
     supply_devs = defaultdict(int)                          # feature -> # desarrollos que lo ofrecen
-    for dev in DEVELOPMENTS:
+    # OFERTA = semilla + inventario INGERIDO (db.developments). Sin esto la brecha demanda-vs-oferta ignoraba los
+    # proyectos reales subidos → "constrúyelo" falso en colonias que YA tienen oferta ingerida (auditoría 07-07).
+    devs_all = list(DEVELOPMENTS)
+    try:
+        from ingested_reader import units_for_dev
+        _seed_ids = {d.get("id") for d in DEVELOPMENTS}
+        async for _d in db.developments.find({"source": "bulk_ingest"}, {"_id": 0}):
+            if _d.get("id") in _seed_ids:
+                continue
+            _d = dict(_d)
+            if not _d.get("units"):
+                _d["units"] = await units_for_dev(db, _d.get("id"))
+            devs_all.append(_d)
+    except Exception:
+        pass
+    for dev in devs_all:
         if scope and (dev.get("colonia_id") not in scope):
             continue
         feats = _dev_features(dev)

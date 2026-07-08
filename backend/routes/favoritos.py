@@ -30,9 +30,10 @@ def _dev(dev_id):
         return None
 
 
-def _card(dev_id, extra=None):
-    """Normaliza un desarrollo a tarjeta de favorito (lo que pinta el front)."""
-    d = _dev(dev_id) or {}
+def _card(dev_id, doc=None, extra=None):
+    """Normaliza un desarrollo a tarjeta de favorito (lo que pinta el front). `doc` = proyecto ya resuelto
+    (semilla o ingerido); si no se pasa, cae a la semilla."""
+    d = doc or _dev(dev_id) or {}
     photos = d.get("photos") or d.get("images") or []
     card = {
         "dev_id": dev_id,
@@ -78,11 +79,15 @@ async def listar_favoritos(request: Request, visitor_id: str):
         extras = {}
         async for f in db.buyer_favoritos.find({"visitor_id": visitor_id}, {"_id": 0, "dev_id": 1, "cita": 1, "nota": 1, "status": 1}):
             extras[f.get("dev_id")] = f
+        # Resuelve cada dev desde CUALQUIER origen (semilla o ingerido). Antes solo miraba la semilla → un favorito
+        # de proyecto ingerido/aprobado desaparecía de la lista del comprador (auditoría 07-07).
+        from ingested_reader import resolve_dev_doc
         favoritos = []
         for i in ids:
-            if not _dev(i):
+            doc = _dev(i) or await resolve_dev_doc(db, i, with_units=False)
+            if not doc:
                 continue
-            card = _card(i, extras.get(i))
+            card = _card(i, doc, extras.get(i))
             if unidades.get(i):
                 card["unidades_guardadas"] = unidades[i]
             favoritos.append(card)
@@ -186,7 +191,8 @@ async def _push_to_asesor_board(db, lead_id, dev_id, status=None, client_cita=No
         contacto_id = (cont or {}).get("id")
         if not contacto_id:
             return
-        d = _dev(dev_id) or {}
+        from ingested_reader import resolve_dev_doc
+        d = _dev(dev_id) or await resolve_dev_doc(db, dev_id, with_units=False) or {}
         sset = {"updated_at": datetime.utcnow().isoformat()}
         if status:
             sset["status"] = status

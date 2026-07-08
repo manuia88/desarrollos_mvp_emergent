@@ -291,6 +291,10 @@ async def export_project_geojson(project_id: str, request: Request):
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
     if not dev:
+        # INGESTA/WIZARD: export GeoJSON también sobre inventario ingerido (antes 404 sobre proyecto real).
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(_db(request), project_id)
+    if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 
     db = _db(request)

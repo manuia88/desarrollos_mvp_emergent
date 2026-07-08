@@ -470,6 +470,10 @@ async def _recalc_forecast(db, *, project_id: str, dev_org_id: str, user_id: str
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
     if not dev:
+        # INGESTA/WIZARD: el forecast también corre sobre inventario ingerido (antes 404 sobre proyecto real).
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id)
+    if not dev:
         raise HTTPException(404, f"Proyecto {project_id} no encontrado")
 
     project_inputs = _project_inputs_from_dev(dev, override={})

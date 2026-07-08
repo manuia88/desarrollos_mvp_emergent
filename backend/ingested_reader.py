@@ -150,6 +150,37 @@ def dev_doc_to_card(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+async def resolve_dev_doc(db, dev_id: str, with_units: bool = True) -> Optional[Dict[str, Any]]:
+    """Devuelve el proyecto por id desde CUALQUIER origen: semilla → db.developments (ingesta/espejo) → db.projects
+    (wizard). Carga units de db.units si no vienen embebidas. Fuente ÚNICA para 'dame el proyecto X sin importar de
+    dónde salió' → reemplaza los DEVELOPMENTS_BY_ID.get() que daban 404 sobre inventario ingerido (auditoría 07-07)."""
+    if not dev_id:
+        return None
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        d = DEVELOPMENTS_BY_ID.get(dev_id)
+        if d:
+            return dict(d)  # la semilla ya trae units embebidas
+    except Exception:
+        pass
+    doc = None
+    try:
+        doc = await db.developments.find_one({"id": dev_id}, {"_id": 0})
+    except Exception:
+        pass
+    if not doc:
+        try:
+            doc = await db.projects.find_one({"id": dev_id}, {"_id": 0})
+        except Exception:
+            pass
+    if not doc:
+        return None
+    doc = dict(doc)
+    if with_units and not doc.get("units"):
+        doc["units"] = await units_for_dev(db, dev_id)
+    return doc
+
+
 async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, Any]]:
     """Tarjetas de proyectos INGERIDOS listas para el marketplace: gate marketplace_published != False/'pending'
     (ya aprobados por el superadmin) + units reales de db.units. Fail-open (nunca rompe el listado)."""

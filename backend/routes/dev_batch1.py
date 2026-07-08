@@ -547,7 +547,10 @@ async def get_payment_schemes(project_id: str, request: Request):
     doc = await db.dev_payment_schemes.find_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
     )
-    dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:  # INGESTA/WIZARD: contexto de precio del proyecto ingerido para el cotizador (antes {} → cotización vacía).
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id, with_units=False) or {}
     meta = await db.dev_project_meta.find_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
     ) or {}
