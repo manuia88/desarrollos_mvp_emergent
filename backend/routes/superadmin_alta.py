@@ -428,6 +428,84 @@ async def editar_proyecto(project_id: str, body: EditProyectoBody, request: Requ
     return {"ok": True, "project_id": project_id, **upd}
 
 
+@router.get(PREFIX + "/proyecto/{project_id}/full")
+async def proyecto_full(project_id: str, request: Request):
+    """FICHA UNIFICADA (superadmin): TODO un proyecto en una sola respuesta — datos, unidades (con desglose),
+    amenidades, scores/granularidad de su zona, históricos (precios) y documentos. Lee de CUALQUIER origen
+    (semilla/ingesta/wizard) sin cambiar de portal. Cada sección fail-open (nunca rompe la ficha)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    from ingested_reader import resolve_dev_doc, units_for_dev, apply_unit_aggregates
+    doc = await resolve_dev_doc(db, project_id, with_units=False)
+    if not doc:
+        raise HTTPException(404, "Proyecto no encontrado")
+    src = "developments" if await db.developments.find_one({"id": project_id}, {"_id": 0, "id": 1}) else \
+          ("projects" if await db.projects.find_one({"id": project_id}, {"_id": 0, "id": 1}) else "seed")
+
+    unidades = await units_for_dev(db, project_id) or (doc.get("units") or [])
+    resumen = {"total": len(unidades),
+               "disponible": sum(1 for u in unidades if u.get("status") == "disponible"),
+               "apartado": sum(1 for u in unidades if u.get("status") == "reservado"),
+               "vendido": sum(1 for u in unidades if u.get("status") == "vendido")}
+    _card: Dict[str, Any] = {}
+    apply_unit_aggregates(_card, unidades)
+
+    out: Dict[str, Any] = {
+        "id": project_id, "source": src, "name": doc.get("name"),
+        "ubicacion": {"colonia": doc.get("colonia"), "colonia_id": doc.get("colonia_id"),
+                      "alcaldia": doc.get("alcaldia") or doc.get("municipio"),
+                      "address": doc.get("address") or doc.get("address_full") or doc.get("calle"),
+                      "lat": doc.get("lat"), "lng": doc.get("lng"), "has_geo": bool(doc.get("lat") and doc.get("lng"))},
+        "comercial": {"price_from": _card.get("price_from") or doc.get("price_from"),
+                      "price_to": _card.get("price_to") or doc.get("price_to"),
+                      "total_units": len(unidades) or doc.get("total_units"),
+                      "delivery_estimate": doc.get("delivery_estimate"),
+                      "maintenance_fee_mxn": doc.get("maintenance_fee_mxn"),
+                      "stage": doc.get("stage"), "marketplace_published": doc.get("marketplace_published")},
+        "amenidades": doc.get("amenities") or doc.get("amenidades") or [],
+        "unidades": unidades, "unidades_resumen": resumen,
+    }
+    # Overlay rico del dev (servicios/sistema/pagos) si existe — fail-open
+    try:
+        from routes.dev_project_full import project_public_overlay
+        ov = await project_public_overlay(db, project_id)
+        if ov:
+            out["config"] = ov
+    except Exception:
+        pass
+    # SCORES / GRANULARIDAD de la zona (IE/AVM/zone) por colonia_id — fail-open
+    try:
+        cid = doc.get("colonia_id")
+        if cid:
+            scores = []
+            async for s in db.ie_scores.find({"zone_id": cid}, {"_id": 0, "code": 1, "value": 1, "tier": 1, "is_stub": 1}).limit(40):
+                if not s.get("is_stub"):
+                    scores.append({"code": s.get("code"), "value": s.get("value"), "tier": s.get("tier")})
+            out["scores"] = scores
+            zs = await db.zone_scores.find_one({"zone_id": cid}, {"_id": 0, "overall": 1, "subscores": 1})
+            if zs:
+                out["zona_score"] = zs
+    except Exception:
+        pass
+    # HISTÓRICOS: cambios de precio registrados (price_events) — fail-open
+    try:
+        hist = []
+        async for e in db.price_events.find({"dev_id": project_id}, {"_id": 0, "old_price": 1, "new_price": 1, "changed_at": 1}).sort("changed_at", -1).limit(50):
+            hist.append(e)
+        out["historicos"] = {"precios": hist}
+    except Exception:
+        out["historicos"] = {"precios": []}
+    # DOCUMENTOS (planos/brochure/listas de Drive) — fail-open
+    try:
+        docs = []
+        async for a in db.project_assets.find({"development_id": project_id}, {"_id": 0, "filename": 1, "mime": 1, "type": 1, "drive_file_id": 1}).limit(100):
+            docs.append(a)
+        out["documentos"] = docs
+    except Exception:
+        out["documentos"] = []
+    return out
+
+
 async def _audit(db, user, accion: str, entidad: str, eid: str, after: Dict[str, Any]) -> None:
     try:
         from audit_log import log_mutation
