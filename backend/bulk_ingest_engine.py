@@ -614,6 +614,116 @@ async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: O
     }
 
 
+# ─── PASE DE PLANOS (modo profundo) ───────────────────────────────────────────
+# Las listas de precios casi nunca traen el DESGLOSE de m² (interior/balcón/terraza/roof) — eso vive en los
+# PLANOS. Este pase lee SOLO los planos (2ª llamada a Claude, lotes de 3 PDFs) y cruza el desglose a las
+# unidades por NÚMERO (DEP-206 → 206) o por PROTOTIPO (depto 102 usa el plano del "Tipo 02").
+
+PLAN_PROMPT = """Eres un lector de PLANOS arquitectónicos de departamentos.
+Para CADA plano adjunto lee su tabla/cuadro de áreas y devuelve SOLO JSON:
+{"planos": [
+  {"archivo": "nombre del archivo", "prototype": "string|null (Tipo 02, B, PH…)",
+   "unit_number": "string|null (si el plano es de UN depto: DEP-206 → 206)",
+   "bedrooms": int|null, "bathrooms": int|null,
+   "m2_interior": float|null, "m2_balcony": float|null, "m2_terrace": float|null,
+   "m2_roof_garden": float|null, "m2_total": float|null}
+]}
+Un plano puede ser por PROTOTIPO (aplica a varias unidades) o por DEPTO específico. null si el dato no
+aparece — NO inventes. Responde EXCLUSIVAMENTE con JSON."""
+
+_PLANO_KEYWORDS = ("plano", "planta tipo", "prototipo", "tipo ", "unidad", "depto", "departamento")
+_PLAN_FIELDS = ("m2_interior", "m2_balcony", "m2_terrace", "m2_roof_garden")
+
+
+def _is_plano(f: Dict[str, Any]) -> bool:
+    """¿Este archivo parece un PLANO (por depto o por prototipo)? PDFs con nombre de plano/depto."""
+    if f.get("mimeType") not in PDF_MIMES:
+        return False
+    n = ((f.get("name") or "") + " " + (f.get("immediate_folder") or "")).lower()
+    return bool(re.search(r"dep[-_ ]?\d", n) or any(k in n for k in _PLANO_KEYWORDS)
+                or any(k in n for k in _DEPRIO_PLANO))
+
+
+def _needs_plan_pass(extracted: Dict[str, Any]) -> bool:
+    """¿Vale la pena leer planos? Hay unidades y a la mayoría le falta el desglose de m²."""
+    units = extracted.get("units") or []
+    if not units:
+        return False
+    sin = sum(1 for u in units if not any(u.get(k) for k in _PLAN_FIELDS))
+    return sin >= max(1, len(units) // 2)
+
+
+def _norm_unit_no(s: Any) -> str:
+    """'DEP-206'/'Depto 206' → '206' · '102-A' → '102A' (token alfanumérico con dígitos, sin prefijos ni guiones)."""
+    t = re.sub(r"(?i)\b(dep|depto|departamento|unidad|u)\b", " ", str(s or ""))
+    t = re.sub(r"[^A-Za-z0-9 ]", "", t)          # quita guiones/puntos → '102-A' se vuelve '102A'
+    m = re.findall(r"\d+[A-Za-z]*", t.replace(" ", ""))
+    return (m[-1] if m else re.sub(r"[^A-Za-z0-9]", "", str(s or ""))).upper()
+
+
+def _norm_proto(s: Any) -> str:
+    """'Tipo 02'/'Prototipo B' → '02'/'b' (comparable)."""
+    t = re.sub(r"(?i)\b(tipo|prototipo|modelo|planta)\b", " ", str(s or ""))
+    return re.sub(r"[^a-z0-9]", "", t.lower())
+
+
+async def extract_plan_breakdowns(payloads: List[Tuple[bytes, str, str]]) -> Tuple[List[Dict[str, Any]], float]:
+    """Lee planos en LOTES de 3 PDFs nativos por llamada. Devuelve (lista de desgloses, costo MXN). Fail-soft."""
+    import base64 as _b64
+    from llm_client import LlmChat, UserMessage, ImageContent
+    out: List[Dict[str, Any]] = []
+    cost = 0.0
+    lote: List[Tuple[bytes, str]] = [(b, fn) for b, m, fn in payloads
+                                     if len(b) <= 10 * 1024 * 1024][:9]  # tope 9 planos (3 lotes)
+    for i in range(0, len(lote), 3):
+        batch = lote[i:i + 3]
+        try:
+            imgs = [ImageContent(image_base64=_b64.b64encode(b).decode(), media_type="application/pdf")
+                    for b, _ in batch]
+            nombres = "\n".join(f"- {fn}" for _, fn in batch)
+            chat = LlmChat(api_key="", session_id=f"plan-pass-{secrets.token_urlsafe(6)}",
+                           system_message=PLAN_PROMPT).with_model("anthropic", "claude-haiku-4-5").with_max_tokens(4000)
+            resp = await chat.send_message(UserMessage(
+                text=f"Planos adjuntos (en este orden):\n{nombres}\n\nDevuelve el JSON.", file_contents=imgs))
+            data = _parse_llm_json(resp or "")
+            if isinstance(data, dict):
+                for p in (data.get("planos") or []):
+                    if isinstance(p, dict):
+                        out.append(p)
+            cost += 0.50
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[bulk_ingest] pase de planos (lote {i // 3 + 1}): {e}")
+    return out, cost
+
+
+def _apply_plan_breakdowns(extracted: Dict[str, Any], planos: List[Dict[str, Any]]) -> int:
+    """Cruza los desgloses de los planos a las unidades: 1º por número de depto, 2º por prototipo.
+    Solo RELLENA (no pisa lo que la lista de precios ya trajo). Devuelve # unidades enriquecidas."""
+    if not planos:
+        return 0
+    by_unit = {_norm_unit_no(p.get("unit_number")): p for p in planos if p.get("unit_number")}
+    by_proto = {_norm_proto(p.get("prototype")): p for p in planos if p.get("prototype")}
+    filled = 0
+    for u in (extracted.get("units") or []):
+        p = by_unit.get(_norm_unit_no(u.get("unit_number")))
+        if not p:
+            proto = _norm_proto(u.get("prototype") or u.get("type"))
+            p = by_proto.get(proto) if proto else None
+        if not p:
+            continue
+        antes = dict(u)
+        for k in _PLAN_FIELDS + ("bedrooms", "bathrooms"):
+            if u.get(k) is None and p.get(k) is not None:
+                u[k] = p[k]
+        if not u.get("size_m2_total") and p.get("m2_total"):
+            u["size_m2_total"] = p["m2_total"]
+        if not u.get("prototype") and p.get("prototype"):
+            u["prototype"] = p["prototype"]
+        if u != antes:
+            filled += 1
+    return filled
+
+
 # ─── Insert into developments + units + project_assets ────────────────────────
 
 async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
@@ -774,11 +884,25 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "updated_at": now,
             }
             if _sm2:
-                upd.update({"m2_privative": _sm2, "size_m2": _sm2,
+                upd.update({"m2_privative": u.get("m2_interior") or _sm2, "size_m2": _sm2,
                             "m2_total": u.get("size_m2_total") or _sm2})
-            # HISTÓRICO #1 · precio cambió → price_events (huella completa, fuente única existente). Fail-open.
+            # DESGLOSE de m² (del pase de planos) + prototipo — solo si la extracción los trae (no borrar lo que hay)
+            for _k in ("m2_balcony", "m2_terrace", "m2_roof_garden"):
+                if u.get(_k) is not None:
+                    upd[_k] = u.get(_k)
+            if u.get("prototype"):
+                upd["prototype"] = u.get("prototype")
+            if u.get("parking") is not None:
+                _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
+                upd["parking_spots"] = int(_pd) if _pd else (1 if u.get("parking") else 0)
+                upd["parking"] = u.get("parking")
+            if u.get("storage") is not None:
+                upd["bodega"] = bool(u.get("storage"))
+                upd["storage"] = u.get("storage")
+            # HISTÓRICO #1 · precio CAMBIÓ → price_events. Solo si había precio antes (rellenar un precio que
+            # faltaba NO es un cambio de mercado → no ensuciar el histórico). Fail-open.
             old_price = existing.get("price") or existing.get("price_mxn")
-            if _price and _price != old_price:
+            if _price and old_price and _price != old_price:
                 try:
                     from routes.dev_price_history import record_price_event
                     await record_price_event(db, target_dev_id, existing, old_price, _price, dev=dev,
@@ -808,6 +932,7 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                     log.warning(f"[bulk_ingest] status_event: {e}")
             await db.units.update_one({"id": existing["id"]}, {"$set": upd})
         else:
+            _pd = re.sub(r"[^\d]", "", str(u.get("parking") or ""))
             await db.units.insert_one({
                 "id": f"unit_{secrets.token_urlsafe(10)}",
                 "development_id": target_dev_id,
@@ -817,7 +942,11 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "type": u.get("type") or "depto", "prototype": u.get("prototype") or u.get("type") or "depto",
                 "bedrooms": u.get("bedrooms"),
                 "bathrooms": u.get("bathrooms"),
-                "m2_privative": _sm2, "m2_total": u.get("size_m2_total") or _sm2,
+                "m2_privative": u.get("m2_interior") or _sm2, "m2_total": u.get("size_m2_total") or _sm2,
+                "m2_balcony": u.get("m2_balcony"), "m2_terrace": u.get("m2_terrace"),
+                "m2_roof_garden": u.get("m2_roof_garden"),
+                "parking_spots": (int(_pd) if _pd else (1 if u.get("parking") else 0)),
+                "bodega": bool(u.get("storage")), "storage": u.get("storage"), "parking": u.get("parking"),
                 "size_m2": _sm2, "price": _price, "price_mxn": _price,
                 "price_display": (f"${int(_price):,}" if _price else None),
                 "status": _new_st or "disponible",
@@ -957,6 +1086,28 @@ async def run(db, job_id: str) -> None:
                 extracted, cost_mxn = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")
 
+            # PASE DE PLANOS (modo profundo): si a las unidades les falta el desglose de m², leer los PLANOS
+            # (2ª pasada) y cruzarlos por número de depto o prototipo. Fail-soft — nunca tira la ingesta.
+            try:
+                if _needs_plan_pass(extracted):
+                    plano_files = [f for f in gdata["files"] if _is_plano(f)][:9]
+                    if plano_files:
+                        plano_payloads: List[Tuple[bytes, str, str]] = []
+                        for pf in plano_files:
+                            try:
+                                pb, pm = await _download_file_bytes(conn, pf["id"], pf.get("mimeType", ""))
+                                plano_payloads.append((pb, pm, pf.get("name", "")))
+                            except Exception as e:  # noqa: BLE001
+                                error_log.append(f"plano download failed {pf.get('id')}: {e}")
+                        if plano_payloads:
+                            desgloses, plan_cost = await extract_plan_breakdowns(plano_payloads)
+                            n_filled = _apply_plan_breakdowns(extracted, desgloses)
+                            cost_mxn += plan_cost
+                            log.info(f"[bulk_ingest] pase de planos {gkey}: {len(desgloses)} planos leídos "
+                                     f"→ {n_filled} unidades enriquecidas")
+            except Exception as e:  # noqa: BLE001
+                error_log.append(f"plan pass failed {gkey}: {e}")
+
             # W2.3 SA4 — feature_key tagging for AI cost observatory
             if cost_mxn > 0:
                 try:
@@ -1012,7 +1163,22 @@ async def run(db, job_id: str) -> None:
                 "created_at": _iso(),
             }
 
-            if decision == "auto_approve":
+            _match_id = dedup.get("best_match_dev_id")
+            if decision == "auto_approve" and _match_id and (score or 0) >= 0.85:
+                # MATCH EXACTO → MERGE al dev existente (refresh de lista): actualiza precios/estatus y captura
+                # los DELTAS (históricos). Antes insertaba como NUEVO → re-ingerir DUPLICABA el proyecto.
+                try:
+                    await merge_into_dev(db, item_doc, _match_id)
+                    item_doc["decision"] = "merged"
+                    item_doc["inserted_dev_id"] = _match_id
+                    item_doc["decision_at"] = _iso()
+                    items_auto += 1
+                except Exception as e:
+                    item_doc["decision"] = "failed"
+                    item_doc["error"] = str(e)[:500]
+                    items_failed += 1
+                    error_log.append(f"merge failed {gkey}: {e}")
+            elif decision == "auto_approve":
                 try:
                     new_dev_id = await insert_extracted_project(db, item_doc)
                     item_doc["decision"] = "approved"

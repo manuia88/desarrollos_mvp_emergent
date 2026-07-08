@@ -473,6 +473,10 @@ async def run_drive_watcher_once(db) -> Dict[str, Any]:
     cursor = db.dev_drive_connections.find({"status": {"$in": ["connected", "error"]}})
     audits = []
     async for conn in cursor:
+        if not conn.get("folder_id"):
+            # Conexión OAuth de INGESTA MASIVA (sin carpeta de docs elegida) — no es un drive-watch. Antes el cron
+            # la sincronizaba con folder_id=None → "'None' in parents" → 404 → marcaba la conexión en error.
+            continue
         try:
             a = await _sync_one_connection(db, conn)
             audits.append(a)
