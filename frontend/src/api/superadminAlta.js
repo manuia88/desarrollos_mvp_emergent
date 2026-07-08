@@ -70,3 +70,15 @@ export async function editarProyecto(projectId, body) {
     method: 'PATCH', headers: h, credentials: 'include', body: JSON.stringify(body),
   }));
 }
+
+// ─── Ficha Unificada de proyecto (Ver + Editar, sin cambiar de portal) ─────────
+
+export async function proyectoFull(projectId) {
+  return _j(await fetch(`${API}/api/superadmin/alta/proyecto/${encodeURIComponent(projectId)}/full`, { credentials: 'include' }));
+}
+
+export async function editarUnidad(projectId, unitId, fields) {
+  return _j(await fetch(`${API}/api/superadmin/alta/proyecto/${encodeURIComponent(projectId)}/unidad/${encodeURIComponent(unitId)}`, {
+    method: 'PATCH', headers: h, credentials: 'include', body: JSON.stringify({ fields }),
+  }));
+}

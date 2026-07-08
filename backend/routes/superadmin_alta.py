@@ -389,6 +389,16 @@ class EditProyectoBody(BaseModel):
     tipo_proyecto: Optional[str] = None
     total_units: Optional[int] = None
     price_from: Optional[float] = None
+    # Ficha Unificada (Ver+Editar): control total sin cambiar de portal
+    price_to: Optional[float] = None
+    address: Optional[str] = None
+    colonia_id: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    delivery_estimate: Optional[str] = None
+    maintenance_fee_mxn: Optional[float] = None
+    amenities: Optional[List[str]] = None
+    description: Optional[str] = None
 
 
 @router.patch(PREFIX + "/proyecto/{project_id}")
@@ -420,12 +430,127 @@ async def editar_proyecto(project_id: str, body: EditProyectoBody, request: Requ
         upd["total_units"] = int(body.total_units)
     if body.price_from is not None:
         upd["price_from"] = float(body.price_from)
+    # Ficha Unificada: campos finos editables desde superadmin (antes solo por impersonación en el portal dev)
+    if body.price_to is not None:
+        upd["price_to"] = float(body.price_to)
+        upd["price_max_mxn"] = float(body.price_to)
+    if body.address is not None:
+        upd["address"] = body.address.strip()
+    if body.colonia_id is not None:
+        upd["colonia_id"] = body.colonia_id.strip() or None
+    if body.lat is not None:
+        upd["lat"] = float(body.lat)
+    if body.lng is not None:
+        upd["lng"] = float(body.lng)
+    if body.delivery_estimate is not None:
+        upd["delivery_estimate"] = body.delivery_estimate.strip()
+    if body.maintenance_fee_mxn is not None:
+        upd["maintenance_fee_mxn"] = float(body.maintenance_fee_mxn)
+    if body.amenities is not None:
+        upd["amenities"] = [a.strip() for a in body.amenities if a and a.strip()]
+    if body.description is not None:
+        upd["description"] = body.description.strip()
     if not upd:
         return {"ok": True, "project_id": project_id, "nota": "sin cambios"}
     upd["updated_at"] = _now_iso()
     await db[coll].update_one({"id": project_id}, {"$set": upd})
+    # colonia_id corregida → propagar a las unidades (cubo/zona la leen por unidad)
+    if upd.get("colonia_id"):
+        try:
+            await db.units.update_many({"development_id": project_id}, {"$set": {"colonia_id": upd["colonia_id"]}})
+        except Exception:  # noqa: BLE001
+            pass
     await _audit(db, user, "update", "development", project_id, upd)
     return {"ok": True, "project_id": project_id, **upd}
+
+
+# ─── Ficha Unificada · edición de UNIDADES desde superadmin ──────────────────────────────
+# Campos editables de una unidad (mismo vocabulario canónico de la semilla/front)
+_UNIT_EDITABLE = {"price": float, "status": str, "bedrooms": int, "bathrooms": int,
+                  "m2_privative": float, "m2_total": float, "m2_balcony": float,
+                  "m2_terrace": float, "m2_roof_garden": float, "parking_spots": int,
+                  "bodega": bool, "prototype": str, "unit_number": str, "level": int,
+                  "orientation": str}
+_UNIT_STATUSES = {"disponible", "reservado", "vendido"}
+
+
+class EditUnidadBody(BaseModel):
+    fields: Dict[str, Any]
+
+
+@router.patch(PREFIX + "/proyecto/{project_id}/unidad/{unit_id}")
+async def editar_unidad(project_id: str, unit_id: str, body: EditUnidadBody, request: Request):
+    """Edita una unidad del proyecto desde superadmin (control total, sin impersonación). Captura HISTÓRICOS:
+    cambio de precio → price_events (reusa record_price_event, huella completa) · cambio a 'vendido' →
+    unit_status_events con días-para-vender (alimenta absorción/forecast con VENTAS reales)."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    unit = await db.units.find_one({"id": unit_id, "$or": [{"development_id": project_id}, {"project_id": project_id}]},
+                                   {"_id": 0})
+    if not unit:
+        raise HTTPException(404, "Unidad no encontrada en este proyecto")
+    upd: Dict[str, Any] = {}
+    for k, v in (body.fields or {}).items():
+        caster = _UNIT_EDITABLE.get(k)
+        if caster is None or v is None:
+            continue
+        try:
+            val = caster(v)
+        except (TypeError, ValueError):
+            raise HTTPException(400, f"Valor inválido para '{k}'")
+        if k == "status":
+            val = str(val).lower().strip()
+            if val not in _UNIT_STATUSES:
+                raise HTTPException(400, "status debe ser disponible|reservado|vendido")
+        upd[k] = val
+    if not upd:
+        return {"ok": True, "unit_id": unit_id, "nota": "sin cambios"}
+
+    # HISTÓRICO #1 · cambio de precio → price_events (fuente única existente, fail-open)
+    old_price, new_price = unit.get("price"), upd.get("price")
+    if new_price is not None and new_price != old_price:
+        try:
+            from routes.dev_price_history import record_price_event
+            dev = await db.developments.find_one({"id": project_id}, {"_id": 0, "colonia_id": 1, "alcaldia": 1})
+            await record_price_event(db, project_id, unit, old_price, new_price, dev=dev,
+                                     user_id=user.user_id, source="superadmin_edit", label="Edición superadmin")
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[alta] price_event: {e}")
+        upd["price_display"] = f"${int(new_price):,}"
+        upd["price_mxn"] = new_price  # espejo legacy (lo lee el cubo)
+    # HISTÓRICO #2 · cambio de estatus → unit_status_events (vendido ⇒ días-para-vender)
+    old_st, new_st = unit.get("status"), upd.get("status")
+    if new_st and new_st != old_st:
+        try:
+            ev = {"unit_id": unit_id, "dev_id": project_id, "unit_number": unit.get("unit_number"),
+                  "old_status": old_st, "new_status": new_st, "changed_at": _now_iso(),
+                  "changed_by": user.user_id, "source": "superadmin_edit",
+                  "price": new_price if new_price is not None else old_price}
+            if new_st == "vendido":
+                try:
+                    created = dt.datetime.fromisoformat(str(unit.get("created_at")).replace("Z", "+00:00"))
+                    ev["days_to_sell"] = max(0, (dt.datetime.now(dt.timezone.utc) - created).days)
+                except Exception:  # noqa: BLE001
+                    pass
+                ev["sold_at"] = ev["changed_at"]
+            await db.unit_status_events.insert_one(ev)
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[alta] status_event: {e}")
+
+    upd["updated_at"] = _now_iso()
+    await db.units.update_one({"id": unit_id}, {"$set": upd})
+    # re-sincroniza el átomo de ESTA unidad (cubo/granularidad al día) — fail-open
+    try:
+        from dmx_cube_feed import db_unit_to_atom, UNITS
+        dev_full = await db.developments.find_one({"id": project_id}, {"_id": 0}) or {}
+        atom = db_unit_to_atom({**unit, **upd}, dev_full)
+        if atom.get("unit_id"):
+            await db[UNITS].update_one({"unit_id": atom["unit_id"]}, {"$set": atom}, upsert=True)
+    except Exception:  # noqa: BLE001
+        pass
+    await _audit(db, user, "update", "unit", unit_id, upd)
+    upd.pop("updated_at", None)
+    return {"ok": True, "unit_id": unit_id, **upd}
 
 
 @router.get(PREFIX + "/proyecto/{project_id}/full")
@@ -487,14 +612,24 @@ async def proyecto_full(project_id: str, request: Request):
                 out["zona_score"] = zs
     except Exception:
         pass
-    # HISTÓRICOS: cambios de precio registrados (price_events) — fail-open
+    # HISTÓRICOS: cambios de precio (price_events) + ventas/estatus (unit_status_events, días-para-vender) — fail-open
+    out["historicos"] = {"precios": [], "estatus": []}
     try:
-        hist = []
-        async for e in db.price_events.find({"dev_id": project_id}, {"_id": 0, "old_price": 1, "new_price": 1, "changed_at": 1}).sort("changed_at", -1).limit(50):
-            hist.append(e)
-        out["historicos"] = {"precios": hist}
+        async for e in db.price_events.find(
+                {"dev_id": project_id},
+                {"_id": 0, "unit_number": 1, "old_price": 1, "new_price": 1, "delta_pct": 1,
+                 "changed_at": 1, "source": 1, "label": 1}).sort("changed_at", -1).limit(80):
+            out["historicos"]["precios"].append(e)
     except Exception:
-        out["historicos"] = {"precios": []}
+        pass
+    try:
+        async for e in db.unit_status_events.find(
+                {"dev_id": project_id},
+                {"_id": 0, "unit_number": 1, "old_status": 1, "new_status": 1, "changed_at": 1,
+                 "days_to_sell": 1, "price": 1, "source": 1}).sort("changed_at", -1).limit(80):
+            out["historicos"]["estatus"].append(e)
+    except Exception:
+        pass
     # DOCUMENTOS (planos/brochure/listas de Drive) — fail-open
     try:
         docs = []

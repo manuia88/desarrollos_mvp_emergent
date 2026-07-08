@@ -747,44 +747,89 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
 
 
 async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
-    """UPSERT units (no duplicate unit_number) + APPEND assets."""
+    """UPSERT units (no duplicate unit_number) + APPEND assets + HISTÓRICOS del re-ingest (el moat de data):
+    cada lista de precios nueva vs la anterior = deltas de PRECIO (price_events) y de ESTATUS (unit_status_events,
+    vendido ⇒ días-para-vender). Antes el merge ni siquiera actualizaba el estatus → un depto 'vendido' en la
+    lista nueva se quedaba 'disponible' y el delta se perdía para siempre."""
     extracted = effective_extracted(item)
     now = _iso()
+    _ST = {"disponible": "disponible", "apartado": "reservado", "vendido": "vendido",
+           "available": "disponible", "reserved": "reservado", "sold": "vendido"}
+    dev = await db.developments.find_one({"id": target_dev_id}, {"_id": 0}) or {}
     for u in (extracted.get("units") or []):
         unit_no = u.get("unit_number")
         if not unit_no:
             continue
         existing = await db.units.find_one(
-            {"development_id": target_dev_id, "unit_number": unit_no}, {"_id": 0, "id": 1},
+            {"development_id": target_dev_id, "unit_number": unit_no}, {"_id": 0},
         )
         _sm2 = u.get("size_m2")
         _price = u.get("price_mxn")
+        _new_st = _ST.get((u.get("status") or "").lower().strip())  # None = la lista no trae estatus → no tocar
         if existing:
-            await db.units.update_one(
-                {"id": existing["id"]},
-                {"$set": {
-                    "type": u.get("type"),
-                    "bedrooms": u.get("bedrooms"),
-                    "bathrooms": u.get("bathrooms"),
-                    "m2_privative": _sm2, "m2_total": u.get("size_m2_total") or _sm2,
-                    "size_m2": _sm2, "price": _price, "price_mxn": _price,
-                    "updated_at": now,
-                }},
-            )
+            upd: Dict[str, Any] = {
+                "type": u.get("type") or existing.get("type"),
+                "bedrooms": u.get("bedrooms") if u.get("bedrooms") is not None else existing.get("bedrooms"),
+                "bathrooms": u.get("bathrooms") if u.get("bathrooms") is not None else existing.get("bathrooms"),
+                "updated_at": now,
+            }
+            if _sm2:
+                upd.update({"m2_privative": _sm2, "size_m2": _sm2,
+                            "m2_total": u.get("size_m2_total") or _sm2})
+            # HISTÓRICO #1 · precio cambió → price_events (huella completa, fuente única existente). Fail-open.
+            old_price = existing.get("price") or existing.get("price_mxn")
+            if _price and _price != old_price:
+                try:
+                    from routes.dev_price_history import record_price_event
+                    await record_price_event(db, target_dev_id, existing, old_price, _price, dev=dev,
+                                             source="reingesta", label="Lista de precios nueva (ingesta)")
+                except Exception as e:  # noqa: BLE001
+                    log.warning(f"[bulk_ingest] price_event: {e}")
+            if _price:
+                upd.update({"price": _price, "price_mxn": _price, "price_display": f"${int(_price):,}"})
+            # HISTÓRICO #2 · estatus cambió → unit_status_events (vendido ⇒ días-para-vender REALES). Fail-open.
+            old_st = existing.get("status")
+            if _new_st and _new_st != old_st:
+                upd["status"] = _new_st
+                try:
+                    ev = {"unit_id": existing.get("id"), "dev_id": target_dev_id, "unit_number": unit_no,
+                          "old_status": old_st, "new_status": _new_st, "changed_at": now,
+                          "source": "reingesta", "price": _price or old_price}
+                    if _new_st == "vendido":
+                        try:
+                            import datetime as _dt
+                            created = _dt.datetime.fromisoformat(str(existing.get("created_at")).replace("Z", "+00:00"))
+                            ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
+                        except Exception:  # noqa: BLE001
+                            pass
+                        ev["sold_at"] = now
+                    await db.unit_status_events.insert_one(ev)
+                except Exception as e:  # noqa: BLE001
+                    log.warning(f"[bulk_ingest] status_event: {e}")
+            await db.units.update_one({"id": existing["id"]}, {"$set": upd})
         else:
             await db.units.insert_one({
                 "id": f"unit_{secrets.token_urlsafe(10)}",
                 "development_id": target_dev_id,
+                "developer_id": dev.get("developer_id") or dev.get("dev_org_id"),
+                "colonia_id": dev.get("colonia_id"),
                 "unit_number": unit_no,
-                "type": u.get("type") or "depto", "prototype": u.get("type") or "depto",
+                "type": u.get("type") or "depto", "prototype": u.get("prototype") or u.get("type") or "depto",
                 "bedrooms": u.get("bedrooms"),
                 "bathrooms": u.get("bathrooms"),
                 "m2_privative": _sm2, "m2_total": u.get("size_m2_total") or _sm2,
                 "size_m2": _sm2, "price": _price, "price_mxn": _price,
-                "status": "disponible",
+                "price_display": (f"${int(_price):,}" if _price else None),
+                "status": _new_st or "disponible",
                 "source": "bulk_ingest_merge",
                 "created_at": now,
             })
+    # las unidades cambiaron → re-sincroniza el átomo del dev (cubo/granularidad al día). Fail-open.
+    try:
+        from dmx_cube_feed import sync_ingested_to_atom
+        await sync_ingested_to_atom(db, dev.get("developer_id") or dev.get("dev_org_id"))
+    except Exception:  # noqa: BLE001
+        pass
 
     for f in item.get("source_files", []):
         await db.project_assets.insert_one({

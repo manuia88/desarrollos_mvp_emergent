@@ -243,7 +243,7 @@ export default function SuperadminDesarrolladorFicha() {
                           <button onClick={() => setOpenData(openData === p.id ? null : p.id)} style={openData === p.id ? btn(true) : ghost} data-testid={`proj-verdatos-${p.id}`}>{openData === p.id ? 'Ocultar datos' : 'Ver datos'}</button>
                           <button onClick={() => setEditProj({ id: p.id, name: p.name || '', colonia: p.colonia || '', alcaldia: p.alcaldia || '', total_units: p.total_units ?? '', price_from: p.price_from ?? '', stage: p.stage || 'preventa' })} style={ghost}><Pencil size={12} style={{ verticalAlign: -2, marginRight: 3 }} />Editar</button>
                           <button onClick={() => togglePublish(p)} disabled={busy} style={ghost}>{p.marketplace_published === true ? 'Ocultar' : 'Publicar'}</button>
-                          <button onClick={() => nav(`/superadmin/desarrollos/${p.id}`)} style={ghost}><ExternalLink size={12} style={{ verticalAlign: -2, marginRight: 3 }} />Abrir ficha</button>
+                          <button onClick={() => nav(`/superadmin/alta/proyecto/${p.id}`)} style={btn(true)} data-testid={`proj-ficha-${p.id}`}><ExternalLink size={12} style={{ verticalAlign: -2, marginRight: 3 }} />Ficha completa</button>
                         </div>
                       </div>
                       {openData === p.id && (
