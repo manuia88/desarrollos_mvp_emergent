@@ -222,7 +222,18 @@ function TabUnidades({ f, onSaved, setMsg }) {
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.enganche_mxn ? <>{mxn(u.enganche_mxn)}<span style={{ color: '#FCD34D', fontSize: 10.5 }}>{pctTxt(u.enganche_pct)}</span></> : '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.credito_mxn ? <>{mxn(u.credito_mxn)}<span style={{ color: '#FCD34D', fontSize: 10.5 }}>{pctTxt(u.credito_pct)}</span></> : '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>{u.reservacion_mxn ? mxn(u.reservacion_mxn) : '—'}</td>
-                  <td style={{ ...td, whiteSpace: 'nowrap', fontWeight: 700 }}>{isEd ? <input style={{ ...tdInp, width: 105 }} type="number" value={edit.price} onChange={(e) => setEdit({ ...edit, price: e.target.value })} /> : mxn(u.price)}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap', fontWeight: 700 }}>{isEd
+                    ? <input style={{ ...tdInp, width: 105 }} type="number" value={edit.price} onChange={(e) => setEdit({ ...edit, price: e.target.value })} />
+                    : (
+                      <div>
+                        <div>{mxn(u.price)}</div>
+                        {u.sobre_mercado_pct != null && (
+                          <div style={{ fontSize: 10, fontWeight: 700, color: u.sobre_mercado_pct > 3 ? '#FCA5A5' : (u.sobre_mercado_pct < -3 ? '#6EE7B7' : 'rgba(240,235,224,0.5)') }}>
+                            ● {u.sobre_mercado_pct > 0 ? 'Sobre' : 'Bajo'} mercado {u.sobre_mercado_pct > 0 ? '+' : ''}{u.sobre_mercado_pct}%
+                          </div>
+                        )}
+                      </div>
+                    )}</td>
                   <td style={td}>{isEd ? (
                     <select style={{ ...tdInp, width: 108 }} value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
                       <option value="disponible">disponible</option><option value="reservado">reservado</option><option value="vendido">vendido</option>

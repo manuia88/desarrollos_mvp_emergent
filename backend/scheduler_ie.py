@@ -199,6 +199,21 @@ async def run_daily_score_recompute(db):
     except ImportError:
         unit_zones = []
 
+    # + PROYECTOS/UNIDADES INGERIDOS (los reales): antes el recómputo iteraba SOLO el seed en memoria →
+    # cero scores IE_PROY/IE_UNIT para lo ingerido y la ficha pública salía sin inteligencia (mapa 07-08).
+    try:
+        _ing_ids = []
+        async for _d in db.developments.find({"source": "bulk_ingest"}, {"_id": 0, "id": 1}):
+            if _d.get("id"):
+                _ing_ids.append(_d["id"])
+        proyecto_zones += [i for i in _ing_ids if i not in proyecto_zones]
+        if _ing_ids:
+            async for _u in db.units.find({"development_id": {"$in": _ing_ids}}, {"_id": 0, "id": 1}):
+                if _u.get("id"):
+                    unit_zones.append(_u["id"])
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[scheduler] zonas ingeridas no agregadas al recómputo: {_e}")
+
     _emit("daily_score_recompute_start", colonia=len(colonia_zones),
           proyecto=len(proyecto_zones), unit=len(unit_zones))
     engine = ScoreEngine(db)

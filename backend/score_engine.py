@@ -228,6 +228,14 @@ class ScoreEngine:
             return {}
         dev = DEVELOPMENTS_BY_ID.get(zone_id)
         if not dev:
+            # INGESTA: los proyectos REALES viven en db.developments (units en db.units) — sin esto las 12
+            # recetas IE_PROY salían stub para todo ingerido y la ficha pública quedaba sin scores (mapa 07-08).
+            try:
+                from ingested_reader import resolve_dev_doc
+                dev = await resolve_dev_doc(self.db, zone_id)
+            except Exception:  # noqa: BLE001
+                dev = None
+        if not dev:
             return {}
         colonia_zone = (dev.get("colonia_id") or "").replace("-", "_")
         colonia_docs = await self.db.ie_scores.find(
@@ -239,8 +247,18 @@ class ScoreEngine:
             {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
             {"_id": 0},
         ).to_list(length=100)
-        # all devs in the same colonia (competition / market comparables)
-        same_colonia = [d for d in DEVELOPMENTS_BY_ID.values() if d.get("colonia_id") == dev.get("colonia_id") and d["id"] != dev["id"]]
+        # all devs in the same colonia (competition / market comparables) — seed + INGERIDOS (la competencia
+        # real de un proyecto ingerido son los otros proyectos reales de su colonia, no solo el demo)
+        _ing_devs: List[Dict[str, Any]] = []
+        try:
+            async for _d in self.db.developments.find(
+                    {"source": "bulk_ingest", "colonia_id": {"$nin": [None, ""]}}, {"_id": 0}).limit(200):
+                _ing_devs.append(_d)
+        except Exception:  # noqa: BLE001
+            pass
+        _all_devs = list(DEVELOPMENTS_BY_ID.values()) + [d for d in _ing_devs
+                                                         if d.get("id") not in DEVELOPMENTS_BY_ID]
+        same_colonia = [d for d in _all_devs if d.get("colonia_id") == dev.get("colonia_id") and d.get("id") != dev.get("id")]
         # cross-check results (Phase 7.3)
         cc_docs = await self.db.di_cross_checks.find(
             {"development_id": zone_id},
@@ -256,7 +274,7 @@ class ScoreEngine:
             "_dmx_colonia_scores": [{"payload": d, "is_stub": False} for d in colonia_docs],
             "_dmx_own_proj_scores": [{"payload": d, "is_stub": False} for d in own_proj_scores],
             "_dmx_same_colonia_devs": [{"payload": _enrich_dev(d), "is_stub": False} for d in same_colonia],
-            "_dmx_all_devs": [{"payload": _enrich_dev(d), "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
+            "_dmx_all_devs": [{"payload": _enrich_dev(d), "is_stub": False} for d in _all_devs],
             "_dmx_cross_checks": [{"payload": d, "is_stub": False} for d in cc_docs],
             "_dmx_extracted_docs": [{"payload": d, "is_stub": False} for d in extracted_docs],
         }
@@ -275,7 +293,29 @@ class ScoreEngine:
                 if candidate is None or len(dev_id) > len(candidate):
                     candidate = dev_id
         if candidate is None:
-            return {}
+            # INGESTA: las unidades REALES viven en db.units con ids aleatorios (unit_XXXX, sin prefijo de dev)
+            # — sin esto los 5 scores IE_UNIT (hipergranularidad) salían stub para todo depto ingerido.
+            try:
+                _u = await self.db.units.find_one({"id": zone_id}, {"_id": 0})
+                if not _u:
+                    return {}
+                from ingested_reader import resolve_dev_doc, units_for_dev, normalize_unit
+                _dev_id = _u.get("development_id") or _u.get("project_id")
+                dev = await resolve_dev_doc(self.db, _dev_id, with_units=False)
+                if not dev:
+                    return {}
+                units = await units_for_dev(self.db, _dev_id)   # ya normalizadas al vocabulario canónico
+                unit = normalize_unit(_u)
+                same_proto = [u for u in units if u.get("prototype") == unit.get("prototype") and u.get("id") != unit.get("id")]
+                dev_peers = [u for u in units if u.get("id") != unit.get("id")]
+                return {
+                    "_dmx_unit": [{"payload": unit, "is_stub": False}],
+                    "_dmx_unit_dev": [{"payload": _enrich_dev(dev), "is_stub": False}],
+                    "_dmx_unit_same_proto": [{"payload": u, "is_stub": False} for u in same_proto],
+                    "_dmx_unit_dev_peers": [{"payload": u, "is_stub": False} for u in dev_peers],
+                }
+            except Exception:  # noqa: BLE001
+                return {}
         dev = DEVELOPMENTS_BY_ID[candidate]
         units = dev.get("units") or []
         unit = next((u for u in units if u.get("id") == zone_id), None)

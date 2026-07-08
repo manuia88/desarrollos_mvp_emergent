@@ -568,6 +568,12 @@ async def proyecto_full(project_id: str, request: Request):
           ("projects" if await db.projects.find_one({"id": project_id}, {"_id": 0, "id": 1}) else "seed")
 
     unidades = await units_for_dev(db, project_id) or (doc.get("units") or [])
+    # "Sobre mercado +X%" por unidad: $/m² de la unidad vs mercado de su colonia (AVM) — spec founder
+    try:
+        from ingested_reader import sobre_mercado_pct
+        await sobre_mercado_pct(db, doc.get("colonia_id"), unidades)
+    except Exception:
+        pass
     resumen = {"total": len(unidades),
                "disponible": sum(1 for u in unidades if u.get("status") == "disponible"),
                "apartado": sum(1 for u in unidades if u.get("status") == "reservado"),

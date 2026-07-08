@@ -150,6 +150,31 @@ def dev_doc_to_card(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str, Any]]) -> int:
+    """'Sobre mercado +X%' POR UNIDAD (spec founder): $/m² de la unidad vs $/m² de mercado de su colonia
+    (colonia_valoracion.market_m2 — AVM con muestra real). Escribe sobre_mercado_pct en cada unidad (in-place).
+    Devuelve cuántas unidades se calcularon. Fail-open (sin colonia o sin AVM → no escribe nada)."""
+    if not colonia_id or not units:
+        return 0
+    try:
+        cv = await db.colonia_valoracion.find_one({"colonia_id": colonia_id}, {"_id": 0, "market_m2": 1})
+        ref = ((cv or {}).get("market_m2") or {}).get("valor")
+        if not ref or ref <= 0:
+            return 0
+        n = 0
+        for u in units:
+            price = u.get("price")
+            m2 = u.get("m2_total") or u.get("m2_privative")
+            if price and m2 and float(m2) > 0:
+                ppm2 = float(price) / float(m2)
+                u["price_per_m2"] = round(ppm2)
+                u["sobre_mercado_pct"] = round((ppm2 / float(ref) - 1) * 100, 1)
+                n += 1
+        return n
+    except Exception:
+        return 0
+
+
 async def resolve_dev_doc(db, dev_id: str, with_units: bool = True) -> Optional[Dict[str, Any]]:
     """Devuelve el proyecto por id desde CUALQUIER origen: semilla → db.developments (ingesta/espejo) → db.projects
     (wizard). Carga units de db.units si no vienen embebidas. Fuente ÚNICA para 'dame el proyecto X sin importar de
