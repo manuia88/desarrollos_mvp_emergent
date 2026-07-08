@@ -135,6 +135,37 @@ def test_rev6_sanitize_filtra_filas_basura():
     assert len(out["units"]) == 2   # se cae solo la basura; la de rango sobrevive
 
 
+def test_examen2_inventario_completo_caza_parcial():
+    """examen2 (Único 7 de 149): extraer <60% de las filas que el modelo DIJO ver = crítico → review."""
+    v = bie.validate_extraction(
+        {"units": [{"unit_number": str(i), "price_mxn": 3e6, "size_m2_total": 50} for i in range(7)],
+         "_total_en_lista": 149},
+        {"listas_precios": [{"name": "LP.pdf"}]}, {}, "Unico")
+    assert v["critical_fail"] is True
+    check = next(c for c in v["checks"] if c["check"] == "inventario_completo")
+    assert check["ok"] is False and check["critical"] is True
+
+
+def test_examen2_sold_out_no_es_falso_positivo():
+    """Proyecto muy vendido: la lista actual muestra pocas filas (las vendidas están ausentes = legítimo).
+    Si el modelo vio 10 filas y extrajo 10, NO debe marcarse incompleto (ausente=vendido, no bug)."""
+    v = bie.validate_extraction(
+        {"units": [{"unit_number": str(i), "price_mxn": 3e6, "size_m2_total": 50} for i in range(10)],
+         "_total_en_lista": 10},
+        {"listas_precios": [{"name": "LP.pdf"}]}, {}, "SoldOut")
+    check = next(c for c in v["checks"] if c["check"] == "inventario_completo")
+    assert check["ok"] is True
+
+
+def test_examen2_inventario_completo_sin_dato_no_dispara():
+    """Sin _total_en_lista (el modelo no lo reportó) → el check no dispara (default seguro, no falso positivo)."""
+    v = bie.validate_extraction(
+        {"units": [{"unit_number": "1", "price_mxn": 3e6, "size_m2_total": 50}]},
+        {"listas_precios": [{"name": "LP.pdf"}]}, {}, "SinDato")
+    check = next(c for c in v["checks"] if c["check"] == "inventario_completo")
+    assert check["ok"] is True
+
+
 def test_rev5_edificio_coherente_usa_total_independiente():
     """rev #5: el check compara len(units) contra el total INDEPENDIENTE (brochure/planos), no el reconciliado."""
     # 34 unidades listadas pero brochure declara 20 → incoherencia detectable

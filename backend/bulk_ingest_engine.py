@@ -352,6 +352,8 @@ Devuelve SOLO JSON válido con la siguiente estructura:
      "contrato_mxn": int|null, "a_diferir_mxn": int|null}
   ],
   "_lista_tipo": "unidad|rango|null (rango = tabla de precios por TIPO/PROTOTIPO con min–max, no por depto)",
+  "_total_en_lista": int|null (CUENTA los renglones de unidad que VES en la lista de precios — aunque no
+    alcances a detallarlos TODOS en 'units'. Es el # de filas de la tabla, no del edificio. null si no hay lista),
   "_confidence": {"project_name": 0.0-1.0, "address": 0.0-1.0, "price": 0.0-1.0, "units": 0.0-1.0}
 }
 REGLA #1 — DISPONIBILIDAD (LA MÁS IMPORTANTE, prohibido equivocarse):
@@ -389,6 +391,10 @@ CADA ficha es UNA unidad DISPONIBLE — extrae su número (del nombre del archiv
 y características. El conjunto de fichas ES el inventario disponible.
 PRODUCTO: si detectas que NO es vivienda nueva (oficinas/local/bodega/terreno/rentas/reventas), dilo en
 "_producto" y NO inventes unidades residenciales.
+LISTAS MIXTAS (examen 07-08, Casa Roma 151): si la lista trae LOCALES COMERCIALES **y también**
+DEPARTAMENTOS residenciales, NO la descartes ni devuelvas units vacío. Extrae TODAS las unidades
+residenciales (departamentos/PH), marca las comerciales con type "local" y pon "_producto":"mixto".
+Que aparezca "LOCAL COMERCIAL" en las primeras filas NO significa que el proyecto sea comercial.
 En "_confidence" califica QUÉ TAN SEGURO estás (1.0 = explícito · 0.5 = inferido · 0.2 = adivinado). Sé honesto.
 Si un campo no se puede determinar con certeza, usa null/array vacío. NO inventes datos.
 Si no hay info clara del proyecto, devuelve {"project_name": "<carpeta>", "_low_confidence": true} y resto vacío.
@@ -582,10 +588,17 @@ async def extract_bulk_project(
             texto = _extract_text_from_bytes(b, mime, fname)
             nm = (fname or "").lower()
             import base64 as _b64
-            if texto and len(texto.strip()) >= 120 and not _texto_ilegible(texto):
-                content_parts.append(f"\n=== {fname} ===\n{texto[:8000]}")
-            elif (mime == "application/pdf" or nm.endswith(".pdf")) and pdf_docs < 3 and len(b) <= 10 * 1024 * 1024:
-                # OCR (#2): PDF escaneado (poco/ningún texto) → DOCUMENTO nativo (Claude lee la imagen de la página)
+            _es_pdf = (mime == "application/pdf" or nm.endswith(".pdf"))
+            # rendimiento de tabla: cuántas filas del texto parecen renglones de unidad (traen cifra grande).
+            # Si un PDF de LISTA da texto pero con MUY POCAS filas, pdfplumber aplastó la tabla ancha (Único:
+            # 149 unidades → solo ~4 filas en texto) → hay que LEERLO POR VISIÓN, no por el texto lossy (examen2).
+            _row_yield = len(re.findall(r"(?m)^.*?[\d,]{6,}.*$", texto or ""))
+            _texto_confiable = (texto and len(texto.strip()) >= 120 and not _texto_ilegible(texto)
+                                and not (_es_pdf and _row_yield < 6 and len(b) <= 10 * 1024 * 1024))
+            if _texto_confiable:
+                content_parts.append(f"\n=== {fname} ===\n{texto[:12000]}")
+            elif _es_pdf and pdf_docs < 3 and len(b) <= 10 * 1024 * 1024:
+                # PDF escaneado O tabla ancha aplastada por pdfplumber → DOCUMENTO nativo (Claude lee la imagen)
                 try:
                     from llm_client import ImageContent  # type: ignore
                     imagenes.append(ImageContent(image_base64=_b64.b64encode(b).decode(), media_type="application/pdf"))
@@ -1244,6 +1257,15 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
         _edi_ok = False
         _edi_det = f"{len(units)} unidades listadas > {_tot_indep} declaradas por brochure/planos"
     _c("edificio_coherente", _edi_ok, _edi_det)
+    # 11 · INVENTARIO COMPLETO (examen2, Único: extrajo 7 de una lista de 149 filas). OJO: comparar contra el
+    #      TOTAL del edificio daría falsos positivos (proyecto muy vendido → pocas filas en la lista actual es
+    #      legítimo, ausente=vendido). El único indicio SANO de "extracción incompleta" es que la FUENTE traía
+    #      muchas más filas de las que se extrajeron → se compara contra _source_rows (filas que vio el extractor).
+    _src_rows = extracted.get("_total_en_lista") or 0   # renglones que el MODELO dijo VER en la lista
+    _incompleto = bool(_src_rows >= 20 and len(units) < 0.6 * _src_rows)
+    _c("inventario_completo", not _incompleto,
+       f"{len(units)} extraídas de ~{_src_rows} filas que el modelo vio en la lista ({round(100*len(units)/_src_rows)}%)"
+       if _incompleto else "", critical=True)
 
     ok_n = sum(1 for c in checks if c["ok"])
     score = round(ok_n / len(checks) * 100)
@@ -1922,11 +1944,14 @@ async def run(db, job_id: str) -> None:
                                 u["_torre"] = torre_lista
                             all_units.append(u)
                     if merged is None:
-                        merged = {k: v for k, v in ex_l.items() if k != "units"}
+                        merged = {k: v for k, v in ex_l.items() if k not in ("units", "_total_en_lista")}
                     else:
                         for k, v in ex_l.items():
-                            if k != "units" and v and not merged.get(k):
+                            if k not in ("units", "_total_en_lista") and v and not merged.get(k):
                                 merged[k] = v
+                    # filas vistas se SUMAN entre torres (cada lista reporta las suyas)
+                    if ex_l.get("_total_en_lista"):
+                        merged["_total_en_lista"] = (merged.get("_total_en_lista") or 0) + ex_l["_total_en_lista"]
                 merged = merged or {"project_name": project_name_hint}
                 # UNIÓN por identidad TORRE+número (rev #3: sin la torre, A-101 y B-101 colisionaban y se perdía
                 # media torre). Sin unit_number, degrada a prototipo (rev #2). Preferir la fila CON precio.
