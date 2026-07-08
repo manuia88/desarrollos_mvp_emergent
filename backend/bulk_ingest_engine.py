@@ -400,6 +400,11 @@ def _texto_ilegible(t: str) -> bool:
     if any(k in low for k in ("oicerp", "otnematrap", "nedrag foor", "n ó ic a v r e s e r",
                               "o ic e r p", "s a z a r r e t")):   # palabras clave AL REVÉS/espaciadas
         return True
+    # Canarias 07-08: columnas rotadas con espacio entre CADA letra ('o i c e r P', 'S A R A M A C E R')
+    # → comprimir espacios/acentos y volver a buscar las claves al revés
+    comp = re.sub(r"\s+", "", low).replace("ó", "o").replace("ò", "o").replace("í", "i")
+    if any(k in comp for k in ("oicerp", "saramacer", "noicavreser", "sazarret", "adiurtsnoc")):
+        return True
     return False
 
 
@@ -555,7 +560,16 @@ async def extract_bulk_project(
             chat = chat.with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(8000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
             _msg = UserMessage(text=user_text, file_contents=imagenes[:4]) if imagenes else UserMessage(text=user_text)
             resp = await chat.send_message(_msg)
-            data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
+            try:
+                data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
+            except ValueError:
+                # a veces el modelo responde prosa en vez de JSON (visto AVC retro 07-08) → 1 reintento
+                # con nudge duro; el log guarda el arranque de la respuesta para diagnóstico
+                log.warning(f"[bulk_ingest] respuesta sin JSON ({project_name_hint}): {(resp or '')[:180]!r} — reintento")
+                resp = await chat.send_message(UserMessage(
+                    text="Tu respuesta anterior no fue JSON. RESPONDE ÚNICAMENTE el objeto JSON del "
+                         "proyecto según el esquema — sin texto antes ni después."))
+                data = _parse_llm_json(resp or "")
             if not isinstance(data, dict):
                 # la IA devolvió una lista u otra cosa (p.ej. una carpeta que no es un proyecto) →
                 # no reventar con 'list' object has no attribute 'get', cae a stub limpio.

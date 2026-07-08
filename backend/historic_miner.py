@@ -148,17 +148,28 @@ async def mine(db, conn, folder_url: str, only_project: Optional[str] = None,
             # comparable de ZONA retro: un dev vendido con colonia identificada = punto REAL en la
             # curva histórica de precios de esa colonia → misma colección que consumen battle cards
             try:
+                # linaje: ubicación cruda extraída (aunque la colonia no matchee el catálogo hoy)
+                snap["colonia_raw"] = ex.get("colonia")
+                snap["alcaldia"] = ex.get("alcaldia")
+                snap["address"] = ex.get("address_full") or ex.get("address")
                 from routes.wizard import _resolve_colonia_id
                 _col = await _resolve_colonia_id(db, ex.get("colonia") or ex.get("address_full"),
                                                  ex.get("alcaldia")) \
                     if (ex.get("colonia") or ex.get("alcaldia") or ex.get("address_full")) else None
+                # $/m² con precios SANOS (≥500k: fuera cajones/bodegas listados como renglón)
                 _pm2 = sorted(u2["price"] / float(un.get("size_m2_total") or un.get("size_m2"))
                               for u2, un in ((x, next((e for e in (ex.get("units") or [])
                                                        if e.get("unit_number") == x["unit_number"]), {})) for x in units)
-                              if u2.get("price") and (un.get("size_m2_total") or un.get("size_m2")))
-                if _col and _pm2:
+                              if u2.get("price") and u2["price"] >= 500_000
+                              and (un.get("size_m2_total") or un.get("size_m2")))
+                for x in units:
+                    if x.get("price") and x["price"] < 500_000:
+                        x["outlier_precio"] = True    # cajón/bodega/renglón raro — fuera de estadísticas
+                if _col:
                     snap["colonia_id"] = _col
+                if _pm2:
                     snap["price_m2_median"] = round(_pm2[len(_pm2) // 2])
+                if _col and _pm2:
                     ya_cs = await db.dev_competitor_price_snapshots.find_one(
                         {"source": "retro_lista", "file_id": c["file_id"]}, {"_id": 1})
                     if not ya_cs:
