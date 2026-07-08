@@ -102,14 +102,18 @@ async def collect_for_unit(db, unit_id: str) -> Dict[str, Any]:
         if val is not None:
             out["drpi_zone"] = _wrap(round(float(val), 2), "Atlas DRPI")
 
-    # Comparables (5 mas cercanas)
+    # Comparables (5 más cercanas) — desde db.units (unidades REALES ingeridas por colonia). Antes leía
+    # developments_units que tiene 0 docs → comparables vacíos hasta para el seed (mapa 07-08).
     try:
-        comps_cursor = db.developments_units.find(
-            {"colonia": colonia, "id": {"$ne": unit_id}}, {"_id": 0, "id": 1, "price_mxn": 1, "area_m2": 1}
-        ).limit(5)
-        comps = await comps_cursor.to_list(5)
+        comps = []
+        async for u in db.units.find(
+                {"colonia_id": colonia, "id": {"$ne": unit_id}, "price": {"$gt": 0}},
+                {"_id": 0, "id": 1, "price": 1, "price_mxn": 1, "m2_total": 1, "size_m2": 1, "unit_number": 1}
+        ).limit(5):
+            comps.append({"id": u.get("id"), "price_mxn": u.get("price") or u.get("price_mxn"),
+                          "area_m2": u.get("m2_total") or u.get("size_m2")})
         if comps:
-            out["comparables_5"] = _wrap(comps, "Transactions Network W3.2")
+            out["comparables_5"] = _wrap(comps, "Inventario real (ingesta)")
     except Exception:
         pass
 
@@ -175,10 +179,18 @@ async def collect_for_project(db, project_id: str) -> Dict[str, Any]:
         return {}
 
     try:
-        units_total = await db.developments_units.count_documents({"development_id": project_id})
-        units_sold = await db.developments_units.count_documents({"development_id": project_id, "status": "sold"})
+        # db.units = las unidades REALES (ingesta/wizard). developments_units quedó vacía (0 docs) → el
+        # conteo salía 0 hasta para el seed (mapa 07-08). Estatus canónico 'vendido' + legacy 'sold'.
+        units_total = await db.units.count_documents(
+            {"$or": [{"development_id": project_id}, {"project_id": project_id}]})
+        units_sold = await db.units.count_documents(
+            {"$or": [{"development_id": project_id}, {"project_id": project_id}],
+             "status": {"$in": ["vendido", "sold"]}})
+        if not units_total:
+            units_total = proj.get("units_total") or proj.get("total_units") or 0
+            units_sold = proj.get("units_sold") or 0
     except Exception:
-        units_total = proj.get("units_total") or 0
+        units_total = proj.get("units_total") or proj.get("total_units") or 0
         units_sold = proj.get("units_sold") or 0
 
     if units_total:
@@ -212,8 +224,9 @@ async def collect_for_project(db, project_id: str) -> Dict[str, Any]:
     out["_meta"] = {
         "project_id": project_id,
         "colonia": colonia,
-        "price_from": proj.get("price_from_mxn"),
-        "price_to": proj.get("price_to_mxn"),
+        # tolerante a los nombres reales: seed usa price_from_mxn, ingesta usa price_from/price_min_mxn
+        "price_from": proj.get("price_from_mxn") or proj.get("price_from") or proj.get("price_min_mxn"),
+        "price_to": proj.get("price_to_mxn") or proj.get("price_to") or proj.get("price_max_mxn"),
         "delivery": proj.get("delivery_estimate"),
     }
 

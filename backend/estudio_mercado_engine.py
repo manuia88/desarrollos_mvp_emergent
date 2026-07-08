@@ -24,6 +24,26 @@ log = logging.getLogger("dmx.estudio_mercado")
 _UMBRAL_REPRESENTATIVO = 5
 
 
+async def _oferta_ingeridos(db, col_ids: Optional[set] = None, names: Optional[set] = None) -> List[Dict[str, Any]]:
+    """Proyectos INGERIDOS (db.developments, los reales) que caen en las colonias dadas — con disponibilidad
+    REAL desde db.units. Antes la oferta/competencia del estudio solo veía el seed (mapa 07-08)."""
+    out: List[Dict[str, Any]] = []
+    try:
+        async for d in db.developments.find(
+                {"source": "bulk_ingest", "colonia_id": {"$nin": [None, ""]}},
+                {"_id": 0, "id": 1, "colonia": 1, "colonia_id": 1, "price_from": 1,
+                 "price_to": 1, "price_max_mxn": 1}):
+            cn = str(d.get("colonia") or "").strip().lower()
+            if (col_ids and d.get("colonia_id") in col_ids) or (names and cn in names):
+                disp = await db.units.count_documents({"development_id": d["id"], "status": "disponible"})
+                out.append({"id": d["id"], "price_from": d.get("price_from"),
+                            "price_to": d.get("price_to") or d.get("price_max_mxn"),
+                            "disponibles": disp})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[estudio] oferta ingeridos fail-open: {e}")
+    return out
+
+
 async def colonias_en_radio(db, lat: float, lng: float, radio_m: float) -> List[Dict[str, Any]]:
     """Colonias cuyo centroide cae dentro del radio (m) de un punto. Reusa el haversine de Norma 3.
     Compone microzonas a la medida SIN partir colonias (el átomo más fino sigue siendo la colonia)."""
@@ -125,6 +145,14 @@ async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
                     precios.append(dv["price_from"])
                 if dv.get("price_to"):
                     precios.append(dv["price_to"])
+        # + oferta REAL ingerida (db.developments) con disponibilidad viva de db.units
+        for dv in await _oferta_ingeridos(db, col_ids=set(col_ids), names=names):
+            oferta["proyectos"] += 1
+            oferta["unidades_disponibles"] += dv["disponibles"]
+            if dv.get("price_from"):
+                precios.append(dv["price_from"])
+            if dv.get("price_to"):
+                precios.append(dv["price_to"])
         if precios:
             oferta["precio_desde"], oferta["precio_hasta"] = min(precios), max(precios)
     except Exception as e:
@@ -236,6 +264,14 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
                     precios.append(d["price_from"])
                 if d.get("price_to"):
                     precios.append(d["price_to"])
+        # + oferta REAL ingerida (db.developments) con disponibilidad viva de db.units
+        for d in await _oferta_ingeridos(db, col_ids={colonia_id}, names={nm}):
+            oferta["proyectos"] += 1
+            oferta["unidades_disponibles"] += d["disponibles"]
+            if d.get("price_from"):
+                precios.append(d["price_from"])
+            if d.get("price_to"):
+                precios.append(d["price_to"])
         if precios:
             oferta["precio_desde"] = min(precios)
             oferta["precio_hasta"] = max(precios)
