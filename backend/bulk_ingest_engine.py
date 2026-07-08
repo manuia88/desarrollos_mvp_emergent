@@ -620,12 +620,18 @@ async def extract_bulk_project(
             try:
                 data = _parse_llm_json(resp or "")   # tolera fences, comas colgantes y JSON truncado
             except ValueError:
-                # a veces el modelo responde prosa en vez de JSON (visto AVC retro 07-08) → 1 reintento
-                # con nudge duro; el log guarda el arranque de la respuesta para diagnóstico
-                log.warning(f"[bulk_ingest] respuesta sin JSON ({project_name_hint}): {(resp or '')[:180]!r} — reintento")
-                resp = await chat.send_message(UserMessage(
-                    text="Tu respuesta anterior no fue JSON. RESPONDE ÚNICAMENTE el objeto JSON del "
-                         "proyecto según el esquema — sin texto antes ni después."))
+                # reintento: si la respuesta vino VACÍA (examen2: pasaba con ciertos PDF), re-preguntar sin el
+                # documento es inútil → RE-ENVIAR el mensaje completo (con los documentos). Si vino prosa (tenía
+                # texto), basta el nudge de formato. El log guarda el arranque para diagnóstico.
+                _vacia = not (resp or "").strip()
+                log.warning(f"[bulk_ingest] respuesta sin JSON ({project_name_hint}, vacía={_vacia}): "
+                            f"{(resp or '')[:180]!r} — reintento")
+                if _vacia:
+                    resp = await chat.send_message(_msg)   # mismo payload (documentos incluidos)
+                else:
+                    resp = await chat.send_message(UserMessage(
+                        text="Tu respuesta anterior no fue JSON. RESPONDE ÚNICAMENTE el objeto JSON del "
+                             "proyecto según el esquema — sin texto antes ni después."))
                 _cost += estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
                 data = _parse_llm_json(resp or "")
             if not isinstance(data, dict):
@@ -1813,9 +1819,13 @@ async def run(db, job_id: str) -> None:
             if len(_listas) > 1:
                 _listas.sort(key=lambda f: _fecha_de_nombre(f.get("name") or "") or "0000", reverse=True)
             _fichas = list(plan.get("fichas_por_depto") or []) if plan else []
-            if plan and (_listas or _fichas or plan.get("brochure")):
-                # forma fichas-por-depto: SIN lista, el conjunto de fichas es la disponibilidad (Drive DECA)
-                key_files = _listas + (_fichas if not _listas else []) + list(plan.get("brochure") or [])
+            # BROCHURE SEPARADO del inventario (rev/examen2 07-08): bundlear el brochure NATIVO junto a la lista
+            # hacía que el modelo devolviera VACÍO (Terralia/CasaRoma151) y multiplicaba el costo (Panorama mandaba
+            # el brochure en cada torre). Ahora el inventario sale SOLO de listas/fichas/sheets (texto confiable) y
+            # el brochure se lee UNA vez aparte, solo para campos de contexto (identidad/amenidades/total).
+            _broch_files = list(plan.get("brochure") or []) if plan else []
+            if plan and (_listas or _fichas or _broch_files):
+                key_files = _listas + (_fichas if not _listas else [])   # INVENTARIO (sin brochure)
                 sheets = [f for f in gdata["files"] if f.get("mimeType") in SPREADSHEET_MIMES
                           and _file_priority(f) >= 70][:2]
                 key_files = key_files + [s for s in sheets if s.get("id") not in {k.get("id") for k in key_files}]
@@ -1880,16 +1890,9 @@ async def run(db, job_id: str) -> None:
             async def _extract_por_lista(base_cost):
                 """FIX 2 (examen 07-08): MULTI-TORRE. Con varias listas (una por torre A/B/C), extraer CADA una
                 por separado (payload chico = menos timeouts/respuestas vacías) y UNIR las unidades. Antes se
-                bundleaba todo en 1 llamada y la IA solo rendía la primera torre (Splendor 22/38, Panorama 8/55)."""
-                # contexto compartido: el primer brochure (identidad/amenidades) va con cada lista
-                broch = list(plan.get("brochure") or [])[:1]
-                broch_payloads = []
-                for bf in broch:
-                    try:
-                        bb, bm = await _fetch(bf)
-                        broch_payloads.append((bb, bm, bf.get("name", "")))
-                    except Exception:  # noqa: BLE001
-                        continue
+                bundleaba todo en 1 llamada y la IA solo rendía la primera torre (Splendor 22/38, Panorama 8/55).
+                El brochure NO se manda aquí (examen2: bundlear el brochure nativo hacía devolver VACÍO y
+                multiplicaba el costo) — el contexto del brochure se lee aparte con _brochure_context()."""
                 cst = base_cost
                 merged = None
                 all_units: List[Dict[str, Any]] = []
@@ -1906,7 +1909,7 @@ async def run(db, job_id: str) -> None:
                         continue
                     try:
                         ex_l, c_l = await extract_bulk_project(
-                            project_name_hint, [(lb, lm, li.get("name", ""))] + broch_payloads)
+                            project_name_hint, [(lb, lm, li.get("name", ""))])   # SOLO la lista
                         cst += c_l
                     except Exception as e:  # noqa: BLE001
                         error_log.append(f"lista extract failed {li.get('name')}: {e}")
@@ -1940,6 +1943,41 @@ async def run(db, job_id: str) -> None:
                          f"({sum(1 for u in merged['units'] if u.get('price_mxn'))} con precio)")
                 return merged, cst
 
+            async def _brochure_context(ex, base_cost):
+                """Lee el BROCHURE (UNA vez, aparte del inventario) SOLO para campos de contexto que falten:
+                identidad, amenidades, total del edificio, entrega. NO toca units (el inventario ya salió de las
+                listas, que son la autoridad). Evita el bundle que devolvía vacío y ahorra tokens (examen2)."""
+                faltan = [k for k in ("address_full", "colonia", "alcaldia", "amenities", "total_units",
+                                      "delivery_date", "maintenance_fee_mxn") if not ex.get(k)]
+                if not _broch_files or not faltan:
+                    return ex, base_cost
+                if _job_cost + (base_cost - cost_mxn) >= _budget_cap:   # respeta el tope
+                    return ex, base_cost
+                bpl = []
+                for bf in _broch_files[:1]:
+                    try:
+                        bb, bm = await _fetch(bf)
+                        bpl.append((bb, bm, bf.get("name", "")))
+                    except Exception:  # noqa: BLE001
+                        continue
+                if not bpl:
+                    return ex, base_cost
+                try:
+                    bx, bc = await extract_bulk_project(project_name_hint, bpl)
+                    base_cost += bc
+                    for k in ("address_full", "colonia", "alcaldia", "delivery_date", "maintenance_fee_mxn"):
+                        if not ex.get(k) and bx.get(k):
+                            ex[k] = bx[k]
+                    if not ex.get("amenities") and bx.get("amenities"):
+                        ex["amenities"] = bx["amenities"]
+                    # total del edificio del brochure → alimenta la reconciliación (FIX 3), NUNCA las units
+                    if bx.get("total_units") and not ex.get("total_units"):
+                        ex["total_units"] = bx["total_units"]
+                    log.info(f"[bulk_ingest] {gkey}: contexto de brochure → llenó {faltan}")
+                except Exception as e:  # noqa: BLE001
+                    error_log.append(f"brochure context {gkey}: {e}")
+                return ex, base_cost
+
             # TOPE DE PRESUPUESTO pre-extracción (rev #7): el recon (barato) ya se gastó; antes de disparar la
             # extracción CARA, si ya rebasamos el tope, detener la corrida (no dejar que un solo proyecto multi-
             # lista se pase de largo). El check al inicio del loop solo veía proyectos anteriores.
@@ -1951,8 +1989,7 @@ async def run(db, job_id: str) -> None:
                 break
             try:
                 if _fichas and not _listas:
-                    extracted, _c = await extract_bulk_project(project_name_hint, payloads[:2])  # brochure/contexto
-                    extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn + _c)
+                    extracted, cost_mxn = await _extract_desde_fichas({"project_name": project_name_hint}, cost_mxn)
                 elif len(_listas) >= 2 and not _lista_son_versiones(_listas):
                     # MULTI-TORRE real (varias torres, no versiones fechadas del mismo inventario, rev #1):
                     # extraer cada lista por separado y unir. Las VERSIONES fechadas caen al camino single-call
@@ -1962,13 +1999,15 @@ async def run(db, job_id: str) -> None:
                     if not (extracted.get("units") or []) and _fichas:
                         extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn)
                 else:
-                    extracted, _c = await extract_bulk_project(project_name_hint, payloads)
+                    extracted, _c = await extract_bulk_project(project_name_hint, payloads)   # inventario (sin brochure)
                     cost_mxn += _c
                     # FALLBACK lista→fichas: la lista existe pero no rindió unidades (escaneada/vieja/ilegible)
                     # y HAY fichas vivas → el inventario sale de las fichas (validación AVC 07-08).
                     if _fichas and not (extracted.get("units") or []):
                         log.info(f"[bulk_ingest] {gkey}: lista sin unidades → fallback a {len(_fichas)} fichas")
                         extracted, cost_mxn = await _extract_desde_fichas(extracted, cost_mxn)
+                # CONTEXTO DEL BROCHURE (aparte del inventario): llena identidad/amenidades/total si faltan
+                extracted, cost_mxn = await _brochure_context(extracted, cost_mxn)
             except Exception as e:
                 extracted, _c = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")
