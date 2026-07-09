@@ -622,13 +622,39 @@ def _pdf_page_images(b: bytes, resolution: int = 150) -> List[bytes]:
     return out
 
 
+async def _lista_por_vision(project_name_hint: str, pdf_bytes: bytes, fname: str) -> Tuple[Dict[str, Any], float]:
+    """ESCALADA DE MODALIDAD para el gremlin de respuesta vacía (CR151 lista mixta densa): renderiza la(s)
+    página(s) a IMAGEN de ALTA resolución y las lee por VISIÓN con el loop de completitud activo (recupera
+    filas faltantes). best-of-2: si la 1ª pasada sale vacía/pobre, reintenta; se queda con la de más unidades.
+    Multi-página → cada página aparte (extract_list_paged); 1 página → imagen única + completitud."""
+    pages = _pdf_page_images(pdf_bytes, resolution=220)   # +resolución: tablas densas legibles
+    if not pages:
+        return {"units": []}, 0.0
+    cost = 0.0
+    mejor: Dict[str, Any] = {"units": []}
+    if len(pages) >= 2:
+        ex, c = await extract_list_paged(project_name_hint, pdf_bytes, fname)   # per-página
+        return ex, c
+    # 1 página: visión + completitud, best-of-2
+    for intento in range(2):
+        ex, c = await extract_bulk_project(project_name_hint, [(pages[0], "image/png", f"{fname} (visión)")])
+        cost += c
+        if len(ex.get("units") or []) > len(mejor.get("units") or []):
+            mejor = ex
+        if len(mejor.get("units") or []) >= 5 and intento == 0:
+            break   # 1ª pasada ya rindió → no gastar la 2ª
+    return mejor, cost
+
+
 async def extract_list_paged(project_name_hint: str, pdf_bytes: bytes, fname: str,
                              budget_mxn: float = 18.0) -> Tuple[Dict[str, Any], float]:
     """Extrae una LISTA GIGANTE multi-página leyendo CADA página por visión aparte y uniendo las unidades
     (upgrade #1 examen2, Único). Cada llamada ve ~1 página → nunca pide 149 filas de golpe. Fail-soft."""
     pages = _pdf_page_images(pdf_bytes)
-    if len(pages) < 2:
-        return {"units": []}, 0.0     # 1 página → el camino normal ya la maneja
+    if not pages:
+        return {"units": []}, 0.0     # sin páginas renderizables
+    # 1 página TAMBIÉN se procesa: es la ESCALADA DE MODALIDAD (texto→visión) que rompe el gremlin de
+    # respuesta vacía en listas difíciles (CR151 mixta: el texto devuelve vacío, la imagen sí se lee).
     merged: Dict[str, Any] = {"project_name": project_name_hint}
     all_units: List[Dict[str, Any]] = []
     cost = 0.0
@@ -2142,11 +2168,26 @@ async def run(db, job_id: str) -> None:
                         continue
                     try:
                         ex_l, c_l = await extract_bulk_project(
-                            project_name_hint, [(lb, lm, li.get("name", ""))])   # SOLO la lista
+                            project_name_hint, [(lb, lm, li.get("name", ""))])   # SOLO la lista (texto)
                         cst += c_l
                     except Exception as e:  # noqa: BLE001
                         error_log.append(f"lista extract failed {li.get('name')}: {e}")
-                        continue
+                        ex_l = {"units": []}
+                    # ESCALADA DE MODALIDAD (gremlin CR151): si el TEXTO rindió vacío/pobre frente a lo que la
+                    # fuente muestra, re-leer ESTA lista como IMAGEN (visión) CON loop de completitud — camino
+                    # distinto que rompe la respuesta vacía. Se toma el resultado con más unidades.
+                    _u_txt = len(ex_l.get("units") or [])
+                    _es_pdf = (lm == "application/pdf" or (li.get("name") or "").lower().endswith(".pdf"))
+                    _src_rows = len(re.findall(r"(?m)^.*?[\d,]{6,}.*$", _extract_text_from_bytes(lb, lm, li.get("name", "")) or ""))
+                    if _es_pdf and (_u_txt == 0 or _u_txt < 0.7 * _src_rows) and (cst - base_cost) < _budget_cap:
+                        try:
+                            ex_v = await _lista_por_vision(project_name_hint, lb, li.get("name", ""))
+                            cst += ex_v[1]
+                            if len(ex_v[0].get("units") or []) > _u_txt:
+                                log.info(f"[bulk_ingest] {gkey}: visión ganó en {li.get('name')} ({len(ex_v[0]['units'])} > {_u_txt})")
+                                ex_l = ex_v[0]
+                        except Exception as e:  # noqa: BLE001
+                            error_log.append(f"visión lista {li.get('name')}: {e}")
                     for u in (ex_l.get("units") or []):
                         # rev #2: aceptar filas con CUALQUIER ancla (unidad, prototipo o precio) — las listas de
                         # RANGO por tipo (Bilú/Xenter) no traen unit_number y antes se tiraban → cascarón vacío
