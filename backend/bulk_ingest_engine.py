@@ -378,6 +378,16 @@ REGLA #2 — NO INVENTAR (copia exacta):
 · Si la lista NO trae columna de recámaras/baños → null (el cruce de planos los completa después).
 · #BOD/bodega vacío → storage_count null. NO asumas que hay bodega.
 · Cajones (#EST): copia el número EXACTO de la fila. m²: copia los decimales tal cual (85.16, no 85).
+· PRECIO EN BLANCO = null (examen3, Terralia inventó 6 precios): si la celda de PRECIO de una fila está
+  VACÍA/en blanco, price_mxn=null. NUNCA copies el precio de otra fila, ni lo interpoles, ni lo inventes.
+  Una unidad puede estar en la lista SIN precio publicado — respétalo.
+· RENTAS ≠ VENTA (examen3, Casa Roma 151 guardó rentas como precio): los montos de RENTA (hoja "RENTAS",
+  "$/mes", locales en renta) NO son precio de venta. Si una unidad es de RENTA, NO la pongas como venta con
+  ese monto en price_mxn — omítela o márcala type="local" con price_mxn=null. Pista: si $/m² < $8,000 casi
+  seguro es renta mensual, no venta.
+· BALCÓN ≠ TOTAL (examen3, Casa Roma 151 metió el m² total en balcón): m2_balcony es SOLO el área del balcón,
+  NUNCA el m² total de la unidad. Si la columna Balcón está VACÍA → m2_balcony=null. m2_balcony jamás puede
+  ser ≥ el m² total; si lo fuera, va null.
 REGLA #3 — FORMA DE PAGO: si la lista trae columnas de pago por unidad (CRÉDITO, ENGANCHE, RESERVACIÓN,
 CONTRATO, A DIFERIR o similares), extráelas en los campos *_mxn. Son la base del cotizador.
 CRUCE DE PLANOS: el DESGLOSE de m² (interior/balcón/terraza/roof) vive en los PLANOS. Si hay planos
@@ -513,6 +523,18 @@ def _sanitize_extraction(data: Dict[str, Any]) -> Dict[str, Any]:
         b = _num(u.get("bedrooms")); u["bedrooms"] = int(b) if (b is not None and 0 <= b <= 20) else None
         # FIX 4: baños con MEDIOS (2.5) — antes int() truncaba 2.5→2 (examen Bilú perdió los .5 en 17 unidades)
         ba = _num(u.get("bathrooms")); u["bathrooms"] = (round(float(ba) * 2) / 2) if (ba is not None and 0 <= ba <= 20) else None
+        # BACKSTOP examen3 · BALCÓN ≠ TOTAL: m2_balcony jamás puede ser ≥ el m² total de la unidad (Casa Roma 151
+        # metió el total en balcón). Si lo es, es un error de columna → null.
+        _bal = _num(u.get("m2_balcony")); _tot = _num(u.get("size_m2_total")) or _num(u.get("size_m2"))
+        if _bal is not None and _tot and _bal >= _tot * 0.95:
+            u["m2_balcony"] = None
+        # BACKSTOP examen3 · RENTA marcada como VENTA: un "precio" que da $/m² absurdamente bajo (<$8k/m²) casi
+        # seguro es una RENTA mensual, no venta (Casa Roma 151 guardó $38k-101k de renta como precio). Fuera +
+        # marca para revisión, no ensucia el catálogo con precios de venta falsos.
+        _pm = u.get("price_mxn"); _m2v = _num(u.get("size_m2_total")) or _num(u.get("size_m2"))
+        if _pm and _m2v and _m2v > 0 and (_pm / _m2v) < 8000:
+            u["price_mxn"] = None
+            u["_precio_sospechoso_renta"] = round(_pm)
         clean_units.append(u)
     if "units" in data:
         data["units"] = clean_units
@@ -729,21 +751,26 @@ async def extract_bulk_project(
                 # no reventar con 'list' object has no attribute 'get', cae a stub limpio.
                 raise ValueError("La IA no devolvió un objeto de proyecto")
 
-            # AUTO-COMPLETADO de listas GIGANTES (upgrade #1, examen2 — Único: 149 filas, saca 7 por vuelta).
-            # El modelo REPORTA cuántas filas vio (_total_en_lista); si extrajo bastante menos, le pedimos SOLO
-            # las que faltan (dándole los números ya extraídos) y las unimos. Hasta 3 vueltas extra o presupuesto.
+            # AUTO-COMPLETADO / VERIFICACIÓN DE COMPLETITUD (upgrade examen3 — Panorama Torre D 13/43, Terralia
+            # 21/53 se colaban porque el modelo NO reportaba _total_en_lista y el loop no disparaba). Ahora SIEMPRE
+            # se verifica: se le pide "las que faltan" y se PARA cuando una vuelta no aporta nada nuevo (loop-until-
+            # dry). Si el modelo confirmó cuántas vio y ya tenemos ≥90%, se salta (cero costo extra en listas sanas).
             try:
                 _vistas = int(data.get("_total_en_lista") or 0)
             except (ValueError, TypeError):
                 _vistas = 0
             _iter = 0
-            while (autocomplete and _vistas >= 20 and len(data.get("units") or []) < 0.9 * _vistas and _iter < 3
-                   and _cost < _AUTOCOMPLETE_MAX_COST_MXN):
+            while (autocomplete and _iter < 3 and _cost < _AUTOCOMPLETE_MAX_COST_MXN
+                   and len(data.get("units") or []) >= 5
+                   and not (_vistas >= 20 and len(data.get("units") or []) >= 0.9 * _vistas)):
                 _iter += 1
                 _ya = [str(u.get("unit_number")) for u in (data.get("units") or []) if u.get("unit_number")]
-                _falta_txt = (user_text + f"\n\nYA extrajiste estas {len(_ya)} unidades: {', '.join(_ya[:300])}.\n"
-                              f"La lista tiene ~{_vistas} renglones. Devuelve SOLO las unidades que te FALTAN "
-                              f"(las que NO están en esa lista de arriba), MISMO formato JSON {{\"units\":[...]}}.")
+                _cnt = f"La lista tiene ~{_vistas} renglones. " if _vistas >= 20 else ""
+                _falta_txt = (user_text + f"\n\nYA extrajiste estas {len(_ya)} unidades: {', '.join(_ya[:400])}.\n"
+                              f"{_cnt}Revisa la lista OTRA VEZ y devuelve SOLO las unidades que te FALTARON (las que "
+                              f"están en la lista pero NO en el listado de arriba). Que EXISTAN de verdad en la lista "
+                              f"— si ya no falta ninguna, devuelve {{\"units\":[]}}. NO inventes ni repitas. "
+                              f"MISMO formato JSON {{\"units\":[...]}}.")
                 _msg2 = (UserMessage(text=_falta_txt, file_contents=imagenes[:4]) if imagenes
                          else UserMessage(text=_falta_txt))
                 resp2 = await chat.send_message(_msg2)
@@ -756,10 +783,10 @@ async def extract_bulk_project(
                 _seen = {_unit_identity(u.get("unit_number")) for u in (data.get("units") or [])}
                 _add = [u for u in nuevos if u.get("unit_number") and _unit_identity(u.get("unit_number")) not in _seen]
                 if not _add:
-                    break                                    # ya no aporta → parar
+                    break                                    # vuelta seca → lista completa
                 data["units"] = (data.get("units") or []) + _add
-                log.info(f"[bulk_ingest] {project_name_hint}: auto-completado vuelta {_iter} → +{len(_add)} "
-                         f"({len(data['units'])}/{_vistas})")
+                log.info(f"[bulk_ingest] {project_name_hint}: completitud vuelta {_iter} → +{len(_add)} "
+                         f"(total {len(data['units'])})")
 
             # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
             data = _sanitize_extraction(data)
