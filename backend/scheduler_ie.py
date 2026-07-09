@@ -473,6 +473,18 @@ def start_scheduler(db):
         args=[db], id="watchlist_alerts", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # DMX PICKS IA (el moat, founder 07-09): día 1 de cada mes 03:00 MX — congela los picks del mes
+    # (predicciones datadas) y cierra los que vencieron su horizonte → construye el track record.
+    async def _run_picks(_db):
+        import picks_engine as _pe
+        await _pe.generar_todos(_db)
+        await _pe.evaluar_picks(_db)
+    _scheduler.add_job(
+        wrap_apscheduler_job(_run_picks, "dmx_picks_mensual"),
+        CronTrigger(day=1, hour=3, minute=0, timezone=TZ),
+        args=[db], id="dmx_picks_mensual", replace_existing=True,
+        misfire_grace_time=86400,
+    )
     # F5.3 — Foto diaria de los índices DMX (03:00 MX) para la curva/historial del Modelo del Mundo
     from terminal_mercado_engine import market_index_daily_snapshot
     _scheduler.add_job(

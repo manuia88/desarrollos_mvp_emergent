@@ -790,6 +790,9 @@ app.include_router(auth_router)
 from routes.public import (router as public_router, _dev_overlay_cache)
 app.include_router(public_router)
 
+from routes.picks import router as picks_router   # DMX Picks IA (el moat: track record datado)
+app.include_router(picks_router)
+
 # Phase 4 Batch 0 — User Preferences + Universal Search
 from routes.search_prefs import (router as search_prefs_router,
                                   ensure_preferences_indexes)
