@@ -39,6 +39,9 @@ BULK_INGEST_MODEL = os.environ.get("BULK_INGEST_MODEL", "claude-sonnet-5")
 # Timeout LLM para la ingesta (job de fondo): Sonnet leyendo 15 docs + PDFs nativos tarda >60s legítimamente.
 # El tope global de 60s (anti-DoS) sigue intacto para los caminos de usuario.
 BULK_INGEST_LLM_TIMEOUT = float(os.environ.get("BULK_INGEST_LLM_TIMEOUT", "300"))
+# Tope de gasto del AUTO-COMPLETADO de listas gigantes (upgrade #1): hasta ~3 vueltas extra por lista,
+# acotado en MXN para que una lista monstruo no se dispare. Override por env.
+_AUTOCOMPLETE_MAX_COST_MXN = float(os.environ.get("BULK_INGEST_AUTOCOMPLETE_MAX_MXN", "18"))
 MAX_KEY_FILES_PER_PROJECT = 15    # PDFs DESCARGADOS+leídos por proyecto (datos primero + planos para
                                   # cruzar por unidad; a más, más costo de IA)
 MAX_TREE_DEPTH = 10               # profundidad máxima al recorrer subcarpetas anidadas
@@ -562,11 +565,71 @@ def _fit_image_bytes(b: bytes, mime: str) -> Optional[Tuple[bytes, str]]:
         return None
 
 
+def _pdf_page_images(b: bytes, resolution: int = 150) -> List[bytes]:
+    """Renderiza cada página de un PDF a PNG (pdfplumber → imagen). Para partir listas GIGANTES multi-página
+    y leer cada página por visión aparte (Único: 149 filas en 3 páginas → ~50 por página, mucho más fiable)."""
+    import io
+    out: List[bytes] = []
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(b)) as pdf:
+            for pg in pdf.pages[:12]:            # tope de seguridad de páginas
+                try:
+                    im = pg.to_image(resolution=resolution)
+                    buf = io.BytesIO()
+                    im.save(buf, format="PNG")
+                    data = buf.getvalue()
+                    fit = _fit_image_bytes(data, "image/png")   # respeta el límite base64
+                    if fit:
+                        out.append(fit[0])
+                except Exception:  # noqa: BLE001
+                    continue
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] split PDF a imágenes falló: {e}")
+    return out
+
+
+async def extract_list_paged(project_name_hint: str, pdf_bytes: bytes, fname: str,
+                             budget_mxn: float = 18.0) -> Tuple[Dict[str, Any], float]:
+    """Extrae una LISTA GIGANTE multi-página leyendo CADA página por visión aparte y uniendo las unidades
+    (upgrade #1 examen2, Único). Cada llamada ve ~1 página → nunca pide 149 filas de golpe. Fail-soft."""
+    pages = _pdf_page_images(pdf_bytes)
+    if len(pages) < 2:
+        return {"units": []}, 0.0     # 1 página → el camino normal ya la maneja
+    merged: Dict[str, Any] = {"project_name": project_name_hint}
+    all_units: List[Dict[str, Any]] = []
+    cost = 0.0
+    for i, pimg in enumerate(pages):
+        if cost >= budget_mxn:
+            break
+        # autocomplete=False: la paginación YA es el mecanismo de completado (no multiplicar llamadas por página)
+        ex_p, c_p = await extract_bulk_project(project_name_hint, [(pimg, "image/png", f"{fname} p{i+1}")],
+                                               autocomplete=False)
+        cost += c_p
+        for u in (ex_p.get("units") or []):
+            if u.get("unit_number") or u.get("prototype") or u.get("price_mxn") or u.get("price_min_mxn"):
+                all_units.append(u)
+        for k, v in ex_p.items():
+            if k != "units" and v and not merged.get(k):
+                merged[k] = v
+    _seen = {}
+    for u in all_units:
+        idk = _unit_identity(u.get("unit_number")) or _norm_proto(u.get("prototype")) or _iso()
+        if idk not in _seen or (u.get("price_mxn") and not _seen[idk].get("price_mxn")):
+            _seen[idk] = u
+    merged["units"] = list(_seen.values())
+    log.info(f"[bulk_ingest] {project_name_hint}: lista paginada {len(pages)} págs → {len(merged['units'])} unidades")
+    return merged, cost
+
+
 async def extract_bulk_project(
     project_name_hint: str,
     file_payloads: List[Tuple[bytes, str, str]],  # (bytes, mime, filename)
+    autocomplete: bool = True,
 ) -> Tuple[Dict[str, Any], float]:
-    """Run Claude Haiku on the project's key files and return structured data + cost_mxn."""
+    """Run Claude Haiku on the project's key files and return structured data + cost_mxn.
+    autocomplete=False desactiva el loop de auto-completado (lo usa el extractor PAGINADO, donde la
+    paginación YA completa — evita multiplicar llamadas por página)."""
     async with CLAUDE_SEMAPHORE:
         try:
             from llm_client import LlmChat, UserMessage  # type: ignore
@@ -651,6 +714,39 @@ async def extract_bulk_project(
                 # la IA devolvió una lista u otra cosa (p.ej. una carpeta que no es un proyecto) →
                 # no reventar con 'list' object has no attribute 'get', cae a stub limpio.
                 raise ValueError("La IA no devolvió un objeto de proyecto")
+
+            # AUTO-COMPLETADO de listas GIGANTES (upgrade #1, examen2 — Único: 149 filas, saca 7 por vuelta).
+            # El modelo REPORTA cuántas filas vio (_total_en_lista); si extrajo bastante menos, le pedimos SOLO
+            # las que faltan (dándole los números ya extraídos) y las unimos. Hasta 3 vueltas extra o presupuesto.
+            try:
+                _vistas = int(data.get("_total_en_lista") or 0)
+            except (ValueError, TypeError):
+                _vistas = 0
+            _iter = 0
+            while (autocomplete and _vistas >= 20 and len(data.get("units") or []) < 0.9 * _vistas and _iter < 3
+                   and _cost < _AUTOCOMPLETE_MAX_COST_MXN):
+                _iter += 1
+                _ya = [str(u.get("unit_number")) for u in (data.get("units") or []) if u.get("unit_number")]
+                _falta_txt = (user_text + f"\n\nYA extrajiste estas {len(_ya)} unidades: {', '.join(_ya[:300])}.\n"
+                              f"La lista tiene ~{_vistas} renglones. Devuelve SOLO las unidades que te FALTAN "
+                              f"(las que NO están en esa lista de arriba), MISMO formato JSON {{\"units\":[...]}}.")
+                _msg2 = (UserMessage(text=_falta_txt, file_contents=imagenes[:4]) if imagenes
+                         else UserMessage(text=_falta_txt))
+                resp2 = await chat.send_message(_msg2)
+                _cost += estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
+                try:
+                    d2 = _parse_llm_json(resp2 or "")
+                except ValueError:
+                    break
+                nuevos = (d2.get("units") if isinstance(d2, dict) else None) or []
+                _seen = {_unit_identity(u.get("unit_number")) for u in (data.get("units") or [])}
+                _add = [u for u in nuevos if u.get("unit_number") and _unit_identity(u.get("unit_number")) not in _seen]
+                if not _add:
+                    break                                    # ya no aporta → parar
+                data["units"] = (data.get("units") or []) + _add
+                log.info(f"[bulk_ingest] {project_name_hint}: auto-completado vuelta {_iter} → +{len(_add)} "
+                         f"({len(data['units'])}/{_vistas})")
+
             # Validación de negocio: nunca dejar precios/m² imposibles entrar al catálogo.
             data = _sanitize_extraction(data)
             # Geocoding: la IA casi nunca trae lat/lng → completarlas de la dirección (fail-soft). El dato útil vive
@@ -2100,6 +2196,25 @@ async def run(db, job_id: str) -> None:
                 else:
                     extracted, _c = await extract_bulk_project(project_name_hint, payloads)   # inventario (sin brochure)
                     cost_mxn += _c
+                    # FALLBACK PAGINADO (upgrade #1, Único): si la lista salió VACÍA o PARCIAL y es multi-página,
+                    # leer cada página por visión aparte y unir (una llamada por página, no 149 filas de golpe).
+                    _u = extracted.get("units") or []
+                    _tl = extracted.get("_total_en_lista") or 0
+                    _parcial = (not _u) or (_tl >= 20 and len(_u) < 0.6 * _tl)
+                    if _listas and _parcial and cost_mxn < _budget_cap:
+                        try:
+                            _lb, _lm = await _fetch(_listas[0])
+                            if (_lm == "application/pdf" or (_listas[0].get("name") or "").lower().endswith(".pdf")):
+                                ex_pg, c_pg = await extract_list_paged(project_name_hint, _lb, _listas[0].get("name", ""),
+                                                                       budget_mxn=min(_AUTOCOMPLETE_MAX_COST_MXN, _budget_cap - cost_mxn))
+                                cost_mxn += c_pg
+                                if len(ex_pg.get("units") or []) > len(_u):
+                                    log.info(f"[bulk_ingest] {gkey}: paginado ganó ({len(ex_pg['units'])} > {len(_u)})")
+                                    for k, v in ex_pg.items():
+                                        if k == "units" or (v and not extracted.get(k)):
+                                            extracted[k] = v
+                        except Exception as e:  # noqa: BLE001
+                            error_log.append(f"paginado {gkey}: {e}")
                     # FALLBACK lista→fichas: la lista existe pero no rindió unidades (escaneada/vieja/ilegible)
                     # y HAY fichas vivas → el inventario sale de las fichas (validación AVC 07-08).
                     if _fichas and not (extracted.get("units") or []):
