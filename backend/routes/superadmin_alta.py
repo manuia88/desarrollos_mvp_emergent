@@ -616,9 +616,19 @@ async def proyecto_full(project_id: str, request: Request):
                 if not s.get("is_stub"):
                     scores.append({"code": s.get("code"), "value": s.get("value"), "tier": s.get("tier")})
             out["scores"] = scores
-            zs = await db.zone_scores.find_one({"zone_id": cid}, {"_id": 0, "overall": 1, "subscores": 1})
-            if zs:
-                out["zona_score"] = zs
+            # AUDITORÍA 07-08: los docs de zone_scores usan score_numeric/score_letter/components —
+            # el endpoint proyectaba overall/subscores (inexistentes) → zona_score SIEMPRE salía vacío
+            # pese a existir 1569 docs. Se mapea a la forma que el front espera (overall/letter/subscores).
+            zs = await db.zone_scores.find_one(
+                {"zone_id": cid},
+                {"_id": 0, "score_numeric": 1, "score_letter": 1, "components": 1, "subscores_real": 1, "tier": 1})
+            if zs and zs.get("score_numeric") is not None:
+                out["zona_score"] = {
+                    "overall": zs.get("score_numeric"),
+                    "letter": zs.get("score_letter"),
+                    "tier": zs.get("tier"),
+                    "subscores": zs.get("subscores_real") or zs.get("components") or {},
+                }
     except Exception:
         pass
     # HISTÓRICOS: cambios de precio (price_events) + ventas/estatus (unit_status_events, días-para-vender) — fail-open

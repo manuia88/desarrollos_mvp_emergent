@@ -122,6 +122,17 @@ async def _dim_precio(db, project_id: str, dev: dict) -> float:
         price_to = float(dev.get("price_to") or 0)
         price_mid = ((price_from + price_to) / 2) if price_from and price_to else price_from or price_to
 
+        # AUDITORÍA 07-08: cuando no hay AVM para la colonia, usar los COMPARABLES REALES ingeridos/históricos
+        # (dev_competitor_price_snapshots — incluye los cierres retro DECA). Antes esta colección no la leía
+        # nadie salvo sus propios writers; ahora alimenta la señal de precio del battle card.
+        if avm_val <= 0 and colonia:
+            comps = [c async for c in db.dev_competitor_price_snapshots.find(
+                {"$or": [{"colonia_id": colonia}, {"zone_id": colonia}]}, {"_id": 0, "price_m2_median": 1})]
+            m2s = sorted(float(c["price_m2_median"]) for c in comps if c.get("price_m2_median"))
+            if m2s and m2_mid > 0:
+                ref_m2 = m2s[len(m2s) // 2]                 # $/m² mediano de comparables de la colonia
+                avm_val = ref_m2 * m2_mid                    # referencia sintética para el mismo m² medio
+
         if avm_val <= 0 or price_mid <= 0:
             return 50.0  # neutral si no hay data
 

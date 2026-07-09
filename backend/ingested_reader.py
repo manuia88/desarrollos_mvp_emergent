@@ -76,17 +76,32 @@ def normalize_unit(u: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def units_for_dev(db, dev_id: str) -> List[Dict[str, Any]]:
-    """Unidades REALES del proyecto desde db.units (ingesta usa development_id, wizard usa project_id), normalizadas."""
+    """Unidades REALES del proyecto desde db.units (ingesta usa development_id, wizard usa project_id), normalizadas.
+    DEDUP por número de unidad (auditoría 07-08: NUEVE22 tenía 504/604 duplicadas — un registro bueno + un stub
+    fantasma price=None): se conserva la fila MÁS RICA (con precio y prototipo completo)."""
     if not dev_id:
         return []
-    units: List[Dict[str, Any]] = []
+    raw: List[Dict[str, Any]] = []
     try:
         async for u in db.units.find(
                 {"$or": [{"development_id": dev_id}, {"project_id": dev_id}]}, {"_id": 0}):
-            units.append(normalize_unit(u))
+            raw.append(u)
     except Exception:
-        pass
-    return units
+        return []
+
+    def _rank(u: Dict[str, Any]) -> tuple:
+        price = 1 if (u.get("price_mxn") or u.get("price")) else 0
+        proto = str(u.get("prototype") or "")
+        proto_rico = 1 if (proto and not proto.isdigit()) else 0   # 'Tipo 04' gana a '04'
+        llenos = sum(1 for v in u.values() if v not in (None, "", []))
+        return (price, proto_rico, llenos)
+
+    mejor: Dict[str, Dict[str, Any]] = {}
+    for u in raw:
+        k = str(u.get("unit_number") or u.get("id") or id(u)).strip().upper()
+        if k not in mejor or _rank(u) > _rank(mejor[k]):
+            mejor[k] = u
+    return [normalize_unit(u) for u in mejor.values()]
 
 
 def _property_type_from_units(units: List[Dict[str, Any]]) -> str:
@@ -234,6 +249,17 @@ async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str,
     try:
         cv = await db.colonia_valoracion.find_one({"colonia_id": colonia_id}, {"_id": 0, "market_m2": 1})
         ref = ((cv or {}).get("market_m2") or {}).get("valor")
+        _fuente = "avm"
+        # AUDITORÍA 07-08: 36% de las colonias no tienen AVM cargado → sobre_mercado salía CIEGO (0 unidades).
+        # FALLBACK: usar el $/m² mediano de los COMPARABLES de la colonia (dev_competitor_price_snapshots,
+        # incluye los cierres retro DECA). Da una referencia real de mercado aunque falte el AVM.
+        if not ref or ref <= 0:
+            comps = [c async for c in db.dev_competitor_price_snapshots.find(
+                {"$or": [{"colonia_id": colonia_id}, {"zone_id": colonia_id}]}, {"_id": 0, "price_m2_median": 1})]
+            m2s = sorted(float(c["price_m2_median"]) for c in comps if c.get("price_m2_median"))
+            if m2s:
+                ref = m2s[len(m2s) // 2]
+                _fuente = "comparables"
         if not ref or ref <= 0:
             return 0
         n = 0
@@ -244,6 +270,7 @@ async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str,
                 ppm2 = float(price) / float(m2)
                 u["price_per_m2"] = round(ppm2)
                 u["sobre_mercado_pct"] = round((ppm2 / float(ref) - 1) * 100, 1)
+                u["sobre_mercado_fuente"] = _fuente   # 'avm' o 'comparables' (transparencia de la referencia)
                 n += 1
         return n
     except Exception:

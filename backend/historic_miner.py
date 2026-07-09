@@ -201,26 +201,32 @@ async def mine(db, conn, folder_url: str, only_project: Optional[str] = None,
         for prev, cur in zip(todos, todos[1:]):
             prev_u = {bie._unit_identity(u["unit_number"]): u for u in prev["units"]}
             cur_u = {bie._unit_identity(u["unit_number"]): u for u in cur["units"]}
+            # AUDITORÍA 07-08: los cierres retro NO son devs de seed → dev_id=nombre hace 403 en el endpoint por-dev.
+            # Se conserva dev_name (referencia) y se ADJUNTA colonia_id (del snapshot) para consumo POR ZONA
+            # (historia de precios de la colonia / plusvalía), que es donde vive el valor de estos eventos.
+            _col = cur.get("colonia_id") or prev.get("colonia_id")
+            _dname = cur.get("dev_name") or dev_key
             for k, pu in prev_u.items():
                 cu = cur_u.get(k)
-                dev_id = cur.get("dev_id") or dev_key
                 if cu and pu.get("price") and cu.get("price") and pu["price"] != cu["price"]:
-                    ya = await db.price_events.find_one({"dev_id": dev_id, "unit_number": pu["unit_number"],
+                    ya = await db.price_events.find_one({"dev_name": _dname, "unit_number": pu["unit_number"],
                                                          "changed_at": cur["fecha"], "source": "retro_lista"})
                     if not ya:
                         await db.price_events.insert_one({
-                            "dev_id": dev_id, "unit_number": pu["unit_number"],
+                            "dev_id": cur.get("dev_id"), "dev_name": _dname, "colonia_id": _col,
+                            "unit_number": pu["unit_number"],
                             "old_price": pu["price"], "new_price": cu["price"],
                             "delta_pct": round((cu["price"] / pu["price"] - 1) * 100, 2),
                             "changed_at": cur["fecha"], "source": "retro_lista",
                             "label": f"Δ lista {prev.get('fecha')}→{cur.get('fecha')}"})
                         eventos_p += 1
                 elif not cu:   # desapareció de la lista siguiente → vendida en ese intervalo
-                    ya = await db.unit_status_events.find_one({"dev_id": dev_id, "unit_number": pu["unit_number"],
+                    ya = await db.unit_status_events.find_one({"dev_name": _dname, "unit_number": pu["unit_number"],
                                                                "changed_at": cur["fecha"], "source": "retro_lista"})
                     if not ya:
                         await db.unit_status_events.insert_one({
-                            "dev_id": dev_id, "unit_number": pu["unit_number"],
+                            "dev_id": cur.get("dev_id"), "dev_name": _dname, "colonia_id": _col,
+                            "unit_number": pu["unit_number"],
                             "old_status": pu.get("status") or "disponible", "new_status": "vendido",
                             "changed_at": cur["fecha"], "sold_at": cur["fecha"],
                             "price": pu.get("price"), "source": "retro_lista",
