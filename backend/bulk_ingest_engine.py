@@ -740,6 +740,133 @@ async def verificar_doble(project_name_hint: str, list_bytes: bytes, list_name: 
         return None, snaps_b64, 0.0
 
 
+BROCHURE_VERIFY_PROMPT = """Eres VERIFICADOR de los DATOS DE PROYECTO de un desarrollo inmobiliario. Recibes
+la IMAGEN del brochure/presentación y unos DATOS que un sistema extrajo. Verifica contra la imagen y
+devuelve SOLO JSON con lo que el brochure DICE (null si el brochure no lo menciona — NO inventes):
+{
+  "total_unidades": int|null (ej. "34 departamentos" → 34),
+  "niveles_edificio": int|null (ej. "10 niveles" → 10),
+  "amenidades": ["lista de amenidades que el brochure menciona"],
+  "entrega": "string|null (fecha/estado de entrega)",
+  "colonia": "string|null", "alcaldia": "string|null",
+  "veredicto": "coincide" | "corrige"
+}
+Solo lo que VEAS en el brochure. Responde SOLO JSON."""
+
+
+async def verificar_corregir_brochure(project_name_hint: str, broch_bytes: bytes, fname: str,
+                                      extracted: Dict[str, Any]) -> Tuple[Dict[str, Any], int, float]:
+    """DOBLE-CHECK del BROCHURE (idea founder 07-09): verifica los DATOS DE PROYECTO (total unidades, niveles,
+    amenidades, entrega, ubicación) contra la IMAGEN del brochure y CORRIGE los que el brochure confirma
+    (nunca sobre-escribe la lista de unidades; solo datos de edificio/proyecto). Devuelve (res, #corr, costo)."""
+    pages = _pdf_page_images(broch_bytes, resolution=170)
+    if not pages:
+        return {}, 0, 0.0
+    import base64 as _b64
+    import json as _json
+    datos = {"total_unidades": extracted.get("total_units"), "niveles_edificio": extracted.get("niveles_edificio"),
+             "amenidades": extracted.get("amenities") or [], "entrega": extracted.get("delivery_date"),
+             "colonia": extracted.get("colonia"), "alcaldia": extracted.get("alcaldia")}
+    try:
+        from llm_client import LlmChat, UserMessage, ImageContent, estimate_cost_mxn
+        chat = LlmChat(api_key="", session_id=f"vbroch-{secrets.token_urlsafe(6)}",
+                       system_message=BROCHURE_VERIFY_PROMPT).with_model("anthropic", BULK_INGEST_MODEL)\
+            .with_max_tokens(2000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
+        imgs = [ImageContent(image_base64=_b64.b64encode(p).decode(), media_type="image/png") for p in pages[:4]]
+        resp = await chat.send_message(UserMessage(
+            text=f"PROYECTO: {project_name_hint}\nDATOS EXTRAÍDOS:\n{_json.dumps(datos, ensure_ascii=False)}\n\n"
+                 f"Verifica contra el brochure adjunto.", file_contents=imgs[:4]))
+        cost = estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
+        res = _parse_llm_json(resp or "")
+        if not isinstance(res, dict):
+            return {}, 0, cost
+        n = 0
+        # CORREGIR datos de proyecto que el brochure confirma (fuente independiente de la lista — FIX 3)
+        _bt = _num(res.get("total_unidades"))
+        if _bt and _bt > (extracted.get("total_units") or 0):
+            extracted["total_units"] = int(_bt); extracted["_total_independiente"] = int(_bt); n += 1
+        _bn = _num(res.get("niveles_edificio"))
+        if _bn and _bn > (extracted.get("niveles_edificio") or 0):
+            extracted["niveles_edificio"] = int(_bn); n += 1
+        _bam = res.get("amenidades") or []
+        if _bam and len(_bam) > len(extracted.get("amenities") or []):
+            extracted["amenities"] = _bam; n += 1
+        if res.get("entrega") and not extracted.get("delivery_date"):
+            extracted["delivery_date"] = res["entrega"]; n += 1
+        if res.get("colonia") and not extracted.get("colonia"):
+            extracted["colonia"] = res["colonia"]; n += 1
+        return res, n, cost
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] verificar_brochure {project_name_hint}: {e}")
+        return {}, 0, 0.0
+
+
+async def corregir_desde_doble(project_name_hint: str, list_bytes: bytes, list_name: str,
+                               extracted: Dict[str, Any], vd: Dict[str, Any]) -> Tuple[int, float]:
+    """AUTO-CORRECCIÓN (idea founder 07-09): el doble-check no solo bloquea — CORRIGE desde la IMAGEN (la
+    fuente de verdad). Aplica precio/estatus corregidos, QUITA las inventadas, y RECUPERA las faltantes con
+    una lectura DIRIGIDA de la imagen (solo esas unidades). Devuelve (# correcciones, costo). Todo con linaje."""
+    units = extracted.get("units") or []
+    by_id: Dict[str, Dict[str, Any]] = {}
+    for u in units:
+        by_id.setdefault(_unit_identity(u.get("unit_number")), u)
+    n = 0
+    # precio: la imagen manda (correcto=null → precio en blanco → null; nunca inventado)
+    for pm in (vd.get("precio_mal") or []):
+        u = by_id.get(_unit_identity(pm.get("unit")))
+        if u:
+            c = _num(pm.get("correcto"))
+            u["price_mxn"] = int(c) if (c and c > 0) else None
+            u["_corregido_doble"] = "precio"
+            n += 1
+    for est in (vd.get("estatus_mal") or []):
+        u = by_id.get(_unit_identity(est.get("unit")))
+        if u and est.get("correcto"):
+            u["status"] = str(est["correcto"]).lower()
+            u["_corregido_doble"] = "estatus"
+            n += 1
+    # inventadas (sobrantes) → fuera
+    sob = {_unit_identity(x) for x in (vd.get("sobrantes") or [])}
+    if sob:
+        antes = len(units)
+        extracted["units"] = [u for u in units if _unit_identity(u.get("unit_number")) not in sob]
+        n += antes - len(extracted["units"])
+        units = extracted["units"]
+    # faltantes → LECTURA DIRIGIDA de la imagen (solo esas unidades)
+    cost = 0.0
+    falt = [str(x) for x in (vd.get("faltantes") or []) if x]
+    if falt:
+        pages = _pdf_page_images(list_bytes, resolution=200)
+        if pages:
+            try:
+                import base64 as _b64
+                from llm_client import LlmChat, UserMessage, ImageContent, estimate_cost_mxn
+                chat = LlmChat(api_key="", session_id=f"recover-{secrets.token_urlsafe(6)}",
+                               system_message=EXTRACTION_PROMPT).with_model("anthropic", BULK_INGEST_MODEL)\
+                    .with_max_tokens(6000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
+                imgs = [ImageContent(image_base64=_b64.b64encode(p).decode(), media_type="image/png") for p in pages[:4]]
+                resp = await chat.send_message(UserMessage(
+                    text=f"PROYECTO: {project_name_hint}\nDe la LISTA en la imagen, extrae SOLO estas unidades "
+                         f"que faltaron: {', '.join(falt[:120])}. MISMO formato JSON {{\"units\":[...]}}. "
+                         f"Solo las que EXISTAN de verdad en la imagen.", file_contents=imgs[:4]))
+                cost = estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
+                d2 = _parse_llm_json(resp or "")
+                nuevos = (d2.get("units") if isinstance(d2, dict) else None) or []
+                _seen = {_unit_identity(u.get("unit_number")) for u in (extracted.get("units") or [])}
+                add = [u for u in nuevos if u.get("unit_number")
+                       and _unit_identity(u.get("unit_number")) not in _seen]
+                for u in add:
+                    u["_recuperado_doble"] = True
+                extracted["units"] = (extracted.get("units") or []) + add
+                n += len(add)
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[bulk_ingest] recuperar faltantes {project_name_hint}: {e}")
+    if n:
+        data = _sanitize_extraction(extracted)   # re-sanitiza tras corregir (backstops de balcón/renta)
+        extracted["units"] = data.get("units") or extracted.get("units")
+    return n, cost
+
+
 async def extract_bulk_project(
     project_name_hint: str,
     file_payloads: List[Tuple[bytes, str, str]],  # (bytes, mime, filename)
@@ -2637,25 +2764,42 @@ async def run(db, job_id: str) -> None:
                     _vd, _snaps, _cvd = await verificar_doble(project_name_hint, _lb2, _listas[0].get("name", ""), extracted)
                     cost_mxn += _cvd
                     if _vd:
-                        verificacion_doble = {k: _vd.get(k) for k in
-                                              ("total_en_imagen", "faltantes", "sobrantes", "precio_mal",
-                                               "estatus_mal", "veredicto", "agreement_pct")}
                         if _snaps:
                             await db.ingest_list_snapshots.update_one(
                                 {"project_folder_name": project_name_hint, "source_content_hash": content_hash},
                                 {"$set": {"project_folder_name": project_name_hint, "source_content_hash": content_hash,
                                           "list_name": _listas[0].get("name"), "pages_b64": _snaps, "ts": _iso()}},
                                 upsert=True)
-                        _material = (len(_vd.get("faltantes") or []) + len(_vd.get("precio_mal") or [])
-                                     ) >= max(2, 0.1 * len(extracted.get("units") or [1]))
-                        if decision == "auto_approve" and (_vd.get("veredicto") == "discrepa" or _material):
+                        _disc_ini = _vd.get("agreement_pct")
+                        # AUTO-CORRECCIÓN (idea founder): corregir desde la IMAGEN antes de decidir —
+                        # precio/estatus mal, quitar inventadas, recuperar faltantes con lectura dirigida.
+                        _n_corr = 0
+                        if (_vd.get("precio_mal") or _vd.get("estatus_mal") or _vd.get("sobrantes") or _vd.get("faltantes")):
+                            _n_corr, _cc = await corregir_desde_doble(
+                                project_name_hint, _lb2, _listas[0].get("name", ""), extracted, _vd)
+                            cost_mxn += _cc
+                        # RE-VERIFICAR tras corregir → agreement final honesto (2ª pasada barata solo si hubo corrección)
+                        _vd2 = _vd
+                        if _n_corr and (_job_cost + cost_mxn) < _budget_cap:
+                            _vd_re, _s2, _cvr = await verificar_doble(project_name_hint, _lb2, _listas[0].get("name", ""), extracted)
+                            cost_mxn += _cvr
+                            if _vd_re:
+                                _vd2 = _vd_re
+                        verificacion_doble = {k: _vd2.get(k) for k in
+                                              ("total_en_imagen", "faltantes", "sobrantes", "precio_mal",
+                                               "estatus_mal", "veredicto", "agreement_pct")}
+                        verificacion_doble["correcciones_auto"] = _n_corr
+                        verificacion_doble["acuerdo_antes"] = _disc_ini
+                        # BLOQUEAR solo lo que NO se pudo corregir (queda residual material tras la corrección)
+                        _resid = (len(_vd2.get("faltantes") or []) + len(_vd2.get("precio_mal") or [])
+                                  ) >= max(2, 0.1 * len(extracted.get("units") or [1]))
+                        if decision == "auto_approve" and (_vd2.get("veredicto") == "discrepa" and _resid):
                             decision = "pending_review"
                             extracted.setdefault("_needs_review",
-                                f"doble-check {_vd.get('agreement_pct')}% vs lista: "
-                                f"{len(_vd.get('faltantes') or [])} faltantes, "
-                                f"{len(_vd.get('precio_mal') or [])} precios a revisar")
-                        # APRENDIZAJE (upgrade #4): las discrepancias del doble-check alimentan la HUELLA del
-                        # drive → el recon de la próxima corrida llega avisado dónde este drive suele fallar.
+                                f"doble-check {_vd2.get('agreement_pct')}% tras auto-corregir {_n_corr}: "
+                                f"quedan {len(_vd2.get('faltantes') or [])} faltantes, "
+                                f"{len(_vd2.get('precio_mal') or [])} precios sin resolver")
+                        # APRENDIZAJE (upgrade #4): las discrepancias alimentan la HUELLA del drive.
                         try:
                             from extraction_profiles import record_correction
                             _patch_auto = {}
@@ -2669,6 +2813,21 @@ async def run(db, job_id: str) -> None:
                             pass
                 except Exception as e:  # noqa: BLE001
                     error_log.append(f"doble-check {gkey}: {e}")
+
+            # DOBLE-CHECK del BROCHURE (idea founder): verifica+corrige los datos de PROYECTO (total/niveles/
+            # amenidades/entrega) contra la imagen del brochure — fuente independiente de la lista (FIX 3).
+            verificacion_brochure = None
+            if _broch_files and (_job_cost + cost_mxn) < _budget_cap:
+                try:
+                    _bb, _bm = await _fetch(_broch_files[0])
+                    _rb, _nb, _cb = await verificar_corregir_brochure(project_name_hint, _bb, _broch_files[0].get("name", ""), extracted)
+                    cost_mxn += _cb
+                    if _rb:
+                        verificacion_brochure = {"veredicto": _rb.get("veredicto"), "correcciones_auto": _nb,
+                                                 "brochure_dice": {k: _rb.get(k) for k in
+                                                                   ("total_unidades", "niveles_edificio", "entrega")}}
+                except Exception as e:  # noqa: BLE001
+                    error_log.append(f"doble-check brochure {gkey}: {e}")
 
             _job_cost += float(cost_mxn or 0.0)   # presupuesto acumulado real de la corrida
             item_id = f"bii_{secrets.token_urlsafe(10)}"
@@ -2687,6 +2846,7 @@ async def run(db, job_id: str) -> None:
                                for k, v in (plan or {}).items()},   # LINAJE: qué leyó y por qué
                 "validacion": validacion,              # score de consistencia 0-100 + checks
                 "verificacion_doble": verificacion_doble,   # doble-check vs snapshot de la lista (idea founder)
+                "verificacion_brochure": verificacion_brochure,   # doble-check de datos de proyecto vs brochure
                 "anchored": _anchored,                 # ¿hubo lista de precios? (gate de ausente=vendido)
                 "extracted": extracted,
                 "dedup": dedup,
