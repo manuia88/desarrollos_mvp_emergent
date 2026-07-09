@@ -1,0 +1,112 @@
+[
+ {
+  "proyecto": "Panorama Lindavista - PREVENTA",
+  "fuente": "CLASS",
+  "units_extraidas": 53,
+  "listas_en_recon": 6,
+  "total_en_lista": null,
+  "total_independiente": 84,
+  "con_precio": 53,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "Splendor Coyoacan - PREVENTA",
+  "fuente": "CLASS",
+  "units_extraidas": 37,
+  "listas_en_recon": 3,
+  "total_en_lista": null,
+  "total_independiente": 1,
+  "con_precio": 36,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "Amsterdam 257",
+  "fuente": "D3",
+  "units_extraidas": 10,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": 10,
+  "con_precio": 1,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "Terralia Roma",
+  "fuente": "D3",
+  "units_extraidas": 0,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": null,
+  "con_precio": 0,
+  "espera_critico": true
+ },
+ {
+  "proyecto": "Bolivar 577",
+  "fuente": "DECA",
+  "units_extraidas": 9,
+  "listas_en_recon": 10,
+  "total_en_lista": null,
+  "total_independiente": null,
+  "con_precio": 0,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "CASA ROMA 151 (Medellín 151)",
+  "fuente": "GDC",
+  "units_extraidas": 0,
+  "listas_en_recon": 2,
+  "total_en_lista": null,
+  "total_independiente": 35,
+  "con_precio": 0,
+  "espera_critico": true
+ },
+ {
+  "proyecto": "CASA ROMA 350",
+  "fuente": "GDC",
+  "units_extraidas": 0,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": 34,
+  "con_precio": 0,
+  "espera_critico": true
+ },
+ {
+  "proyecto": "UNICO COYOACAN",
+  "fuente": "GDC",
+  "units_extraidas": 2,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": null,
+  "con_precio": 2,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "Bilú",
+  "fuente": "MORE_BILU",
+  "units_extraidas": 23,
+  "listas_en_recon": 2,
+  "total_en_lista": null,
+  "total_independiente": 221,
+  "con_precio": 22,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "More Escandon",
+  "fuente": "MORE_BILU",
+  "units_extraidas": 7,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": null,
+  "con_precio": 7,
+  "espera_critico": false
+ },
+ {
+  "proyecto": "Xenter",
+  "fuente": "MORE_BILU",
+  "units_extraidas": 22,
+  "listas_en_recon": 1,
+  "total_en_lista": null,
+  "total_independiente": null,
+  "con_precio": 22,
+  "espera_critico": false
+ }
+]

@@ -108,6 +108,27 @@ async def mine_history(body: MineHistoryBody, request: Request):
 
 # ─── 1) POST /start ───────────────────────────────────────────────────────────
 
+@router.post(PREFIX + "/estimate")
+async def estimate_job(body: StartBody, request: Request):
+    """COSTO ESTIMADO antes de correr (upgrade #2): lista el Drive (GRATIS, cero tokens) y devuelve el
+    costo esperado + rango + desglose por proyecto, para aprobar con un número en vez de a ciegas."""
+    await _require_superadmin(request)
+    db = _db(request)
+    folder_id = bie.parse_folder_id(body.drive_folder_url)
+    if not folder_id:
+        raise HTTPException(400, "La estimación de costo solo aplica a carpetas de Drive")
+    conn = await bie._resolve_drive_conn(db, body.target_dev_org_id)
+    if not conn:
+        raise HTTPException(409, "No hay conexión Drive activa. Conecta Drive primero.")
+    files = await bie._list_folder_recursive(conn, folder_id)
+    groups = bie._group_by_project(files, folder_id)
+    if body.only_project:
+        filtros = [p.strip().lower() for p in body.only_project.split("|") if p.strip()]
+        groups = {k: g for k, g in groups.items()
+                  if any(f in (g.get("parent_folder_name") or "").lower() for f in filtros)}
+    return bie.estimate_job_cost(files, groups)
+
+
 @router.post(PREFIX + "/start")
 async def start_job(body: StartBody, request: Request):
     user = await _require_superadmin(request)
@@ -242,6 +263,13 @@ async def list_items(
     total = await db.bulk_ingest_items.count_documents(q)
     cursor = db.bulk_ingest_items.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
     items = [i async for i in cursor]
+    # upgrade #3: cada item que NO se auto-aprobó trae su LISTA DE PENDIENTES accionable (qué revisar)
+    for it in items:
+        if it.get("decision") not in ("approved", "merged"):
+            try:
+                it["punchlist"] = bie.review_punchlist(it)
+            except Exception:  # noqa: BLE001
+                it["punchlist"] = []
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 

@@ -972,6 +972,44 @@ def _is_plano(f: Dict[str, Any]) -> bool:
                 or any(k in n for k in _DEPRIO_PLANO))
 
 
+# ─── PREDICCIÓN DE COSTO (upgrade #2, examen2): estimar el costo ANTES de correr, del puro listado ──
+# Constantes calibradas con los costos REALES del re-examen 07-08 (Sonnet 5 + PDF nativo/visión):
+# recon ~$0.5 · extracción por lista ~$2.8 · brochure contexto ~$2 · lote de planos ~$1.5 · lote imágenes ~$0.8.
+_COST_RECON, _COST_EXTRACT, _COST_BROCHURE, _COST_PLAN_BATCH, _COST_IMG_BATCH = 0.5, 2.8, 2.0, 1.5, 0.8
+
+
+def estimate_job_cost(files: List[Dict[str, Any]], groups: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """COSTO ESTIMADO de una corrida SIN gastar un token (solo del listado del Drive). Devuelve rango
+    low/esperado/high por proyecto y total, para que el founder apruebe con un número, no a ciegas."""
+    import math
+    proyectos = []
+    total = 0.0
+    for gkey, g in groups.items():
+        fg = g.get("files") or []
+        listas = [f for f in fg if _file_priority(f) >= 100]
+        broch = [f for f in fg if _file_priority(f) == 70]
+        planos = [f for f in fg if _is_plano(f)]
+        imgs = [f for f in fg if (f.get("mimeType") or "").startswith("image/")]
+        n_lista_calls = max(1, min(len(listas), 6))          # una llamada por lista (multi-torre), cap 6
+        c = _COST_RECON + n_lista_calls * _COST_EXTRACT
+        if broch:
+            c += _COST_BROCHURE
+        if planos:
+            c += math.ceil(min(len(planos), 9) / 3) * _COST_PLAN_BATCH * 0.5   # ~mitad de las veces se leen
+        if imgs:
+            c += math.ceil(min(len(imgs), 24) / 4) * _COST_IMG_BATCH
+        total += c
+        proyectos.append({"proyecto": g.get("parent_folder_name") or gkey, "estimado_mxn": round(c, 1),
+                          "listas": len(listas), "planos": len(planos), "imagenes": len(imgs)})
+    return {
+        "proyectos": len(groups), "archivos": len(files),
+        "costo_estimado_mxn": round(total, 1),
+        "rango_mxn": [round(total * 0.6, 1), round(total * 1.5, 1)],   # ±: depende de tablas gigantes/visión
+        "por_proyecto": sorted(proyectos, key=lambda p: -p["estimado_mxn"])[:40],
+        "nota": "Estimación del listado (sin gastar tokens). El real varía con listas gigantes (visión) y multi-torre.",
+    }
+
+
 def _needs_plan_pass(extracted: Dict[str, Any]) -> bool:
     """¿Vale la pena leer planos? Hay unidades y a la mayoría le falta el desglose de m²."""
     units = extracted.get("units") or []
@@ -1276,6 +1314,42 @@ def validate_extraction(extracted: Dict[str, Any], plan: Dict[str, Any],
         score = min(score, 50)
     return {"score": score, "publicable": score >= 85 and bool(units) and not _critical_fail,
             "critical_fail": _critical_fail, "checks": checks}
+
+
+# Traducción de cada check a una TAREA humana accionable (upgrade #3 examen2): el revisor ve QUÉ hacer,
+# no un score. En lenguaje del founder (cero jerga), con la pista concreta que ya calculó el validador.
+_CHECK_TAREA = {
+    "inventario_no_vacio": "La lista existe pero no se extrajo ninguna unidad. Abre la lista y verifica que sea legible; si lo es, vuelve a correr este proyecto.",
+    "inventario_completo": "Faltan unidades: la lista tiene más renglones de los que se extrajeron. Revisa las filas faltantes.",
+    "edificio_coherente": "Hay más unidades que las que declara el brochure/planos — puede haber filas repetidas o de otra torre.",
+    "cobertura_precio": "Varias unidades quedaron sin precio. Complétalos desde la lista.",
+    "precio_m2_sano": "Algún precio por m² se ve fuera de rango (posible error de captura).",
+    "aritmetica_m2": "Los m² desglosados (interior/balcón/terraza) no suman el total en algunas unidades.",
+    "lista_es_del_proyecto": "La lista podría no ser de este proyecto (nombre no coincide). Verifica que no esté cruzada.",
+    "prototipos_sanos": "Algún prototipo quedó con un número raro (parece un m², no un modelo).",
+    "coherencia_precio_m2_proto": "Unidades del mismo modelo con precio/m² muy distinto — revisa cuál está mal.",
+    "fuente_inventario": "No se encontró lista de precios ni fichas. Sin inventario no se puede publicar.",
+}
+
+
+def review_punchlist(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """De un item de revisión → LISTA DE PENDIENTES accionable para el humano (upgrade #3). Ordena por
+    gravedad (críticos primero) y agrega el motivo de _needs_review si lo hay. Cero API."""
+    ex = item.get("extracted") or {}
+    val = item.get("validacion") or {}
+    tareas: List[Dict[str, Any]] = []
+    if ex.get("_needs_review"):
+        tareas.append({"prioridad": "alta", "tarea": str(ex["_needs_review"]), "check": "_needs_review"})
+    for c in (val.get("checks") or []):
+        if not c.get("ok"):
+            tareas.append({
+                "prioridad": "alta" if c.get("critical") else "media",
+                "tarea": _CHECK_TAREA.get(c["check"], c["check"].replace("_", " ")),
+                "detalle": c.get("detalle") or "",
+                "check": c["check"],
+            })
+    _orden = {"alta": 0, "media": 1, "baja": 2}
+    return sorted(tareas, key=lambda t: _orden.get(t["prioridad"], 3))
 
 
 def _parking_count(raw) -> int:
