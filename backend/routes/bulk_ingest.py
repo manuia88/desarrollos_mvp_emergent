@@ -548,6 +548,30 @@ async def force_match(item_id: str, body: ForceMatchBody, request: Request):
 
 # ─── KPI endpoint (used by frontend strip) ────────────────────────────────────
 
+@router.get(PREFIX + "/accuracy")
+async def get_accuracy(request: Request, dias: int = Query(90, ge=1, le=365)):
+    """DASHBOARD DE ASERTIVIDAD CONTINUO (upgrade #3): % de acuerdo del doble-check vs la lista, vivo."""
+    await _require_superadmin(request)
+    db = _db(request)
+    return await bie.accuracy_summary(db, dias=dias)
+
+
+@router.get(PREFIX + "/items/{item_id}/snapshot")
+async def get_item_snapshot(item_id: str, request: Request):
+    """SNAPSHOT de la lista de precios (idea founder): imagen(es) para verificación visual en la revisión."""
+    await _require_superadmin(request)
+    db = _db(request)
+    it = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0, "project_folder_name": 1, "source_content_hash": 1})
+    if not it:
+        raise HTTPException(404, "Item no encontrado")
+    snap = await db.ingest_list_snapshots.find_one(
+        {"project_folder_name": it.get("project_folder_name"), "source_content_hash": it.get("source_content_hash")},
+        {"_id": 0, "list_name": 1, "pages_b64": 1, "ts": 1})
+    if not snap:
+        raise HTTPException(404, "Sin snapshot para este item")
+    return {"list_name": snap.get("list_name"), "pages": [f"data:image/png;base64,{b}" for b in (snap.get("pages_b64") or [])], "ts": snap.get("ts")}
+
+
 @router.get(PREFIX + "/stats")
 async def get_stats(request: Request):
     await _require_superadmin(request)

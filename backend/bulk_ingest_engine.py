@@ -684,6 +684,62 @@ async def extract_list_paged(project_name_hint: str, pdf_bytes: bytes, fname: st
     return merged, cost
 
 
+VERIFY_PROMPT = """Eres VERIFICADOR de una extracción de lista de precios inmobiliaria. Recibes:
+(1) la IMAGEN de la lista de precios REAL, y (2) una TABLA de lo que un sistema extrajo (unidad, precio, estatus).
+Tu trabajo: comparar FILA POR FILA la tabla contra la imagen y reportar SOLO las discrepancias REALES.
+Devuelve SOLO JSON:
+{
+  "total_en_imagen": int (cuántos renglones de UNIDAD ves en la imagen),
+  "faltantes": ["numeros de unidad que ESTÁN en la imagen pero NO en la tabla"],
+  "sobrantes": ["numeros que están en la tabla pero NO en la imagen (inventados)"],
+  "precio_mal": [{"unit":"...","extraido":num_o_null,"correcto":num_de_la_imagen}],
+  "estatus_mal": [{"unit":"...","extraido":"...","correcto":"..."}],
+  "veredicto": "coincide" | "discrepa"
+}
+REGLAS: mira SOLO la imagen, no inventes. Si el precio de una fila está EN BLANCO en la imagen, lo correcto
+es null (si la tabla le puso un número, va en precio_mal con correcto=null). Un renglón que solo veas en la
+imagen y no en la tabla = faltante. Sé estricto pero exacto: no marques discrepancia si coinciden. Solo JSON."""
+
+
+async def verificar_doble(project_name_hint: str, list_bytes: bytes, list_name: str,
+                          extracted: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], List[str], float]:
+    """DOBLE-CHECK CON SNAPSHOT (idea founder 07-09): renderiza la lista a IMAGEN (snapshot inmutable) y verifica
+    la extracción CONTRA la imagen, celda por celda, en UNA llamada de visión (el modelo COMPARA, no re-extrae).
+    Devuelve (resultado, snapshots_b64, costo). resultado = {total_en_imagen, faltantes, sobrantes, precio_mal,
+    estatus_mal, veredicto, agreement_pct}. Fail-open: sin imagen → (None, [], 0) y no bloquea."""
+    import base64 as _b64
+    import json as _json
+    pages = _pdf_page_images(list_bytes, resolution=200)
+    if not pages:
+        return None, [], 0.0
+    snaps_b64 = [_b64.b64encode(p).decode() for p in pages[:4]]      # snapshot para auditoría/revisión visual
+    us = extracted.get("units") or []
+    tabla = [{"u": u.get("unit_number"), "p": u.get("price_mxn"), "s": u.get("status")}
+             for u in us if u.get("unit_number")]
+    try:
+        from llm_client import LlmChat, UserMessage, ImageContent, estimate_cost_mxn
+        chat = LlmChat(api_key="", session_id=f"verify-{secrets.token_urlsafe(6)}", system_message=VERIFY_PROMPT)\
+            .with_model("anthropic", BULK_INGEST_MODEL).with_max_tokens(3000).with_timeout(BULK_INGEST_LLM_TIMEOUT)
+        imgs = [ImageContent(image_base64=b, media_type="image/png") for b in snaps_b64]
+        resp = await chat.send_message(UserMessage(
+            text=f"PROYECTO: {project_name_hint}\nTABLA EXTRAÍDA ({len(tabla)} unidades):\n"
+                 f"{_json.dumps(tabla, ensure_ascii=False)[:9000]}\n\nVerifica contra la imagen de la lista adjunta.",
+            file_contents=imgs[:4]))
+        cost = estimate_cost_mxn(chat.last_usage, BULK_INGEST_MODEL)
+        res = _parse_llm_json(resp or "")
+        if not isinstance(res, dict):
+            return None, snaps_b64, cost
+        # score de acuerdo: 1 − (discrepancias / total en imagen)
+        tot = int(res.get("total_en_imagen") or len(tabla) or 1)
+        disc = (len(res.get("faltantes") or []) + len(res.get("sobrantes") or [])
+                + len(res.get("precio_mal") or []) + len(res.get("estatus_mal") or []))
+        res["agreement_pct"] = max(0, round((1 - disc / max(tot, 1)) * 100))
+        return res, snaps_b64, cost
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[bulk_ingest] verificar_doble {project_name_hint}: {e}")
+        return None, snaps_b64, 0.0
+
+
 async def extract_bulk_project(
     project_name_hint: str,
     file_payloads: List[Tuple[bytes, str, str]],  # (bytes, mime, filename)
@@ -1511,8 +1567,62 @@ def review_punchlist(item: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "detalle": c.get("detalle") or "",
                 "check": c["check"],
             })
+    # DOBLE-CHECK vs snapshot (idea founder): las discrepancias YA traen el valor CORRECTO de la imagen →
+    # correcciones PRE-LLENADAS que el humano solo confirma (upgrade #4, cola inteligente).
+    vd = item.get("verificacion_doble") or {}
+    for pm in (vd.get("precio_mal") or [])[:20]:
+        tareas.append({"prioridad": "alta", "check": "doble_check_precio", "campo": "price_mxn",
+                       "unit": pm.get("unit"), "valor_actual": pm.get("extraido"), "valor_sugerido": pm.get("correcto"),
+                       "tarea": f"Precio del {pm.get('unit')}: extraído {pm.get('extraido')} → la lista dice {pm.get('correcto')}"})
+    for est in (vd.get("estatus_mal") or [])[:20]:
+        tareas.append({"prioridad": "media", "check": "doble_check_estatus", "campo": "status",
+                       "unit": est.get("unit"), "valor_actual": est.get("extraido"), "valor_sugerido": est.get("correcto"),
+                       "tarea": f"Estatus del {est.get('unit')}: {est.get('extraido')} → la lista dice {est.get('correcto')}"})
+    if vd.get("faltantes"):
+        tareas.append({"prioridad": "alta", "check": "doble_check_faltantes",
+                       "tarea": f"La lista tiene {len(vd['faltantes'])} unidades que NO se extrajeron: "
+                                f"{', '.join(str(x) for x in vd['faltantes'][:15])}"})
+    if vd.get("sobrantes"):
+        tareas.append({"prioridad": "alta", "check": "doble_check_sobrantes",
+                       "tarea": f"Se extrajeron {len(vd['sobrantes'])} unidades que NO están en la lista (inventadas): "
+                                f"{', '.join(str(x) for x in vd['sobrantes'][:15])}"})
     _orden = {"alta": 0, "media": 1, "baja": 2}
     return sorted(tareas, key=lambda t: _orden.get(t["prioridad"], 3))
+
+
+async def accuracy_summary(db, dias: int = 90) -> Dict[str, Any]:
+    """DASHBOARD DE ASERTIVIDAD CONTINUO (upgrade #3): agrega el agreement_pct del doble-check vs snapshot
+    a lo largo de las corridas → % de asertividad VIVO (medido contra la fuente, no a mano). Cero API."""
+    desde = _iso_dias_atras(dias)
+    items = [it async for it in db.bulk_ingest_items.find(
+        {"verificacion_doble": {"$ne": None}, "created_at": {"$gte": desde}},
+        {"_id": 0, "project_folder_name": 1, "verificacion_doble": 1, "created_at": 1, "decision": 1})]
+    if not items:
+        return {"proyectos_verificados": 0, "asertividad_pct": None, "nota": "sin doble-checks aún"}
+    accs = [it["verificacion_doble"].get("agreement_pct") for it in items
+            if it.get("verificacion_doble", {}).get("agreement_pct") is not None]
+    faltantes = sum(len(it["verificacion_doble"].get("faltantes") or []) for it in items)
+    precio_mal = sum(len(it["verificacion_doble"].get("precio_mal") or []) for it in items)
+    sobrantes = sum(len(it["verificacion_doble"].get("sobrantes") or []) for it in items)
+    coinciden = sum(1 for it in items if it["verificacion_doble"].get("veredicto") == "coincide")
+    accs_sorted = sorted(accs)
+    return {
+        "proyectos_verificados": len(items),
+        "asertividad_pct": round(sum(accs) / len(accs)) if accs else None,          # promedio de acuerdo vs lista
+        "asertividad_mediana": accs_sorted[len(accs_sorted) // 2] if accs_sorted else None,
+        "coinciden_pct": round(100 * coinciden / len(items)),                       # % que el doble-check aprobó limpio
+        "discrepancias": {"faltantes": faltantes, "precios_mal": precio_mal, "unidades_inventadas": sobrantes},
+        "peores": sorted(
+            [{"proyecto": it["project_folder_name"], "acuerdo": it["verificacion_doble"].get("agreement_pct")}
+             for it in items if it["verificacion_doble"].get("agreement_pct") is not None],
+            key=lambda x: x["acuerdo"])[:8],
+        "ventana_dias": dias,
+    }
+
+
+def _iso_dias_atras(dias: int) -> str:
+    from datetime import datetime, timezone, timedelta
+    return (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
 
 
 def _parking_count(raw) -> int:
@@ -2517,6 +2627,49 @@ async def run(db, job_id: str) -> None:
                                      f"consistencia {validacion['score']}/100: " +
                                      "; ".join(c["check"] for c in validacion["checks"] if not c["ok"]))
 
+            # DOBLE-CHECK CON SNAPSHOT (idea founder 07-09): verificar la extracción CONTRA la imagen de la lista
+            # antes de auto-aprobar. El snapshot queda como auditoría inmutable + ayuda visual de revisión. Si el
+            # doble-check discrepa (faltantes/precios mal) → bloquea la auto-aprobación con el detalle.
+            verificacion_doble = None
+            if _listas and (extracted.get("units")) and (_job_cost + cost_mxn) < _budget_cap:
+                try:
+                    _lb2, _lm2 = await _fetch(_listas[0])
+                    _vd, _snaps, _cvd = await verificar_doble(project_name_hint, _lb2, _listas[0].get("name", ""), extracted)
+                    cost_mxn += _cvd
+                    if _vd:
+                        verificacion_doble = {k: _vd.get(k) for k in
+                                              ("total_en_imagen", "faltantes", "sobrantes", "precio_mal",
+                                               "estatus_mal", "veredicto", "agreement_pct")}
+                        if _snaps:
+                            await db.ingest_list_snapshots.update_one(
+                                {"project_folder_name": project_name_hint, "source_content_hash": content_hash},
+                                {"$set": {"project_folder_name": project_name_hint, "source_content_hash": content_hash,
+                                          "list_name": _listas[0].get("name"), "pages_b64": _snaps, "ts": _iso()}},
+                                upsert=True)
+                        _material = (len(_vd.get("faltantes") or []) + len(_vd.get("precio_mal") or [])
+                                     ) >= max(2, 0.1 * len(extracted.get("units") or [1]))
+                        if decision == "auto_approve" and (_vd.get("veredicto") == "discrepa" or _material):
+                            decision = "pending_review"
+                            extracted.setdefault("_needs_review",
+                                f"doble-check {_vd.get('agreement_pct')}% vs lista: "
+                                f"{len(_vd.get('faltantes') or [])} faltantes, "
+                                f"{len(_vd.get('precio_mal') or [])} precios a revisar")
+                        # APRENDIZAJE (upgrade #4): las discrepancias del doble-check alimentan la HUELLA del
+                        # drive → el recon de la próxima corrida llega avisado dónde este drive suele fallar.
+                        try:
+                            from extraction_profiles import record_correction
+                            _patch_auto = {}
+                            if _vd.get("precio_mal"):
+                                _patch_auto["precio"] = True
+                            if _vd.get("faltantes"):
+                                _patch_auto["inventario_incompleto"] = True
+                            if _patch_auto:
+                                await record_correction(db, folder_id, project_name_hint, _patch_auto)
+                        except Exception:  # noqa: BLE001
+                            pass
+                except Exception as e:  # noqa: BLE001
+                    error_log.append(f"doble-check {gkey}: {e}")
+
             _job_cost += float(cost_mxn or 0.0)   # presupuesto acumulado real de la corrida
             item_id = f"bii_{secrets.token_urlsafe(10)}"
             item_doc = {
@@ -2533,6 +2686,7 @@ async def run(db, job_id: str) -> None:
                 "recon_plan": {k: ([f.get("name") for f in v] if isinstance(v, list) and v and isinstance(v[0], dict) else v)
                                for k, v in (plan or {}).items()},   # LINAJE: qué leyó y por qué
                 "validacion": validacion,              # score de consistencia 0-100 + checks
+                "verificacion_doble": verificacion_doble,   # doble-check vs snapshot de la lista (idea founder)
                 "anchored": _anchored,                 # ¿hubo lista de precios? (gate de ausente=vendido)
                 "extracted": extracted,
                 "dedup": dedup,
