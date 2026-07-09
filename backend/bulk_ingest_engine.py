@@ -565,6 +565,17 @@ def _fit_image_bytes(b: bytes, mime: str) -> Optional[Tuple[bytes, str]]:
         return None
 
 
+def _pdf_num_pages(b: bytes) -> int:
+    """# de páginas de un PDF (barato). 0 si no se puede leer."""
+    import io
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(b)) as pdf:
+            return len(pdf.pages)
+    except Exception:  # noqa: BLE001
+        return 0
+
+
 def _pdf_page_images(b: bytes, resolution: int = 150) -> List[bytes]:
     """Renderiza cada página de un PDF a PNG (pdfplumber → imagen). Para partir listas GIGANTES multi-página
     y leer cada página por visión aparte (Único: 149 filas en 3 páginas → ~50 por página, mucho más fiable)."""
@@ -609,8 +620,11 @@ async def extract_list_paged(project_name_hint: str, pdf_bytes: bytes, fname: st
         for u in (ex_p.get("units") or []):
             if u.get("unit_number") or u.get("prototype") or u.get("price_mxn") or u.get("price_min_mxn"):
                 all_units.append(u)
+        # filas vistas se SUMAN por página → alimenta el guard de incompletitud (si al final quedó < 60%)
+        if ex_p.get("_total_en_lista"):
+            merged["_total_en_lista"] = (merged.get("_total_en_lista") or 0) + int(ex_p["_total_en_lista"])
         for k, v in ex_p.items():
-            if k != "units" and v and not merged.get(k):
+            if k not in ("units", "_total_en_lista") and v and not merged.get(k):
                 merged[k] = v
     _seen = {}
     for u in all_units:
@@ -2196,23 +2210,29 @@ async def run(db, job_id: str) -> None:
                 else:
                     extracted, _c = await extract_bulk_project(project_name_hint, payloads)   # inventario (sin brochure)
                     cost_mxn += _c
-                    # FALLBACK PAGINADO (upgrade #1, Único): si la lista salió VACÍA o PARCIAL y es multi-página,
-                    # leer cada página por visión aparte y unir (una llamada por página, no 149 filas de golpe).
-                    _u = extracted.get("units") or []
-                    _tl = extracted.get("_total_en_lista") or 0
-                    _parcial = (not _u) or (_tl >= 20 and len(_u) < 0.6 * _tl)
-                    if _listas and _parcial and cost_mxn < _budget_cap:
+                    # FALLBACK PAGINADO (upgrade #1, Único): leer la lista PÁGINA POR PÁGINA por visión y unir.
+                    # Dispara si salió VACÍA/parcial O si la lista es MULTI-PÁGINA con pocas unidades — sin depender
+                    # de que el modelo reporte el conteo (examen3: Único devolvió 4 sin _total_en_lista y se colaba).
+                    if _listas and cost_mxn < _budget_cap:
                         try:
                             _lb, _lm = await _fetch(_listas[0])
-                            if (_lm == "application/pdf" or (_listas[0].get("name") or "").lower().endswith(".pdf")):
-                                ex_pg, c_pg = await extract_list_paged(project_name_hint, _lb, _listas[0].get("name", ""),
-                                                                       budget_mxn=min(_AUTOCOMPLETE_MAX_COST_MXN, _budget_cap - cost_mxn))
-                                cost_mxn += c_pg
-                                if len(ex_pg.get("units") or []) > len(_u):
-                                    log.info(f"[bulk_ingest] {gkey}: paginado ganó ({len(ex_pg['units'])} > {len(_u)})")
-                                    for k, v in ex_pg.items():
-                                        if k == "units" or (v and not extracted.get(k)):
-                                            extracted[k] = v
+                            _es_pdf = (_lm == "application/pdf" or (_listas[0].get("name") or "").lower().endswith(".pdf"))
+                            if _es_pdf:
+                                _u = extracted.get("units") or []
+                                _tl = extracted.get("_total_en_lista") or 0
+                                _npag = _pdf_num_pages(_lb)
+                                _parcial = ((not _u) or (_tl >= 20 and len(_u) < 0.6 * _tl)
+                                            or (_npag >= 2 and len(_u) < 8 * _npag))   # multi-pág + pocas unidades
+                                if _parcial:
+                                    ex_pg, c_pg = await extract_list_paged(
+                                        project_name_hint, _lb, _listas[0].get("name", ""),
+                                        budget_mxn=min(_AUTOCOMPLETE_MAX_COST_MXN, _budget_cap - cost_mxn))
+                                    cost_mxn += c_pg
+                                    if len(ex_pg.get("units") or []) > len(_u):
+                                        log.info(f"[bulk_ingest] {gkey}: paginado ganó ({len(ex_pg['units'])} > {len(_u)})")
+                                        for k, v in ex_pg.items():
+                                            if k == "units" or (v and not extracted.get(k)):
+                                                extracted[k] = v
                         except Exception as e:  # noqa: BLE001
                             error_log.append(f"paginado {gkey}: {e}")
                     # FALLBACK lista→fichas: la lista existe pero no rindió unidades (escaneada/vieja/ilegible)
