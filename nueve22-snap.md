@@ -1,0 +1,286 @@
+- generic [ref=f8e2]:
+  - link "Saltar al contenido principal" [ref=f8e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f8e24]:
+    - generic [ref=f8e26]:
+      - link "DesarrollosMX" [ref=f8e27] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f8e28]: DesarrollosMX
+      - navigation [ref=f8e29]:
+        - link "Comprar" [ref=f8e30] [cursor=pointer]:
+          - /url: /marketplace
+        - link "Colonias" [ref=f8e31] [cursor=pointer]:
+          - /url: /colonias
+        - link "Asesores" [ref=f8e32] [cursor=pointer]:
+          - /url: /asesores
+        - link "Desarrolladores" [ref=f8e33] [cursor=pointer]:
+          - /url: /desarrolladores
+        - button "Herramientas ▾" [ref=f8e35] [cursor=pointer]
+      - generic [ref=f8e36]: ES · EN
+      - link "♥ Favoritos" [ref=f8e37] [cursor=pointer]:
+        - /url: /favoritos
+        - generic [ref=f8e38]: ♥
+        - text: Favoritos
+      - link "Entrar" [ref=f8e39] [cursor=pointer]:
+        - /url: /login
+        - button "Entrar" [ref=f8e40]
+      - link "Abrir Mapa" [ref=f8e41] [cursor=pointer]:
+        - /url: /mapa
+        - button "Abrir Mapa" [ref=f8e42]
+    - main [ref=f8e43]:
+      - generic [ref=f8e44]:
+        - generic [ref=f8e45]:
+          - link "Marketplace" [ref=f8e46] [cursor=pointer]:
+            - /url: /marketplace
+          - text: / Álamos · Benito Juárez · CDMX
+        - generic [ref=f8e47]:
+          - generic [ref=f8e48]:
+            - img "NUEVE22 Obrero Mundial 1" [ref=f8e49] [cursor=pointer]
+            - button "Foto anterior" [ref=f8e50] [cursor=pointer]: ‹
+            - button "Foto siguiente" [ref=f8e51] [cursor=pointer]: ›
+          - img "NUEVE22 Obrero Mundial 2" [ref=f8e53] [cursor=pointer]
+          - img "NUEVE22 Obrero Mundial 3" [ref=f8e55] [cursor=pointer]
+          - img "NUEVE22 Obrero Mundial 4" [ref=f8e57] [cursor=pointer]
+          - img "NUEVE22 Obrero Mundial 5" [ref=f8e59] [cursor=pointer]
+          - button "12 Fotos" [ref=f8e61] [cursor=pointer]
+        - generic [ref=f8e62]:
+          - generic [ref=f8e63]:
+            - heading "NUEVE22 Obrero Mundial" [level=1] [ref=f8e64]
+            - generic [ref=f8e65]: Álamos, Benito Juárez
+            - generic [ref=f8e67]: ↻ Actualizado 7/7/2026
+          - generic [ref=f8e68]:
+            - button "Compartir" [ref=f8e69] [cursor=pointer]: ↗
+            - button "Guardar en favoritos" [ref=f8e70] [cursor=pointer]: ♡
+        - generic [ref=f8e71]:
+          - generic [ref=f8e72]:
+            - generic [ref=f8e73]:
+              - text: $4,167,200
+              - generic [ref=f8e74]: ✓
+            - generic [ref=f8e75]: Precio desde
+          - generic [ref=f8e76]:
+            - generic [ref=f8e77]: "2"
+            - generic [ref=f8e78]: Recámaras
+          - generic [ref=f8e79]:
+            - generic [ref=f8e80]: 1–2
+            - generic [ref=f8e81]: Baños
+          - generic [ref=f8e82]:
+            - generic [ref=f8e83]: 36.39–85.29 m²
+            - generic [ref=f8e84]: m²
+      - generic [ref=f8e86]:
+        - button "El proyecto" [ref=f8e87] [cursor=pointer]
+        - button "Precios y modelos" [ref=f8e88] [cursor=pointer]
+        - button "Planes de pago" [ref=f8e89] [cursor=pointer]
+        - button "Ubicación" [ref=f8e90] [cursor=pointer]
+        - button "Inversión" [ref=f8e91] [cursor=pointer]
+      - generic [ref=f8e92]:
+        - generic [ref=f8e94]:
+          - heading "El proyecto" [level=2] [ref=f8e96]
+          - generic [ref=f8e97]:
+            - generic [ref=f8e98]:
+              - generic [ref=f8e99]: Características de los departamentos
+              - generic [ref=f8e100]:
+                - generic [ref=f8e101]:
+                  - generic [ref=f8e102]:
+                    - generic [ref=f8e103]: 🛏️
+                    - text: Recámaras
+                  - generic [ref=f8e104]: "2"
+                - generic [ref=f8e105]:
+                  - generic [ref=f8e106]:
+                    - generic [ref=f8e107]: 🛁
+                    - text: Baños
+                  - generic [ref=f8e108]: 1–2
+                - generic [ref=f8e109]:
+                  - generic [ref=f8e110]:
+                    - generic [ref=f8e111]: 🚗
+                    - text: Estacionamientos
+                  - generic [ref=f8e112]: 0–1
+                - generic [ref=f8e113]:
+                  - generic [ref=f8e114]:
+                    - generic [ref=f8e115]: 📐
+                    - text: Superficie
+                  - generic [ref=f8e116]: 36.39–85.29 m²
+                - generic [ref=f8e117]:
+                  - generic [ref=f8e118]:
+                    - generic [ref=f8e119]: 💵
+                    - text: Precio por m²
+                  - generic [ref=f8e120]: $62,037
+            - generic [ref=f8e121]:
+              - generic [ref=f8e122]: El desarrollo
+              - generic [ref=f8e123]:
+                - generic [ref=f8e124]:
+                  - generic [ref=f8e125]:
+                    - generic [ref=f8e126]: 🏢
+                    - text: Tipo de propiedad
+                  - generic [ref=f8e127]: Departamentos
+                - generic [ref=f8e128]:
+                  - generic [ref=f8e129]:
+                    - generic [ref=f8e130]: 🏗️
+                    - text: Niveles
+                  - generic [ref=f8e131]: "7"
+                - generic [ref=f8e132]:
+                  - generic [ref=f8e133]:
+                    - generic [ref=f8e134]: 🏬
+                    - text: Depas por piso
+                  - generic [ref=f8e135]: "5"
+                - generic [ref=f8e136]:
+                  - generic [ref=f8e137]:
+                    - generic [ref=f8e138]: 🔢
+                    - text: Unidades totales
+                  - generic [ref=f8e139]: "37"
+                - generic [ref=f8e140]:
+                  - generic [ref=f8e141]:
+                    - generic [ref=f8e142]: 🗂️
+                    - text: Prototipos
+                  - generic [ref=f8e143]: "14"
+                - generic [ref=f8e144]:
+                  - generic [ref=f8e145]:
+                    - generic [ref=f8e146]: 🏷️
+                    - text: Etapa
+                  - generic [ref=f8e147]: Preventa
+                - generic [ref=f8e148]:
+                  - generic [ref=f8e149]:
+                    - generic [ref=f8e150]: 🔑
+                    - text: Entrega estimada
+                  - generic [ref=f8e151]: NOV/2026
+            - generic [ref=f8e152]:
+              - generic [ref=f8e153]: Prototipos
+              - generic [ref=f8e154]:
+                - generic [ref=f8e155]:
+                  - generic [ref=f8e156]: Modelo Tipo 08
+                  - generic [ref=f8e157]: 2 rec · 2 baños · 64 m²
+                  - generic [ref=f8e158]:
+                    - generic [ref=f8e159]: Desde $4,167,200
+                    - generic [ref=f8e160]: Agotado
+                - generic [ref=f8e161]:
+                  - generic [ref=f8e162]: Modelo Tipo 04
+                  - generic [ref=f8e163]: 2 rec · 2 baños · 69.36 m²
+                  - generic [ref=f8e164]:
+                    - generic [ref=f8e165]: Desde $4,236,500
+                    - generic [ref=f8e166]: 2 disp.
+                - generic [ref=f8e167]:
+                  - generic [ref=f8e168]: Modelo Tipo 01
+                  - generic [ref=f8e169]: 2 rec · 2 baños · 70.78–74.08 m²
+                  - generic [ref=f8e170]:
+                    - generic [ref=f8e171]: Desde $4,435,400
+                    - generic [ref=f8e172]: 1 disp.
+                - generic [ref=f8e173]:
+                  - generic [ref=f8e174]: Modelo Tipo 3.1
+                  - generic [ref=f8e175]: 2 rec · 1 baño · 73.22 m²
+                  - generic [ref=f8e177]: Agotado
+                - generic [ref=f8e178]:
+                  - generic [ref=f8e179]: Modelo Tipo 02
+                  - generic [ref=f8e180]: 2 rec · 2 baños · 71.49 m²
+                  - generic [ref=f8e182]: Agotado
+                - generic [ref=f8e183]:
+                  - generic [ref=f8e184]: Modelo Tipo 03
+                  - generic [ref=f8e185]: 2 rec · 2 baños · 85.29 m²
+                  - generic [ref=f8e187]: Agotado
+                - generic [ref=f8e188]:
+                  - generic [ref=f8e189]: Modelo PH-03
+                  - generic [ref=f8e190]: 2 rec · 2 baños · 85.29 m²
+                  - generic [ref=f8e192]: Agotado
+                - generic [ref=f8e193]:
+                  - generic [ref=f8e194]: Modelo 04
+                  - generic [ref=f8e195]: 2 rec · 2 baños · 69 m²
+                  - generic [ref=f8e197]: 2 disp.
+                - generic [ref=f8e198]:
+                  - generic [ref=f8e199]: Modelo Roof Garden Privado 01
+                  - generic [ref=f8e200]: 39.08 m²
+                  - generic [ref=f8e202]: Agotado
+                - generic [ref=f8e203]:
+                  - generic [ref=f8e204]: Modelo Roof Garden Privado 02
+                  - generic [ref=f8e205]: 39.08 m²
+                  - generic [ref=f8e207]: Agotado
+                - generic [ref=f8e208]:
+                  - generic [ref=f8e209]: Modelo Roof Garden Común 01
+                  - generic [ref=f8e210]: 36.39 m²
+                  - generic [ref=f8e212]: Agotado
+                - generic [ref=f8e213]:
+                  - generic [ref=f8e214]: Modelo Roof Garden Privado 03
+                  - generic [ref=f8e215]: 39.01 m²
+                  - generic [ref=f8e217]: Agotado
+                - generic [ref=f8e218]:
+                  - generic [ref=f8e219]: Modelo Roof Garden Privado 04
+                  - generic [ref=f8e220]: 69.16 m²
+                  - generic [ref=f8e222]: Agotado
+                - generic [ref=f8e223]:
+                  - generic [ref=f8e224]: Modelo Roof Garden Común 02
+                  - generic [ref=f8e225]: 36.39 m²
+                  - generic [ref=f8e227]: Agotado
+            - generic [ref=f8e228]:
+              - generic [ref=f8e229]: Amenidades y características
+              - generic [ref=f8e230]: Del desarrollo (comunes)
+              - generic [ref=f8e231]:
+                - generic [ref=f8e232]:
+                  - generic [ref=f8e233]: ✓
+                  - text: Seguridad 24/7
+                - generic [ref=f8e234]:
+                  - generic [ref=f8e235]: ✓
+                  - text: Roof Garden ComúN
+                - generic [ref=f8e236]:
+                  - generic [ref=f8e237]: ✓
+                  - text: Roof Garden Privado
+                - generic [ref=f8e238]:
+                  - generic [ref=f8e239]: ✓
+                  - text: Luminarias de Bajo Consumo EnergéTico
+                - generic [ref=f8e240]:
+                  - generic [ref=f8e241]: ✓
+                  - text: CanceleríA de Piso a Techo
+                - generic [ref=f8e242]:
+                  - generic [ref=f8e243]: ✓
+                  - text: Altura 2.70 M
+                - generic [ref=f8e244]:
+                  - generic [ref=f8e245]: ✓
+                  - text: Parques Cercanos
+                - generic [ref=f8e246]:
+                  - generic [ref=f8e247]: ✓
+                  - text: Acceso a Metro
+                - generic [ref=f8e248]:
+                  - generic [ref=f8e249]: ✓
+                  - text: Restaurantes
+                - generic [ref=f8e250]:
+                  - generic [ref=f8e251]: ✓
+                  - text: Supermercados
+                - generic [ref=f8e252]:
+                  - generic [ref=f8e253]: ✓
+                  - text: Hospitales
+                - generic [ref=f8e254]:
+                  - generic [ref=f8e255]: ✓
+                  - text: ÁRea Comercial
+            - generic [ref=f8e256]:
+              - generic [ref=f8e257]: Disponibilidad
+              - generic [ref=f8e258]:
+                - generic [ref=f8e259]:
+                  - generic [ref=f8e260]: "5"
+                  - generic [ref=f8e261]: de 37 unidades disponibles
+                  - generic [ref=f8e262]: 86% colocado
+                - generic [ref=f8e266]:
+                  - generic [ref=f8e267]:
+                    - generic [ref=f8e269]: "5"
+                    - text: Disponibles
+                  - generic [ref=f8e270]:
+                    - generic [ref=f8e272]: "32"
+                    - text: Vendidas
+        - complementary [ref=f8e273]:
+          - generic [ref=f8e274]:
+            - generic [ref=f8e275]: Comunícate con esta propiedad
+            - generic [ref=f8e276]: "Opciones de recorrido: En persona · Por video"
+            - generic [ref=f8e277]: Desde
+            - generic [ref=f8e278]: $4,167,200
+            - generic [ref=f8e279]: Preventa · entrega NOV/2026
+            - generic [ref=f8e280]:
+              - button "Agendar recorrido" [ref=f8e281] [cursor=pointer]
+              - button "Enviar mensaje" [ref=f8e282] [cursor=pointer]
+            - generic [ref=f8e283]:
+              - generic [ref=f8e284]:
+                - generic [ref=f8e285]: 🕐 Atención
+                - generic [ref=f8e286]: Por cita — agenda el día y hora que te acomoden
+              - button "Agendar una visita" [ref=f8e287] [cursor=pointer]
+            - generic [ref=f8e288]:
+              - generic [ref=f8e289]: "N"
+              - generic [ref=f8e290]:
+                - generic [ref=f8e291]: Tu asesor DMX
+                - generic [ref=f8e292]: Desarrollador verificado
+            - generic [ref=f8e293]: ✦ ¿Dudas? Pregúntale a Atlax — conoce esta unidad.
+    - button "Abrir chat Atlax" [ref=f8e294] [cursor=pointer]:
+      - img [ref=f8e295]
