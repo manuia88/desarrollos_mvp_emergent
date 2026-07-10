@@ -32,6 +32,27 @@ async def get_track_record(request: Request):
     return await pe.track_record(_db(request))
 
 
+@router.get("/api/screener")
+async def get_screener(
+    request: Request,
+    orden: str = Query("plusvalia"),
+    plusvalia_min: Optional[float] = Query(None),
+    yield_min: Optional[float] = Query(None),
+    risk_max: Optional[float] = Query(None),
+    precio_max: Optional[float] = Query(None),
+    precio_min: Optional[float] = Query(None),
+    gentrif_min: Optional[float] = Query(None),
+    alcaldia: Optional[str] = Query(None),
+    limit: int = Query(40, ge=1, le=100),
+):
+    """SCREENER inmobiliario por métricas de inversión (inédito): filtra colonias por plusvalía/yield/riesgo/
+    precio/gentrificación. Descubrimiento → lead."""
+    filtros = {"plusvalia_min": plusvalia_min, "yield_min": yield_min, "risk_max": risk_max,
+               "precio_max": precio_max, "precio_min": precio_min, "gentrif_min": gentrif_min, "alcaldia": alcaldia}
+    res = await pe.screener(_db(request), {k: v for k, v in filtros.items() if v is not None}, orden=orden, limit=limit)
+    return {"total": len(res), "orden": orden, "resultados": res}
+
+
 async def _require_superadmin(request: Request):
     from routes.bulk_ingest import _require_superadmin as req
     return await req(request)

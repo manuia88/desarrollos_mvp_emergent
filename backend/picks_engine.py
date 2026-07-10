@@ -97,6 +97,38 @@ def _senal_y_tesis(estrategia: str, f: Dict[str, Any]):
     return None
 
 
+async def screener(db, filtros: Optional[Dict[str, Any]] = None, orden: str = "plusvalia",
+                   limit: int = 40) -> List[Dict[str, Any]]:
+    """SCREENER de colonias por métricas de INVERSIÓN (founder 07-09, inédito en el mercado): filtra las
+    ~2788 colonias por plusvalía/yield/riesgo/precio/gentrificación y ordena. Reusa el mismo loader de picks.
+    filtros: {plusvalia_min, yield_min, risk_max, precio_max, precio_min, gentrif_min, alcaldia}."""
+    f = filtros or {}
+    filas = await _cargar_colonias(db)
+    out = []
+    for r in filas:
+        if f.get("plusvalia_min") is not None and (r.get("yoy") is None or r["yoy"] < f["plusvalia_min"]):
+            continue
+        if f.get("yield_min") is not None and (r.get("yield_score") is None or r["yield_score"] < f["yield_min"]):
+            continue
+        if f.get("risk_max") is not None and (r.get("risk") is not None and r["risk"] > f["risk_max"]):
+            continue
+        if f.get("precio_max") is not None and (r.get("precio_m2") is None or r["precio_m2"] > f["precio_max"]):
+            continue
+        if f.get("precio_min") is not None and (r.get("precio_m2") is None or r["precio_m2"] < f["precio_min"]):
+            continue
+        if f.get("gentrif_min") is not None and (r.get("gentrif") is None or r["gentrif"] < f["gentrif_min"]):
+            continue
+        if f.get("alcaldia") and str(r.get("alcaldia") or "").lower() != str(f["alcaldia"]).lower():
+            continue
+        out.append(r)
+    _key = {"plusvalia": lambda x: -(x.get("yoy") or -999), "yield": lambda x: -(x.get("yield_score") or -999),
+            "riesgo": lambda x: (x.get("risk") if x.get("risk") is not None else 999),
+            "precio": lambda x: (x.get("precio_m2") or 9e9), "emergentes": lambda x: -(x.get("gentrif") or -999),
+            "calidad": lambda x: -(x.get("zscore") or -999)}.get(orden, lambda x: -(x.get("yoy") or -999))
+    out.sort(key=_key)
+    return out[:limit]
+
+
 async def generar_picks(db, estrategia: str, n: int = 5) -> int:
     """Rankea y CONGELA los top-N picks de una estrategia como predicciones datadas. Idempotente por mes."""
     if estrategia not in ESTRATEGIAS:
