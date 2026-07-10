@@ -21,6 +21,16 @@ export default function AtlaxVoiceButton({
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  // Gate (fix auditoría/checklist): no mostrar el botón si la voz está apagada (tier off o sin llaves),
+  // para no prometer algo que daría 403 tras grabar 60s. /api/voice/status es $0 (sin LLM).
+  const [voiceEnabled, setVoiceEnabled] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/voice/status`).then((r) => r.json())
+      .then((d) => { if (alive) setVoiceEnabled(!!d.enabled); })
+      .catch(() => { if (alive) setVoiceEnabled(false); });
+    return () => { alive = false; };
+  }, []);
   const [voiceOut, setVoiceOut] = useState(() => {
     try { return localStorage.getItem(VOICE_TOGGLE_KEY) === "true"; } catch { return false; }
   });
@@ -153,6 +163,8 @@ export default function AtlaxVoiceButton({
 
   const size = compact ? 32 : 40;
   const iconSize = compact ? 14 : 17;
+
+  if (voiceEnabled === false) return null;   // voz apagada → no mostrar el botón (evita el 403 tras grabar)
 
   return (
     <div

@@ -3,8 +3,10 @@
  *  Precio + plusvalía (serie) + gentrificación (con fuentes citadas) + fundamentos + señal transaccional.
  *  Compone datos que ya existen. Consume /api/zona/:slug/fundamentales.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
+
+const ForecastChart = lazy(() => import('../components/forecast/ForecastChart'));  // pronóstico ARIMA de zona (ya LIVE)
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const C = { bg: '#FBFAFC', ink: '#15121C', ink2: '#5B5568', faint: '#9A93A6', line: '#EFEBF4', card: '#FFF', accent: '#6D4AFF', green: '#1E9E63', amber: '#D98A00' };
@@ -113,6 +115,14 @@ export default function Fundamentales() {
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: C.accent }}>{d.calificacion || '—'}</div>
                 <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint }}>índice DMX</div>
               </div>
+            </div>
+
+            {/* Pronóstico de precios (ARIMA · ya LIVE) — se oculta solo si la zona no tiene forecast */}
+            <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, marginTop: 18 }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: C.ink, marginBottom: 8 }}>Pronóstico de precio (12–24 meses)</div>
+              <Suspense fallback={<div style={{ fontFamily: FONT, fontSize: 13, color: C.faint }}>Cargando pronóstico…</div>}>
+                <ForecastChart mode="zone" slug={slug} hideIfEmpty />
+              </Suspense>
             </div>
 
             {/* Fundamentos (subscores) */}

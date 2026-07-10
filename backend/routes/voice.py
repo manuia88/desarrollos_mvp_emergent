@@ -37,6 +37,21 @@ class SynthesizeIn(BaseModel):
 
 # ─── STT Endpoint ─────────────────────────────────────────────────────────────
 
+@router.get("/api/voice/status")
+async def voice_status(request: Request):
+    """¿La voz de Atlax está disponible? (SIN LLM, $0). El front esconde el botón si está apagada, para no
+    prometer algo que daría error. Reusa el check de tier + presencia de llaves."""
+    db = _db(request)
+    enabled, has_keys = False, False
+    try:
+        import voice_atlax_engine as ve
+        enabled = await ve._check_voice_phase_y(db)
+        has_keys = bool(ve.OPENAI_API_KEY) and bool(ve.ELEVEN_KEY)
+    except Exception:
+        pass
+    return {"enabled": bool(enabled and has_keys), "tier_on": enabled, "has_keys": has_keys}
+
+
 @router.post("/api/voice/transcribe")
 async def transcribe_audio(
     request: Request,
