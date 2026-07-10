@@ -19,6 +19,7 @@ const LINKS = [
 
 const TOOLS = [
   { label: 'DMX Picks IA', to: '/picks' },
+  { label: 'Ideas de inversión', to: '/ideas' },
   { label: 'Screener inmobiliario', to: '/screener' },
   { label: 'El Índice DMX', to: '/indice' },
   { label: 'Datos por API (B2B)', to: '/datos' },

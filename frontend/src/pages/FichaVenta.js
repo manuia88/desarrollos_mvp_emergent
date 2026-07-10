@@ -209,6 +209,43 @@ function RiesgosConsiderar({ dev }) {
   );
 }
 
+// TICKER de calificación DMX (founder checklist): el "número tipo bolsa" del activo — calificación A–E +
+// desglose multi-factor con su "por qué". Ensamblador de motores que ya existen (/api/developments/:id/ticker).
+function TickerCalificacion({ dev }) {
+  const [tk, setTk] = useState(null);
+  useEffect(() => {
+    if (!dev || !dev.id) return;
+    fetch(`${API}/api/developments/${dev.id}/ticker`).then((r) => r.json()).then(setTk).catch(() => {});
+  }, [dev]);
+  if (!tk || !tk.disponible) return null;
+  const gcolor = tk.score >= 68 ? '#1E7A4C' : tk.score >= 55 ? C.accent : tk.score >= 42 ? '#D98A00' : '#B03A3A';
+  return (
+    <div style={{ ...box, marginTop: 12, padding: '14px 16px', background: '#fff', border: `1px solid ${CARD_LINE}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: `${gcolor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HEAD, fontWeight: 800, fontSize: 24, color: gcolor, flex: 'none' }}>{tk.grade}</div>
+        <div>
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: C.ink }}>Calificación DMX · {tk.score}/100</div>
+          <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2 }}>Multi-factor sobre datos de mercado ({tk.n_factores} factores)</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 12 }}>
+        {(tk.factores || []).map((f, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: 12.5 }}>
+              <span style={{ color: C.ink2 }}>{f.factor} <span style={{ color: C.faint }}>· {f.porque}</span></span>
+              <span style={{ color: C.ink, fontWeight: 700 }}>{f.valor}</span>
+            </div>
+            <div style={{ height: 6, background: '#F0EDF7', borderRadius: 999, marginTop: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${f.valor}%`, height: '100%', background: f.valor >= 68 ? '#1E9E63' : f.valor >= 45 ? C.accent : '#D98A00', borderRadius: 999 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 8 }}>Análisis, no asesoría de inversión.</div>
+    </div>
+  );
+}
+
 // Las 4 CAPAS del precio (hipergranularidad al átomo, founder): esta unidad → su edificio → su colonia → CDMX.
 // El $/m² de cada capa, para ver exactamente dónde cae este departamento. Reusa /api/precio-contexto.
 function CuatroCapas({ dev, unit }) {
@@ -1428,6 +1465,7 @@ export default function FichaVenta() {
           </div>
           <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
           <AlertaValor units={dev.units || []} onLead={() => { fvSignal('intent', { entity_id: dev.id, colonia: dev.colonia, value: 'alerta_valor' }); agendar('agendar'); }} />
+          <TickerCalificacion dev={dev} />
           <CuatroCapas dev={dev} unit={unit} />
           <RiesgosConsiderar dev={dev} />
           <ReadMore text={dev.description} />

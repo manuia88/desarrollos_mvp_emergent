@@ -254,6 +254,110 @@ async def zona_fundamentales(slug: str, request: Request):
     }
 
 
+def _grade_ticker(v):
+    return "A" if v >= 80 else "B" if v >= 68 else "C" if v >= 55 else "D" if v >= 42 else "E"
+
+
+@router.get("/api/developments/{dev_id}/ticker")
+async def asset_ticker(dev_id: str, request: Request):
+    """TICKER DE CALIFICACIÓN DMX por activo (público): el 'número tipo bolsa' del desarrollo — calificación
+    A–E + desglose multi-factor (precio justo / plusvalía / riesgo / rendimiento / demanda) con su 'por qué'.
+    ENSAMBLADOR: reúne motores que YA existen (colonia_valoracion, zone_scores, units), no duplica. Fail-open
+    por factor: se prende solo conforme cada dato entra."""
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID, colonia_slug
+    dev = DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0}) or {}
+    colonia, cid, alc = dev.get("colonia"), dev.get("colonia_id"), dev.get("alcaldia")
+    cv = await _resolver_colonia_doc(db, cid or (colonia_slug(colonia) if colonia else ""),
+                                     {"_id": 0, "market_m2": 1, "plusvalia": 1, "colonia_id": 1})
+    ref = ((cv or {}).get("market_m2") or {}).get("valor")
+    # $/m² mediano del desarrollo (db.units o seed embebido)
+    ppm2s = []
+    async for u in db.units.find({"development_id": dev_id, "price": {"$gt": 0}, "m2_total": {"$gt": 0}},
+                                 {"_id": 0, "price": 1, "m2_total": 1}):
+        ppm2s.append(u["price"] / u["m2_total"])
+    if not ppm2s:
+        for u in (dev.get("units") or []):
+            p, m = u.get("price"), (u.get("m2_total") or u.get("m2_privative"))
+            if p and m:
+                ppm2s.append(p / m)
+    med = sorted(ppm2s)[len(ppm2s) // 2] if ppm2s else None
+    sobre = round((med / ref - 1) * 100, 1) if (med and ref) else None
+    # factores de zona
+    czs = (cv or {}).get("colonia_id")
+    zs = await db.zone_scores.find_one({"zone_id": {"$in": [czs, cid, colonia_slug(colonia) if colonia else ""]}},
+                                       {"_id": 0, "components": 1}) if (czs or cid or colonia) else None
+    comp = (zs or {}).get("components") or {}
+    serie = ((cv or {}).get("plusvalia") or {}).get("series") or []
+    yoy = serie[-1].get("yoy_pct") if serie else None
+
+    def _clamp(x):
+        return max(0, min(100, x))
+    factores = []
+    if sobre is not None:
+        factores.append({"factor": "Precio justo", "valor": round(_clamp(60 - sobre * 2)),
+                         "porque": (f"{abs(sobre):.0f}% {'bajo' if sobre < 0 else 'sobre'} el mercado de la colonia")})
+    if yoy is not None:
+        factores.append({"factor": "Plusvalía", "valor": round(_clamp(40 + yoy * 20)),
+                         "porque": f"la colonia aprecia {yoy}% al año"})
+    if comp.get("risk") is not None:
+        factores.append({"factor": "Riesgo (menor = mejor)", "valor": round(_clamp(100 - comp["risk"])),
+                         "porque": "riesgo de zona medido"})
+    if comp.get("yield_score") is not None:
+        factores.append({"factor": "Rendimiento de renta", "valor": round(_clamp(comp["yield_score"])),
+                         "porque": "potencial de renta de la zona"})
+    if comp.get("demand") is not None:
+        factores.append({"factor": "Demanda", "valor": round(_clamp(comp["demand"])),
+                         "porque": "interés de compradores en la zona"})
+    if not factores:
+        return {"dev_id": dev_id, "disponible": False,
+                "nota": "Aún sin datos suficientes para calificar este activo."}
+    score = round(sum(f["valor"] for f in factores) / len(factores))
+    return {"dev_id": dev_id, "name": dev.get("name"), "colonia": colonia, "alcaldia": alc,
+            "disponible": True, "score": score, "grade": _grade_ticker(score),
+            "n_factores": len(factores), "factores": factores,
+            "nota": "Calificación multi-factor sobre datos de mercado. Análisis, no asesoría."}
+
+
+@router.get("/api/ideas")
+async def get_ideas(request: Request, limit: int = Query(12, ge=1, le=30)):
+    """FEED DE IDEAS — muro de oportunidades vivas: zonas emergentes (gentrificación en ascenso) + zonas bajo
+    el mercado CDMX. Cada idea = zona + tesis + qué la disparó + link a fundamentales. Reusa el screener (no
+    duplica motor). Se prende solo con las ~2788 colonias ya cargadas."""
+    db = _db(request)
+    ideas, vistos = [], set()
+
+    def _push(r, tipo, tesis, disparo):
+        cid = r.get("colonia_id")
+        if not cid or cid in vistos:
+            return
+        vistos.add(cid)
+        ideas.append({
+            "colonia_id": cid, "name": r.get("name"), "alcaldia": r.get("alcaldia"),
+            "tipo": tipo, "tesis": tesis, "disparo": disparo,
+            "precio_m2": r.get("precio_m2"), "plusvalia_yoy": r.get("yoy"),
+            "vs_cdmx_precio_pct": r.get("vs_cdmx_precio_pct"), "gentrif": r.get("gentrif"),
+        })
+    try:
+        # 1) Emergentes: gentrificación en ascenso
+        emg = await pe.screener(db, {"gentrif_min": 45}, orden="emergentes", limit=limit)
+        for r in emg[: max(3, limit // 2)]:
+            g = round(r.get("gentrif") or 0)
+            _push(r, "emergente", f"{r.get('name')}: gentrificación en ascenso (score {g}) — entra antes de que suba.",
+                  f"Gentrificación {g}")
+        # 2) Bajo el mercado: precio por debajo de la mediana CDMX
+        baj = await pe.screener(db, {}, orden="plusvalia", limit=80)
+        baj = [r for r in baj if (r.get("vs_cdmx_precio_pct") or 0) < -5]
+        baj.sort(key=lambda r: (r.get("vs_cdmx_precio_pct") or 0))
+        for r in baj[: max(3, limit // 2)]:
+            v = r.get("vs_cdmx_precio_pct")
+            _push(r, "oportunidad", f"{r.get('name')}: {v}% bajo el mercado CDMX y aún apreciando — posible entrada.",
+                  f"{v}% vs CDMX")
+    except Exception:
+        pass
+    return {"ideas": ideas[:limit], "total": len(ideas[:limit])}
+
+
 @router.get("/api/lo-mas-buscado")
 async def lo_mas_buscado(request: Request, limit: int = Query(6, ge=1, le=20)):
     """LO MÁS BUSCADO EN DMX (social proof real): top colonias por señales de demanda (buyer_signals).

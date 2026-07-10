@@ -142,6 +142,7 @@ const Screener          = lazy(() => import('./pages/Screener'));   // Screener 
 const Indice            = lazy(() => import('./pages/Indice'));      // El Índice DMX público (autoridad)
 const Fundamentales     = lazy(() => import('./pages/Fundamentales'));  // Fundamentales de zona (CMA público)
 const DatosAPI          = lazy(() => import('./pages/DatosAPI'));       // Landing pública del negocio B2B de datos
+const Ideas             = lazy(() => import('./pages/Ideas'));          // Feed de ideas / oportunidades de zona
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
@@ -819,6 +820,7 @@ function AppRouter() {
       <Route path="/indice" element={<IndiceRoute />} />
       <Route path="/fundamentales/:slug" element={<Suspense fallback={null}><Fundamentales /></Suspense>} />
       <Route path="/datos" element={<Suspense fallback={null}><DatosAPI /></Suspense>} />
+      <Route path="/ideas" element={<IdeasRoute />} />
 
       <Route path="/asesor" element={<AdvisorRoute Page={AsesorHome} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
@@ -1149,6 +1151,11 @@ function ScreenerRoute() {
 function IndiceRoute() {
   const { user, openAuth } = useAuth();
   return <Indice user={user} onLogin={openAuth} />;
+}
+
+function IdeasRoute() {
+  const { user, openAuth } = useAuth();
+  return <Ideas user={user} onLogin={openAuth} />;
 }
 
 function PropertyDetailRoute() {
