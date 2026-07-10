@@ -17,8 +17,23 @@ export default function Simulador({ user, onLogout }) {  // eslint-disable-line 
   // Paso 1 del flow (igual que ZonePageV2): para ti (1 unidad) vs institucional (un fondo, 2+).
   const [mode, setMode] = useState('individual');
 
-  // Prefill por query (?precio&renta) — el precio NO se bloquea aquí (pantalla libre, se puede editar).
-  const prefilled = {
+  // FIX auditoría: rehidratar un escenario guardado por ?escenario={token} ('Guardar y compartir').
+  const [savedParams, setSavedParams] = useState(null);
+  useEffect(() => {
+    const tok = sp.get('escenario');
+    if (!tok) return;
+    const API = process.env.REACT_APP_BACKEND_URL || '';
+    let alive = true;
+    fetch(`${API}/api/investment-simulator/scenario/${tok}`).then((r) => r.json())
+      .then((d) => { if (alive && d.ok && d.escenario) setSavedParams(d.escenario.params || {}); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [sp]);
+
+  // Prefill por query (?precio&renta) o por escenario guardado — el precio NO se bloquea (pantalla libre).
+  const prefilled = savedParams ? {
+    precio: savedParams.precio, renta: savedParams.renta,
+  } : {
     precio: sp.get('precio') ? parseFloat(sp.get('precio')) : undefined,
     renta: sp.get('renta') ? parseFloat(sp.get('renta')) : undefined,
   };

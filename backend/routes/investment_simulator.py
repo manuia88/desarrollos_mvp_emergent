@@ -197,5 +197,8 @@ async def save_scenario_endpoint(request: Request):
     return JSONResponse({"ok": True, **await eng.guardar_escenario(db, body.get("params") or {}, body.get("resultado") or {})})
 
 
-# (v1 /scenario/{token} y /analytics borrados 2026-06-16 · 0 callers ·
-#  la UI viva usa /analyze, /min-rent, /stress-test, /save, /capture-lead, /score)
+@router.get("/api/investment-simulator/scenario/{token}")
+async def get_scenario_endpoint(token: str, request: Request):
+    """FIX auditoría: 'Guardar y compartir' generaba /simulador?escenario={token} pero la ruta que lo servía
+    se había borrado → el link no abría nada. Restaurada: rehidrata el escenario guardado."""
+    return JSONResponse(await eng.obtener_escenario(_db(request), token))
