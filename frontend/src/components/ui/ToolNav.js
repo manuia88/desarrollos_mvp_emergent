@@ -21,6 +21,7 @@ const TOOLS = [
   { label: 'DMX Picks IA', to: '/picks' },
   { label: 'Screener inmobiliario', to: '/screener' },
   { label: 'El Índice DMX', to: '/indice' },
+  { label: 'Datos por API (B2B)', to: '/datos' },
   { label: 'Mapa de Valores', to: '/mapa-valores' },
   { label: 'Simulador de inversión', to: '/simulador' },
   { label: 'Proyector de impuestos', to: '/tools/tax-projector' },

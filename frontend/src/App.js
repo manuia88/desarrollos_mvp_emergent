@@ -141,6 +141,7 @@ const Picks             = lazy(() => import('./pages/Picks'));   // DMX Picks IA
 const Screener          = lazy(() => import('./pages/Screener'));   // Screener por métricas de inversión
 const Indice            = lazy(() => import('./pages/Indice'));      // El Índice DMX público (autoridad)
 const Fundamentales     = lazy(() => import('./pages/Fundamentales'));  // Fundamentales de zona (CMA público)
+const DatosAPI          = lazy(() => import('./pages/DatosAPI'));       // Landing pública del negocio B2B de datos
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
@@ -817,6 +818,7 @@ function AppRouter() {
       <Route path="/screener" element={<ScreenerRoute />} />
       <Route path="/indice" element={<IndiceRoute />} />
       <Route path="/fundamentales/:slug" element={<Suspense fallback={null}><Fundamentales /></Suspense>} />
+      <Route path="/datos" element={<Suspense fallback={null}><DatosAPI /></Suspense>} />
 
       <Route path="/asesor" element={<AdvisorRoute Page={AsesorHome} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />

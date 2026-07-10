@@ -67,6 +67,31 @@ export default function Fundamentales() {
           <div style={{ padding: 40, color: C.faint }}>Aún no tenemos fundamentales de esta colonia.</div>
         ) : (
           <>
+            {/* Las 3 ideas que importan — síntesis de la zona */}
+            {(() => {
+              const yoy = d.plusvalia_yoy;
+              const serie = d.plusvalia_serie || [];
+              const acelera = serie.length >= 2 ? (serie[serie.length - 1].yoy || 0) - (serie[serie.length - 2].yoy || 0) : 0;
+              const ideas = [
+                { icon: '🏷️', t: 'Precio', d: `${money(d.precio_m2)}/m²${d.precio_muestra_n ? ` (muestra de ${d.precio_muestra_n})` : ''}. ${d.calificacion ? `Calificación de zona ${d.calificacion}.` : ''}` },
+                { icon: '📈', t: 'Plusvalía', d: yoy != null ? `Aprecia ${yoy > 0 ? '+' : ''}${yoy}% al año. ${acelera > 0.3 ? 'Acelerando.' : acelera < -0.3 ? 'Desacelerando.' : 'Estable.'}` : 'Sin dato de plusvalía.' },
+                { icon: '🛡️', t: 'Riesgo', d: `Riesgo ${(f.riesgo || 'sin dato').toLowerCase()}${f.liquidez != null ? `, liquidez ${f.liquidez >= 60 ? 'alta' : f.liquidez <= 35 ? 'baja' : 'media'}` : ''}. ${g.nivel ? `Gentrificación ${g.nivel}.` : ''}` },
+              ];
+              return (
+                <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 20, marginTop: 20 }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: C.ink, marginBottom: 12 }}>Las 3 ideas que importan</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                    {ideas.map((x, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>{x.icon}</span>
+                        <div><div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14, color: C.ink }}>{x.t}</div><div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, lineHeight: 1.45 }}>{x.d}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* KPIs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginTop: 20 }}>
               <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 18 }}>
