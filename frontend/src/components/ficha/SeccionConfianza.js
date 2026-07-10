@@ -56,10 +56,18 @@ export default function SeccionConfianza({ dev }) {
             <div>
               <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{developer.name}</div>
               <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>
-                {[developer.founded_year && `Desarrollando desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ')}
+                {[developer.founded_year && `Desarrollando desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`, developer.units_sold && `${developer.units_sold.toLocaleString('es-MX')} unidades vendidas`].filter(Boolean).join(' · ')}
               </div>
             </div>
           </div>
+          {/* Verificaciones reales del desarrollador (no performance inventado) */}
+          {(developer.verified_constitution || developer.no_judicial_records || developer.no_profeco_complaints) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
+              {developer.verified_constitution && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Constitución verificada</span>}
+              {developer.no_judicial_records && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Sin antecedentes judiciales</span>}
+              {developer.no_profeco_complaints && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Sin quejas Profeco</span>}
+            </div>
+          )}
         </Card>
       )}
 
