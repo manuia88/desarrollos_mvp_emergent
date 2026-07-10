@@ -137,6 +137,7 @@ const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 const Valores           = lazy(() => import('./pages/public/Valores'));
 const Barrios           = lazy(() => import('./pages/Barrios'));
 const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
+const Picks             = lazy(() => import('./pages/Picks'));   // DMX Picks IA — superficie del moat
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
@@ -809,6 +810,7 @@ function AppRouter() {
       <Route path="/desarrolladores" element={<DesarrolladoresV2 />} />
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/inteligencia" element={<Inteligencia />} />
+      <Route path="/picks" element={<PicksRoute />} />
 
       <Route path="/asesor" element={<AdvisorRoute Page={AsesorHome} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
@@ -1124,6 +1126,11 @@ function MarketplaceRoute() {
   const colonia = new URLSearchParams(location.search).get('colonia');
   if (colonia) return <Navigate to={`/zona/${colonia}?ver=propiedades`} replace />;
   return <Marketplace user={user} onLogin={openAuth} onLogout={logout} />;
+}
+
+function PicksRoute() {
+  const { user, openAuth } = useAuth();
+  return <Picks user={user} onLogin={openAuth} />;
 }
 
 function PropertyDetailRoute() {
