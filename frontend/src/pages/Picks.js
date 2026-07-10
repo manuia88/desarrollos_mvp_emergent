@@ -109,6 +109,9 @@ export default function Picks({ user, onLogin }) {
                   ) : p.precio_ref_desde ? (
                     <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Desde {money(p.precio_ref_desde)}</span>
                   ) : null}
+                  {p.vs_cdmx_precio_pct != null && (
+                    <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: p.vs_cdmx_precio_pct < 0 ? C.green : p.vs_cdmx_precio_pct > 0 ? C.amber : C.faint, background: '#F6F4FB', borderRadius: 999, padding: '2px 9px' }}>{p.vs_cdmx_precio_pct > 0 ? '+' : ''}{p.vs_cdmx_precio_pct}% vs CDMX</span>
+                  )}
                   <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>pick del {String(p.mes || '').replace('-', '/')} · horizonte {p.horizonte_meses}m</span>
                 </div>
               </div>

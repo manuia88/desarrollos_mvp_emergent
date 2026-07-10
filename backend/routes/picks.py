@@ -47,10 +47,18 @@ async def get_screener(
 ):
     """SCREENER inmobiliario por métricas de inversión (inédito): filtra colonias por plusvalía/yield/riesgo/
     precio/gentrificación. Descubrimiento → lead."""
+    db = _db(request)
     filtros = {"plusvalia_min": plusvalia_min, "yield_min": yield_min, "risk_max": risk_max,
                "precio_max": precio_max, "precio_min": precio_min, "gentrif_min": gentrif_min, "alcaldia": alcaldia}
-    res = await pe.screener(_db(request), {k: v for k, v in filtros.items() if v is not None}, orden=orden, limit=limit)
-    return {"total": len(res), "orden": orden, "resultados": res}
+    res = await pe.screener(db, {k: v for k, v in filtros.items() if v is not None}, orden=orden, limit=limit)
+    bench = await pe.benchmark_cdmx(db)
+    return {"total": len(res), "orden": orden, "resultados": res, "benchmark_cdmx": bench}
+
+
+@router.get("/api/benchmark")
+async def get_benchmark(request: Request):
+    """El benchmark CDMX (mediana $/m² + plusvalía) — el 'mercado' contra el que todo se mide."""
+    return await pe.benchmark_cdmx(_db(request))
 
 
 async def _require_superadmin(request: Request):

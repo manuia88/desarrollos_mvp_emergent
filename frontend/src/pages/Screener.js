@@ -38,6 +38,7 @@ export default function Screener({ user, onLogin }) {
   const [gentrifMin, setGentrifMin] = useState('');
   const [riskMax, setRiskMax] = useState('');
   const [rows, setRows] = useState([]);
+  const [bench, setBench] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const run = useCallback(async () => {
@@ -50,6 +51,7 @@ export default function Screener({ user, onLogin }) {
     try {
       const r = await fetch(`${API}/api/screener?${q.toString()}`).then((r) => r.json());
       setRows(r.resultados || []);
+      setBench(r.benchmark_cdmx || null);
     } catch (e) { setRows([]); }
     setLoading(false);
   }, [orden, plusvaliaMin, precioMax, gentrifMin, riskMax]);
@@ -88,14 +90,19 @@ export default function Screener({ user, onLogin }) {
         </div>
 
         {/* Resultados */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: C.ink }}>{loading ? 'Filtrando…' : `${rows.length} colonias`}</div>
+          {bench && bench.precio_m2_mediana && (
+            <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>
+              Mercado CDMX: <b style={{ color: C.ink }}>{money(bench.precio_m2_mediana)}/m²</b> mediana · plusvalía {bench.plusvalia_mediana}% ({bench.n_colonias} colonias)
+            </div>
+          )}
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, fontSize: 14, minWidth: 640 }}>
             <thead>
               <tr style={{ textAlign: 'left', color: C.faint, fontSize: 12.5 }}>
-                {['#', 'Colonia', 'Alcaldía', 'Plusvalía', 'Precio/m²', 'Gentrif.', 'Calidad'].map((h) => (
+                {['#', 'Colonia', 'Alcaldía', 'Plusvalía', 'Precio/m²', 'vs CDMX', 'Gentrif.', 'Calidad'].map((h) => (
                   <th key={h} style={{ padding: '8px 10px', borderBottom: `1px solid ${C.line}`, fontWeight: 700 }}>{h}</th>
                 ))}
               </tr>
@@ -108,6 +115,7 @@ export default function Screener({ user, onLogin }) {
                   <td style={{ padding: '10px', color: C.ink2 }}>{r.alcaldia || '—'}</td>
                   <td style={{ padding: '10px', fontWeight: 700, color: r.yoy > 0 ? C.green : C.ink2 }}>{r.yoy != null ? `${r.yoy > 0 ? '+' : ''}${r.yoy}%` : '—'}</td>
                   <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums' }}>{money(r.precio_m2)}</td>
+                  <td style={{ padding: '10px', fontWeight: 700, color: r.vs_cdmx_precio_pct < 0 ? C.green : r.vs_cdmx_precio_pct > 0 ? C.amber : C.ink2 }}>{r.vs_cdmx_precio_pct != null ? `${r.vs_cdmx_precio_pct > 0 ? '+' : ''}${r.vs_cdmx_precio_pct}%` : '—'}</td>
                   <td style={{ padding: '10px' }}>{r.gentrif != null ? Math.round(r.gentrif) : '—'}</td>
                   <td style={{ padding: '10px' }}>{r.zletter ? <span style={{ fontWeight: 700, color: C.accent }}>{r.zletter}</span> : '—'}</td>
                 </tr>

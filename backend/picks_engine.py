@@ -97,6 +97,32 @@ def _senal_y_tesis(estrategia: str, f: Dict[str, Any]):
     return None
 
 
+async def benchmark_cdmx(db) -> Dict[str, Any]:
+    """EL BENCHMARK CDMX (founder 07-09, investing.com "vs el mercado"): mediana de $/m² y de plusvalía
+    interanual sobre TODAS las colonias con dato. Es el ancla de credibilidad — cada zona/pick se mide
+    contra esto ('+X% vs el promedio de la ciudad'). Barato, lee lo que ya existe."""
+    filas = await _cargar_colonias(db)
+    precios = sorted(f["precio_m2"] for f in filas if f.get("precio_m2"))
+    yoys = sorted(f["yoy"] for f in filas if f.get("yoy") is not None)
+    return {
+        "precio_m2_mediana": precios[len(precios) // 2] if precios else None,
+        "plusvalia_mediana": yoys[len(yoys) // 2] if yoys else None,
+        "n_colonias": len(filas),
+    }
+
+
+def _vs_cdmx(f: Dict[str, Any], bench: Dict[str, Any]) -> Dict[str, Any]:
+    """Compara una colonia contra el benchmark CDMX → % vs el promedio de la ciudad."""
+    out = {}
+    bp = bench.get("precio_m2_mediana")
+    if f.get("precio_m2") and bp:
+        out["vs_cdmx_precio_pct"] = round((f["precio_m2"] / bp - 1) * 100)
+    by = bench.get("plusvalia_mediana")
+    if f.get("yoy") is not None and by is not None:
+        out["vs_cdmx_plusvalia_pp"] = round(f["yoy"] - by, 1)   # puntos porcentuales sobre/bajo la ciudad
+    return out
+
+
 async def screener(db, filtros: Optional[Dict[str, Any]] = None, orden: str = "plusvalia",
                    limit: int = 40) -> List[Dict[str, Any]]:
     """SCREENER de colonias por métricas de INVERSIÓN (founder 07-09, inédito en el mercado): filtra las
@@ -126,7 +152,12 @@ async def screener(db, filtros: Optional[Dict[str, Any]] = None, orden: str = "p
             "precio": lambda x: (x.get("precio_m2") or 9e9), "emergentes": lambda x: -(x.get("gentrif") or -999),
             "calidad": lambda x: -(x.get("zscore") or -999)}.get(orden, lambda x: -(x.get("yoy") or -999))
     out.sort(key=_key)
-    return out[:limit]
+    out = out[:limit]
+    # ANCLA vs CDMX: cada fila muestra cómo se compara con el promedio de la ciudad (credibilidad)
+    bench = await benchmark_cdmx(db)
+    for r in out:
+        r.update(_vs_cdmx(r, bench))
+    return out
 
 
 async def generar_picks(db, estrategia: str, n: int = 5) -> int:
@@ -229,7 +260,14 @@ async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40) 
     q: Dict[str, Any] = {"estado": "vivo"}
     if estrategia:
         q["estrategia"] = estrategia
-    return [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(limit)]
+    picks = [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(limit)]
+    # ANCLA vs CDMX en cada pick (credibilidad): precio de referencia vs la mediana de la ciudad
+    bp = (await benchmark_cdmx(db)).get("precio_m2_mediana")
+    if bp:
+        for p in picks:
+            if p.get("precio_ref_m2"):
+                p["vs_cdmx_precio_pct"] = round((p["precio_ref_m2"] / bp - 1) * 100)
+    return picks
 
 
 async def track_record(db) -> Dict[str, Any]:
