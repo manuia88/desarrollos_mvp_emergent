@@ -116,6 +116,80 @@ async def get_dashboard(request: Request, user=Depends(_require_buyer)):
     return await compute_dashboard(db, user.user_id, vemail or "")
 
 
+@router.get("/api/comprador/radar")
+async def get_radar(request: Request, user=Depends(_require_buyer)):
+    """RADAR unificado: zonas + desarrollos + unidades que vigilas, cada uno con su ÚLTIMO CAMBIO, en UNA vista.
+    REUSA los motores existentes (favoritos, búsquedas guardadas, señales, alertas entregadas) — no duplica.
+    build-for-endstate: devuelve la estructura completa aunque no vigiles nada; se prende con datos (favoritos,
+    price_drop, nuevo pick, etc.). Fail-open."""
+    db = _db(request)
+    # 1) Cambios recientes entregados, indexados por entidad → 'ultimo_cambio'
+    cambios: dict = {}
+    try:
+        async for d in db.alert_deliveries.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(80):
+            p = d.get("payload") or {}
+            eid = d.get("entity_id") or p.get("entity_id") or p.get("dev_id") or p.get("colonia_id")
+            if eid and eid not in cambios:
+                cambios[eid] = {"tipo": d.get("alert_type") or d.get("type"),
+                                "resumen": d.get("summary") or p.get("summary"),
+                                "fecha": d.get("created_at") or d.get("sent_at")}
+    except Exception:
+        pass
+    from data_developments import DEVELOPMENTS_BY_ID
+    # 2) DESARROLLOS vigilados (favoritos + ♥ del marketplace por visitor_id)
+    desarrollos = []
+    try:
+        from services.buyer_history import get_favorites
+        favs = await get_favorites(db, user.user_id, "project")
+        ids = [f.get("item_id") for f in favs if f.get("item_id")]
+        try:
+            from services.visitor_identity import resolve_visitors_by_contact
+            vids = await resolve_visitors_by_contact(db, getattr(user, "email", None), getattr(user, "phone", None))
+            if vids:
+                async for s in db.buyer_signals.find(
+                        {"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save"]}, "active": True},
+                        {"_id": 0, "entity_id": 1}):
+                    if s.get("entity_id") and s["entity_id"] not in ids:
+                        ids.append(s["entity_id"])
+        except Exception:
+            pass
+        for eid in ids:
+            dv = DEVELOPMENTS_BY_ID.get(eid) or {}
+            desarrollos.append({"id": eid, "name": dv.get("name") or eid, "colonia": dv.get("colonia"),
+                                "precio_desde": dv.get("price_from"), "ultimo_cambio": cambios.get(eid)})
+    except Exception:
+        pass
+    # 3) ZONAS vigiladas (colonias de las búsquedas guardadas)
+    zonas, zvistas = [], set()
+    try:
+        async for ss in db.saved_searches.find({"user_id": user.user_id}, {"_id": 0, "filters": 1}).limit(50):
+            for col in ((ss.get("filters") or {}).get("colonias") or []):
+                if col and col not in zvistas:
+                    zvistas.add(col)
+                    zonas.append({"colonia_id": col, "name": col.replace("-", " ").title(),
+                                  "ultimo_cambio": cambios.get(col)})
+    except Exception:
+        pass
+    # 4) UNIDADES vigiladas (señales unit_save)
+    unidades = []
+    try:
+        from services.visitor_identity import resolve_visitors_by_contact
+        vids = await resolve_visitors_by_contact(db, getattr(user, "email", None), getattr(user, "phone", None))
+        if vids:
+            async for s in db.buyer_signals.find(
+                    {"visitor_id": {"$in": vids}, "type": "unit_save", "active": True},
+                    {"_id": 0, "entity_id": 1, "unit_number": 1}).limit(40):
+                unidades.append({"dev_id": s.get("entity_id"), "unit_number": s.get("unit_number"),
+                                 "ultimo_cambio": cambios.get(s.get("entity_id"))})
+    except Exception:
+        pass
+    total = len(zonas) + len(desarrollos) + len(unidades)
+    con_cambio = sum(1 for x in (zonas + desarrollos + unidades) if x.get("ultimo_cambio"))
+    return {"zonas": zonas, "desarrollos": desarrollos, "unidades": unidades,
+            "resumen": {"total_vigilados": total, "con_cambio": con_cambio},
+            "vacio": total == 0}
+
+
 # ─── "Propiedades Para Ti" · recomendación personalizada ──────────────────────
 # Despierta fit_engine.top_properties_for_lead (que solo veía el asesor) para el COMPRADOR.
 # Paso 1 (comprador↔lead): el comprador VIVE en db.leads por user_id/email (no es asesor_contactos).

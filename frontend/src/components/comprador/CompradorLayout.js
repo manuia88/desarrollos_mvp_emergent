@@ -14,6 +14,7 @@ import { Z } from '../../styles/zIndex';
 
 const NAV_BASE = [
   { to: '/comprador', label: 'Dashboard', icon: Home, end: true },
+  { to: '/comprador/radar', label: 'Radar', icon: Layers },
   { to: '/comprador/asistente', label: 'Asistente', icon: Brain },
   { to: '/comprador/saved-searches', label: 'Búsquedas', icon: Search },
   { to: '/comprador/favoritos', label: 'Favoritos', icon: Heart },

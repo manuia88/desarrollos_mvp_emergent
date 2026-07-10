@@ -242,6 +242,7 @@ const PublicComparator               = lazy(() => import('./pages/public/Colonia
 // Phase 4 Batch 28 — Portal Comprador autenticado
 const MagicLinkLogin                 = lazy(() => import('./pages/auth/MagicLinkLogin'));
 const CompradorDashboard             = lazy(() => import('./pages/comprador/CompradorDashboard'));
+const CompradorRadar                 = lazy(() => import('./pages/comprador/CompradorRadar'));
 const CompradorSavedSearches         = lazy(() => import('./pages/comprador/CompradorSavedSearches'));
 const CompradorFavoritos             = lazy(() => import('./pages/comprador/CompradorFavoritos'));
 const CompradorHistorial             = lazy(() => import('./pages/comprador/CompradorHistorial'));
@@ -890,6 +891,7 @@ function AppRouter() {
       {/* Phase 4 Batch 28 — Portal Comprador autenticado */}
       <Route path="/login-comprador" element={<MagicLinkLogin />} />
       <Route path="/comprador" element={<CompradorDashboard />} />
+      <Route path="/comprador/radar" element={<CompradorRadar />} />
       <Route path="/comprador/saved-searches" element={<CompradorSavedSearches />} />
       <Route path="/comprador/favoritos" element={<CompradorFavoritos />} />
       <Route path="/comprador/historial" element={<CompradorHistorial />} />

@@ -44,6 +44,8 @@ export async function logoutComprador() {
 // ─── Dashboard / profile ────────────────────────────────────────────────────
 
 export const fetchDashboard = () => _req('/api/comprador/dashboard');
+// Radar unificado: zonas/desarrollos/unidades vigilados + su último cambio en una vista
+export const fetchRadar = () => _req('/api/comprador/radar');
 // "Propiedades para ti" · recomendación personalizada (reusa fit_engine sobre tu lead)
 export const fetchRecommended = (limit = 6) => _req(`/api/comprador/recommended?limit=${limit}`);
 // Estado de las visitas que pediste (cierra ciclo: el dev las recibe y acepta/descarta)
