@@ -208,6 +208,50 @@ function RiesgosConsiderar({ dev }) {
   );
 }
 
+// Las 4 CAPAS del precio (hipergranularidad al átomo, founder): esta unidad → su edificio → su colonia → CDMX.
+// El $/m² de cada capa, para ver exactamente dónde cae este departamento. Reusa /api/precio-contexto.
+function CuatroCapas({ dev, unit }) {
+  const [ctx, setCtx] = useState(null);
+  useEffect(() => {
+    if (!dev) return;
+    const p = new URLSearchParams();
+    if (dev.colonia_id) p.set('colonia_id', dev.colonia_id);
+    if (dev.colonia) p.set('colonia', dev.colonia);
+    if (dev.alcaldia) p.set('alcaldia', dev.alcaldia);
+    fetch(`${API}/api/precio-contexto?${p.toString()}`).then((r) => r.json()).then(setCtx).catch(() => {});
+  }, [dev]);
+  const ppm2 = (u) => (u && u.price && (u.m2_total || u.m2_privative)) ? u.price / (u.m2_total || u.m2_privative) : null;
+  const arr = (dev.units || []).map(ppm2).filter(Boolean).sort((a, b) => a - b);
+  const edificio = arr.length ? arr[Math.floor(arr.length / 2)] : null;
+  const esta = ppm2(unit) || edificio;
+  if (!esta || !ctx || (!ctx.colonia_m2 && !ctx.cdmx_m2)) return null;
+  const capas = [
+    { label: unit ? 'Esta unidad' : 'Este desarrollo', v: Math.round(esta), on: true },
+    { label: 'Su edificio', v: edificio ? Math.round(edificio) : null },
+    { label: 'Su colonia', v: ctx.colonia_m2 },
+    { label: 'CDMX', v: ctx.cdmx_m2 },
+  ].filter((c) => c.v);
+  const max = Math.max(...capas.map((c) => c.v));
+  return (
+    <div style={{ ...box, marginTop: 12, padding: '14px 16px', background: '#fff', border: `1px solid ${CARD_LINE}` }}>
+      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: C.ink, marginBottom: 10 }}>📐 Dónde cae este precio · $/m²</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {capas.map((c, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: 13 }}>
+              <span style={{ color: c.on ? C.accent : C.ink2, fontWeight: c.on ? 800 : 600 }}>{c.label}</span>
+              <span style={{ color: C.ink, fontWeight: 700 }}>{money(c.v)}</span>
+            </div>
+            <div style={{ height: 7, background: '#F0EDF7', borderRadius: 999, marginTop: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${Math.round((c.v / max) * 100)}%`, height: '100%', background: c.on ? 'linear-gradient(90deg,#6D4AFF,#C63FAE)' : '#C9C2DA', borderRadius: 999 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReadMore({ text, max = 320 }) {
   const [open, setOpen] = useState(false);
   if (!text) return null;
@@ -1383,6 +1427,7 @@ export default function FichaVenta() {
           </div>
           <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
           <AlertaValor units={dev.units || []} onLead={() => { fvSignal('intent', { entity_id: dev.id, colonia: dev.colonia, value: 'alerta_valor' }); agendar('agendar'); }} />
+          <CuatroCapas dev={dev} unit={unit} />
           <RiesgosConsiderar dev={dev} />
           <ReadMore text={dev.description} />
         </div>

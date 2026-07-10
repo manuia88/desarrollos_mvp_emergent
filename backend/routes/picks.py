@@ -133,6 +133,23 @@ def _letra_idm(v):
     return "A" if v >= 80 else "B" if v >= 65 else "C" if v >= 50 else "D" if v >= 35 else "E"
 
 
+@router.get("/api/precio-contexto")
+async def precio_contexto(request: Request, colonia_id: Optional[str] = Query(None),
+                          colonia: Optional[str] = Query(None), alcaldia: Optional[str] = Query(None)):
+    """Las 4 capas del precio (hipergranularidad): devuelve el $/m² de la COLONIA (AVM) y de CDMX (mediana).
+    El front compara la unidad y su edificio contra estas dos. Cierra 'unidad → edificio → colonia → ciudad'."""
+    db = _db(request)
+    colonia_m2 = None
+    try:
+        from ingested_reader import _resolver_cv
+        cv = await _resolver_cv(db, colonia_id, colonia, alcaldia)
+        colonia_m2 = ((cv or {}).get("market_m2") or {}).get("valor")
+    except Exception:
+        pass
+    bench = await pe.benchmark_cdmx(db)
+    return {"colonia_m2": colonia_m2, "cdmx_m2": (bench or {}).get("precio_m2_mediana")}
+
+
 @router.get("/api/zona/{slug}/fundamentales")
 async def zona_fundamentales(slug: str, request: Request):
     """FUNDAMENTALES DE ZONA (hoja de datos dura, pública): precio + plusvalía (serie) + gentrificación (con
