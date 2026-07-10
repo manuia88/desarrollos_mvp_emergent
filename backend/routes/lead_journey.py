@@ -51,18 +51,24 @@ async def _check_lead_ownership(db, lead_id: str, user: Dict[str, Any]) -> None:
     lead = await db.leads.find_one(
         {"id": lead_id},
         {"_id": 0, "inmobiliaria_id": 1, "org_id": 1, "dev_org_id": 1, "owner_id": 1,
-         "assigned_to": 1, "assigned_user_id": 1})
+         "assigned_to": 1, "assigned_user_id": 1, "assignee_id": 1, "asesor_id": 1})
     if not lead:
         return  # No such lead → 404 deferred to caller
     uid = user.get("user_id")
-    if uid and uid in {lead.get("owner_id"), lead.get("assigned_to"), lead.get("assigned_user_id")}:
-        return  # asignación directa al usuario
+    # Asignación directa al usuario. FIX auditoría: los leads reales usan 'assignee_id' (42/58) y 'asesor_id',
+    # que antes NO se miraban → el candado pasaba por defecto (cross-asesor). Ahora se incluyen.
+    if uid and uid in {lead.get("owner_id"), lead.get("assigned_to"), lead.get("assigned_user_id"),
+                       lead.get("assignee_id"), lead.get("asesor_id")}:
+        return
     user_inm = await _caller_inmobiliaria(db, user)
     mine = {x for x in (user_inm, user.get("tenant_id"), user.get("dev_org_id")) if x}
     owners = {lead.get(k) for k in ("inmobiliaria_id", "org_id", "dev_org_id")}
     owners.discard(None)
-    if owners and not (owners & mine):
-        raise HTTPException(403, "lead_not_in_your_tenant")
+    if owners & mine:
+        return  # coincide la inmobiliaria/org del lead con la del usuario
+    # FIX auditoría: FAIL-CLOSED real. Antes, si el lead no traía dueño ni asignación, PASABA (fail-open).
+    # Ahora: sin match positivo (asignación directa o inmobiliaria) → 403. Solo superadmin ve todo.
+    raise HTTPException(403, "lead_not_in_your_tenant")
 
 
 # ─── GET journey ──────────────────────────────────────────────────────────────

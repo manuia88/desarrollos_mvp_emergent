@@ -26,6 +26,14 @@ sa_router = APIRouter(prefix="/api/superadmin")
 pub_router = APIRouter(prefix="/api")
 
 
+def _zid_match(zone_id: str) -> Dict[str, Any]:
+    """FIX auditoría: db.ie_scores guarda la MISMA colonia con guion Y guion-bajo (2513 vs 511). Las rutas
+    públicas usan guion (roma-norte) pero ie_scores a veces guarda guion-bajo (roma_norte). Igualamos ambas
+    formas para no sub-contar (antes /api/zones/roma-norte/scores daba 2 en vez de 42)."""
+    alt = zone_id.replace("-", "_")
+    return {"$or": [{"zone_id": zone_id}, {"zone_id": alt}]} if alt != zone_id else {"zone_id": zone_id}
+
+
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 async def _require_superadmin(request: Request):
     from routes.ie_engine import _require_superadmin as _req
@@ -260,10 +268,10 @@ async def score_history(
     await _require_superadmin(request)
     db = request.app.state.db
     docs = await db.ie_score_history.find(
-        {"zone_id": zone_id, "code": code}, {"_id": 0},
+        {**_zid_match(zone_id), "code": code}, {"_id": 0},
     ).sort("archived_at", -1).limit(limit).to_list(length=limit)
     # Include current
-    current = await db.ie_scores.find_one({"zone_id": zone_id, "code": code}, {"_id": 0})
+    current = await db.ie_scores.find_one({**_zid_match(zone_id), "code": code}, {"_id": 0})
     return {"current": current, "history": docs}
 
 
@@ -276,7 +284,7 @@ async def public_zone_scores(zone_id: str, request: Request):
     db = request.app.state.db
     # Proyección = solo los campos del response model público + .limit del lado del server
     docs = await db.ie_scores.find(
-        {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
+        {**_zid_match(zone_id), "is_stub": False, "value": {"$ne": None}},
         {"_id": 0, "zone_id": 1, "code": 1, "value": 1, "tier": 1, "confidence": 1,
          "is_stub": 1, "formula_version": 1, "computed_at": 1, "confidence_interval": 1},
     ).limit(200).to_list(length=200)
@@ -324,7 +332,7 @@ async def zone_coverage(zone_id: str, request: Request):
         scope = "colonia"
 
     real_docs = await db.ie_scores.find(
-        {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
+        {**_zid_match(zone_id), "is_stub": False, "value": {"$ne": None}},
         {"_id": 0},
     ).to_list(length=200)
     total = sum(1 for r in all_recipes().values() if getattr(r, "scope", "colonia") == scope)
@@ -397,7 +405,7 @@ async def explain_score(zone_id: str, code: str, request: Request):
     if not recipe:
         raise HTTPException(404, f"Recipe '{code}' no existe")
     db = request.app.state.db
-    doc = await db.ie_scores.find_one({"zone_id": zone_id, "code": code}, {"_id": 0})
+    doc = await db.ie_scores.find_one({**_zid_match(zone_id), "code": code}, {"_id": 0})
     if not doc:
         return ScoreExplainOut(
             code=code, zone_id=zone_id, value=None, tier="unknown",

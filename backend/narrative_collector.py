@@ -60,6 +60,30 @@ async def _safe_find(db, coll: str, query: Dict[str, Any], proj: Optional[Dict[s
         return None
 
 
+async def _drpi_val(db, colonia) -> Optional[float]:
+    """FIX auditoría: DRPI real desde db.drpi_snapshots (59,885 docs, campo index_value), no drpi_zones (0 docs,
+    nombre muerto). Toma el último periodo por zona. Antes el comparador mostraba la fila DRPI siempre en blanco."""
+    if not colonia:
+        return None
+    try:
+        cands = [colonia]
+        try:
+            from data_developments import colonia_slug
+            s = colonia_slug(colonia)
+            if s and s not in cands:
+                cands.append(s)
+        except Exception:  # noqa: BLE001
+            pass
+        snap = await db.drpi_snapshots.find_one(
+            {"zone_id": {"$in": cands}, "available": True}, {"_id": 0, "index_value": 1},
+            sort=[("period", -1)])
+        if snap and snap.get("index_value") is not None:
+            return round(float(snap["index_value"]), 2)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[collector] drpi_val failed: {e}")
+    return None
+
+
 async def collect_for_unit(db, unit_id: str) -> Dict[str, Any]:
     """Hechos de una unit · combina developments_units, AVM cache, IE scores, DRPI, risk."""
     if not unit_id:
@@ -95,12 +119,10 @@ async def collect_for_unit(db, unit_id: str) -> Dict[str, Any]:
             if score is not None:
                 out["score_ie"] = _wrap(round(float(score), 2), "IE Engine W3")
 
-    # DRPI zona
-    drpi = await _safe_find(db, "drpi_zones", {"$or": [{"colonia": colonia}, {"zone_id": colonia}]}) if colonia else None
-    if drpi:
-        val = drpi.get("drpi_12m") or drpi.get("drpi") or drpi.get("value")
-        if val is not None:
-            out["drpi_zone"] = _wrap(round(float(val), 2), "Atlas DRPI")
+    # DRPI zona (fix auditoría: drpi_snapshots real, no drpi_zones vacío)
+    _dv = await _drpi_val(db, colonia)
+    if _dv is not None:
+        out["drpi_zone"] = _wrap(_dv, "Atlas DRPI")
 
     # Comparables (5 más cercanas) — desde db.units (unidades REALES ingeridas por colonia). Antes leía
     # developments_units que tiene 0 docs → comparables vacíos hasta para el seed (mapa 07-08).
@@ -211,11 +233,9 @@ async def collect_for_project(db, project_id: str) -> Dict[str, Any]:
             sc = ie.get("score_total") or ie.get("score")
             if sc is not None:
                 out["score_zone"] = _wrap(round(float(sc), 2), "IE Engine W3")
-        drpi = await _safe_find(db, "drpi_zones", {"$or": [{"colonia": colonia}, {"zone_id": colonia}]})
-        if drpi:
-            val = drpi.get("drpi_12m") or drpi.get("drpi")
-            if val is not None:
-                out["drpi_12m"] = _wrap(round(float(val), 2), "Atlas DRPI")
+        _dv = await _drpi_val(db, colonia)
+        if _dv is not None:
+            out["drpi_12m"] = _wrap(_dv, "Atlas DRPI")
 
     amenities = proj.get("amenities") or []
     if amenities:
@@ -258,11 +278,9 @@ async def collect_for_colonia(db, colonia: str) -> Dict[str, Any]:
         return hit
 
     out: Dict[str, Any] = {}
-    drpi = await _safe_find(db, "drpi_zones", {"$or": [{"colonia": colonia}, {"zone_id": colonia}]})
-    if drpi:
-        val = drpi.get("drpi_12m") or drpi.get("drpi")
-        if val is not None:
-            out["drpi_12m"] = _wrap(round(float(val), 2), "Atlas DRPI")
+    _dv = await _drpi_val(db, colonia)
+    if _dv is not None:
+        out["drpi_12m"] = _wrap(_dv, "Atlas DRPI")
 
     ie = await _safe_find(db, "ie_scores", {"$or": [{"colonia": colonia}, {"zone_id": colonia}]})
     if ie:

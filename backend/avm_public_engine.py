@@ -245,13 +245,21 @@ async def avm_quick_async(
         from fsd_engine import compute_fsd, persist_avm_prediction
         fsd = await compute_fsd(db, prop_features, colonia_slug, model_id=model_id)
         if fsd.get("available"):
-            response["fsd_value"] = fsd["value"]
-            response["low_estimate"] = fsd["low_estimate"]
-            response["high_estimate"] = fsd["high_estimate"]
-            response["fsd_pct"] = fsd["fsd_pct"]
-            response["confidence_lvl"] = fsd["confidence_lvl"]
-            response["feature_breakdown"] = fsd["feature_breakdown"]
-            # Persistencia best-effort (forward-only)
+            # FIX auditoría (honestidad): NO exponer un 2º precio que contradice el principal. El modelo FSD
+            # aún sin calibrar da valores/bandas absurdas (ej. 28.7M con banda 5M–52M vs principal 10.7M).
+            # Solo lo mostramos si su banda es creíble (±≤35%) y no se aleja >40% del estimado principal.
+            _main = response.get("precio_estimado")
+            _fsdv = fsd.get("value")
+            _banda_ok = (fsd.get("fsd_pct") or 999) <= 35
+            _cerca = bool(_main and _fsdv and abs(_fsdv / _main - 1) <= 0.40)
+            if _banda_ok and _cerca:
+                response["fsd_value"] = fsd["value"]
+                response["low_estimate"] = fsd["low_estimate"]
+                response["high_estimate"] = fsd["high_estimate"]
+                response["fsd_pct"] = fsd["fsd_pct"]
+                response["confidence_lvl"] = fsd["confidence_lvl"]
+                response["feature_breakdown"] = fsd["feature_breakdown"]
+            # Persistencia best-effort SIEMPRE (para entrenar/track), aunque no se muestre.
             property_id = f"{colonia_slug}_m2{int(m2)}_r{int(recamaras)}_b{int(banos)}_a{int(antiguedad_anos)}"
             try:
                 await persist_avm_prediction(db, property_id, colonia_slug, fsd, prop_features)

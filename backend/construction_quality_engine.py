@@ -235,6 +235,10 @@ async def compute_quality_index(
         cached = await db.construction_quality_cache.find_one({"development_id": development_id})
         if cached:
             computed_at = cached.get("computed_at")
+            # FIX auditoría: Mongo devuelve datetime NAIVE (sin tz); _now() es AWARE → la resta crashea (HTTP 500).
+            if computed_at and computed_at.tzinfo is None:
+                from datetime import timezone as _tz
+                computed_at = computed_at.replace(tzinfo=_tz.utc)
             if computed_at and (_now() - computed_at).days < CACHE_TTL_DAYS:
                 cached["cached"] = True
                 cached.pop("_id", None)
