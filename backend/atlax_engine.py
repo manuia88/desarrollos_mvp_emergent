@@ -387,6 +387,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     simulated = bool(chat_res.get("simulated"))
     tier = chat_res.get("tier")
     tool_calls = chat_res.get("tool_calls") or []
+    fuentes_datos = chat_res.get("sources") or []   # sources_breakdown de las tools (gov data verificada)
 
     # F3 · Atlax generativo: convierte la intención de la consulta en UI inline (tabla comparativa / tarjetas) con
     # datos REALES (DEVELOPMENTS). Best-effort: si no aplica o falla, queda vacío y la respuesta es solo texto.
@@ -420,6 +421,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "role": "assistant",
         "content": answer,
         "citations": citations,
+        "fuentes_datos": fuentes_datos,
         "hand_off_recommended": hand_off,
         "lead_score": lead_score,
         "tool_calls": tool_calls,
@@ -476,6 +478,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
             for c in chunks
         ],
         "citations": citations,
+        "fuentes_datos": fuentes_datos,
         "hand_off_recommended": hand_off,
         "hand_off_reason": hand_off_reason,
         "lead_score": lead_score,

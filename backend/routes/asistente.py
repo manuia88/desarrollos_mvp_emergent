@@ -234,6 +234,7 @@ async def ask(body: AskIn, request: Request):
         "ok": True,
         "reply": result.get("assistant_message", ""),
         "tools_used": result.get("tool_calls") or [],
+        "sources": result.get("sources") or [],   # fuentes citadas (transparency Robinhood)
         "tier": result.get("tier"),
         "simulated": result.get("simulated", False),
     })

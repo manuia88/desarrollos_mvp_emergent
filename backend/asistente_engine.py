@@ -1401,9 +1401,25 @@ class AsistenteEngine:
         except Exception as _exc:
             log.warning(f"[track_ai_call] failed silent: {_exc}")
 
+        # FUENTES CITADAS (founder 07-09, Robinhood transparency): agrega el sources_breakdown de las tools
+        # usadas → el front lo renderiza como bloque "Fuentes" bajo la respuesta. Dedup por (label, url).
+        _sources = []
+        _seen_src = set()
+        for tc in tool_calls_log:
+            out = tc.get("output") if isinstance(tc.get("output"), dict) else {}
+            for s in (out.get("sources_breakdown") or []):
+                if not isinstance(s, dict) or not s.get("label"):
+                    continue
+                _k = (s.get("label"), s.get("url"))
+                if _k in _seen_src:
+                    continue
+                _seen_src.add(_k)
+                _sources.append({k: s.get(k) for k in ("label", "url", "tier", "status", "frequency")})
+
         return {
             "assistant_message": assistant_text,
             "tool_calls": [tc.get("tool_name") for tc in tool_calls_log],
+            "sources": _sources,
             "intent_detected": intent,
             "suggested_lead_capture": suggested_capture,
             "simulated": False,

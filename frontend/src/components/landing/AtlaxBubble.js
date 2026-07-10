@@ -499,6 +499,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
       patch({
         content: d.answer || 'Sin respuesta.',
         citations: d.citations || [],
+        fuentes: d.fuentes_datos || [],   // fuentes de datos verificadas (gov data: BIS/OECD/INEGI…)
         blocks: (d.blocks || []).filter((b) => b.type !== 'development_cards'),  // los resultados fuertes reemplazan las dev_cards flojas
         top_results: d.top_results || [],
         hand_off: d.hand_off_recommended, hand_off_reason: d.hand_off_reason,
@@ -887,6 +888,27 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                     {m.citations.map((c, j) => (
                       <CitationPill key={j} cite={c} onNav={(p) => navigate(p)} />
                     ))}
+                  </div>
+                )}
+
+                {/* FUENTES VERIFICADAS (founder 07-09, transparency Robinhood): datos de gov/institucionales
+                    (BIS, OECD, INEGI…) que respaldan la respuesta — con su frescura (status). Genera confianza. */}
+                {m.role === 'assistant' && (m.fuentes || []).length > 0 && (
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--line, #EFEBF4)', paddingTop: 8 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--cream-3, #9A93A6)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Fuentes verificadas</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {m.fuentes.slice(0, 8).map((f, j) => {
+                        const fresh = String(f.status || '').toLowerCase();
+                        const dot = fresh === 'ok' || fresh === 'fresh' || fresh === 'live' ? '#1E9E63' : fresh === 'stale' ? '#D98A00' : '#9A93A6';
+                        const pill = (
+                          <span key={j} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, color: '#5B5568', background: 'var(--cream-1, #F6F4FB)', border: '1px solid var(--line, #EFEBF4)', borderRadius: 999, padding: '3px 9px' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: 999, background: dot, flex: 'none' }} />
+                            {f.label}{f.tier ? <span style={{ opacity: 0.55 }}>· {f.tier}</span> : null}
+                          </span>
+                        );
+                        return f.url ? <a key={j} href={f.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>{pill}</a> : pill;
+                      })}
+                    </div>
                   </div>
                 )}
 
