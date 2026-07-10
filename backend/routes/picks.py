@@ -36,6 +36,39 @@ async def get_track_record(request: Request):
     return await pe.track_record(_db(request))
 
 
+@router.get("/api/picks/para-ti")
+async def picks_para_ti(request: Request, visitor_id: str = Query(...), n: int = Query(4, ge=1, le=8)):
+    """SEGMENTACIÓN POR PERSONA: cruza lo que TÚ exploras (buyer_signals por visitor_id) con lo que la IA
+    recomienda (picks). Tus zonas más vistas, marcadas si son DMX Pick + su precio/plusvalía. Cero costo."""
+    db = _db(request)
+    pipe = [{"$match": {"visitor_id": visitor_id, "colonia": {"$ne": None}}},
+            {"$group": {"_id": "$colonia", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": n}]
+    rows = [r async for r in db.buyer_signals.aggregate(pipe)]
+    out = []
+    for r in rows:
+        slug = r["_id"]
+        proj = {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1, "plusvalia": 1, "colonia_id": 1}
+        # prefiere el doc que SÍ tiene AVM (hay colonias hermanas, unas sin precio)
+        cv = await db.colonia_valoracion.find_one(
+            {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}, "market_m2.valor": {"$ne": None}}, proj)
+        if not cv:
+            cv = await db.colonia_valoracion.find_one({"colonia_id": {"$regex": f"^{slug}", "$options": "i"}}, proj)
+        cid = (cv or {}).get("colonia_id") or slug
+        lk = await pe.pick_de_entidad(db, colonia_id=cid)
+        z = lk.get("por_zona") or {}
+        plus = (cv or {}).get("plusvalia") or {}
+        serie = plus.get("series") or []
+        out.append({
+            "colonia_slug": slug, "colonia_id": cid,
+            "name": (cv or {}).get("name") or " ".join(w.capitalize() for w in str(slug).replace("-", " ").split()),
+            "alcaldia": (cv or {}).get("alcaldia"), "veces_explorada": r["n"],
+            "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
+            "plusvalia_yoy": (serie[-1].get("yoy_pct") if serie else None),
+            "es_pick": bool(z), "pick_estrategia": z.get("estrategia_label"),
+        })
+    return {"personalizado": len(out) > 0, "zonas": out}
+
+
 @router.get("/api/picks/unidades")
 async def get_picks_unidades(request: Request, estrategia: str = Query("oportunidad"),
                              presupuesto: Optional[float] = Query(None), alcaldia: Optional[str] = Query(None),

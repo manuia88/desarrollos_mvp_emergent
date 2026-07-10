@@ -4,6 +4,7 @@
  *  Consume /api/picks y /api/picks/track-record. Imán de leads: picks visibles, "por qué" citado.
  */
 import React, { useEffect, useState } from 'react';
+import { visitorId } from '../lib/buyerSignal';   // segmentación por persona: tus zonas exploradas
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -63,10 +64,17 @@ export default function Picks({ user, onLogin }) {
     return () => { alive = false; };
   }, [unidadEst, presupuesto, alcaldia]);
 
+  const [paraTi, setParaTi] = useState([]);
+
   useEffect(() => {
     let alive = true;
     fetch(`${API}/api/picks/backtest?monto=1000000`).then((r) => r.json())
       .then((d) => { if (alive) setBt(d); }).catch(() => {});
+    try {
+      const vid = visitorId();
+      if (vid) fetch(`${API}/api/picks/para-ti?visitor_id=${encodeURIComponent(vid)}`).then((r) => r.json())
+        .then((d) => { if (alive && d.personalizado) setParaTi(d.zonas || []); }).catch(() => {});
+    } catch (e) { /* noop */ }
     return () => { alive = false; };
   }, []);
 
@@ -131,6 +139,29 @@ export default function Picks({ user, onLogin }) {
       </div>
 
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 20px 60px' }}>
+        {/* Para ti — segmentación por persona: tus zonas exploradas cruzadas con los picks */}
+        {paraTi.length > 0 && (
+          <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 18, marginTop: 22 }}>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: C.ink }}>Para ti</div>
+            <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 2 }}>Basado en las zonas que exploraste — cruzadas con lo que la IA recomienda.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10, marginTop: 12 }}>
+              {paraTi.map((z, i) => (
+                <a key={i} href={`/fundamentales/${z.colonia_id}`} className="dmx-card" style={{ display: 'block', textDecoration: 'none', background: '#FBFAFC', border: `1px solid ${C.line}`, borderRadius: 12, padding: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: C.ink }}>{z.name}</span>
+                    {z.es_pick && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 11, color: '#fff', background: C.accent, borderRadius: 999, padding: '1px 8px' }}>⭐ Pick · {z.pick_estrategia}</span>}
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 12, color: C.faint, marginTop: 2 }}>La exploraste {z.veces_explorada} {z.veces_explorada === 1 ? 'vez' : 'veces'}</div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 7, fontFamily: FONT, fontSize: 12.5 }}>
+                    {z.precio_m2 && <span style={{ color: C.ink2 }}>{money(z.precio_m2)}/m²</span>}
+                    {z.plusvalia_yoy != null && <span style={{ color: z.plusvalia_yoy >= 0 ? C.green : C.ink2, fontWeight: 700 }}>{z.plusvalia_yoy > 0 ? '+' : ''}{z.plusvalia_yoy}%/año</span>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tabs de estrategia */}
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '22px 0 8px', marginTop: -1 }}>
           {ORDEN.map((k) => {
