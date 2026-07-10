@@ -2169,7 +2169,8 @@ async def get_development(dev_id: str, request: Request):
             out["units"] = await units_for_dev(db, dev_id)
             # plano del prototipo por unidad (depa 102 → plano del 'Tipo 02') + "sobre mercado %" (vs AVM colonia)
             await attach_planos(db, dev_id, out["units"])
-            await sobre_mercado_pct(db, out.get("colonia_id"), out["units"])
+            await sobre_mercado_pct(db, out.get("colonia_id"), out["units"],
+                                    colonia_name=out.get("colonia"), alcaldia=out.get("alcaldia"))
             # fotos públicas = SOLO renders clasificados (obra→avance · depto muestra NUNCA sale)
             if not out.get("photos"):
                 out["photos"] = await public_photos(db, dev_id)
@@ -2177,6 +2178,16 @@ async def get_development(dev_id: str, request: Request):
             pass
     # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
     out["units"] = await _apply_unit_overrides(db, dev_id, out.get("units") or [])
+    # Alerta de VALOR (sobre-mercado %) para TODAS las fichas, no solo las ingeridas: los devs SEED ya traen units
+    # embebidas y antes se saltaban el cálculo (bloque de arriba solo corre si units venían vacías) → la alerta salía
+    # dormida en casi todo el catálogo. Ahora se calcula sobre las units finales (con overrides). Fail-open (sin AVM → nada).
+    try:
+        from ingested_reader import sobre_mercado_pct as _sm
+        if not any(u.get("sobre_mercado_pct") is not None for u in (out.get("units") or [])):
+            await _sm(db, out.get("colonia_id"), out.get("units") or [],
+                      colonia_name=out.get("colonia"), alcaldia=out.get("alcaldia"))
+    except Exception:
+        pass
     # Conteos + rangos + desde/hasta coherentes con las unidades vivas (si el dev edita precio/estado/m²/etc., el doc no puede
     # seguir mostrando cifras viejas del seed: 'desde' inexistente, 'X disponibles' que ya no aplica, rangos de búsqueda viejos).
     out.update(_aggregates_from_units(out.get("units")))

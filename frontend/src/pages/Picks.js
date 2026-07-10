@@ -30,30 +30,49 @@ const PRESUPUESTOS = [
 
 const money = (n) => (n ? `$${Math.round(n).toLocaleString('es-MX')}` : '—');
 
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const proximaActualizacion = () => {
+  const d = new Date();
+  const m = (d.getMonth() + 1) % 12;   // el cron congela el día 1 del mes siguiente
+  return `1 de ${MESES[m]}`;
+};
+
 export default function Picks({ user, onLogin }) {
   const [data, setData] = useState(null);
   const [track, setTrack] = useState(null);
   const [tab, setTab] = useState('plusvalia');
   const [presupuesto, setPresupuesto] = useState('');
+  const [alcaldia, setAlcaldia] = useState('');
+  const [alcaldias, setAlcaldias] = useState([]);   // catálogo derivado del 1er load sin filtro
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const q = presupuesto ? `?presupuesto=${presupuesto}` : '';
+        const p = new URLSearchParams();
+        if (presupuesto) p.set('presupuesto', presupuesto);
+        if (alcaldia) p.set('alcaldia', alcaldia);
+        const qs = p.toString();
         const [r1, r2] = await Promise.all([
-          fetch(`${API}/api/picks${q}`).then((r) => r.json()),
+          fetch(`${API}/api/picks${qs ? `?${qs}` : ''}`).then((r) => r.json()),
           fetch(`${API}/api/picks/track-record`).then((r) => r.json()),
         ]);
         if (!alive) return;
-        setData(r1.estrategias || {});
+        const es = r1.estrategias || {};
+        setData(es);
         setTrack(r2 || {});
+        // catálogo de alcaldías: solo del primer load sin filtros (para no perder opciones al filtrar)
+        if (!presupuesto && !alcaldia) {
+          const set = new Set();
+          Object.values(es).forEach((g) => (g.picks || []).forEach((pk) => pk.alcaldia && set.add(pk.alcaldia)));
+          if (set.size) setAlcaldias(Array.from(set).sort());
+        }
       } catch (e) { /* fail-soft */ }
       if (alive) setLoading(false);
     })();
     return () => { alive = false; };
-  }, [presupuesto]);
+  }, [presupuesto, alcaldia]);
 
   const picks = (data && data[tab] && data[tab].picks) || [];
 
@@ -104,6 +123,19 @@ export default function Picks({ user, onLogin }) {
             );
           })}
           {presupuesto && <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>· depa ~70 m² que entra en tu monto</span>}
+          <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint, marginLeft: alcaldias.length ? 0 : 'auto', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            🔄 Próxima actualización: <b style={{ color: C.ink2 }}>{proximaActualizacion()}</b>
+          </span>
+          {alcaldias.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: C.ink2 }}>Alcaldía:</span>
+              <select value={alcaldia} onChange={(e) => setAlcaldia(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 10, border: `1.5px solid ${alcaldia ? C.accent : C.line}`, background: '#fff', color: alcaldia ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                <option value="">Todas</option>
+                {alcaldias.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Picks de la estrategia activa */}

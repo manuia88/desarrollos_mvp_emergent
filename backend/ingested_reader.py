@@ -240,15 +240,39 @@ async def attach_planos(db, dev_id: str, units: List[Dict[str, Any]]) -> int:
         return 0
 
 
-async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str, Any]]) -> int:
+async def _resolver_cv(db, colonia_id, colonia_name=None, alcaldia=None):
+    """Resuelve el doc colonia_valoracion probando varias formas de llave: el colonia_id tal cual,
+    la llave '{colonia}-{alcaldia}' (formato real de la colección) y match por nombre. Cierra el mismatch
+    que dejaba la alerta de valor CIEGA (dev.colonia_id='polanco' vs cv.colonia_id='condesa-cuauhtemoc')."""
+    from data_developments import colonia_slug
+    tries = []
+    if colonia_id:
+        tries.append(colonia_id)
+    if colonia_name and alcaldia:
+        tries.append(f"{colonia_slug(colonia_name)}-{colonia_slug(alcaldia)}")
+    for k in tries:
+        d = await db.colonia_valoracion.find_one({"colonia_id": k}, {"_id": 0, "market_m2": 1, "colonia_id": 1})
+        if d:
+            return d
+    if colonia_name:
+        d = await db.colonia_valoracion.find_one({"name": {"$regex": f"^{colonia_name}$", "$options": "i"}},
+                                                 {"_id": 0, "market_m2": 1, "colonia_id": 1})
+        if d:
+            return d
+    return None
+
+
+async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str, Any]],
+                            colonia_name: Optional[str] = None, alcaldia: Optional[str] = None) -> int:
     """'Sobre mercado +X%' POR UNIDAD (spec founder): $/m² de la unidad vs $/m² de mercado de su colonia
     (colonia_valoracion.market_m2 — AVM con muestra real). Escribe sobre_mercado_pct en cada unidad (in-place).
     Devuelve cuántas unidades se calcularon. Fail-open (sin colonia o sin AVM → no escribe nada)."""
-    if not colonia_id or not units:
+    if (not colonia_id and not colonia_name) or not units:
         return 0
     try:
-        cv = await db.colonia_valoracion.find_one({"colonia_id": colonia_id}, {"_id": 0, "market_m2": 1})
+        cv = await _resolver_cv(db, colonia_id, colonia_name, alcaldia)
         ref = ((cv or {}).get("market_m2") or {}).get("valor")
+        colonia_id = (cv or {}).get("colonia_id") or colonia_id   # para el fallback de comparables
         _fuente = "avm"
         # AUDITORÍA 07-08: 36% de las colonias no tienen AVM cargado → sobre_mercado salía CIEGO (0 unidades).
         # FALLBACK: usar el $/m² mediano de los COMPARABLES de la colonia (dev_competitor_price_snapshots,
@@ -267,9 +291,13 @@ async def sobre_mercado_pct(db, colonia_id: Optional[str], units: List[Dict[str,
             price = u.get("price")
             m2 = u.get("m2_total") or u.get("m2_privative")
             if price and m2 and float(m2) > 0:
-                ppm2 = float(price) / float(m2)
-                u["price_per_m2"] = round(ppm2)
-                u["sobre_mercado_pct"] = round((ppm2 / float(ref) - 1) * 100, 1)
+                pct = round((float(price) / float(m2) / float(ref) - 1) * 100, 1)
+                # Cordura: un |sobre-mercado| > 60% casi siempre es referencia mala (colonia mal cruzada o
+                # comparables ruidosos), no una señal real. Preferimos NO mostrar alerta a mostrar una engañosa.
+                if abs(pct) > 60:
+                    continue
+                u["price_per_m2"] = round(float(price) / float(m2))
+                u["sobre_mercado_pct"] = pct
                 u["sobre_mercado_fuente"] = _fuente   # 'avm' o 'comparables' (transparencia de la referencia)
                 n += 1
         return n

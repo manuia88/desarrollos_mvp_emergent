@@ -36,6 +36,12 @@ async def get_track_record(request: Request):
     return await pe.track_record(_db(request))
 
 
+@router.get("/api/picks/lookup")
+async def picks_lookup(request: Request, entity_id: Optional[str] = Query(None), colonia_id: Optional[str] = Query(None)):
+    """¿Este activo/zona es un DMX Pick vigente? Base de 'Dev: ¿soy pick?' y munición del asesor."""
+    return await pe.pick_de_entidad(_db(request), entity_id=entity_id, colonia_id=colonia_id)
+
+
 @router.get("/api/screener")
 async def get_screener(
     request: Request,

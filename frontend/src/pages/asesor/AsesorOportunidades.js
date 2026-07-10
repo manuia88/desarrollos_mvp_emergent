@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BriefingIEModal from '../../components/advisor/BriefingIEModal';
 import { fetchAsesorOportunidades } from '../../api/asesor';
+import PicksMunicion from '../../components/asesor/PicksMunicion';
 import { Target, Flame, Building2, Users, MessageSquare, ArrowRight, AlertCircle, Info } from 'lucide-react';
 
 const TIPO_LABEL = {
@@ -78,6 +79,8 @@ export default function AsesorOportunidades({ user, onLogout }) {
           Dónde hay demanda de compradores y poca oferta — y cuáles de <b>tus clientes</b> encajan.
           Genera el mensaje en un clic.
         </p>
+
+        <PicksMunicion />
 
         {data?.es_estimado && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)', marginBottom: 16, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.75)' }}>

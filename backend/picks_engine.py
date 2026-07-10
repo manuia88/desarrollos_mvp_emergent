@@ -288,6 +288,36 @@ async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40,
     return picks
 
 
+async def _rank_en_estrategia(db, pick: Dict[str, Any]) -> Optional[int]:
+    """Posición (1-based) de un pick dentro de los vivos de su estrategia, por señal desc."""
+    vivos = [p async for p in db.dmx_picks.find(
+        {"estrategia": pick.get("estrategia"), "estado": "vivo"}, {"_id": 0, "id": 1, "senal": 1}).sort("senal", -1)]
+    for i, p in enumerate(vivos):
+        if p.get("id") == pick.get("id"):
+            return i + 1
+    return None
+
+
+async def pick_de_entidad(db, entity_id: Optional[str] = None, colonia_id: Optional[str] = None) -> Dict[str, Any]:
+    """¿Esta entidad (dev) o su colonia es un DMX Pick vigente? Devuelve el pick directo (el propio activo)
+    y/o el pick de su zona, cada uno con su rango dentro de la estrategia. Base de 'Dev: ¿soy pick?' y
+    de 'munición del asesor'. Cero costo, solo lectura de db.dmx_picks."""
+    out: Dict[str, Any] = {"es_pick": False, "directo": None, "por_zona": None}
+    if entity_id:
+        d = await db.dmx_picks.find_one({"entity_id": entity_id, "estado": "vivo"}, {"_id": 0})
+        if d:
+            d["rank"] = await _rank_en_estrategia(db, d)
+            out["directo"] = d
+            out["es_pick"] = True
+    if colonia_id:
+        z = await db.dmx_picks.find_one({"entity_id": colonia_id, "entity_type": "colonia", "estado": "vivo"}, {"_id": 0})
+        if z:
+            z["rank"] = await _rank_en_estrategia(db, z)
+            out["por_zona"] = z
+            out["es_pick"] = True
+    return out
+
+
 async def track_record(db) -> Dict[str, Any]:
     """GANADORAS ANTERIORES con transparencia radical: cerrados con resultado, aciertos Y fallos, por estrategia."""
     cerrados = [p async for p in db.dmx_picks.find({"estado": "cerrado"}, {"_id": 0})]

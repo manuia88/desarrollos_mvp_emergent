@@ -399,24 +399,34 @@ async def competitors_enriched(request: Request, dev_id: Optional[str] = None, r
         {"dev_org_id": _tenant(user)}, {"_id": 0}
     ) or {"price_delta_threshold_pct": 5, "absorption_threshold_pct": 65, "notify_email": True, "notify_inapp": True}
 
-    # Noticias de la zona — REAL desde los boletines DMX de la alcaldía (antes se fabricaban con
-    # random). Honesto: si aún no hay boletines de esa zona, queda vacío (no inventa titulares).
+    # Noticias de la zona — REAL desde los BOLETINES DMX (db.dmx_bulletins, lo que el motor
+    # bulletins_engine SÍ escribe; antes leía db.market_bulletins que nadie llenaba → siempre vacío).
+    # Mapea el boletín mensual (general + por zona) a un "clip" de noticia. Honesto: si aún no se ha
+    # generado ningún boletín, queda vacío (no inventa titulares).
     press_clips: List[dict] = []
     try:
         mine = (base.get("my_project") or {})
-        alc = None
-        from data_developments import DEVELOPMENTS_BY_ID
-        d0 = DEVELOPMENTS_BY_ID.get(mine.get("id"))
-        if d0:
-            alc = d0.get("alcaldia")
-        q = {"$or": [{"alcaldia": alc}, {"scope": "ciudad"}]} if alc else {"scope": "ciudad"}
-        cur = db.market_bulletins.find(q, {"_id": 0}).sort("published_at", -1).limit(6)
+        from data_developments import DEVELOPMENTS_BY_ID, colonia_slug
+        d0 = DEVELOPMENTS_BY_ID.get(mine.get("id")) or {}
+        # candidatos de zone_id del boletín, derivados de la colonia/alcaldía del proyecto
+        cands = [colonia_slug(v) for v in (d0.get("colonia"), d0.get("alcaldia")) if v]
+        cands = [c for c in cands if c]
+        zone_or = [{"type": "general"}]
+        if cands:
+            zone_or.append({"type": "zone", "zone_id": {"$in": cands}})
+        cur = db.dmx_bulletins.find({"$or": zone_or}, {"_id": 0}).sort("generated_at", -1).limit(6)
+        _ZLABEL = {z["zone_id"]: z["name"] for z in __import__("bulletins_engine").TOP_ZONES}
         async for b in cur:
+            per = b.get("period") or ""
+            zname = _ZLABEL.get(b.get("zone_id"), b.get("zone_id") or "CDMX")
+            title = (f"Boletín de mercado · {zname} · {per}" if b.get("type") == "zone"
+                     else f"Boletín de mercado CDMX · {per}")
+            summ = b.get("kpis_summary") or (b.get("narrative_md") or "")[:220]
             press_clips.append({
                 "id": b.get("id") or _uid("clip"),
-                "title": b.get("title"), "source": b.get("source") or "Boletín DMX",
-                "published_at": b.get("published_at"), "url": b.get("url") or "#",
-                "ai_summary": b.get("summary") or "", "sentiment": b.get("sentiment") or "neutral",
+                "title": title, "source": "Boletín DMX",
+                "published_at": b.get("generated_at"), "url": b.get("pdf_url") or "#",
+                "ai_summary": summ if isinstance(summ, str) else "", "sentiment": "neutral",
             })
     except Exception:
         press_clips = []

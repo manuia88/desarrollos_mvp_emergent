@@ -13,6 +13,7 @@ import { ChevronRight, Download, RefreshCw, Lock } from 'lucide-react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { getBattleCard, getHistory, getPdfUrl } from '../../api/battle_card';
 import BattleCardScoreGauge from '../../components/developer/BattleCardScoreGauge';
+import SoyPickBanner from '../../components/developer/SoyPickBanner';
 import BattleCardCompetitorsTable from '../../components/developer/BattleCardCompetitorsTable';
 import BattleCardRankingTimeline from '../../components/developer/BattleCardRankingTimeline';
 
@@ -343,6 +344,9 @@ export default function DeveloperBattleCard({ user, onLogout }) {
           </button>
         </div>
       </div>
+
+      {/* ¿Soy pick? — cierra el loop oferta↔demanda */}
+      <SoyPickBanner projectId={project_id} coloniaId={data.colonia_id || data.zone_slug} />
 
       {/* Main grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>

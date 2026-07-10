@@ -155,22 +155,25 @@ function SummaryBar({ price, bedR, bathR, m2R }) {
 
 // Alerta de VALOR (founder 07-09, investing.com inverso): avisa si el desarrollo está caro vs el mercado de
 // su zona. Usa el sobre_mercado_pct que el /full ya calcula por unidad (AVM/comparables). Diferenciador único.
-function AlertaValor({ units }) {
+function AlertaValor({ units, onLead }) {
   const vals = (units || []).map((u) => u.sobre_mercado_pct).filter((x) => x != null).sort((a, b) => a - b);
   if (vals.length < 2) return null;
   const med = vals[Math.floor(vals.length / 2)];
   const fuente = (units.find((u) => u.sobre_mercado_fuente) || {}).sobre_mercado_fuente;
-  let color, bg, emoji, titulo, txt;
-  if (med >= 8) { color = '#B03A3A'; bg = '#FCEFEF'; emoji = '⚠️'; titulo = `Sobrevalorado · +${med.toFixed(0)}% vs la zona`; txt = 'Los precios de este desarrollo están por encima del mercado de su colonia. Negocia o compara antes de decidir.'; }
-  else if (med <= -8) { color = '#1E7A4C'; bg = '#EAF7F0'; emoji = '🟢'; titulo = `Oportunidad · ${med.toFixed(0)}% bajo la zona`; txt = 'Los precios están por debajo del mercado de su colonia — potencial buena entrada.'; }
-  else { color = '#4A4556'; bg = '#F6F4FB'; emoji = '✓'; titulo = 'Precio en línea con la zona'; txt = 'Los precios están alineados con el mercado de su colonia (ni caro ni barato).'; }
+  let color, bg, emoji, titulo, txt, cta;
+  if (med >= 8) { color = '#B03A3A'; bg = '#FCEFEF'; emoji = '⚠️'; titulo = `Sobrevalorado · +${med.toFixed(0)}% vs la zona`; txt = 'Los precios de este desarrollo están por encima del mercado de su colonia. Negocia o compara antes de decidir.'; cta = 'Quiero que un asesor me ayude a negociar'; }
+  else if (med <= -8) { color = '#1E7A4C'; bg = '#EAF7F0'; emoji = '🟢'; titulo = `Oportunidad · ${med.toFixed(0)}% bajo la zona`; txt = 'Los precios están por debajo del mercado de su colonia — potencial buena entrada.'; cta = 'Apártalo antes de que suba'; }
+  else { color = '#4A4556'; bg = '#F6F4FB'; emoji = '✓'; titulo = 'Precio en línea con la zona'; txt = 'Los precios están alineados con el mercado de su colonia (ni caro ni barato).'; cta = null; }
   return (
     <div style={{ ...box, marginTop: 12, padding: '13px 16px', background: bg, border: `1px solid ${color}22`, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <span style={{ fontSize: 18, flex: 'none' }}>{emoji}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color }}>{titulo}</div>
         <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 2, lineHeight: 1.45 }}>{txt}</div>
-        <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 4 }}>Referencia: {fuente === 'comparables' ? 'comparables de la colonia' : 'valor de mercado (AVM)'}. Análisis, no asesoría.</div>
+        {cta && onLead && (
+          <button onClick={() => onLead()} style={{ marginTop: 9, background: color, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{cta} →</button>
+        )}
+        <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 6 }}>Referencia: {fuente === 'comparables' ? 'comparables de la colonia' : 'valor de mercado (AVM)'}. Análisis, no asesoría.</div>
       </div>
     </div>
   );
@@ -1350,7 +1353,7 @@ export default function FichaVenta() {
             </div>
           </div>
           <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
-          <AlertaValor units={dev.units || []} />
+          <AlertaValor units={dev.units || []} onLead={() => { fvSignal('intent', { entity_id: dev.id, colonia: dev.colonia, value: 'alerta_valor' }); agendar('agendar'); }} />
           <ReadMore text={dev.description} />
         </div>
 
