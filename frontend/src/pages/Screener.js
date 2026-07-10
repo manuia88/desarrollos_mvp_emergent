@@ -111,7 +111,7 @@ export default function Screener({ user, onLogin }) {
               {rows.map((r, i) => (
                 <tr key={r.colonia_id || i} className="dmx-card" style={{ background: i % 2 ? '#FCFBFE' : '#fff' }}>
                   <td style={{ padding: '10px', color: C.faint, fontWeight: 700 }}>{i + 1}</td>
-                  <td style={{ padding: '10px', fontFamily: HEAD, fontWeight: 700, color: C.ink }}>{r.name}</td>
+                  <td style={{ padding: '10px', fontFamily: HEAD, fontWeight: 700 }}>{r.colonia_id ? <a href={`/fundamentales/${r.colonia_id}`} style={{ color: C.accent, textDecoration: 'none' }}>{r.name}</a> : <span style={{ color: C.ink }}>{r.name}</span>}</td>
                   <td style={{ padding: '10px', color: C.ink2 }}>{r.alcaldia || '—'}</td>
                   <td style={{ padding: '10px', fontWeight: 700, color: r.yoy > 0 ? C.green : C.ink2 }}>{r.yoy != null ? `${r.yoy > 0 ? '+' : ''}${r.yoy}%` : '—'}</td>
                   <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums' }}>{money(r.precio_m2)}</td>

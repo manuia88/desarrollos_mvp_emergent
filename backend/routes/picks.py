@@ -122,6 +122,56 @@ def _letra_idm(v):
     return "A" if v >= 80 else "B" if v >= 65 else "C" if v >= 50 else "D" if v >= 35 else "E"
 
 
+@router.get("/api/zona/{slug}/fundamentales")
+async def zona_fundamentales(slug: str, request: Request):
+    """FUNDAMENTALES DE ZONA (hoja de datos dura, pública): precio + plusvalía (serie) + gentrificación (con
+    fuentes) + subscores + señal transaccional real. Compone datos que ya existen — el CMA del comprador."""
+    db = _db(request)
+    _RISK_LBL = {"bajo": "Bajo", "medio": "Medio", "alto": "Alto"}
+    cv = await db.colonia_valoracion.find_one(
+        {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}},
+        {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1, "plusvalia": 1, "gentrification": 1, "colonia_id": 1})
+    zs = await db.zone_scores.find_one({"zone_id": slug}, {"_id": 0, "components": 1, "score_letter": 1, "score_numeric": 1})
+    comp = (zs or {}).get("components") or {}
+    # Señal transaccional real (cierres) de la zona
+    tx = {"n": 0}
+    try:
+        pipe = [{"$match": {"zone_id": slug, "closing_price_mxn": {"$gt": 0}, "m2": {"$gt": 0}}},
+                {"$group": {"_id": None, "n": {"$sum": 1},
+                            "dom": {"$avg": "$days_on_market"}, "desc": {"$avg": "$discount_pct"},
+                            "ppm2": {"$avg": {"$divide": ["$closing_price_mxn", "$m2"]}}}}]
+        r = await db.transactions.aggregate(pipe).to_list(1)
+        if r:
+            tx = {"n": r[0]["n"], "dom_prom": round(r[0]["dom"] or 0), "descuento_prom": round(r[0]["desc"] or 0, 1),
+                  "precio_m2_cierres": round(r[0]["ppm2"] or 0)}
+    except Exception:
+        pass
+    plus = (cv or {}).get("plusvalia") or {}
+    serie = [{"anio": s.get("anio"), "yoy": s.get("yoy_pct")} for s in (plus.get("series") or [])]
+    gent = (cv or {}).get("gentrification") or {}
+    def _riesgo(v):
+        return None if v is None else ("Bajo" if v <= 40 else "Alto" if v >= 60 else "Medio")
+    return {
+        "slug": slug,
+        "name": (cv or {}).get("name") or " ".join(w.capitalize() for w in slug.replace("-", " ").split()),
+        "alcaldia": (cv or {}).get("alcaldia"),
+        "calificacion": (zs or {}).get("score_letter"),
+        "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
+        "precio_muestra_n": ((cv or {}).get("market_m2") or {}).get("muestra_n"),
+        "plusvalia_yoy": (serie[-1]["yoy"] if serie else None),
+        "plusvalia_serie": serie,
+        "gentrificacion": {"score": gent.get("score"), "nivel": gent.get("nivel"),
+                           "componentes": [{"nombre": c.get("nombre"), "valor": c.get("valor"), "fuente": c.get("fuente")}
+                                           for c in (gent.get("componentes") or [])]},
+        "fundamentos": {
+            "liquidez": comp.get("liquidez"), "demanda": comp.get("demand"), "oferta": comp.get("supply"),
+            "riesgo": _riesgo(comp.get("risk")), "yield_score": comp.get("yield_score"),
+            "servicios_cercanos": comp.get("denue_density"),
+        },
+        "transaccional": tx,
+    }
+
+
 @router.get("/api/lo-mas-buscado")
 async def lo_mas_buscado(request: Request, limit: int = Query(6, ge=1, le=20)):
     """LO MÁS BUSCADO EN DMX (social proof real): top colonias por señales de demanda (buyer_signals).
