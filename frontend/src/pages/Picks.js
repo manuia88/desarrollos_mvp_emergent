@@ -47,7 +47,21 @@ export default function Picks({ user, onLogin }) {
   const [bt, setBt] = useState(null);               // backtest $1M
   const [btMode, setBtMode] = useState('vivo');     // vivo | historico
   const [btUnit, setBtUnit] = useState('%');        // % | $
+  const [unidadEst, setUnidadEst] = useState('oportunidad');   // picks a nivel UNIDAD (el átomo)
+  const [unidades, setUnidades] = useState([]);
+  const [unidadEstrats, setUnidadEstrats] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    const p = new URLSearchParams({ estrategia: unidadEst, n: '10' });
+    if (presupuesto) p.set('presupuesto', presupuesto);
+    if (alcaldia) p.set('alcaldia', alcaldia);
+    fetch(`${API}/api/picks/unidades?${p.toString()}`).then((r) => r.json())
+      .then((d) => { if (alive) { setUnidades(d.picks || []); if (d.estrategias) setUnidadEstrats(d.estrategias); } })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [unidadEst, presupuesto, alcaldia]);
 
   useEffect(() => {
     let alive = true;
@@ -207,6 +221,41 @@ export default function Picks({ user, onLogin }) {
               </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Mejores DEPARTAMENTOS — picks a nivel unidad (el átomo), no solo colonia */}
+        {unidades.length > 0 && (
+          <div style={{ marginTop: 34 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: C.ink }}>Los mejores departamentos ahora</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {unidadEstrats.map((e) => (
+                  <button key={e.key} onClick={() => setUnidadEst(e.key)}
+                    style={{ padding: '6px 13px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT, fontWeight: 600, fontSize: 13, border: `1.5px solid ${unidadEst === e.key ? C.accent : C.line}`, background: unidadEst === e.key ? '#F3F0FF' : '#fff', color: unidadEst === e.key ? C.accent : C.ink2 }}>{e.label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 4 }}>Unidades reales disponibles — no la colonia, el departamento exacto.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 14 }}>
+              {unidades.map((u, i) => (
+                <a key={i} href={`/desarrollo/${u.development_id}`} className="dmx-card" style={{ display: 'block', textDecoration: 'none', background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 15 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12, color: '#fff', background: C.accent, borderRadius: 7, padding: '2px 8px' }}>#{i + 1}</span>
+                    {u.sobre_mercado_pct != null && (
+                      <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12, color: u.sobre_mercado_pct < 0 ? C.green : C.amber, background: u.sobre_mercado_pct < 0 ? '#EAF7F0' : '#FCF3E6', borderRadius: 999, padding: '2px 9px' }}>{u.sobre_mercado_pct > 0 ? '+' : ''}{u.sobre_mercado_pct}% vs zona</span>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: C.ink, marginTop: 8 }}>{u.dev_name}{u.unit_number ? ` · ${u.unit_number}` : ''}</div>
+                  <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint }}>{[u.colonia, u.alcaldia].filter(Boolean).join(' · ')}</div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', marginTop: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: C.ink }}>{money(u.precio)}</span>
+                    <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.ink2 }}>{money(u.precio_m2)}/m²</span>
+                    <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint }}>{[u.recamaras ? `${u.recamaras} rec` : null, u.m2 ? `${Math.round(u.m2)} m²` : null].filter(Boolean).join(' · ')}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 

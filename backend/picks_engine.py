@@ -318,6 +318,62 @@ async def pick_de_entidad(db, entity_id: Optional[str] = None, colonia_id: Optio
     return out
 
 
+ESTRATEGIAS_UNIDAD = ["oportunidad", "economico", "amplio"]
+_ULABEL = {"oportunidad": "Mejor oportunidad", "economico": "Más accesible", "amplio": "Más espacio por peso"}
+
+
+async def picks_unidades(db, estrategia: str = "oportunidad", n: int = 12,
+                         presupuesto: Optional[float] = None, alcaldia: Optional[str] = None,
+                         recamaras: Optional[int] = None) -> List[Dict[str, Any]]:
+    """HIPERGRANULARIDAD: picks a nivel UNIDAD (el átomo), no colonia. Rankea departamentos disponibles reales
+    (db.units) por oportunidad (bajo el mercado de su colonia · AVM), precio o espacio. El moat = dato por unidad."""
+    if estrategia not in ESTRATEGIAS_UNIDAD:
+        estrategia = "oportunidad"
+    # mapa AVM por colonia + mapa de desarrollos (nombre/colonia/alcaldía)
+    market: Dict[str, float] = {}
+    async for c in db.colonia_valoracion.find({}, {"_id": 0, "colonia_id": 1, "market_m2": 1}):
+        v = (c.get("market_m2") or {}).get("valor")
+        if v:
+            market[c["colonia_id"]] = float(v)
+    devs: Dict[str, Dict[str, Any]] = {}
+    async for d in db.developments.find({}, {"_id": 0, "id": 1, "name": 1, "colonia": 1, "alcaldia": 1}):
+        devs[d["id"]] = d
+    # Piso de venta: <$500k es RENTA mensual, no compra (founder: solo venta residencial). Excluye también
+    # desarrollos de renta por nombre.
+    q: Dict[str, Any] = {"price": {"$gte": 500_000}, "m2_total": {"$gt": 0}}
+    if recamaras is not None:
+        q["bedrooms"] = recamaras
+    filas = []
+    async for u in db.units.find(q, {"_id": 0}):
+        price, m2, cid = u.get("price"), u.get("m2_total"), u.get("colonia_id")
+        dev = devs.get(u.get("development_id")) or {}
+        if "renta" in (dev.get("name") or "").lower():
+            continue
+        if presupuesto and price > presupuesto * 1.02:
+            continue
+        if alcaldia and (dev.get("alcaldia") or "").lower() != alcaldia.lower():
+            continue
+        ppm2 = price / m2
+        ref = market.get(cid)
+        sobre = round((ppm2 / ref - 1) * 100, 1) if ref else None
+        if sobre is not None and abs(sobre) > 60:   # referencia dudosa → no la usamos como señal
+            sobre = None
+        filas.append({
+            "development_id": u.get("development_id"), "dev_name": dev.get("name") or u.get("development_id"),
+            "unit_number": u.get("unit_number"), "colonia": dev.get("colonia") or cid, "alcaldia": dev.get("alcaldia"),
+            "precio": round(price), "precio_m2": round(ppm2), "m2": m2, "recamaras": u.get("bedrooms"),
+            "sobre_mercado_pct": sobre,
+        })
+    if estrategia == "oportunidad":
+        cand = [f for f in filas if f["sobre_mercado_pct"] is not None]
+        cand.sort(key=lambda f: f["sobre_mercado_pct"])   # más bajo el mercado primero
+    elif estrategia == "economico":
+        cand = sorted(filas, key=lambda f: f["precio"])
+    else:  # amplio: más m² por peso
+        cand = sorted(filas, key=lambda f: -(f["m2"] / f["precio"]))
+    return cand[:n]
+
+
 async def backtest_1m(db, monto: float = 1_000_000, estrategia: Optional[str] = None) -> Dict[str, Any]:
     """Simulación '$1M invertido' (founder, investing.com): HISTÓRICO (picks cerrados → retorno real) y VIVO
     (cómo se reparte el $monto hoy entre los picks vigentes + qué compra). Traduce el track record a dinero.

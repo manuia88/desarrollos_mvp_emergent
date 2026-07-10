@@ -36,6 +36,17 @@ async def get_track_record(request: Request):
     return await pe.track_record(_db(request))
 
 
+@router.get("/api/picks/unidades")
+async def get_picks_unidades(request: Request, estrategia: str = Query("oportunidad"),
+                             presupuesto: Optional[float] = Query(None), alcaldia: Optional[str] = Query(None),
+                             recamaras: Optional[int] = Query(None), n: int = Query(12, ge=1, le=40)):
+    """Picks a nivel UNIDAD (el átomo): los mejores departamentos disponibles, no solo la mejor colonia."""
+    picks = await pe.picks_unidades(_db(request), estrategia=estrategia, n=n,
+                                    presupuesto=presupuesto, alcaldia=alcaldia, recamaras=recamaras)
+    return {"estrategia": estrategia, "label": pe._ULABEL.get(estrategia), "picks": picks,
+            "estrategias": [{"key": k, "label": pe._ULABEL[k]} for k in pe.ESTRATEGIAS_UNIDAD]}
+
+
 @router.get("/api/picks/backtest")
 async def picks_backtest(request: Request, monto: float = Query(1_000_000, ge=100_000, le=100_000_000),
                          estrategia: Optional[str] = Query(None)):
