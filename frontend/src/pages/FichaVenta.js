@@ -179,6 +179,35 @@ function AlertaValor({ units, onLead }) {
   );
 }
 
+// Riesgos a considerar (founder: 'riesgos nombrados' honestos, el inverso del hype). Derivados de datos REALES
+// del proyecto — no genéricos. El diferenciador de confianza: te decimos qué mirar antes de comprar.
+function RiesgosConsiderar({ dev }) {
+  const risks = [];
+  const vals = (dev.units || []).map((u) => u.sobre_mercado_pct).filter((x) => x != null).sort((a, b) => a - b);
+  const med = vals.length ? vals[Math.floor(vals.length / 2)] : null;
+  if (med != null && med >= 8) risks.push({ icon: '💰', t: 'Precio sobre el mercado', d: `Los precios están +${med.toFixed(0)}% arriba del mercado de la colonia. Hay margen para negociar.` });
+  const prog = typeof dev.construction_progress === 'number' ? dev.construction_progress : (dev.construction_progress && dev.construction_progress.overall_percent);
+  const esPreventa = /preventa/i.test(dev.stage || dev.status || '') || (dev.delivery_estimate && /202[6-9]|203\d/.test(String(dev.delivery_estimate)));
+  if (esPreventa) risks.push({ icon: '🏗️', t: 'Es preventa', d: `Compras sobre planos${dev.delivery_estimate ? ` con entrega estimada ${dev.delivery_estimate}` : ''}. Tu rendimiento depende de que se entregue a tiempo.` });
+  if (typeof prog === 'number' && prog > 0 && prog < 40) risks.push({ icon: '⏳', t: 'Obra en etapa temprana', d: `Avance ~${Math.round(prog)}%. A menor avance, más riesgo de retrasos — revisa el historial del desarrollador.` });
+  if ((dev.price_from || 0) >= 12000000) risks.push({ icon: '🔁', t: 'Reventa más lenta', d: 'Los departamentos de alto valor suelen tardar más en revenderse. Piensa en tu horizonte.' });
+  if (!risks.length) return null;
+  return (
+    <div style={{ ...box, marginTop: 12, padding: '14px 16px', background: '#FBFAFC', border: `1px solid ${CARD_LINE}` }}>
+      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: C.ink, marginBottom: 8 }}>🔎 Riesgos a considerar</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {risks.map((r, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10 }}>
+            <span style={{ fontSize: 16, flex: 'none' }}>{r.icon}</span>
+            <div><span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{r.t}. </span><span style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, lineHeight: 1.45 }}>{r.d}</span></div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 8 }}>Te mostramos los riesgos, no solo lo bueno. Análisis, no asesoría de inversión.</div>
+    </div>
+  );
+}
+
 function ReadMore({ text, max = 320 }) {
   const [open, setOpen] = useState(false);
   if (!text) return null;
@@ -1354,6 +1383,7 @@ export default function FichaVenta() {
           </div>
           <SummaryBar price={dev.price_from_display || money(dev.price_from)} bedR={bedR} bathR={bathR} m2R={m2R ? `${m2R} m²` : null} />
           <AlertaValor units={dev.units || []} onLead={() => { fvSignal('intent', { entity_id: dev.id, colonia: dev.colonia, value: 'alerta_valor' }); agendar('agendar'); }} />
+          <RiesgosConsiderar dev={dev} />
           <ReadMore text={dev.description} />
         </div>
 
