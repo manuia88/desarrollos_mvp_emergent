@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.buyer_alerts")
 
-VALID_TYPES = ("new_match", "price_drop", "slot_available", "project_status")
+VALID_TYPES = ("new_match", "price_drop", "slot_available", "project_status", "pick_added", "catalyst")
 VALID_CHANNELS = ("push", "email", "whatsapp")
 VALID_FREQUENCIES = ("instant", "daily", "weekly")
 
@@ -293,6 +293,49 @@ async def _check_project_status(db, alert: Dict[str, Any]) -> Optional[Dict[str,
     return None
 
 
+async def _check_pick_added(db, alert: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """pick_added: se agregó un DMX Pick nuevo en la zona vigilada del usuario (colonia o alcaldía)."""
+    try:
+        c = alert.get("conditions", {})
+        since = c.get("last_seen") or ""
+        q: Dict[str, Any] = {"estado": "vivo"}
+        if c.get("colonia_slug") or c.get("colonia_id"):
+            q["entity_id"] = c.get("colonia_slug") or c.get("colonia_id")
+        elif c.get("alcaldia"):
+            q["alcaldia"] = {"$regex": f"^{c['alcaldia']}$", "$options": "i"}
+        else:
+            return None
+        if since:
+            q["fecha_pick"] = {"$gt": since}
+        p = await db.dmx_picks.find_one(q, {"_id": 0}, sort=[("fecha_pick", -1)])
+        if p:
+            return {"summary": f"Nuevo DMX Pick en {p.get('alcaldia') or 'tu zona'}: "
+                               f"{p.get('entity_name')} ({p.get('estrategia_label') or p.get('estrategia')})."}
+    except Exception as e:
+        log.debug(f"[buyer_alerts] pick_added eval error: {e}")
+    return None
+
+
+async def _check_catalyst(db, alert: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """catalyst: hay un catalizador/boletín de mercado nuevo en la zona vigilada (obra, infraestructura)."""
+    try:
+        c = alert.get("conditions", {})
+        since = c.get("last_seen") or ""
+        zone = c.get("colonia_slug") or c.get("colonia_id")
+        q: Dict[str, Any] = {"$or": [{"type": "general"}]}
+        if zone:
+            q["$or"].append({"type": "zone", "zone_id": zone})
+        if since:
+            q["generated_at"] = {"$gt": since}
+        b = await db.dmx_bulletins.find_one(q, {"_id": 0}, sort=[("generated_at", -1)])
+        if b:
+            return {"summary": f"Nuevo catalizador de mercado para tu zona ({b.get('period') or 'reciente'}). "
+                               f"Ábrelo para ver qué mueve los precios."}
+    except Exception as e:
+        log.debug(f"[buyer_alerts] catalyst eval error: {e}")
+    return None
+
+
 # ─── Main evaluator ────────────────────────────────────────────────────────────
 
 async def evaluate_alerts(db, user_id: Optional[str] = None, frequency: Optional[str] = None) -> Dict[str, Any]:
@@ -322,6 +365,8 @@ async def evaluate_alerts(db, user_id: Optional[str] = None, frequency: Optional
         "price_drop": _check_price_drop,
         "slot_available": _check_slot_available,
         "project_status": _check_project_status,
+        "pick_added": _check_pick_added,
+        "catalyst": _check_catalyst,
     }
 
     for alert in alerts:

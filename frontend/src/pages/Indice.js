@@ -42,6 +42,7 @@ function Curva({ pts }) {
 export default function Indice({ user, onLogin }) {
   const [data, setData] = useState(null);
   const [espejo, setEspejo] = useState(null);
+  const [buscado, setBuscado] = useState([]);
   const [rango, setRango] = useState('max');
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +53,8 @@ export default function Indice({ user, onLogin }) {
       .catch(() => alive && setLoading(false));
     fetch(`${API}/api/modelo/espejo`).then((r) => r.json())
       .then((d) => { if (alive) setEspejo(d); }).catch(() => {});
+    fetch(`${API}/api/lo-mas-buscado?limit=6`).then((r) => r.json())
+      .then((d) => { if (alive) setBuscado((d && d.top) || []); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -135,6 +138,27 @@ export default function Indice({ user, onLogin }) {
                   {espejo.dentro_20_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{espejo.dentro_20_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±20%</div></div>}
                 </div>
                 <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 12 }}>{espejo.fuente}. El número mejora conforme entran cierres de venta reales.</div>
+              </div>
+            )}
+
+            {/* Lo más buscado en DMX — social proof con demanda real */}
+            {buscado.length > 0 && (
+              <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, marginTop: 20 }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: C.ink }}>Lo más buscado en DMX ahora</div>
+                <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, marginTop: 3 }}>Las colonias con más demanda real de compradores en la plataforma.</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 12 }}>
+                  {buscado.map((b, i) => (
+                    <div key={b.colonia_slug || i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i < buscado.length - 1 ? `1px solid ${C.line}` : 'none' }}>
+                      <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: C.faint, width: 22 }}>{i + 1}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{b.name}</span>
+                        {b.alcaldia && <span style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint }}> · {b.alcaldia}</span>}
+                      </div>
+                      {b.precio_m2 && <span style={{ fontFamily: FONT, fontSize: 13, color: C.ink2, fontVariantNumeric: 'tabular-nums' }}>{money(b.precio_m2)}/m²</span>}
+                      <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: C.accent, background: '#F3F0FF', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>🔥 {b.senales}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

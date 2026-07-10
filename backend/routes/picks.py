@@ -122,6 +122,36 @@ def _letra_idm(v):
     return "A" if v >= 80 else "B" if v >= 65 else "C" if v >= 50 else "D" if v >= 35 else "E"
 
 
+@router.get("/api/lo-mas-buscado")
+async def lo_mas_buscado(request: Request, limit: int = Query(6, ge=1, le=20)):
+    """LO MÁS BUSCADO EN DMX (social proof real): top colonias por señales de demanda (buyer_signals).
+    Da sensación de mercado vivo y demanda. Dato propietario ya capturado, ahora visible."""
+    db = _db(request)
+    out = []
+    try:
+        pipe = [{"$match": {"colonia": {"$ne": None}}},
+                {"$group": {"_id": "$colonia", "n": {"$sum": 1}}},
+                {"$sort": {"n": -1}}, {"$limit": limit}]
+        rows = [r async for r in db.buyer_signals.aggregate(pipe)]
+        for r in rows:
+            slug = r["_id"]
+            nombre = " ".join(w.capitalize() for w in str(slug).replace("-", " ").split())
+            cv = await db.colonia_valoracion.find_one(
+                {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}},
+                {"_id": 0, "name": 1, "market_m2": 1, "plusvalia": 1, "alcaldia": 1})
+            out.append({
+                "colonia_slug": slug,
+                "name": (cv or {}).get("name") or nombre,
+                "alcaldia": (cv or {}).get("alcaldia"),
+                "senales": r["n"],
+                "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
+                "plusvalia": (cv or {}).get("plusvalia"),
+            })
+    except Exception:
+        pass
+    return {"top": out, "total_senales": sum(x["senales"] for x in out)}
+
+
 @router.get("/api/modelo/espejo")
 async def get_espejo(request: Request):
     """EL ESPEJO DEL MODELO (público): qué tan acertado es nuestro AVM contra casos reales de control (golden).

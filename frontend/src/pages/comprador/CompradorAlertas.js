@@ -16,6 +16,8 @@ const TYPE_LABELS = {
   price_drop: 'Bajada de precio',
   slot_available: 'Unidades disponibles',
   project_status: 'Estado del proyecto',
+  pick_added: 'Nuevo DMX Pick en mi zona',
+  catalyst: 'Catalizador en mi zona',
 };
 
 const CHANNEL_LABELS = {
