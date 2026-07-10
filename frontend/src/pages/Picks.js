@@ -24,20 +24,26 @@ const ESTRAT = {
 };
 const ORDEN = ['plusvalia', 'renta', 'preventa', 'refugio', 'emergentes'];
 
+const PRESUPUESTOS = [
+  ['', 'Todos'], [3000000, 'Hasta $3M'], [5000000, 'Hasta $5M'], [8000000, 'Hasta $8M'], [15000000, 'Hasta $15M'],
+];
+
 const money = (n) => (n ? `$${Math.round(n).toLocaleString('es-MX')}` : '—');
 
 export default function Picks({ user, onLogin }) {
   const [data, setData] = useState(null);
   const [track, setTrack] = useState(null);
   const [tab, setTab] = useState('plusvalia');
+  const [presupuesto, setPresupuesto] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
+        const q = presupuesto ? `?presupuesto=${presupuesto}` : '';
         const [r1, r2] = await Promise.all([
-          fetch(`${API}/api/picks`).then((r) => r.json()),
+          fetch(`${API}/api/picks${q}`).then((r) => r.json()),
           fetch(`${API}/api/picks/track-record`).then((r) => r.json()),
         ]);
         if (!alive) return;
@@ -47,7 +53,7 @@ export default function Picks({ user, onLogin }) {
       if (alive) setLoading(false);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [presupuesto]);
 
   const picks = (data && data[tab] && data[tab].picks) || [];
 
@@ -86,13 +92,31 @@ export default function Picks({ user, onLogin }) {
           })}
         </div>
 
+        {/* Segmentación por presupuesto */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+          <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: C.ink2 }}>Tu presupuesto:</span>
+          {PRESUPUESTOS.map(([val, lbl]) => {
+            const on = String(presupuesto) === String(val);
+            return (
+              <button key={lbl} onClick={() => setPresupuesto(val)}
+                style={{ padding: '6px 13px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT, fontWeight: 600, fontSize: 13,
+                  border: `1.5px solid ${on ? C.accent : C.line}`, background: on ? '#F3F0FF' : '#fff', color: on ? C.accent : C.ink2 }}>{lbl}</button>
+            );
+          })}
+          {presupuesto && <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>· depa ~70 m² que entra en tu monto</span>}
+        </div>
+
         {/* Picks de la estrategia activa */}
         {loading ? (
           <div style={{ padding: 40, color: C.faint }}>Cargando picks…</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, marginTop: 18 }}>
             {picks.length === 0 && (
-              <div style={{ color: C.faint, padding: 20 }}>Aún no hay picks de esta estrategia para tu zona.</div>
+              <div style={{ color: C.faint, padding: 20 }}>
+                {presupuesto
+                  ? 'Ningún pick de esta estrategia cabe en ese presupuesto. Sube el monto o prueba otra estrategia.'
+                  : 'Aún no hay picks de esta estrategia para tu zona.'}
+              </div>
             )}
             {picks.map((p, i) => (
               <div key={p.id || i} className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 18 }}>

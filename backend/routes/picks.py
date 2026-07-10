@@ -15,14 +15,18 @@ def _db(request: Request):
 
 
 @router.get("/api/picks")
-async def get_picks(request: Request, estrategia: Optional[str] = Query(None)):
-    """Picks vigentes (público, imán de leads). Con estrategia filtra; sin ella, agrupa las 5."""
+async def get_picks(request: Request, estrategia: Optional[str] = Query(None),
+                    alcaldia: Optional[str] = Query(None), presupuesto: Optional[float] = Query(None)):
+    """Picks vigentes (público, imán de leads). Con estrategia filtra; sin ella, agrupa las 5.
+    Segmentable por alcaldía y presupuesto (una unidad típica que quepa en el monto)."""
     db = _db(request)
     if estrategia:
-        return {"estrategia": estrategia, "picks": await pe.picks_vigentes(db, estrategia)}
+        return {"estrategia": estrategia,
+                "picks": await pe.picks_vigentes(db, estrategia, alcaldia=alcaldia, presupuesto=presupuesto)}
     out = {}
     for e in pe.ESTRATEGIAS:
-        out[e] = {"label": pe._LABEL[e], "picks": await pe.picks_vigentes(db, e, limit=8)}
+        out[e] = {"label": pe._LABEL[e],
+                  "picks": await pe.picks_vigentes(db, e, limit=8, alcaldia=alcaldia, presupuesto=presupuesto)}
     return {"estrategias": out}
 
 

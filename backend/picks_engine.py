@@ -256,11 +256,29 @@ async def evaluar_picks(db) -> Dict[str, int]:
     return {"cerrados": cerrados, "aciertos": aciertos}
 
 
-async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40) -> List[Dict[str, Any]]:
+_TIPICO_M2 = 70   # unidad típica para traducir presupuesto ↔ $/m² del pick (segmentación por presupuesto)
+
+
+async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40,
+                         alcaldia: Optional[str] = None, presupuesto: Optional[float] = None) -> List[Dict[str, Any]]:
+    """Picks vigentes, SEGMENTABLES por alcaldía y presupuesto (founder 07-09): un pick 'cabe' en el presupuesto
+    si una unidad típica (~70m²) a su $/m² de referencia entra en el monto. Ordena por señal."""
     q: Dict[str, Any] = {"estado": "vivo"}
     if estrategia:
         q["estrategia"] = estrategia
-    picks = [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(limit)]
+    if alcaldia:
+        q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
+    picks = [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(200)]
+    if presupuesto:
+        tope = presupuesto * 1.05   # 5% de holgura
+        def _cabe(p):
+            if p.get("precio_ref_desde"):        # desarrollo: precio total de entrada
+                return p["precio_ref_desde"] <= tope
+            if p.get("precio_ref_m2"):           # colonia: unidad típica ~70 m² al $/m² de referencia
+                return p["precio_ref_m2"] * _TIPICO_M2 <= tope
+            return True                          # sin precio → no podemos juzgar, se muestra
+        picks = [p for p in picks if _cabe(p)]
+    picks = picks[:limit]
     # ANCLA vs CDMX en cada pick (credibilidad): precio de referencia vs la mediana de la ciudad
     bp = (await benchmark_cdmx(db)).get("precio_m2_mediana")
     if bp:
