@@ -25,6 +25,7 @@ import InversionV4Calculator from '../components/investment/InversionV4Calculato
 import FichaHipotecaComparador from '../components/ficha/FichaHipotecaComparador';
 import FichaTaxISAI from '../components/ficha/FichaTaxISAI';
 import FichaPlanDesarrollador from '../components/ficha/FichaPlanDesarrollador';
+import PlanUnMinuto from '../components/ficha/PlanUnMinuto';   // síntesis del plan de inversión en 1 minuto
 import FichaResumenCierre from '../components/ficha/FichaResumenCierre';
 import LugaresPanel from '../components/ficha/LugaresPanel';   // qué hay alrededor · reusa mapa (maplibre/CARTO gratis) + zone_places cacheado
 import LenteInversorPanel from '../components/ficha/LenteInversorPanel';   // surfacea composites/inversor (moat antes sin UI)
@@ -1384,6 +1385,7 @@ export default function FichaVenta() {
 
             {activeNav === 'inversion' && (
               <Section title="Calculadora de inversión">
+                <div style={{ marginBottom: 18 }}><PlanUnMinuto dev={dev} unit={unit} /></div>
                 <TabInversion dev={dev} unit={unit} onGoTo={goTab} />
               </Section>
             )}
