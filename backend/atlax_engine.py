@@ -36,6 +36,28 @@ class AtlaxQueryIn(BaseModel):
     thread_id: Optional[str] = None  # W4.11a · null = creates new thread auto
     org_id: Optional[str] = None      # W4.7 Y.4A · persona org context (default "dmx")
     page_context: Optional[str] = None  # qué está viendo/buscando el usuario AHORA (filtros, colonia, página) → Atlax responde en contexto
+    visitor_id: Optional[str] = None  # gate de leads: N análisis gratis por visitante anónimo → registro
+
+
+ATLAX_FREE_ANALISIS = 5   # análisis gratis por visitante anónimo antes de pedir registro (medidor visible)
+
+
+async def _atlax_usage(db, visitor_id: Optional[str], registered: bool = False) -> Dict[str, Any]:
+    """Cuenta análisis por visitor_id → medidor de uso + gate suave. Registrados = ilimitado. Fail-open."""
+    if registered or not visitor_id:
+        return {"usados": 0, "libres": ATLAX_FREE_ANALISIS, "restantes": ATLAX_FREE_ANALISIS,
+                "gated": False, "registrado": registered}
+    try:
+        from pymongo import ReturnDocument
+        doc = await db.atlax_usage.find_one_and_update(
+            {"visitor_id": visitor_id},
+            {"$inc": {"count": 1}, "$setOnInsert": {"visitor_id": visitor_id}},
+            upsert=True, return_document=ReturnDocument.AFTER)
+        n = int((doc or {}).get("count", 1))
+    except Exception:
+        n = 1
+    return {"usados": n, "libres": ATLAX_FREE_ANALISIS, "restantes": max(0, ATLAX_FREE_ANALISIS - n),
+            "gated": n > ATLAX_FREE_ANALISIS, "registrado": False}
 
 
 class AtlaxBlocksIn(BaseModel):
@@ -182,6 +204,14 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     db = request.app.state.db
     ip = _extract_ip(request)
     ua = request.headers.get("user-agent", "")
+
+    # Gate de leads: ¿registrado? (bypass del contador). Fail-open a anónimo.
+    _registered = False
+    try:
+        from server import get_current_user
+        _registered = bool(await get_current_user(request))
+    except Exception:
+        _registered = False
 
     # P1.14 · sanitiza la entrada PÚBLICA antes de que toque el LLM (anti prompt-injection directa).
     try:
@@ -462,8 +492,10 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         _logging.getLogger("dmx.f2_rag_wiring").warning(f"[ingest atlax] failed silent: {_ing_exc}")
 
     # ─── 11. Response shape backwards-compatible + nuevos campos opcionales
+    uso = await _atlax_usage(db, payload.visitor_id, registered=_registered)
     return {
         "ok": True,
+        "uso": uso,   # medidor de uso + gate suave (N análisis gratis → registro)
         "session_id": legacy_session_id,
         "asistente_session_token": asistente_token,
         "thread_id": thread_id,

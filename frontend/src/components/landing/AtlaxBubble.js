@@ -365,6 +365,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   const [tier, setTier] = useState(null);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [uso, setUso] = useState(null);   // medidor de análisis gratis (gate de leads)
 
   // Paso F · Atlax AGÉNTICO desde la corona: vetea ESTE desarrollo (precio en contexto obra-nueva + plusvalía
   // oficial + momento de zona, reusa /api/public/buy-signal), lo lee en voz humana y ofrece la acción que
@@ -489,9 +490,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
       const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble', thread_id: threadId || null, page_context: contextRef.current || null }),
+        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble', thread_id: threadId || null, page_context: contextRef.current || null, visitor_id: visitorId() }),
       });
       const d = await r.json();
+      if (d.uso) { setUso(d.uso); if (d.uso.gated && !d.uso.registrado) { setShowLeadForm(true); setFormDismissed(false); } }
       if (d.asistente_session_token) { setAsistenteToken(d.asistente_session_token); try { localStorage.setItem(SS_TOKEN, d.asistente_session_token); } catch (_) { /* ignore */ } }
       if (d.session_id && d.session_id !== sessionId) { setSessionId(d.session_id); try { localStorage.setItem(SS_KEY, d.session_id); } catch (_) { /* ignore */ } }
       if (d.thread_id && d.thread_id !== threadId) { setThreadId(d.thread_id); try { localStorage.setItem(SS_THREAD, d.thread_id); } catch (_) { /* ignore */ } }
@@ -1012,6 +1014,15 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                   color: o.human ? '#fff' : 'var(--theme)', cursor: 'pointer', fontFamily: 'DM Sans',
                 }}>{o.l}</button>
               ))}
+            </div>
+          )}
+
+          {/* Medidor de análisis gratis (gate de leads) — solo cuando quedan pocos y no está registrado */}
+          {uso && !uso.registrado && uso.restantes <= 3 && (
+            <div style={{ padding: '6px 14px', fontFamily: 'DM Sans', fontSize: 11.5, color: uso.restantes <= 1 ? '#E0A100' : 'var(--muted, rgba(240,235,224,0.6))', display: 'flex', alignItems: 'center', gap: 6, background: light ? '#FAFAFB' : '#0A0D16' }}>
+              {uso.restantes > 0
+                ? `✨ Te ${uso.restantes === 1 ? 'queda' : 'quedan'} ${uso.restantes} ${uso.restantes === 1 ? 'análisis gratis' : 'análisis gratis'} · regístrate para ilimitado`
+                : '🔒 Alcanzaste tus análisis gratis — regístrate gratis para seguir'}
             </div>
           )}
 
