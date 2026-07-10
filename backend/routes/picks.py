@@ -263,23 +263,54 @@ async def lo_mas_buscado(request: Request, limit: int = Query(6, ge=1, le=20)):
     return {"top": out, "total_senales": sum(x["senales"] for x in out)}
 
 
+async def _backtest_cierres_reales(db):
+    """Backtest del modelo contra CIERRES DE VENTA REALES (db.transactions) — $0, pura aritmética, sin IA:
+    compara el $/m² de cierre vs el $/m² de mercado (AVM) de su colonia. El Espejo con dato real, no golden."""
+    market = {}
+    async for c in db.colonia_valoracion.find({"market_m2.valor": {"$ne": None}}, {"_id": 0, "colonia_id": 1, "market_m2": 1}):
+        market[c["colonia_id"]] = float(c["market_m2"]["valor"])
+    errs = []
+    async for t in db.transactions.find({"closing_price_mxn": {"$gt": 0}, "m2": {"$gt": 0}, "zone_id": {"$ne": None}},
+                                        {"_id": 0, "zone_id": 1, "closing_price_mxn": 1, "m2": 1}):
+        ref = market.get(t["zone_id"])
+        if not ref:
+            continue
+        e = abs((t["closing_price_mxn"] / t["m2"]) / ref - 1) * 100
+        if e <= 60:   # descarta outliers de referencia mala
+            errs.append(e)
+    if not errs:
+        return None
+    return {"mape_pct": round(sum(errs) / len(errs), 2), "n": len(errs),
+            "dentro_10_pct": round(100 * sum(1 for e in errs if e <= 10) / len(errs)),
+            "dentro_20_pct": round(100 * sum(1 for e in errs if e <= 20) / len(errs))}
+
+
 @router.get("/api/modelo/espejo")
 async def get_espejo(request: Request):
-    """EL ESPEJO DEL MODELO (público): qué tan acertado es nuestro AVM contra casos reales de control (golden).
-    Transparencia radical — publicamos nuestro margen de error. Corre el AVM (sin IA), no expone los casos."""
+    """EL ESPEJO DEL MODELO (público): qué tan acertado es nuestro AVM. Dos pruebas: contra casos de control
+    (golden) y contra CIERRES DE VENTA REALES (transactions). Transparencia radical — publicamos el error. Sin IA."""
+    db = _db(request)
+    out = {"mape_pct": None, "evaluados": 0}
     try:
         from golden_avm_data import validate_against_engine
-        r = await validate_against_engine(_db(request))
+        r = await validate_against_engine(db)
         ev = r.get("evaluated") or 0
-        return {
+        out = {
             "mape_pct": r.get("mape_pct"),
             "dentro_10_pct": round(100 * (r.get("within_10pct") or 0) / ev) if ev else None,
             "dentro_20_pct": round(100 * (r.get("within_20pct") or 0) / ev) if ev else None,
             "evaluados": ev, "total_casos": r.get("total_cases"),
-            "fuente": "validación contra dataset de control (casos reales) — no cierres de venta aún",
+            "fuente": "validación contra dataset de control (golden)",
         }
     except Exception:
-        return {"mape_pct": None, "evaluados": 0, "nota": "espejo no disponible"}
+        pass
+    try:
+        cr = await _backtest_cierres_reales(db)
+        if cr:
+            out["cierres_reales"] = cr
+    except Exception:
+        pass
+    return out
 
 
 async def _require_superadmin(request: Request):

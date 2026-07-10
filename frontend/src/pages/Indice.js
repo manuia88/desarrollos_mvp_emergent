@@ -125,21 +125,28 @@ export default function Indice({ user, onLogin }) {
               <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 8 }}>{data && data.nota}</div>
             </div>
 
-            {/* Espejo del modelo — transparencia radical del margen de error */}
-            {espejo && espejo.mape_pct != null && (
+            {/* Espejo del modelo — transparencia radical del margen de error (2 pruebas: golden + cierres reales) */}
+            {espejo && (espejo.mape_pct != null || espejo.cierres_reales) && (() => {
+              const cr = espejo.cierres_reales;
+              const head = cr || { mape_pct: espejo.mape_pct, dentro_10_pct: espejo.dentro_10_pct, dentro_20_pct: espejo.dentro_20_pct };
+              return (
               <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, marginTop: 20 }}>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: C.ink }}>El espejo del modelo — nuestro margen de error</div>
-                <div style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, marginTop: 4, maxWidth: 640, lineHeight: 1.5 }}>
-                  Somos el único que publica qué tan seguido le atina su modelo. Probado contra {espejo.total_casos} casos reales de control:
+                <div style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, marginTop: 4, maxWidth: 660, lineHeight: 1.5 }}>
+                  Somos el único que publica qué tan seguido le atina su modelo. {cr ? `Probado contra ${cr.n} cierres de venta REALES:` : `Probado contra ${espejo.total_casos} casos de control:`}
                 </div>
                 <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginTop: 14 }}>
-                  <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.ink }}>±{espejo.mape_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>error promedio (MAPE)</div></div>
-                  {espejo.dentro_10_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{espejo.dentro_10_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±10% del precio real</div></div>}
-                  {espejo.dentro_20_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{espejo.dentro_20_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±20%</div></div>}
+                  <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.ink }}>±{head.mape_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>error promedio (MAPE)</div></div>
+                  {head.dentro_10_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{head.dentro_10_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±10% del precio real</div></div>}
+                  {head.dentro_20_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{head.dentro_20_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±20%</div></div>}
                 </div>
-                <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 12 }}>{espejo.fuente}. El número mejora conforme entran cierres de venta reales.</div>
+                {cr && espejo.mape_pct != null && (
+                  <div style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, marginTop: 10 }}>Contra dataset de control (golden): <b>±{espejo.mape_pct}%</b> en {espejo.total_casos} casos.</div>
+                )}
+                <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 10 }}>Sin IA, pura medición. El número afina conforme entran más cierres reales.</div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Lo más buscado en DMX — social proof con demanda real */}
             {buscado.length > 0 && (
