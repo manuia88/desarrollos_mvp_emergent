@@ -90,8 +90,12 @@ async def _join_zone_row(db, zone_id: str, tier: str = "colonia") -> dict:
     avg_rental = kpis.get("avg_rental_mxn") or (avg_price * 0.004 if avg_price else 0)
     yield_pct = round((avg_rental * 12 / avg_price) * 100, 2) if avg_price else None
 
-    # Risk Score placeholder (W3.4 will replace) — neutral 50
-    risk_score = 50
+    # Risk Score REAL desde zone_scores.components.risk (0-100, mayor = más riesgo) — el mismo que usan
+    # picks_engine (refugio) y screener. Antes era un placeholder fijo=50 que falseaba el multi-factor.
+    comps = zs.get("components") or {}
+    _risk_raw = comps.get("risk")
+    risk_score = round(float(_risk_raw)) if _risk_raw is not None else 50
+    risk_status = "real" if _risk_raw is not None else "sin_dato_neutral"
 
     return {
         "zone_id": zone_id,
@@ -104,7 +108,7 @@ async def _join_zone_row(db, zone_id: str, tier: str = "colonia") -> dict:
         "drpi_index_value": dr.get("index_value"),
         "drpi_period": dr.get("period"),
         "risk_score": risk_score,
-        "risk_score_status": "placeholder_w3_4",
+        "risk_score_status": risk_status,
         "dom_avg": dom_avg,
         "median_price_per_m2": pi.get("median_price_per_m2"),
         "transactions_count_30d": pi.get("transactions_count") or 0,

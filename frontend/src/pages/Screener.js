@@ -102,7 +102,7 @@ export default function Screener({ user, onLogin }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, fontSize: 14, minWidth: 640 }}>
             <thead>
               <tr style={{ textAlign: 'left', color: C.faint, fontSize: 12.5 }}>
-                {['#', 'Colonia', 'Alcaldía', 'Plusvalía', 'Precio/m²', 'vs CDMX', 'Gentrif.', 'Calidad'].map((h) => (
+                {['#', 'Colonia', 'Alcaldía', 'Plusvalía', 'Precio/m²', 'vs CDMX', 'Riesgo', 'Gentrif.', 'Calidad'].map((h) => (
                   <th key={h} style={{ padding: '8px 10px', borderBottom: `1px solid ${C.line}`, fontWeight: 700 }}>{h}</th>
                 ))}
               </tr>
@@ -116,12 +116,13 @@ export default function Screener({ user, onLogin }) {
                   <td style={{ padding: '10px', fontWeight: 700, color: r.yoy > 0 ? C.green : C.ink2 }}>{r.yoy != null ? `${r.yoy > 0 ? '+' : ''}${r.yoy}%` : '—'}</td>
                   <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums' }}>{money(r.precio_m2)}</td>
                   <td style={{ padding: '10px', fontWeight: 700, color: r.vs_cdmx_precio_pct < 0 ? C.green : r.vs_cdmx_precio_pct > 0 ? C.amber : C.ink2 }}>{r.vs_cdmx_precio_pct != null ? `${r.vs_cdmx_precio_pct > 0 ? '+' : ''}${r.vs_cdmx_precio_pct}%` : '—'}</td>
+                  <td style={{ padding: '10px', fontWeight: 700, color: r.risk == null ? C.faint : r.risk <= 40 ? C.green : r.risk >= 60 ? '#B03A3A' : C.amber }}>{r.risk != null ? (r.risk <= 40 ? 'Bajo' : r.risk >= 60 ? 'Alto' : 'Medio') : '—'}</td>
                   <td style={{ padding: '10px' }}>{r.gentrif != null ? Math.round(r.gentrif) : '—'}</td>
                   <td style={{ padding: '10px' }}>{r.zletter ? <span style={{ fontWeight: 700, color: C.accent }}>{r.zletter}</span> : '—'}</td>
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 24, color: C.faint }}>Ninguna colonia con esos filtros. Aflójalos un poco.</td></tr>
+                <tr><td colSpan={9} style={{ padding: 24, color: C.faint }}>Ninguna colonia con esos filtros. Aflójalos un poco.</td></tr>
               )}
             </tbody>
           </table>
