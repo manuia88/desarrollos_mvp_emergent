@@ -44,7 +44,17 @@ export default function Picks({ user, onLogin }) {
   const [presupuesto, setPresupuesto] = useState('');
   const [alcaldia, setAlcaldia] = useState('');
   const [alcaldias, setAlcaldias] = useState([]);   // catálogo derivado del 1er load sin filtro
+  const [bt, setBt] = useState(null);               // backtest $1M
+  const [btMode, setBtMode] = useState('vivo');     // vivo | historico
+  const [btUnit, setBtUnit] = useState('%');        // % | $
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/picks/backtest?monto=1000000`).then((r) => r.json())
+      .then((d) => { if (alive) setBt(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -75,6 +85,7 @@ export default function Picks({ user, onLogin }) {
   }, [presupuesto, alcaldia]);
 
   const picks = (data && data[tab] && data[tab].picks) || [];
+  const ideas = (data && data.emergentes && data.emergentes.picks || []).slice(0, 5);
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
@@ -89,6 +100,19 @@ export default function Picks({ user, onLogin }) {
             Cada pick es una predicción con fecha. Con el tiempo probamos cuáles acertaron — incluidas las que fallaron.
             Sin humo: los números salen de nuestros índices, no de opiniones.
           </p>
+          {ideas.length > 0 && (
+            <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px 16px' }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14 }}>💡 Ideas: {ideas.length} zonas emergentes antes de que suban</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                {ideas.map((p, i) => (
+                  <button key={p.id || i} onClick={() => setTab('emergentes')}
+                    style={{ background: 'rgba(255,255,255,0.9)', color: C.accent, border: 'none', borderRadius: 999, padding: '5px 12px', fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                    {p.entity_name}{p.vs_cdmx_precio_pct != null && p.vs_cdmx_precio_pct < 0 ? ` · ${p.vs_cdmx_precio_pct}% vs CDMX` : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,30 +174,89 @@ export default function Picks({ user, onLogin }) {
                   : 'Aún no hay picks de esta estrategia para tu zona.'}
               </div>
             )}
-            {picks.map((p, i) => (
-              <div key={p.id || i} className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: '#fff', background: C.accent, borderRadius: 8, padding: '3px 9px' }}>#{i + 1}</span>
-                  <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{ESTRAT[tab].emoji} {ESTRAT[tab].label}</span>
+            {picks.map((p, i) => {
+              const lock = !user && i >= 3;   // freemium suave: 3 picks libres, el resto con registro gratis
+              return (
+              <div key={p.id || i} className="dmx-card" style={{ position: 'relative', overflow: 'hidden', background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 18 }}>
+                <div style={{ filter: lock ? 'blur(6px)' : 'none', pointerEvents: lock ? 'none' : 'auto', userSelect: lock ? 'none' : 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: '#fff', background: C.accent, borderRadius: 8, padding: '3px 9px' }}>#{i + 1}</span>
+                    <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>{ESTRAT[tab].emoji} {ESTRAT[tab].label}</span>
+                  </div>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: C.ink, marginTop: 8, letterSpacing: '-0.01em' }}>{p.entity_name}</div>
+                  {p.alcaldia && <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>{p.alcaldia}</div>}
+                  <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 10, lineHeight: 1.5 }}>{p.tesis}</div>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {p.precio_ref_m2 ? (
+                      <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{money(p.precio_ref_m2)}<span style={{ fontSize: 12, color: C.faint }}>/m²</span></span>
+                    ) : p.precio_ref_desde ? (
+                      <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Desde {money(p.precio_ref_desde)}</span>
+                    ) : null}
+                    {p.vs_cdmx_precio_pct != null && (
+                      <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: p.vs_cdmx_precio_pct < 0 ? C.green : p.vs_cdmx_precio_pct > 0 ? C.amber : C.faint, background: '#F6F4FB', borderRadius: 999, padding: '2px 9px' }}>{p.vs_cdmx_precio_pct > 0 ? '+' : ''}{p.vs_cdmx_precio_pct}% vs CDMX</span>
+                    )}
+                    <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>pick del {String(p.mes || '').replace('-', '/')} · horizonte {p.horizonte_meses}m</span>
+                  </div>
                 </div>
-                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: C.ink, marginTop: 8, letterSpacing: '-0.01em' }}>{p.entity_name}</div>
-                {p.alcaldia && <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>{p.alcaldia}</div>}
-                <div style={{ fontFamily: FONT, fontSize: 14, color: C.ink2, marginTop: 10, lineHeight: 1.5 }}>{p.tesis}</div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {p.precio_ref_m2 ? (
-                    <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>{money(p.precio_ref_m2)}<span style={{ fontSize: 12, color: C.faint }}>/m²</span></span>
-                  ) : p.precio_ref_desde ? (
-                    <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink }}>Desde {money(p.precio_ref_desde)}</span>
-                  ) : null}
-                  {p.vs_cdmx_precio_pct != null && (
-                    <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: p.vs_cdmx_precio_pct < 0 ? C.green : p.vs_cdmx_precio_pct > 0 ? C.amber : C.faint, background: '#F6F4FB', borderRadius: 999, padding: '2px 9px' }}>{p.vs_cdmx_precio_pct > 0 ? '+' : ''}{p.vs_cdmx_precio_pct}% vs CDMX</span>
-                  )}
-                  <span style={{ fontFamily: FONT, fontSize: 12, color: C.faint }}>pick del {String(p.mes || '').replace('-', '/')} · horizonte {p.horizonte_meses}m</span>
-                </div>
+                {lock && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(251,250,252,0.55)' }}>
+                    <div style={{ fontSize: 22 }}>🔒</div>
+                    <button onClick={onLogin} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>Regístrate gratis para ver</button>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
+
+        {/* Simulado en $1M — traduce el track record a dinero (toggle vivo/histórico + $/%) */}
+        {bt && (() => {
+          const d = btMode === 'vivo' ? bt.vivo : bt.historico;
+          return (
+            <div className="dmx-card" style={{ background: 'linear-gradient(120deg,#F7F4FF,#FBF0FA)', border: `1px solid ${C.line}`, borderRadius: 18, padding: 24, marginTop: 34 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: C.ink }}>Si invirtieras $1,000,000</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', border: `1.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+                    {['vivo', 'historico'].map((m) => (
+                      <button key={m} onClick={() => setBtMode(m)} style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 700, fontSize: 12.5, background: btMode === m ? C.accent : '#fff', color: btMode === m ? '#fff' : C.ink2 }}>{m === 'vivo' ? 'En vivo' : 'Histórico'}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', border: `1.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+                    {['%', '$'].map((u) => (
+                      <button key={u} onClick={() => setBtUnit(u)} style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 700, fontSize: 12.5, background: btUnit === u ? C.accent : '#fff', color: btUnit === u ? '#fff' : C.ink2 }}>{u}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {d ? (
+                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'baseline', marginTop: 14 }}>
+                  <div>
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 38, color: d.ganancia_pct >= 0 ? C.green : '#B03A3A' }}>
+                      {btUnit === '%' ? `${d.ganancia_pct > 0 ? '+' : ''}${d.ganancia_pct}%` : money(d.valor_actual)}
+                    </span>
+                    <div style={{ fontSize: 12.5, color: C.ink2 }}>
+                      {btUnit === '%' ? `hoy valdría ${money(d.valor_actual)}` : `${d.ganancia_abs >= 0 ? '+' : ''}${money(d.ganancia_abs)} de ganancia`}
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, maxWidth: 320, lineHeight: 1.45 }}>
+                    {btMode === 'vivo'
+                      ? `Repartido en ${d.n} picks vigentes, valorados a precio de mercado de hoy${d.desde ? ` (desde ${d.desde})` : ''}. Se mueve con el mercado.`
+                      : `Basado en ${d.n} picks que ya cumplieron su horizonte — rendimiento real, aciertos y fallos.`}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, marginTop: 14, lineHeight: 1.5 }}>
+                  {btMode === 'historico'
+                    ? 'El simulado histórico se activa cuando los primeros picks cumplan su horizonte (12 meses). Congelamos hoy para poder probarlo mañana.'
+                    : 'Aún sin picks vigentes con precio de referencia.'}
+                </div>
+              )}
+              <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 12 }}>Simulación educativa, no asesoría de inversión. Rendimientos pasados no garantizan futuros.</div>
+            </div>
+          );
+        })()}
 
         {/* Track record — transparencia radical */}
         <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 24, marginTop: 34 }}>

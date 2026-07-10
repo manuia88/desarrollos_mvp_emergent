@@ -36,6 +36,13 @@ async def get_track_record(request: Request):
     return await pe.track_record(_db(request))
 
 
+@router.get("/api/picks/backtest")
+async def picks_backtest(request: Request, monto: float = Query(1_000_000, ge=100_000, le=100_000_000),
+                         estrategia: Optional[str] = Query(None)):
+    """Simulado en $X (default $1M): histórico real de cerrados + asignación viva entre los picks vigentes."""
+    return await pe.backtest_1m(_db(request), monto=monto, estrategia=estrategia)
+
+
 @router.get("/api/picks/lookup")
 async def picks_lookup(request: Request, entity_id: Optional[str] = Query(None), colonia_id: Optional[str] = Query(None)):
     """¿Este activo/zona es un DMX Pick vigente? Base de 'Dev: ¿soy pick?' y munición del asesor."""

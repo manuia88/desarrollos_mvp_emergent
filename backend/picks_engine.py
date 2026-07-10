@@ -318,6 +318,51 @@ async def pick_de_entidad(db, entity_id: Optional[str] = None, colonia_id: Optio
     return out
 
 
+async def backtest_1m(db, monto: float = 1_000_000, estrategia: Optional[str] = None) -> Dict[str, Any]:
+    """Simulación '$1M invertido' (founder, investing.com): HISTÓRICO (picks cerrados → retorno real) y VIVO
+    (cómo se reparte el $monto hoy entre los picks vigentes + qué compra). Traduce el track record a dinero.
+    Todo lectura de db.dmx_picks, cero costo."""
+    out: Dict[str, Any] = {"monto": round(monto)}
+    qc: Dict[str, Any] = {"estado": "cerrado"}
+    if estrategia:
+        qc["estrategia"] = estrategia
+    cerrados = [p async for p in db.dmx_picks.find(qc, {"_id": 0})]
+    dcer = [(p, (p.get("resultado") or {}).get("delta_pct")) for p in cerrados]
+    dcer = [(p, d) for p, d in dcer if d is not None]
+    if dcer:
+        w = monto / len(dcer)
+        valor = sum(w * (1 + d / 100.0) for _, d in dcer)
+        out["historico"] = {"n": len(dcer), "invertido": round(monto), "valor_actual": round(valor),
+                            "ganancia_abs": round(valor - monto), "ganancia_pct": round((valor / monto - 1) * 100, 1)}
+    else:
+        out["historico"] = None   # honesto: aún no cierra ninguno
+    # VIVO: rendimiento REAL de los picks abiertos desde que se congelaron — $monto a partes iguales, cada
+    # colonia valorada a su $/m² de mercado ACTUAL vs el de referencia (mismo mecanismo que evaluar_picks).
+    # Honesto: los recién congelados dan ~0% (aún no pasa tiempo); el número crece solo con el tiempo.
+    qv: Dict[str, Any] = {"estado": "vivo", "entity_type": "colonia", "precio_ref_m2": {"$gt": 0}}
+    if estrategia:
+        qv["estrategia"] = estrategia
+    abiertos = [p async for p in db.dmx_picks.find(qv, {"_id": 0})]
+    deltas, desde = [], None
+    for p in abiertos:
+        cv = await db.colonia_valoracion.find_one({"colonia_id": p["entity_id"]}, {"_id": 0, "market_m2": 1})
+        actual = ((cv or {}).get("market_m2") or {}).get("valor")
+        if actual and p.get("precio_ref_m2"):
+            deltas.append(actual / p["precio_ref_m2"] - 1)
+            fp = p.get("fecha_pick")
+            if fp and (desde is None or fp < desde):
+                desde = fp
+    if deltas:
+        w = monto / len(deltas)
+        valor = sum(w * (1 + d) for d in deltas)
+        out["vivo"] = {"n": len(deltas), "invertido": round(monto), "valor_actual": round(valor),
+                       "ganancia_abs": round(valor - monto), "ganancia_pct": round((valor / monto - 1) * 100, 1),
+                       "desde": (desde or "")[:10]}
+    else:
+        out["vivo"] = None
+    return out
+
+
 async def track_record(db) -> Dict[str, Any]:
     """GANADORAS ANTERIORES con transparencia radical: cerrados con resultado, aciertos Y fallos, por estrategia."""
     cerrados = [p async for p in db.dmx_picks.find({"estado": "cerrado"}, {"_id": 0})]
