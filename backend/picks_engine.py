@@ -75,20 +75,27 @@ def _senal_y_tesis(estrategia: str, f: Dict[str, Any]):
     """(señal numérica para rankear, tesis en español) por estrategia. None = no aplica a esta colonia."""
     n = f.get("name")
     if estrategia == "plusvalia":
-        s = f.get("yoy") if f.get("yoy") is not None else f.get("cagr")
-        if s is None:
+        yoy = f.get("yoy") if f.get("yoy") is not None else f.get("cagr")
+        if yoy is None:
             return None
-        return s, f"{n}: plusvalía {s:.1f}% anual (SHF), de las que más aprecian en su zona."
+        # Fix auditoría: el yoy SHF es grueso (muchos empates); desempata con CAGR y zscore para que el ranking
+        # sea REAL, no orden arbitrario de Mongo. El yoy sigue dominando (peso 1000).
+        s = yoy * 1000 + (f.get("cagr") or 0) * 10 + (f.get("zscore") or 0)
+        return s, f"{n}: plusvalía {yoy:.1f}% anual (SHF), entre las de mayor apreciación de la ciudad."
     if estrategia == "renta":
-        s = f.get("yield_score")
-        if s is None or s <= 50:      # 50 = stub, no señal real
+        y = f.get("yield_score")
+        if y is None or y <= 50:      # 50 = stub, no señal real
             return None
-        return s, f"{n}: yield estimado alto (score {s:.0f}) con precio de entrada ${f.get('precio_m2') or 0:,.0f}/m²."
+        s = y * 1000 + (f.get("zscore") or 0)   # desempata el yield (a menudo constante) por calidad de zona
+        return s, f"{n}: de las mejores para rentar en su zona, con precio de entrada ${f.get('precio_m2') or 0:,.0f}/m²."
     if estrategia == "refugio":
         if f.get("zscore") is None or f.get("risk") is None:
             return None
         s = f["zscore"] - (f["risk"] - 50)      # score alto + riesgo bajo
-        return s, f"{n}: zona consolidada (calif. {f.get('zletter') or '—'}) con riesgo bajo — refugio de capital."
+        # Fix auditoría: no llamar "consolidada" a una zona calificada bajo (D/E) — contradice la letra.
+        zl = (f.get("zletter") or "")[:1]
+        marco = "zona consolidada" if zl in ("A", "B", "C") else "riesgo bajo medido"
+        return s, f"{n}: {marco} (calif. {f.get('zletter') or '—'}) — de las más estables para proteger capital."
     if estrategia == "emergentes":
         s = f.get("gentrif")
         if s is None:
@@ -136,7 +143,8 @@ async def screener(db, filtros: Optional[Dict[str, Any]] = None, orden: str = "p
             continue
         if f.get("yield_min") is not None and (r.get("yield_score") is None or r["yield_score"] < f["yield_min"]):
             continue
-        if f.get("risk_max") is not None and (r.get("risk") is not None and r["risk"] > f["risk_max"]):
+        # Fix auditoría: si pides riesgo ≤X, una colonia SIN dato de riesgo NO pasa el filtro (antes se colaba).
+        if f.get("risk_max") is not None and (r.get("risk") is None or r["risk"] > f["risk_max"]):
             continue
         if f.get("precio_max") is not None and (r.get("precio_m2") is None or r["precio_m2"] > f["precio_max"]):
             continue
@@ -269,7 +277,7 @@ async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40,
     if alcaldia:
         q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
     picks = [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(200)]
-    if presupuesto:
+    if presupuesto is not None:   # 0 = nada cabe (no 'sin límite'); vacío llega como None desde la UI
         tope = presupuesto * 1.05   # 5% de holgura
         def _cabe(p):
             if p.get("precio_ref_desde"):        # desarrollo: precio total de entrada
@@ -349,7 +357,7 @@ async def picks_unidades(db, estrategia: str = "oportunidad", n: int = 12,
         dev = devs.get(u.get("development_id")) or {}
         if "renta" in (dev.get("name") or "").lower():
             continue
-        if presupuesto and price > presupuesto * 1.02:
+        if presupuesto is not None and price > presupuesto * 1.02:
             continue
         if alcaldia and (dev.get("alcaldia") or "").lower() != alcaldia.lower():
             continue

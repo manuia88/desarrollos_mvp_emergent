@@ -2,7 +2,9 @@
 Superadmin: generar (cron mensual) + evaluar (cierra horizontes → construye el track record)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Query
+import re
+
+from fastapi import APIRouter, Request, Query
 from typing import Optional
 
 import picks_engine as pe
@@ -12,6 +14,23 @@ router = APIRouter(tags=["picks"])
 
 def _db(request: Request):
     return request.app.state.db
+
+
+async def _resolver_colonia_doc(db, slug: str, proj: dict):
+    """Resuelve el doc de colonia_valoracion desde un slug de forma robusta (fix auditoría): prefiere el doc que
+    SÍ tiene AVM (hay colonias hermanas, unas sin precio), y ESCAPA el slug para el $regex (anti-inyección)."""
+    if not slug:
+        return None
+    esc = re.escape(str(slug))
+    cv = await db.colonia_valoracion.find_one(
+        {"colonia_id": {"$regex": f"^{esc}$", "$options": "i"}, "market_m2.valor": {"$ne": None}}, proj)
+    if cv:
+        return cv
+    cv = await db.colonia_valoracion.find_one(
+        {"colonia_id": {"$regex": f"^{esc}", "$options": "i"}, "market_m2.valor": {"$ne": None}}, proj)
+    if cv:
+        return cv
+    return await db.colonia_valoracion.find_one({"colonia_id": {"$regex": f"^{esc}", "$options": "i"}}, proj)
 
 
 @router.get("/api/picks")
@@ -44,20 +63,18 @@ async def picks_para_ti(request: Request, visitor_id: str = Query(...), n: int =
     pipe = [{"$match": {"visitor_id": visitor_id, "colonia": {"$ne": None}}},
             {"$group": {"_id": "$colonia", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": n}]
     rows = [r async for r in db.buyer_signals.aggregate(pipe)]
-    out = []
+    proj = {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1, "plusvalia": 1, "colonia_id": 1}
+    out, vistos = [], set()
     for r in rows:
         slug = r["_id"]
-        proj = {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1, "plusvalia": 1, "colonia_id": 1}
-        # prefiere el doc que SÍ tiene AVM (hay colonias hermanas, unas sin precio)
-        cv = await db.colonia_valoracion.find_one(
-            {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}, "market_m2.valor": {"$ne": None}}, proj)
-        if not cv:
-            cv = await db.colonia_valoracion.find_one({"colonia_id": {"$regex": f"^{slug}", "$options": "i"}}, proj)
+        cv = await _resolver_colonia_doc(db, slug, proj)
         cid = (cv or {}).get("colonia_id") or slug
+        if cid in vistos:      # dedup: dos slugs ('granada','granada-ampl-...') resuelven al mismo colonia_id
+            continue
+        vistos.add(cid)
         lk = await pe.pick_de_entidad(db, colonia_id=cid)
         z = lk.get("por_zona") or {}
-        plus = (cv or {}).get("plusvalia") or {}
-        serie = plus.get("series") or []
+        serie = ((cv or {}).get("plusvalia") or {}).get("series") or []
         out.append({
             "colonia_slug": slug, "colonia_id": cid,
             "name": (cv or {}).get("name") or " ".join(w.capitalize() for w in str(slug).replace("-", " ").split()),
@@ -74,9 +91,10 @@ async def get_picks_unidades(request: Request, estrategia: str = Query("oportuni
                              presupuesto: Optional[float] = Query(None), alcaldia: Optional[str] = Query(None),
                              recamaras: Optional[int] = Query(None), n: int = Query(12, ge=1, le=40)):
     """Picks a nivel UNIDAD (el átomo): los mejores departamentos disponibles, no solo la mejor colonia."""
-    picks = await pe.picks_unidades(_db(request), estrategia=estrategia, n=n,
+    est = estrategia if estrategia in pe.ESTRATEGIAS_UNIDAD else "oportunidad"   # fix auditoría: eco de la usada
+    picks = await pe.picks_unidades(_db(request), estrategia=est, n=n,
                                     presupuesto=presupuesto, alcaldia=alcaldia, recamaras=recamaras)
-    return {"estrategia": estrategia, "label": pe._ULABEL.get(estrategia), "picks": picks,
+    return {"estrategia": est, "label": pe._ULABEL.get(est), "picks": picks,
             "estrategias": [{"key": k, "label": pe._ULABEL[k]} for k in pe.ESTRATEGIAS_UNIDAD]}
 
 
@@ -188,13 +206,13 @@ async def zona_fundamentales(slug: str, request: Request):
     """FUNDAMENTALES DE ZONA (hoja de datos dura, pública): precio + plusvalía (serie) + gentrificación (con
     fuentes) + subscores + señal transaccional real. Compone datos que ya existen — el CMA del comprador."""
     db = _db(request)
-    _RISK_LBL = {"bajo": "Bajo", "medio": "Medio", "alto": "Alto"}
-    cv = await db.colonia_valoracion.find_one(
-        {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}},
-        {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1, "plusvalia": 1, "gentrification": 1, "colonia_id": 1})
+    # fix auditoría: resolución robusta (prefiere doc con AVM, escapa slug) en vez de regex prefijo suelto
+    cv = await _resolver_colonia_doc(db, slug, {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1,
+                                                "plusvalia": 1, "gentrification": 1, "colonia_id": 1})
     zs = await db.zone_scores.find_one({"zone_id": slug}, {"_id": 0, "components": 1, "score_letter": 1, "score_numeric": 1})
     comp = (zs or {}).get("components") or {}
-    # Señal transaccional real (cierres) de la zona
+    # Señal transaccional real (cierres) de la zona. Fix auditoría: si un promedio no existe → null (NO "0",
+    # que se leería como 'se vende en 0 días' — placeholder presentado como hecho).
     tx = {"n": 0}
     try:
         pipe = [{"$match": {"zone_id": slug, "closing_price_mxn": {"$gt": 0}, "m2": {"$gt": 0}}},
@@ -203,8 +221,11 @@ async def zona_fundamentales(slug: str, request: Request):
                             "ppm2": {"$avg": {"$divide": ["$closing_price_mxn", "$m2"]}}}}]
         r = await db.transactions.aggregate(pipe).to_list(1)
         if r:
-            tx = {"n": r[0]["n"], "dom_prom": round(r[0]["dom"] or 0), "descuento_prom": round(r[0]["desc"] or 0, 1),
-                  "precio_m2_cierres": round(r[0]["ppm2"] or 0)}
+            r0 = r[0]
+            tx = {"n": r0["n"],
+                  "dom_prom": round(r0["dom"]) if r0.get("dom") is not None else None,
+                  "descuento_prom": round(r0["desc"], 1) if r0.get("desc") is not None else None,
+                  "precio_m2_cierres": round(r0["ppm2"]) if r0.get("ppm2") else None}
     except Exception:
         pass
     plus = (cv or {}).get("plusvalia") or {}
@@ -238,28 +259,28 @@ async def lo_mas_buscado(request: Request, limit: int = Query(6, ge=1, le=20)):
     """LO MÁS BUSCADO EN DMX (social proof real): top colonias por señales de demanda (buyer_signals).
     Da sensación de mercado vivo y demanda. Dato propietario ya capturado, ahora visible."""
     db = _db(request)
-    out = []
+    proj = {"_id": 0, "name": 1, "market_m2": 1, "plusvalia": 1, "alcaldia": 1, "colonia_id": 1}
+    agg: dict = {}
     try:
+        # trae más crudos para poder CANONICALIZAR (variantes del mismo lugar) antes de tomar el top
         pipe = [{"$match": {"colonia": {"$ne": None}}},
                 {"$group": {"_id": "$colonia", "n": {"$sum": 1}}},
-                {"$sort": {"n": -1}}, {"$limit": limit}]
-        rows = [r async for r in db.buyer_signals.aggregate(pipe)]
-        for r in rows:
+                {"$sort": {"n": -1}}, {"$limit": limit * 4}]
+        for r in [x async for x in db.buyer_signals.aggregate(pipe)]:
             slug = r["_id"]
-            nombre = " ".join(w.capitalize() for w in str(slug).replace("-", " ").split())
-            cv = await db.colonia_valoracion.find_one(
-                {"colonia_id": {"$regex": f"^{slug}", "$options": "i"}},
-                {"_id": 0, "name": 1, "market_m2": 1, "plusvalia": 1, "alcaldia": 1})
-            out.append({
-                "colonia_slug": slug,
-                "name": (cv or {}).get("name") or nombre,
-                "alcaldia": (cv or {}).get("alcaldia"),
-                "senales": r["n"],
-                "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
-                "plusvalia": (cv or {}).get("plusvalia"),
-            })
+            cv = await _resolver_colonia_doc(db, slug, proj)
+            cid = (cv or {}).get("colonia_id") or slug
+            if cid not in agg:
+                agg[cid] = {
+                    "colonia_slug": (cv or {}).get("colonia_id") or slug,
+                    "name": (cv or {}).get("name") or " ".join(w.capitalize() for w in str(slug).replace("-", " ").split()),
+                    "alcaldia": (cv or {}).get("alcaldia"), "senales": 0,
+                    "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
+                    "plusvalia": (cv or {}).get("plusvalia")}
+            agg[cid]["senales"] += r["n"]
     except Exception:
         pass
+    out = sorted(agg.values(), key=lambda x: -x["senales"])[:limit]
     return {"top": out, "total_senales": sum(x["senales"] for x in out)}
 
 
@@ -269,20 +290,24 @@ async def _backtest_cierres_reales(db):
     market = {}
     async for c in db.colonia_valoracion.find({"market_m2.valor": {"$ne": None}}, {"_id": 0, "colonia_id": 1, "market_m2": 1}):
         market[c["colonia_id"]] = float(c["market_m2"]["valor"])
-    errs = []
+    todos, errs = [], []
     async for t in db.transactions.find({"closing_price_mxn": {"$gt": 0}, "m2": {"$gt": 0}, "zone_id": {"$ne": None}},
                                         {"_id": 0, "zone_id": 1, "closing_price_mxn": 1, "m2": 1}):
         ref = market.get(t["zone_id"])
         if not ref:
             continue
         e = abs((t["closing_price_mxn"] / t["m2"]) / ref - 1) * 100
-        if e <= 60:   # descarta outliers de referencia mala
+        todos.append(e)
+        if e <= 60:   # descarta outliers de referencia mala (colonia mal cruzada)
             errs.append(e)
     if not errs:
         return None
+    # Fix auditoría (transparencia radical): declaramos el recorte — publicamos el MAPE recortado Y el crudo.
     return {"mape_pct": round(sum(errs) / len(errs), 2), "n": len(errs),
             "dentro_10_pct": round(100 * sum(1 for e in errs if e <= 10) / len(errs)),
-            "dentro_20_pct": round(100 * sum(1 for e in errs if e <= 20) / len(errs))}
+            "dentro_20_pct": round(100 * sum(1 for e in errs if e <= 20) / len(errs)),
+            "mape_sin_recorte_pct": round(sum(todos) / len(todos), 2), "n_total": len(todos),
+            "excluidos": len(todos) - len(errs)}
 
 
 @router.get("/api/modelo/espejo")

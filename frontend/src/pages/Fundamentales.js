@@ -63,7 +63,7 @@ export default function Fundamentales() {
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '0 20px 60px' }}>
         {loading ? (
           <div style={{ padding: 40, color: C.faint }}>Cargando fundamentales…</div>
-        ) : !d || d.precio_m2 == null ? (
+        ) : !d || (d.precio_m2 == null && d.calificacion == null && !(d.gentrificacion && d.gentrificacion.componentes && d.gentrificacion.componentes.length) && !(f && (f.liquidez != null || f.demanda != null))) ? (
           <div style={{ padding: 40, color: C.faint }}>Aún no tenemos fundamentales de esta colonia.</div>
         ) : (
           <>
@@ -104,7 +104,7 @@ export default function Fundamentales() {
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: d.plusvalia_yoy >= 0 ? C.green : '#B03A3A' }}>{d.plusvalia_yoy != null ? `${d.plusvalia_yoy > 0 ? '+' : ''}${d.plusvalia_yoy}%` : '—'}</div>
                 <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24, marginTop: 4 }}>
                   {(d.plusvalia_serie || []).map((s, i) => (
-                    <div key={i} title={`${s.anio}: ${s.yoy}%`} style={{ flex: 1, height: `${Math.max(8, Math.min(100, (s.yoy || 0) * 8))}%`, background: C.accent, opacity: 0.35 + 0.65 * (i / Math.max(1, (d.plusvalia_serie.length - 1))), borderRadius: 2 }} />
+                    <div key={i} title={`${s.anio}: ${s.yoy}%`} style={{ flex: 1, height: `${Math.max(8, Math.min(100, Math.abs(s.yoy || 0) * 8))}%`, background: (s.yoy || 0) < 0 ? '#B03A3A' : C.accent, opacity: 0.35 + 0.65 * (i / Math.max(1, (d.plusvalia_serie.length - 1))), borderRadius: 2 }} />
                   ))}
                 </div>
               </div>

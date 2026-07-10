@@ -1020,9 +1020,11 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           {/* Medidor de análisis gratis (gate de leads) — solo cuando quedan pocos y no está registrado */}
           {uso && !uso.registrado && uso.restantes <= 3 && (
             <div style={{ padding: '6px 14px', fontFamily: 'DM Sans', fontSize: 11.5, color: uso.restantes <= 1 ? '#E0A100' : 'var(--muted, rgba(240,235,224,0.6))', display: 'flex', alignItems: 'center', gap: 6, background: light ? '#FAFAFB' : '#0A0D16' }}>
-              {uso.restantes > 0
-                ? `✨ Te ${uso.restantes === 1 ? 'queda' : 'quedan'} ${uso.restantes} ${uso.restantes === 1 ? 'análisis gratis' : 'análisis gratis'} · regístrate para ilimitado`
-                : '🔒 Alcanzaste tus análisis gratis — regístrate gratis para seguir'}
+              {uso.gated
+                ? '🔒 Alcanzaste tus análisis gratis — regístrate gratis para seguir'
+                : uso.restantes <= 1
+                  ? '✨ Es tu último análisis gratis · regístrate para ilimitado'
+                  : `✨ Te quedan ${uso.restantes} análisis gratis · regístrate para ilimitado`}
             </div>
           )}
 

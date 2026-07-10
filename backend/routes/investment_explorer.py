@@ -95,7 +95,8 @@ async def _join_zone_row(db, zone_id: str, tier: str = "colonia") -> dict:
     comps = zs.get("components") or {}
     _risk_raw = comps.get("risk")
     risk_score = round(float(_risk_raw)) if _risk_raw is not None else 50
-    risk_status = "real" if _risk_raw is not None else "sin_dato_neutral"
+    # Fix auditoría: 50 exacto suele ser el neutro por falta de dato de seguridad → no lo marques 'real'.
+    risk_status = "sin_dato_neutral" if _risk_raw is None else ("aprox" if risk_score == 50 else "real")
 
     return {
         "zone_id": zone_id,

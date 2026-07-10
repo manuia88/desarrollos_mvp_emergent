@@ -107,7 +107,7 @@ export default function Picks({ user, onLogin }) {
   }, [presupuesto, alcaldia]);
 
   const picks = (data && data[tab] && data[tab].picks) || [];
-  const ideas = (data && data.emergentes && data.emergentes.picks || []).slice(0, 5);
+  const ideas = ((data && data.emergentes && data.emergentes.picks) || []).slice(0, 5);
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>

@@ -186,7 +186,8 @@ function RiesgosConsiderar({ dev }) {
   const vals = (dev.units || []).map((u) => u.sobre_mercado_pct).filter((x) => x != null).sort((a, b) => a - b);
   const med = vals.length ? vals[Math.floor(vals.length / 2)] : null;
   if (med != null && med >= 8) risks.push({ icon: '💰', t: 'Precio sobre el mercado', d: `Los precios están +${med.toFixed(0)}% arriba del mercado de la colonia. Hay margen para negociar.` });
-  const prog = typeof dev.construction_progress === 'number' ? dev.construction_progress : (dev.construction_progress && dev.construction_progress.overall_percent);
+  const cp = dev.construction_progress;
+  const prog = typeof cp === 'number' ? cp : (cp && (cp.percentage != null ? cp.percentage : cp.overall_percent));
   const esPreventa = /preventa/i.test(dev.stage || dev.status || '') || (dev.delivery_estimate && /202[6-9]|203\d/.test(String(dev.delivery_estimate)));
   if (esPreventa) risks.push({ icon: '🏗️', t: 'Es preventa', d: `Compras sobre planos${dev.delivery_estimate ? ` con entrega estimada ${dev.delivery_estimate}` : ''}. Tu rendimiento depende de que se entregue a tiempo.` });
   if (typeof prog === 'number' && prog > 0 && prog < 40) risks.push({ icon: '⏳', t: 'Obra en etapa temprana', d: `Avance ~${Math.round(prog)}%. A menor avance, más riesgo de retrasos — revisa el historial del desarrollador.` });

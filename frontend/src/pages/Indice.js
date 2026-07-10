@@ -97,7 +97,7 @@ export default function Indice({ user, onLogin }) {
                   <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 40, color: C.ink }}>{idm.valor != null ? idm.valor : '—'}</span>
                   {idm.letra && <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: '#fff', background: C.accent, borderRadius: 8, padding: '2px 10px' }}>{idm.letra}</span>}
                 </div>
-                {delta != null && <div style={{ fontFamily: FONT, fontSize: 13, color: delta >= 0 ? C.green : '#B03A3A', fontWeight: 700, marginTop: 4 }}>{delta >= 0 ? '▲' : '▼'} {delta >= 0 ? '+' : ''}{delta} en el periodo</div>}
+                {delta != null && <div style={{ fontFamily: FONT, fontSize: 13, color: delta >= 0 ? C.green : '#B03A3A', fontWeight: 700, marginTop: 4 }}>{delta >= 0 ? '▲' : '▼'} {delta >= 0 ? '+' : ''}{delta} pts del índice (histórico registrado)</div>}
               </div>
               <div className="dmx-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
                 <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.faint, fontWeight: 600 }}>Precio mediano CDMX</div>
@@ -140,8 +140,11 @@ export default function Indice({ user, onLogin }) {
                   {head.dentro_10_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{head.dentro_10_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±10% del precio real</div></div>}
                   {head.dentro_20_pct != null && <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 30, color: C.green }}>{head.dentro_20_pct}%</div><div style={{ fontSize: 12, color: C.faint }}>cae a ±20%</div></div>}
                 </div>
+                {cr && cr.excluidos > 0 && cr.mape_sin_recorte_pct != null && (
+                  <div style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, marginTop: 8 }}>Sin descartar ningún cierre: <b>±{cr.mape_sin_recorte_pct}%</b> (excluimos {cr.excluidos} de {cr.n_total} por referencia de zona dudosa).</div>
+                )}
                 {cr && espejo.mape_pct != null && (
-                  <div style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, marginTop: 10 }}>Contra dataset de control (golden): <b>±{espejo.mape_pct}%</b> en {espejo.total_casos} casos.</div>
+                  <div style={{ fontFamily: FONT, fontSize: 12, color: C.ink2, marginTop: 6 }}>Contra dataset de control (golden): <b>±{espejo.mape_pct}%</b> en {espejo.total_casos} casos.</div>
                 )}
                 <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginTop: 10 }}>Sin IA, pura medición. El número afina conforme entran más cierres reales.</div>
               </div>
