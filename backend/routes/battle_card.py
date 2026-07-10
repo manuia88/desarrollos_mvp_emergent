@@ -28,6 +28,10 @@ log = logging.getLogger("dmx.routes_battle_card")
 
 router = APIRouter(tags=["battle-card"])
 
+# AUDITORÍA/founder 07-09: el battle card resolvía SOLO devs de semilla (DEVELOPMENTS_BY_ID) → los devs
+# INGERIDOS daban 404. resolve_dev_doc los incluye (semilla → db.developments → wizard). Fuente única.
+from ingested_reader import resolve_dev_doc  # noqa: E402
+
 # ─── Auth helpers ─────────────────────────────────────────────────────────────
 
 TIER_RANK = {
@@ -164,7 +168,7 @@ async def get_battle_card(project_id: str, request: Request):
     )
     from data_developments import DEVELOPMENTS_BY_ID
 
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(status_code=404, detail=f"Proyecto {project_id} no encontrado")
 
@@ -229,7 +233,7 @@ async def get_competitors(project_id: str, request: Request):
     from battle_card_engine import get_top_competitors, insufficient_competitors_check
     from data_developments import DEVELOPMENTS_BY_ID
 
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(status_code=404, detail=f"Proyecto {project_id} no encontrado")
 
@@ -299,7 +303,7 @@ async def export_pdf(project_id: str, request: Request):
     )
     from data_developments import DEVELOPMENTS_BY_ID
 
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(status_code=404, detail=f"Proyecto {project_id} no encontrado")
 

@@ -274,6 +274,9 @@ async def compute_dimension_scores(db, project_id: str) -> Dict[str, Any]:
     """Retorna dict con 5 scores dimensionales 0-100 para un proyecto."""
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:   # founder 07-09: incluir devs INGERIDOS (antes solo semilla → battle card en 404/no-encontrado)
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id, with_units=False)
     if not dev:
         return {
             "available": False,
@@ -460,6 +463,9 @@ async def compute_and_persist_snapshot(
     """Calcula y persiste snapshot en battle_card_snapshots."""
     from data_developments import DEVELOPMENTS_BY_ID
     dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:   # founder 07-09: devs ingeridos también
+        from ingested_reader import resolve_dev_doc
+        dev = await resolve_dev_doc(db, project_id, with_units=False)
     if not dev:
         return {"ok": False, "reason": "project_not_found"}
 
