@@ -59,6 +59,7 @@ const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
 const AsesorOutbound     = lazy(() => import('./pages/asesor/AsesorOutbound'));
 // W4.14 — Buyer Coach + Investment Simulator
 const Simulador = lazy(() => import('./pages/public/Simulador'));
+const Herramientas = lazy(() => import('./pages/public/Herramientas'));  // hub /herramientas (tarjetas)
 // W4.17 — Notifications Settings
 const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
 // W5.x F6 — Tax/Legal Projector CDMX (publico T0)
@@ -795,8 +796,11 @@ function AppRouter() {
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
-      {/* W4.14 — Simulador público */}
+      {/* W4.14 — Calculadora de inversión pública (/calculadora = nombre canónico · /simulador = alias legacy) */}
+      <Route path="/calculadora" element={<SimuladorRoute />} />
       <Route path="/simulador" element={<SimuladorRoute />} />
+      {/* Hub público de todas las herramientas */}
+      <Route path="/herramientas" element={<Suspense fallback={null}><Herramientas /></Suspense>} />
       {/* W4.9.6 — 3DGS Tour public embed */}
       <Route path="/embed/3dgs/:unit_id" element={<Embed3DGSPage />} />
       {/* W4.16 — Marketing pages públicas */}

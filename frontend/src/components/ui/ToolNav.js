@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { tc } from '../../lib/titleCase';
+import { TOOL_GROUPS } from '../../lib/toolsCatalog';
 
 /**
  * ToolNav — navbar CLARO unificado para las páginas de herramientas (mapa, simulador, tax-projector,
@@ -17,22 +18,7 @@ const LINKS = [
   { label: 'Desarrolladores', to: '/desarrolladores' },
 ];
 
-const TOOLS = [
-  { label: 'DMX Picks IA', to: '/picks' },
-  { label: 'Ideas de inversión', to: '/ideas' },
-  { label: 'Screener inmobiliario', to: '/screener' },
-  { label: 'El Índice DMX', to: '/indice' },
-  { label: 'Datos por API (B2B)', to: '/datos' },
-  { label: 'Mapa de Valores', to: '/mapa-valores' },
-  { label: 'Simulador de inversión', to: '/simulador' },
-  { label: 'Proyector de impuestos', to: '/tools/tax-projector' },
-  { label: 'Comparador de colonias', to: '/portal/comparador' },
-  { label: 'Probabilidades', to: '/portal/probability' },
-  { label: 'Vibra de la zona', to: '/portal/vibe' },
-  { label: 'Valores catastrales', to: '/valores' },
-  { label: 'Confianza / verificación', to: '/confianza' },
-  { label: 'Sala de prensa', to: '/prensa' },
-];
+// TOOLS: catálogo único (../../lib/toolsCatalog) — mismo contenido que el navbar del home.
 
 const linkStyle = {
   display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 13px', borderRadius: 9999,
@@ -87,17 +73,23 @@ export default function ToolNav() {
               {tools && (<>
                 <div onClick={() => setTools(false)} style={{ position: 'fixed', inset: 0, zIndex: 55 }} />
                 <div id="toolnav-menu" data-testid="toolnav-menu" role="menu" style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 256, zIndex: 60 }}>
-                  <div style={{ padding: 7, background: '#fff', border: '1px solid #ECECEF', boxShadow: '0 16px 44px rgba(16,24,40,0.16)', borderRadius: 14 }}>
-                    {TOOLS.map((tl) => (
-                      <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
-                        display: 'block', padding: '9px 12px', borderRadius: 9, textDecoration: 'none',
-                        color: '#5A5F6E', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif", fontWeight: 600,
-                      }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,92,255,0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5A5F6E'; }}>
-                        {tc(tl.label)}
-                      </Link>
+                  <div style={{ padding: 8, background: '#fff', border: '1px solid #ECECEF', boxShadow: '0 16px 44px rgba(16,24,40,0.16)', borderRadius: 14 }}>
+                    {TOOL_GROUPS.map((g, gi) => (
+                      <div key={g.title} style={{ marginTop: gi ? 6 : 0, paddingTop: gi ? 6 : 0, borderTop: gi ? '1px solid #F1F2F6' : 'none' }}>
+                        <div style={{ padding: '4px 12px 3px', color: '#9AA0AE', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Outfit',sans-serif" }}>{g.title}</div>
+                        {g.items.map((tl) => (
+                          <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
+                            display: 'block', padding: '8px 12px', borderRadius: 9, textDecoration: 'none',
+                            color: '#5A5F6E', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif", fontWeight: 600,
+                          }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,92,255,0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5A5F6E'; }}>
+                            {tc(tl.label)}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
+                    <Link to="/herramientas" onClick={() => setTools(false)} style={{ display: 'block', marginTop: 6, paddingTop: 8, borderTop: '1px solid #F1F2F6', padding: '9px 12px', borderRadius: 9, textDecoration: 'none', color: 'var(--theme)', fontSize: 13, fontWeight: 800, fontFamily: "'Outfit',sans-serif" }}>{tc('Ver todas las herramientas')} →</Link>
                   </div>
                 </div>
               </>)}
@@ -118,8 +110,13 @@ export default function ToolNav() {
       {isMobile && menuOpen && (
         <div id="toolnav-mobile-menu" style={{ borderTop: '1px solid #ECECEF', background: '#fff', padding: '10px 20px 18px', boxShadow: '0 12px 30px rgba(16,24,40,0.10)' }}>
           {LINKS.map((l) => <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '11px 0', textDecoration: 'none', color: '#1E2230', fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, borderBottom: '1px solid #F1F2F6' }}>{tc(l.label)}</Link>)}
-          <div style={{ color: '#9AA0AE', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 0 4px' }}>Herramientas</div>
-          {TOOLS.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '8px 0', textDecoration: 'none', color: '#5A5F6E', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 600 }}>{tc(tl.label)}</Link>)}
+          {TOOL_GROUPS.map((g) => (
+            <div key={g.title}>
+              <div style={{ color: '#9AA0AE', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 0 4px' }}>{g.title}</div>
+              {g.items.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '8px 0', textDecoration: 'none', color: '#5A5F6E', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 600 }}>{tc(tl.label)}</Link>)}
+            </div>
+          ))}
+          <Link to="/herramientas" onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '10px 0 2px', textDecoration: 'none', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 800 }}>{tc('Ver todas las herramientas')} →</Link>
           <div style={{ display: 'flex', gap: 12, marginTop: 14, alignItems: 'center' }}>
             <Link to="/favoritos" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', color: '#5A5F6E', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14 }}>♥ Favoritos</Link>
             <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: '#1E2230', padding: '8px 16px', border: '1px solid #E2E3E9', borderRadius: 10 }}>Entrar</Link>

@@ -2,47 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from './Button';
 import { tc } from '../../lib/titleCase';
+import { TOOL_GROUPS } from '../../lib/toolsCatalog';
 
 /**
  * DMX UI · PublicNav — navbar público (estilo loft/quintoandar). Conecta TODAS las áreas y los
  * accesos a los 4 portales: comprar (marketplace), barrios/inteligencia, asesores, desarrolladores,
  * herramientas (dropdown de las públicas) + Entrar. Sticky, fondo claro, con sombra al hacer scroll.
  */
-// Menú Herramientas AGRUPADO (07-11): antes era lista plana y le faltaban las 5 nuevas (Picks/Ideas/
-// Screener/Índice/Datos) → quedaban huérfanas del nav del home. Ahora completo + escaneable por secciones.
-const TOOL_GROUPS = [
-  {
-    title: 'Inteligencia de mercado', items: [
-      { label: 'DMX Picks IA', to: '/picks' },
-      { label: 'Ideas de inversión', to: '/ideas' },
-      { label: 'Screener inmobiliario', to: '/screener' },
-      { label: 'El Índice DMX', to: '/indice' },
-    ],
-  },
-  {
-    title: 'Calculadoras', items: [
-      { label: 'Simulador de inversión', to: '/simulador' },
-      { label: 'Proyector de impuestos', to: '/tools/tax-projector' },
-    ],
-  },
-  {
-    title: 'Mapas y zonas', items: [
-      { label: 'Mapa de Valores', to: '/mapa-valores' },
-      { label: 'Comparador de colonias', to: '/portal/comparador' },
-      { label: 'Probabilidades', to: '/portal/probability' },
-      { label: 'Vibra de la zona', to: '/portal/vibe' },
-      { label: 'Valores catastrales', to: '/valores' },
-    ],
-  },
-  {
-    title: 'Datos y confianza', items: [
-      { label: 'Datos por API (B2B)', to: '/datos' },
-      { label: 'Confianza / verificación', to: '/confianza' },
-      { label: 'Sala de prensa', to: '/prensa' },
-    ],
-  },
-];
-
+// Menú Herramientas: lee del catálogo único (../../lib/toolsCatalog) para no volver a desincronizarse.
 const LINKS = [
   { label: 'Comprar', to: '/marketplace' },
   { label: 'Colonias', to: '/colonias' },
@@ -115,6 +82,9 @@ export default function PublicNav() {
                       ))}
                     </div>
                   ))}
+                  <Link to="/herramientas" onClick={() => setTools(false)} style={{ display: 'block', marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border)', padding: '9px 12px', borderRadius: 9, textDecoration: 'none', color: 'var(--theme)', fontSize: 13, fontWeight: 800, fontFamily: "'Outfit',sans-serif" }}>
+                    {tc('Ver todas las herramientas')} →
+                  </Link>
                 </div>
               </div>
             )}
@@ -145,6 +115,7 @@ export default function PublicNav() {
               {g.items.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ ...mobileItem, fontSize: 13.5, paddingTop: 7, paddingBottom: 7 }}>{tc(tl.label)}</Link>)}
             </div>
           ))}
+          <Link to="/herramientas" onClick={() => setMenuOpen(false)} style={{ ...mobileItem, color: 'var(--theme)', fontWeight: 800, fontSize: 13.5, paddingTop: 10 }}>{tc('Ver todas las herramientas')} →</Link>
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link to="/favoritos" onClick={() => setMenuOpen(false)} style={{ ...mobileItem, padding: '8px 0' }}>♥ Favoritos{favCount > 0 ? ` (${favCount})` : ''}</Link>
             <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto' }}><Button variant="secondary" size="sm">{tc('Entrar')}</Button></Link>

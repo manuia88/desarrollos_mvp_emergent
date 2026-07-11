@@ -39,7 +39,7 @@ export default function Simulador({ user, onLogout }) {  // eslint-disable-line 
   };
 
   useEffect(() => {
-    document.title = 'Simulador de Inversión Inmobiliaria CDMX · DesarrollosMX';
+    document.title = 'Calculadora de Inversión Inmobiliaria CDMX · DesarrollosMX';
     try { window.posthog?.capture('investment_simulator_page_viewed'); } catch { /* noop */ }
   }, []);
 

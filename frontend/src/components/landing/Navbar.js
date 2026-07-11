@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, Globe, ChevronDown } from '../icons';
 import NotificationBellIcon from '../notifications/NotificationBellIcon';
 import { Z } from '../../styles/zIndex';
+import { TOOLS_FLAT } from '../../lib/toolsCatalog';
 
 const LNG_KEY = 'dmx_lng';
 const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
@@ -22,18 +23,9 @@ export default function Navbar({ onLogin, user, onLogout }) {
     { key: 'asesores', label: t('nav.asesores'), href: '/asesores' },
   ];
 
-  // Herramientas — públicas, ya existentes, ahora visibles en el menú.
-  const TOOLS_LINKS = [
-    { key: 'simulador', label: t('nav.tools.simulador'), href: '/simulador' },
-    { key: 'tax', label: t('nav.tools.tax'), href: '/tools/tax-projector' },
-    { key: 'comparador', label: t('nav.tools.comparador'), href: '/portal/comparador' },
-    { key: 'probabilidades', label: t('nav.tools.probabilidades'), href: '/portal/probability' },
-    { key: 'vibra', label: t('nav.tools.vibra'), href: '/portal/vibe' },
-    { key: 'valores', label: t('nav.tools.valores'), href: '/valores' },
-    { key: 'confianza', label: t('nav.tools.confianza'), href: '/confianza' },
-    { key: 'mcp', label: t('nav.tools.mcp'), href: '/connect/mcp' },
-    { key: 'prensa', label: t('nav.tools.prensa'), href: '/prensa' },
-  ];
+  // Herramientas — del catálogo ÚNICO (lib/toolsCatalog), mismo contenido que PublicNav/ToolNav.
+  // Antes esta lista vivía aparte y le faltaban las 5 nuevas (Picks/Ideas/Screener/Índice/Datos) en 18 páginas.
+  const TOOLS_LINKS = TOOLS_FLAT.map((tl) => ({ key: tl.to, label: tl.label, href: tl.to }));
 
   // Restore language from localStorage on first mount (B7)
   useEffect(() => {
@@ -220,6 +212,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
                     {tool.label}
                   </a>
                 ))}
+                <a href="/herramientas" role="menuitem" data-testid="nav-tool-todas" style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme)', padding: '9px 12px', borderRadius: 9, textDecoration: 'none' }}>Ver todas las herramientas →</a>
               </div>
             )}
           </div>
@@ -330,6 +323,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
               {tool.label}
             </a>
           ))}
+          <a href="/herramientas" data-testid="nav-tool-mobile-todas" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--theme)', padding: '11px 0', textDecoration: 'none' }}>Ver todas las herramientas →</a>
 
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <LngToggle fullWidth />
