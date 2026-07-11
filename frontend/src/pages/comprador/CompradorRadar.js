@@ -6,8 +6,30 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
+import { useAuth } from '../../App';
 import { fetchRadar } from '../../api/comprador';
 import { Target, Building, MapPin, Home } from '../../components/icons';
+
+const API = process.env.REACT_APP_BACKEND_URL || '';
+
+function NewsletterOptIn({ user }) {
+  const [st, setSt] = useState('');
+  if (!user || !user.user_id) return null;
+  const suscribir = async () => {
+    try {
+      const r = await fetch(`${API}/api/users/${user.user_id}/newsletter-opt-in?segment=buyer`, { method: 'POST', credentials: 'include' });
+      setSt(r.ok ? '✓ Suscrito al newsletter DMX' : 'No se pudo suscribir');
+    } catch (e) { setSt('No se pudo suscribir'); }
+    setTimeout(() => setSt(''), 3500);
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'rgba(109,74,255,0.08)', border: '1px solid rgba(109,74,255,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.85)' }}>📩 Recibe el pulso del mercado y los nuevos picks por correo.</span>
+      <button onClick={suscribir} style={{ marginLeft: 'auto', background: 'var(--theme)', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 14px', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Suscribirme</button>
+      {st && <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: st[0] === '✓' ? '#4ADE80' : '#F0A000' }}>{st}</span>}
+    </div>
+  );
+}
 
 const money = (n) => (n ? `$${Math.round(n).toLocaleString('es-MX')}` : null);
 
@@ -34,6 +56,7 @@ function Cambio({ c }) {
 }
 
 export default function CompradorRadar() {
+  const { user } = useAuth();
   const [d, setD] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -57,6 +80,8 @@ export default function CompradorRadar() {
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.72)', margin: '0 0 16px', maxWidth: 640 }}>
           Todo lo que vigilas en un solo lugar — con su último cambio. {resumen.con_cambio > 0 ? `${resumen.con_cambio} con novedad.` : 'Te avisamos cuando algo se mueva.'}
         </p>
+
+        <NewsletterOptIn user={user} />
 
         {loading ? (
           <div style={{ padding: 26, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Cargando tu radar…</div>
