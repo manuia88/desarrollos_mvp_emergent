@@ -19,6 +19,7 @@ export default function SeccionConfianza({ dev }) {
   const cfg = dev.config || {};
   const col = dev.colonia_id || dev.colonia;
   const [zc, setZc] = useState(null);
+  const [tr, setTr] = useState(null);   // track record verificable del desarrollador
   const developer = dev.developer || {};
   const cons = cfg.sello_constructivo;
   const legal = cfg.sello_legal;
@@ -29,6 +30,14 @@ export default function SeccionConfianza({ dev }) {
     fetch(`${API}/api/inversion-v4/zona-contexto?colonia=${encodeURIComponent(col)}`).then((r) => r.json()).then((d) => { if (alive) setZc(d); }).catch(() => {});
     return () => { alive = false; };
   }, [col]);
+
+  useEffect(() => {
+    const did = developer.id;
+    if (!did) return undefined;
+    let alive = true;
+    fetch(`${API}/api/developers/${did}/track-record`).then((r) => r.json()).then((d) => { if (alive) setTr(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [developer.id]);
 
   const r = (zc && zc.riesgo) || {};
   const riesgos = [];
@@ -66,6 +75,21 @@ export default function SeccionConfianza({ dev }) {
               {developer.verified_constitution && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Constitución verificada</span>}
               {developer.no_judicial_records && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Sin antecedentes judiciales</span>}
               {developer.no_profeco_complaints && <span style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(30,158,99,0.12)', border: '1px solid rgba(30,158,99,0.3)', fontFamily: SANS, fontSize: 12, color: '#4ADE80' }}>✓ Sin quejas Profeco</span>}
+            </div>
+          )}
+          {/* Track record MEDIDO (no auto-reportado) — se prende conforme entra dato de entrega */}
+          {tr && (tr.en_tiempo_pct != null || tr.plusvalia_obra_pct != null || tr.on_time_pct != null) && (
+            <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--card-border, var(--border))' }}>
+              {tr.on_time_pct != null && (
+                <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>{tr.on_time_pct}%</div><div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>entregas a tiempo</div></div>
+              )}
+              {tr.en_tiempo_pct != null && (
+                <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: '#4ADE80' }}>{tr.en_tiempo_pct}%</div><div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>obra en calendario</div></div>
+              )}
+              {tr.plusvalia_obra_pct != null && (
+                <div><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>+{tr.plusvalia_obra_pct}%</div><div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>plusvalía durante obra</div></div>
+              )}
+              <div style={{ flexBasis: '100%', fontFamily: SANS, fontSize: 10.5, color: 'var(--cream-3)' }}>Medido de sus proyectos, no declarado por el desarrollador.</div>
             </div>
           )}
         </Card>

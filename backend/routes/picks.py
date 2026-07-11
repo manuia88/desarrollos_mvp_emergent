@@ -258,6 +258,14 @@ def _grade_ticker(v):
     return "A" if v >= 80 else "B" if v >= 68 else "C" if v >= 55 else "D" if v >= 42 else "E"
 
 
+@router.get("/api/developers/{developer_id}/track-record")
+async def developer_track_record(developer_id: str, request: Request):
+    """Track record VERIFICABLE del desarrollador (checklist devs destacados): % en tiempo + plusvalía durante
+    obra, medido de datos reales del sistema (no auto-reportado). Se prende con más proyectos/entregas."""
+    from developer_track_record_engine import compute_developer_track_record
+    return await compute_developer_track_record(_db(request), developer_id)
+
+
 @router.get("/api/developments/{dev_id}/ticker")
 async def asset_ticker(dev_id: str, request: Request):
     """TICKER DE CALIFICACIÓN DMX por activo (público): el 'número tipo bolsa' del desarrollo — calificación
