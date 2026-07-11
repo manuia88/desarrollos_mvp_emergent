@@ -290,6 +290,31 @@ function CuatroCapas({ dev, unit }) {
   );
 }
 
+// ASESOR que te atiende (checklist: asesor destacado buyer-facing). Muestra QUIÉN te ayuda + su confianza,
+// en vez del genérico 'un asesor'. Reusa /api/developments/:id/asesor (asesor_profiles + trust_scores).
+function AsesorCard({ dev }) {
+  const [a, setA] = useState(null);
+  useEffect(() => {
+    if (!dev || !dev.id) return;
+    fetch(`${API}/api/developments/${dev.id}/asesor`).then((r) => r.json()).then((d) => { if (d && d.disponible) setA(d); }).catch(() => {});
+  }, [dev]);
+  if (!a) return null;
+  const inicial = (a.nombre || 'A').trim()[0];
+  return (
+    <div style={{ ...box, marginTop: 12, padding: '13px 16px', background: '#F7F5FF', border: `1px solid ${CARD_LINE}`, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(120deg,#6D4AFF,#C63FAE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HEAD, fontWeight: 800, fontSize: 19, flex: 'none' }}>{inicial}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, fontWeight: 600 }}>Te atiende</div>
+        <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: C.ink }}>{a.nombre}{a.brokerage ? <span style={{ fontWeight: 600, fontSize: 12.5, color: C.faint }}> · {a.brokerage}</span> : null}</div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 3 }}>
+          {a.especialista_zona && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 11, color: '#1E7A4C', background: '#EAF7F0', borderRadius: 999, padding: '2px 8px' }}>✓ Especialista en la zona</span>}
+          {a.confianza != null && <span style={{ fontFamily: FONT, fontSize: 11.5, color: C.ink2 }}>Confianza {a.confianza}/100</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ReadMore({ text, max = 320 }) {
   const [open, setOpen] = useState(false);
   if (!text) return null;
@@ -1468,6 +1493,7 @@ export default function FichaVenta() {
           <TickerCalificacion dev={dev} />
           <CuatroCapas dev={dev} unit={unit} />
           <RiesgosConsiderar dev={dev} />
+          <AsesorCard dev={dev} />
           <ReadMore text={dev.description} />
         </div>
 

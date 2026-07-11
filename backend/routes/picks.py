@@ -258,6 +258,43 @@ def _grade_ticker(v):
     return "A" if v >= 80 else "B" if v >= 68 else "C" if v >= 55 else "D" if v >= 42 else "E"
 
 
+@router.get("/api/developments/{dev_id}/asesor")
+async def dev_asesor(dev_id: str, request: Request):
+    """ASESOR que te atiende (checklist: asesor destacado buyer-facing): el mejor asesor para la zona del
+    desarrollo (perfil real + score de confianza medido). REUSA asesor_profiles + asesor_trust_scores — no
+    duplica. build-for-endstate: se prende conforme entran asesores; sin match devuelve disponible=False."""
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID, colonia_slug
+    dev = DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0}) or {}
+    colonia = (dev.get("colonia") or "").lower()
+    cslug = colonia_slug(dev.get("colonia")) if dev.get("colonia") else ""
+    # scores por asesor
+    scores = {}
+    async for t in db.asesor_trust_scores.find({}, {"_id": 0, "asesor_id": 1, "score": 1}):
+        scores[t.get("asesor_id")] = t.get("score")
+    mejor, mejor_zona = None, False
+    async for p in db.asesor_profiles.find({"profile_completed": {"$ne": False}}, {"_id": 0}):
+        cols = [str(c).lower() for c in (p.get("colonias") or [])]
+        en_zona = bool(colonia and any(colonia in c or cslug in colonia_slug(c) for c in cols))
+        sc = scores.get(p.get("user_id")) or 0
+        # prioriza especialista de la zona; a igualdad, mayor score
+        cand_key = (1 if en_zona else 0, sc)
+        best_key = (1 if mejor_zona else 0, (scores.get((mejor or {}).get("user_id")) or 0)) if mejor else (-1, -1)
+        if cand_key > best_key:
+            mejor, mejor_zona = p, en_zona
+    if not mejor:
+        return {"disponible": False}
+    return {
+        "disponible": True,
+        "nombre": mejor.get("full_name") or "Asesor verificado",
+        "brokerage": mejor.get("brokerage"),
+        "colonias": (mejor.get("colonias") or [])[:4],
+        "confianza": scores.get(mejor.get("user_id")),
+        "especialista_zona": mejor_zona,
+        "nota": "Asesor verificado por DMX. La asignación final se confirma al contactar.",
+    }
+
+
 @router.get("/api/developers/{developer_id}/track-record")
 async def developer_track_record(developer_id: str, request: Request):
     """Track record VERIFICABLE del desarrollador (checklist devs destacados): % en tiempo + plusvalía durante
