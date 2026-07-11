@@ -119,7 +119,7 @@ async def trigger_alert(db, alert: Dict[str, Any], payload: Dict[str, Any]) -> s
                 notif_type="buyer_alert",
                 title=notif_titles.get(alert.get("type", "new_match"), "Alerta"),
                 body=payload.get("summary", "Hay novedades en tu búsqueda."),
-                action_url="/comprador/alertas",
+                action_url=payload.get("action_url") or "/comprador/alertas",   # fix: CTA por-item a la acción
                 priority="med",
             )
             status = "sent"
@@ -310,7 +310,8 @@ async def _check_pick_added(db, alert: Dict[str, Any]) -> Optional[Dict[str, Any
         p = await db.dmx_picks.find_one(q, {"_id": 0}, sort=[("fecha_pick", -1)])
         if p:
             return {"summary": f"Nuevo DMX Pick en {p.get('alcaldia') or 'tu zona'}: "
-                               f"{p.get('entity_name')} ({p.get('estrategia_label') or p.get('estrategia')})."}
+                               f"{p.get('entity_name')} ({p.get('estrategia_label') or p.get('estrategia')}).",
+                    "action_url": "/picks"}   # CTA a la acción, no solo a leer
     except Exception as e:
         log.debug(f"[buyer_alerts] pick_added eval error: {e}")
     return None
@@ -329,8 +330,10 @@ async def _check_catalyst(db, alert: Dict[str, Any]) -> Optional[Dict[str, Any]]
             q["generated_at"] = {"$gt": since}
         b = await db.dmx_bulletins.find_one(q, {"_id": 0}, sort=[("generated_at", -1)])
         if b:
+            # CTA por-item: lleva a los fundamentales de la zona (acción), no solo a leer el boletín
             return {"summary": f"Nuevo catalizador de mercado para tu zona ({b.get('period') or 'reciente'}). "
-                               f"Ábrelo para ver qué mueve los precios."}
+                               f"Ve cómo mueve los precios.",
+                    "action_url": (f"/fundamentales/{zone}" if zone else "/ideas")}
     except Exception as e:
         log.debug(f"[buyer_alerts] catalyst eval error: {e}")
     return None
