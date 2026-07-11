@@ -19,12 +19,15 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
   const [err, setErr] = useState(false);
   const [banca, setBanca] = useState(null);
   const [hist, setHist] = useState(null);
+  const [espejo, setEspejo] = useState(null);   // performance del modelo (Espejo)
   const [snapBusy, setSnapBusy] = useState(false);
 
   const loadHist = () => getIndicesHistorial(90).then(setHist).catch(() => setHist(null));
   useEffect(() => {
     getTerminalMercado(8).then(setData).catch(() => setErr(true));
     getBancabilidadRanking(10).then(setBanca).catch(() => setBanca(null));
+    const API = process.env.REACT_APP_BACKEND_URL || '';
+    fetch(`${API}/api/modelo/espejo`).then((r) => r.json()).then(setEspejo).catch(() => {});
     loadHist();
   }, []);
 
@@ -51,6 +54,23 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
           La cara vendible del Modelo del Mundo: junta la oferta de todos los desarrollos (sin revelar quién es quién), los 3 índices que se pueden licenciar, la demanda real por colonia y cómo aprende el mercado. Todo agregado y anónimo.
         </p>
       </div>
+
+      {/* Performance del modelo (Espejo) — qué tan acertado es el AVM. Lo pediste en el terminal. */}
+      {espejo && (espejo.mape_pct != null || espejo.cierres_reales) && (() => {
+        const cr = espejo.cierres_reales;
+        const head = cr || { mape_pct: espejo.mape_pct, dentro_10_pct: espejo.dentro_10_pct };
+        return (
+          <div style={cardStyle}>
+            <div style={h}>Performance del modelo · Espejo</div>
+            <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'baseline' }}>
+              <div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)' }}>±{head.mape_pct}%</div><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>error del AVM (MAPE)</div></div>
+              {head.dentro_10_pct != null && <div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#4ADE80' }}>{head.dentro_10_pct}%</div><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>a ±10% del real</div></div>}
+              {cr && <div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)' }}>{cr.n}</div><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>cierres reales</div></div>}
+              {espejo.mape_pct != null && cr && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>golden ±{espejo.mape_pct}%</div>}
+            </div>
+          </div>
+        );
+      })()}
 
       {err && note('No se pudo cargar.')}
       {!err && !data && note('Cargando…')}
