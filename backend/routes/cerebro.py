@@ -34,6 +34,27 @@ def _guard_enabled():
         raise HTTPException(503, "Cerebro apagado (CEREBRO_ENABLED off)")
 
 
+# Rate-limit anti-abuso (founder 07-11): el Cerebro queda PRENDIDO, pero /run y /detect-market gastan LLM →
+# tope de corridas por usuario/hora para cerrar el único vector real (spam de corridas = costo). Sin fuga.
+import time as _time
+from collections import defaultdict as _dd
+_CEREBRO_BUCKETS: Dict[str, list] = _dd(list)
+_CEREBRO_LIMIT = 15
+_CEREBRO_WINDOW = 3600.0
+
+
+def _rate_limit_cerebro(user):
+    uid = getattr(user, "user_id", None) or getattr(user, "email", None) or "anon"
+    if (getattr(user, "role", None) or "") == "superadmin":
+        return
+    now = _time.time()
+    b = _CEREBRO_BUCKETS[uid]
+    b[:] = [t for t in b if now - t < _CEREBRO_WINDOW]
+    if len(b) >= _CEREBRO_LIMIT:
+        raise HTTPException(429, "Demasiadas corridas del Cerebro en poco tiempo. Intenta más tarde.")
+    b.append(now)
+
+
 class RunIn(BaseModel):
     goal_id: str
     context: Dict[str, Any] = Field(default_factory=dict)
@@ -68,6 +89,7 @@ async def detect_market(request: Request):
     Control. Multi-tenant: mercado compartido; precio/estancadas = tus desarrollos."""
     _guard_enabled()
     user = await _auth(request)
+    _rate_limit_cerebro(user)
     import dmx_cerebro_market as m
     return await m.detect_and_propose(_db(request), user)
 
@@ -95,6 +117,7 @@ async def run(payload: RunIn, request: Request):
     """Arranca una meta. Devuelve done | paused (esperando tu OK) | error."""
     _guard_enabled()
     user = await _auth(request)
+    _rate_limit_cerebro(user)
     import cerebro
     res = await cerebro.run_goal(_db(request), user, payload.goal_id, payload.context)
     if not res.get("ok") and res.get("status") == "error":
