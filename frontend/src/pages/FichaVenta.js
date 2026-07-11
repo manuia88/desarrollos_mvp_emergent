@@ -15,8 +15,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PublicNav, LightScope } from '../components/ui';
-import { fetchDevelopment, fetchDevelopments, calculateMortgage } from '../api/marketplace';
-import { getIsaiComprador, getClosingCost } from '../api/tax_projector';
+import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
 import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import { amenInfo } from '../components/ficha/amenIcons';
 // Calculadora de inversión (personal + institucional) — reusa motor inversion-v4 (theme-adaptive dentro de LightScope)
@@ -555,20 +554,6 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
   const est = ESTADO[u.status] || ESTADO.disponible;
   const specs = [u.bedrooms != null && `${u.bedrooms} rec`, u.bathrooms != null && `${u.bathrooms} baños`, m2of(u) && `${m2of(u)} m²`, u.parking_spots && `${u.parking_spots} estac.`].filter(Boolean).join(' · ');
   const dispoDate = u.available_date || u.entrega || dev.delivery_estimate || null;
-  const feats = [
-    u.m2_privative && `${u.m2_privative} m² privativos`,
-    u.m2_balcony && `${u.m2_balcony} m² de balcón`,
-    u.m2_terrace && `${u.m2_terrace} m² de terraza`,
-    u.m2_roof_garden && `${u.m2_roof_garden} m² de roof garden`,
-    u.level != null && `Piso ${u.level}`,
-    u.vista && `Vista ${titleCase(u.vista)}`,
-    u.orientation && `Orientación ${titleCase(u.orientation)}`,
-    u.parking_spots && `${u.parking_spots} cajón(es)${u.parking_type ? ` · ${titleCase(u.parking_type)}` : ''}`,
-    u.estacionamiento_independiente && 'Cajón independiente',
-    u.bodega && (typeof u.bodega === 'string' ? `Bodega ${titleCase(u.bodega)}` : 'Bodega incluida'),
-    u.pet_friendly && 'Pet friendly',
-    ...(Array.isArray(dev.amenities) ? dev.amenities : []).slice(0, 8).map((x) => titleCase(amenInfo(x).label)),
-  ].filter(Boolean);
   const groups = {}; allUnits.forEach((x) => { const k = x.prototype || '?'; (groups[k] = groups[k] || []).push(x); });
   const TABS = [['detalles', 'Detalles de la unidad'], ['precio', 'Detalles del precio'], ['mapa', 'Mapa de la unidad']];
   const StandbyPanel = ({ icon, title, body }) => (
@@ -1383,7 +1368,7 @@ export default function FichaVenta() {
   const [dev, setDev] = useState(null);
   const [loadErr, setLoadErr] = useState(false);
   const [unit, setUnit] = useState(null);
-  const [lens, setLens] = useState('invertir');
+  const [lens] = useState('invertir');
   const [scans, setScans] = useState([]);
   const [activeScan, setActiveScan] = useState(null);
   const [similars, setSimilars] = useState([]);
@@ -1442,8 +1427,6 @@ export default function FichaVenta() {
   if (loadErr) return <div style={{ fontFamily: FONT, padding: 120, textAlign: 'center', color: C.faint }}><PublicNav />No pudimos cargar este desarrollo.</div>;
   if (!dev) return <div style={{ fontFamily: FONT, padding: 120, textAlign: 'center', color: C.faint }}><PublicNav />Cargando…</div>;
 
-  const amen = Array.isArray(dev.amenities) ? dev.amenities : [];
-  const nUnits = (dev.units || []).length || dev.units_total || dev.total_units || 0;
   const developer = dev.developer || {};
   // Sellos legales: HOY son flags declarados por el desarrollador (sin verificación externa) → el copy lo
   // dice ("declara") y abajo va la procedencia. Cuando exista verificación real con fecha, se sube el copy.

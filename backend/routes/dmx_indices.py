@@ -76,13 +76,17 @@ def _market_absorcion_by_colonia() -> Dict[str, Dict[str, int]]:
 
 
 _DEMANDA_MAP_CACHE: Optional[Dict[str, float]] = None
+_DEMANDA_MAP_TS: float = 0.0
+_DEMANDA_MAP_TTL: float = 900.0   # fix auditoría: TTL 15 min → el caché se refresca solo (antes solo al reiniciar)
 
 
 async def _demanda_score_map(db) -> Dict[str, float]:
     """Score de demanda REAL 0-100 por colonia (slug) para alimentar el IDS. Cacheado en proceso.
     Vacío si no hay señal real (→ IDS 'estimado' honesto, sin demanda inventada)."""
-    global _DEMANDA_MAP_CACHE
-    if _DEMANDA_MAP_CACHE is not None:
+    global _DEMANDA_MAP_CACHE, _DEMANDA_MAP_TS
+    import time as _t
+    now = _t.time()
+    if _DEMANDA_MAP_CACHE is not None and (now - _DEMANDA_MAP_TS) < _DEMANDA_MAP_TTL:
         return _DEMANDA_MAP_CACHE
     try:
         import dmx_demand
@@ -90,6 +94,7 @@ async def _demanda_score_map(db) -> Dict[str, float]:
         _DEMANDA_MAP_CACHE = score or {}
     except Exception:
         _DEMANDA_MAP_CACHE = {}
+    _DEMANDA_MAP_TS = now
     return _DEMANDA_MAP_CACHE
 
 
