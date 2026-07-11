@@ -234,6 +234,19 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const prevTab = tabIdx > 0 ? ALL_TABS[tabIdx - 1] : null;
   const goTab = (k) => { setPaso(k); try { if (rootRef.current) requestAnimationFrame(() => rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })); } catch { /* noop */ } };
 
+  // Trabajo guardado: guardar este escenario de inversión (reusa /api/comprador/analyses; requiere login)
+  const [escSaved, setEscSaved] = useState('');
+  const guardarEscenario = async () => {
+    try {
+      const rr = await fetch(`${API}/api/comprador/analyses`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ kind: 'inversion', label: `Inversión · $${(f.valor_propiedad || 0).toLocaleString('es-MX')}${devId ? ` · ${devId}` : ''}`, payload: { f, dev_id: devId, zone_id: zoneId, tir_pct: r && r.tir_pct } }),
+      });
+      setEscSaved(rr.ok ? '✓ Escenario guardado en tu portal' : 'Inicia sesión para guardar');
+    } catch (e) { setEscSaved('No se pudo guardar'); }
+    setTimeout(() => setEscSaved(''), 3500);
+  };
+
   return (
     <div ref={rootRef} style={{ background: '#fff', border: '1px solid #ECECEC', borderRadius: 18, boxShadow: '0 6px 20px rgba(16,18,28,.05)', padding: 24, fontFamily: 'DM Sans', color: '#1E2230', scrollMarginTop: 80 }}>
       <style>{`
@@ -401,6 +414,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
       {/* ───── RESULTADOS · paso ④ (mismos resultados de siempre, ahora en su paso) ───── */}
       <div style={{ display: isResult ? 'flex' : 'none', flexDirection: 'column', gap: 14 }}>
+
+          {r && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" onClick={guardarEscenario} style={{ padding: '7px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, border: '1.5px solid #ECECEC', background: '#fff', color: '#6D4AFF' }}>💾 Guardar escenario</button>
+              {escSaved && <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: escSaved[0] === '✓' ? '#0E9F6E' : '#D98A00' }}>{escSaved}</span>}
+            </div>
+          )}
 
           {/* ───── VEREDICTO (rediseñado · banner limpio) ───── */}
           {paso === 'resumen' && r && r.veredicto && (

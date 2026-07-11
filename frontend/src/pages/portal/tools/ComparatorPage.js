@@ -50,6 +50,19 @@ export default function ComparatorPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  const [cmpSaved, setCmpSaved] = useState('');
+
+  const guardarComparacion = async () => {
+    const API = process.env.REACT_APP_BACKEND_URL || '';
+    try {
+      const rr = await fetch(`${API}/api/comprador/analyses`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ kind: 'comparador', label: `Comparación · ${items.map((i) => i.title || i.entity_id).slice(0, 3).join(' vs ')}`, payload: { items, audience } }),
+      });
+      setCmpSaved(rr.ok ? '✓ Comparación guardada en tu portal' : 'Inicia sesión para guardar');
+    } catch (e) { setCmpSaved('No se pudo guardar'); }
+    setTimeout(() => setCmpSaved(''), 3500);
+  };
 
   // Init from query string ?ids=A,B,C  or localStorage basket
   useEffect(() => {
@@ -175,6 +188,12 @@ export default function ComparatorPage() {
         )}
 
         {/* nota de honestidad global */}
+        {result && !loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+            <button type="button" onClick={guardarComparacion} style={{ padding: '7px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 13, border: `1.5px solid ${INK_3}33`, background: '#fff', color: INK }}>💾 Guardar comparación</button>
+            {cmpSaved && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, color: cmpSaved[0] === '✓' ? '#1E9E63' : '#D98A00' }}>{cmpSaved}</span>}
+          </div>
+        )}
         {result && !loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: INK_3, fontSize: 12, fontFamily: 'DM Sans, sans-serif' }}>
             <Icons.Info size={13} />
