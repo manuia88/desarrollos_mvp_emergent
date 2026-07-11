@@ -8,16 +8,39 @@ import { tc } from '../../lib/titleCase';
  * accesos a los 4 portales: comprar (marketplace), barrios/inteligencia, asesores, desarrolladores,
  * herramientas (dropdown de las públicas) + Entrar. Sticky, fondo claro, con sombra al hacer scroll.
  */
-const TOOLS = [
-  { label: 'Mapa de Valores', to: '/mapa-valores' },
-  { label: 'Simulador de inversión', to: '/simulador' },
-  { label: 'Proyector de impuestos', to: '/tools/tax-projector' },
-  { label: 'Comparador de colonias', to: '/portal/comparador' },
-  { label: 'Probabilidades', to: '/portal/probability' },
-  { label: 'Vibra de la zona', to: '/portal/vibe' },
-  { label: 'Valores catastrales', to: '/valores' },
-  { label: 'Confianza / verificación', to: '/confianza' },
-  { label: 'Sala de prensa', to: '/prensa' },
+// Menú Herramientas AGRUPADO (07-11): antes era lista plana y le faltaban las 5 nuevas (Picks/Ideas/
+// Screener/Índice/Datos) → quedaban huérfanas del nav del home. Ahora completo + escaneable por secciones.
+const TOOL_GROUPS = [
+  {
+    title: 'Inteligencia de mercado', items: [
+      { label: 'DMX Picks IA', to: '/picks' },
+      { label: 'Ideas de inversión', to: '/ideas' },
+      { label: 'Screener inmobiliario', to: '/screener' },
+      { label: 'El Índice DMX', to: '/indice' },
+    ],
+  },
+  {
+    title: 'Calculadoras', items: [
+      { label: 'Simulador de inversión', to: '/simulador' },
+      { label: 'Proyector de impuestos', to: '/tools/tax-projector' },
+    ],
+  },
+  {
+    title: 'Mapas y zonas', items: [
+      { label: 'Mapa de Valores', to: '/mapa-valores' },
+      { label: 'Comparador de colonias', to: '/portal/comparador' },
+      { label: 'Probabilidades', to: '/portal/probability' },
+      { label: 'Vibra de la zona', to: '/portal/vibe' },
+      { label: 'Valores catastrales', to: '/valores' },
+    ],
+  },
+  {
+    title: 'Datos y confianza', items: [
+      { label: 'Datos por API (B2B)', to: '/datos' },
+      { label: 'Confianza / verificación', to: '/confianza' },
+      { label: 'Sala de prensa', to: '/prensa' },
+    ],
+  },
 ];
 
 const LINKS = [
@@ -73,19 +96,24 @@ export default function PublicNav() {
             {tools && (
               // FIX dropdown: el menú va en un contenedor con `paddingTop` (puente invisible) en vez de `marginTop`
               // (hueco muerto). Así el área de hover es CONTINUA del botón al menú → al bajar el cursor ya no se cierra.
-              <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 248, zIndex: 60 }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 264, zIndex: 60 }}>
                 <div className="dmx-card" style={{
-                  padding: 7, background: 'var(--bg-2)', boxShadow: 'var(--sh-card)', borderRadius: 'var(--r-inner)',
+                  padding: 8, background: 'var(--bg-2)', boxShadow: 'var(--sh-card)', borderRadius: 'var(--r-inner)',
                 }}>
-                  {TOOLS.map((tl) => (
-                    <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
-                      display: 'block', padding: '9px 12px', borderRadius: 9, textDecoration: 'none',
-                      color: 'var(--cream-2)', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif",
-                    }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
-                      {tc(tl.label)}
-                    </Link>
+                  {TOOL_GROUPS.map((g, gi) => (
+                    <div key={g.title} style={{ marginTop: gi ? 6 : 0, paddingTop: gi ? 6 : 0, borderTop: gi ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ padding: '4px 12px 3px', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Outfit',sans-serif" }}>{g.title}</div>
+                      {g.items.map((tl) => (
+                        <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
+                          display: 'block', padding: '8px 12px', borderRadius: 9, textDecoration: 'none',
+                          color: 'var(--cream-2)', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif",
+                        }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
+                          {tc(tl.label)}
+                        </Link>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -111,8 +139,12 @@ export default function PublicNav() {
       {isMobile && menuOpen && (
         <div className="dmx-card" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-2, #fff)', padding: '10px 18px 18px', boxShadow: 'var(--sh-card)' }}>
           {LINKS.map((l) => <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={mobileItem}>{tc(l.label)}</Link>)}
-          <div style={{ ...mobileItem, color: 'var(--cream-3)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 14 }}>Herramientas</div>
-          {TOOLS.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ ...mobileItem, fontSize: 13.5, paddingTop: 7, paddingBottom: 7 }}>{tc(tl.label)}</Link>)}
+          {TOOL_GROUPS.map((g) => (
+            <div key={g.title}>
+              <div style={{ ...mobileItem, color: 'var(--cream-3)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 14 }}>{g.title}</div>
+              {g.items.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ ...mobileItem, fontSize: 13.5, paddingTop: 7, paddingBottom: 7 }}>{tc(tl.label)}</Link>)}
+            </div>
+          ))}
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link to="/favoritos" onClick={() => setMenuOpen(false)} style={{ ...mobileItem, padding: '8px 0' }}>♥ Favoritos{favCount > 0 ? ` (${favCount})` : ''}</Link>
             <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto' }}><Button variant="secondary" size="sm">{tc('Entrar')}</Button></Link>
