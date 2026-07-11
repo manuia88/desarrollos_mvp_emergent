@@ -319,6 +319,47 @@ async def delete_saved_search(search_id: str, request: Request, user=Depends(_re
     return {"deleted": True}
 
 
+# ─── Trabajo guardado · análisis/escenarios (Screener / calculadora / comparador) ─────────────
+@router.get("/api/comprador/analyses")
+async def list_analyses(request: Request, kind: Optional[str] = None, user=Depends(_require_buyer)):
+    """Mis análisis guardados (filtros de Screener, escenarios de la calculadora, comparaciones). Recupera
+    el trabajo del usuario para re-abrirlo. build-for-endstate: lista vacía si aún no guarda nada."""
+    db = _db(request)
+    q: Dict[str, Any] = {"user_id": user.user_id}
+    if kind:
+        q["kind"] = kind
+    out = []
+    async for a in db.comprador_saved_analyses.find(q, {"_id": 0}).sort("created_at", -1).limit(100):
+        c = a.get("created_at")
+        if c and hasattr(c, "isoformat"):
+            a["created_at"] = c.isoformat()
+        out.append(a)
+    return out
+
+
+@router.post("/api/comprador/analyses", status_code=201)
+async def save_analysis(body: Dict[str, Any], request: Request, user=Depends(_require_buyer)):
+    """Guarda un análisis/escenario. body: {kind: 'screener'|'inversion'|'comparador', label, payload}."""
+    import uuid as _uuid
+    from datetime import datetime as _dt, timezone as _tz
+    db = _db(request)
+    kind = (body.get("kind") or "screener")[:24]
+    doc = {"id": f"an_{_uuid.uuid4().hex[:12]}", "user_id": user.user_id, "kind": kind,
+           "label": (body.get("label") or "Análisis")[:120], "payload": body.get("payload") or {},
+           "created_at": _dt.now(_tz.utc)}
+    await db.comprador_saved_analyses.insert_one(doc)
+    return {"ok": True, "id": doc["id"]}
+
+
+@router.delete("/api/comprador/analyses/{analysis_id}")
+async def delete_analysis(analysis_id: str, request: Request, user=Depends(_require_buyer)):
+    db = _db(request)
+    r = await db.comprador_saved_analyses.delete_one({"id": analysis_id, "user_id": user.user_id})
+    if r.deleted_count == 0:
+        raise HTTPException(404, "Análisis no encontrado")
+    return {"deleted": True}
+
+
 # ─── Favorites ───────────────────────────────────────────────────────────────
 
 @router.get("/api/comprador/favorites")

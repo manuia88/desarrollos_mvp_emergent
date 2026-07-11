@@ -58,6 +58,21 @@ export default function Screener({ user, onLogin }) {
 
   useEffect(() => { run(); }, [run]);
 
+  // Trabajo guardado: guardar los filtros actuales del screener (requiere login de comprador)
+  const [savedMsg, setSavedMsg] = useState('');
+  const guardarFiltros = async () => {
+    const payload = { orden, plusvalia_min: plusvaliaMin, precio_max: precioMax, gentrif_min: gentrifMin, risk_max: riskMax };
+    const label = `Screener · ${orden}${plusvaliaMin ? ` · plusvalía ${plusvaliaMin}%+` : ''}`;
+    try {
+      const r = await fetch(`${API}/api/comprador/analyses`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ kind: 'screener', label, payload }),
+      });
+      setSavedMsg(r.ok ? '✓ Filtros guardados en tu portal' : 'Inicia sesión para guardar');
+    } catch (e) { setSavedMsg('No se pudo guardar'); }
+    setTimeout(() => setSavedMsg(''), 3500);
+  };
+
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
       <div style={{ background: GRAD, color: '#fff', padding: '48px 20px 36px' }}>
@@ -91,7 +106,11 @@ export default function Screener({ user, onLogin }) {
 
         {/* Resultados */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: C.ink }}>{loading ? 'Filtrando…' : `${rows.length} colonias`}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: C.ink }}>{loading ? 'Filtrando…' : `${rows.length} colonias`}</div>
+            <button onClick={guardarFiltros} style={{ padding: '6px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: FONT, fontWeight: 600, fontSize: 12.5, border: `1.5px solid ${C.line}`, background: '#fff', color: C.accent }}>💾 Guardar filtros</button>
+            {savedMsg && <span style={{ fontFamily: FONT, fontSize: 12.5, color: savedMsg[0] === '✓' ? C.green : C.amber }}>{savedMsg}</span>}
+          </div>
           {bench && bench.precio_m2_mediana && (
             <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink2 }}>
               Mercado CDMX: <b style={{ color: C.ink }}>{money(bench.precio_m2_mediana)}/m²</b> mediana · plusvalía {bench.plusvalia_mediana}% ({bench.n_colonias} colonias)
