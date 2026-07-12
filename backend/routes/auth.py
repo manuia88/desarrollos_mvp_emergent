@@ -193,45 +193,12 @@ async def login(payload: LoginIn, response: Response, request: Request):
 
 @router.post("/api/auth/session")
 async def create_session(payload: SessionCreate, response: Response, request: Request):
-    db = _db(request)
-    async with httpx.AsyncClient() as http:
-        resp = await http.get(
-            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
-            headers={"X-Session-ID": payload.session_id}, timeout=10)
-    if resp.status_code != 200:
-        raise HTTPException(401, "session_id inválido")
-    data = resp.json()
-    email = data.get("email")
-    name = data.get("name", "")
-    picture = data.get("picture", "")
-    session_token = data.get("session_token")
-    if not email or not session_token:
-        raise HTTPException(401, "Datos de sesión incompletos")
-    # LEAD-TIER-JOIN-02 · normaliza el email del proveedor OAuth (case/espacios) ANTES de
-    # escribir/leer users. Sin esto, OAuth guarda email RAW y el JOIN del tier (advisor) que
-    # asume minúsculas no machea → el lead queda 'cold' en silencio (write-X/read-Y).
-    email = email.lower().strip()
-    existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing:
-        user_id = existing["user_id"]
-        await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({
-            "user_id": user_id, "email": email, "name": name, "picture": picture,
-            "role": "buyer", "tenant_id": None,
-            "onboarded": False,
-            "created_at": datetime.now(timezone.utc),
-        })
-    await db.user_sessions.delete_many({"user_id": user_id})
-    await db.user_sessions.insert_one({
-        "user_id": user_id, "session_token": session_token,
-        "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
-        "created_at": datetime.now(timezone.utc),
-    })
-    response.set_cookie("session_token", session_token, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, path="/", max_age=604800)
-    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    return {"user": UserOut(**user_doc)}
+    # SEGURIDAD P0 (auditoría 2026-07-12): este endpoint hacía un GET a
+    # demobackend.emergentagent.com (proveedor RETIRADO) y confiaba en el email que devolvía →
+    # cualquiera podía autenticarse como cualquier cuenta (account takeover). Emergent está retirado
+    # y CC construye todo; el flujo OAuth de Emergent ya está muerto en el front (solo disparaba con
+    # session_id en el hash, que ya nadie recibe). Se DESACTIVA para cerrar el vector. Login = /api/auth/login.
+    raise HTTPException(410, "OAuth de sesión externo desactivado. Usa /api/auth/login.")
 
 
 @router.get("/api/auth/me")

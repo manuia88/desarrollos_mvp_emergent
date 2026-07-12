@@ -1,0 +1,39 @@
+# SEGURIDAD P0 (auditoría 2026-07-12): el Dockerfile hace `COPY . .` → sin esto, los .env con
+# secretos reales se horneaban dentro de la imagen (cualquiera con la imagen hacía `cat /app/.env`).
+# Excluir TODO secreto y basura de build. Las env-vars de prod se inyectan por el runtime (Render/etc), NO por archivo.
+
+# Secretos y entornos
+.env
+.env.*
+!.env.example
+*.env
+*.bak
+*.bak.*
+
+# Virtualenvs y caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Git / CI / editor
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+
+# Tests y datos locales
+tests/
+scripts/dev-data/
+*.log
+*.sqlite
+*.db
+
+# Credenciales de prueba (NUNCA en imagen)
+**/test_credentials.md
+memory/

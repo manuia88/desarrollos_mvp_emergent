@@ -1600,3 +1600,7 @@ backend/.cache/
 backend/static_parallax/
 scripts/.venv/
 .venv/
+
+# Credenciales de prueba — NUNCA en git (auditoría P0 2026-07-12)
+memory/test_credentials.md
+**/test_credentials.md

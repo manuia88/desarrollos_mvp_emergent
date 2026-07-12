@@ -208,6 +208,36 @@ async def get_subscription_status(db, tenant_id: str) -> Dict[str, Any]:
 
 # ─── Webhook handler ──────────────────────────────────────────────────────────
 
+async def _sync_api_keys_for_tenant(db, tenant_id: str, active: bool) -> int:
+    """SEGURIDAD P0 (auditoría 2026-07-12): el entitlement de la API vive en public_api_keys y NO
+    seguía el estado de la suscripción Stripe → cancelar / no pagar dejaba la key activa indefinidamente
+    (ingreso regalado). Aquí lo propagamos: suscripción activa → keys 'active'; cancelada/past_due →
+    keys 'paused' (validate_api_key ya rechaza todo status != 'active'). Solo togglea active↔paused;
+    NUNCA toca keys 'revoked' a mano ni reactiva algo que no estuviera pausado por billing."""
+    if not tenant_id:
+        return 0
+    try:
+        if active:
+            res = await db.public_api_keys.update_many(
+                {"tenant_id": tenant_id, "status": "paused"},
+                {"$set": {"status": "active", "billing_synced_at": _iso()}})
+        else:
+            res = await db.public_api_keys.update_many(
+                {"tenant_id": tenant_id, "status": "active"},
+                {"$set": {"status": "paused", "billing_synced_at": _iso()}})
+        return getattr(res, "modified_count", 0) or 0
+    except Exception:
+        return 0
+
+
+async def _tenant_for_customer(db, cust_id: str) -> str:
+    """Resuelve tenant_id desde el customer de Stripe (los eventos invoice.* traen cust_id, no tenant)."""
+    if not cust_id:
+        return ""
+    sub = await db.stripe_subscriptions.find_one({"stripe_customer_id": cust_id}, {"_id": 0, "tenant_id": 1})
+    return (sub or {}).get("tenant_id", "") or ""
+
+
 async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
     etype = event.get("type", "")
     # SEGURIDAD (4ª pasada): idempotencia por event.id — un replay del MISMO evento Stripe NO se reprocesa (evita
@@ -231,11 +261,17 @@ async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
         period_end = _ts_to_iso(data.get("current_period_end"))
         tenant_id = (data.get("metadata") or {}).get("tenant_id") or ""
 
+        # tenant robusto: metadata primero; si falta, resolver del doc existente por sub_id
+        if not tenant_id:
+            _ex = await db.stripe_subscriptions.find_one({"stripe_subscription_id": sub_id}, {"_id": 0, "tenant_id": 1})
+            tenant_id = (_ex or {}).get("tenant_id", "") or ""
         if etype == "customer.subscription.deleted":
             await db.stripe_subscriptions.update_one(
                 {"stripe_subscription_id": sub_id},
                 {"$set": {"status": "canceled", "last_synced_at": _iso()}},
             )
+            # P0: cancelada → suspender las API keys del tenant (entitlement sigue a la suscripción)
+            await _sync_api_keys_for_tenant(db, tenant_id, active=False)
         else:
             update = {
                 "stripe_subscription_id": sub_id,
@@ -250,6 +286,8 @@ async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
                 {"stripe_subscription_id": sub_id},
                 {"$set": update}, upsert=True,
             )
+            # P0: activa/trialing → keys 'active'; past_due/unpaid/canceled/incomplete → 'paused'
+            await _sync_api_keys_for_tenant(db, tenant_id, active=(status in ("active", "trialing")))
         handled = True
 
     elif etype == "invoice.payment_failed":
@@ -258,6 +296,8 @@ async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
             {"stripe_customer_id": cust_id},
             {"$set": {"status": "past_due", "last_synced_at": _iso()}},
         )
+        # P0: impago → suspender keys del tenant
+        await _sync_api_keys_for_tenant(db, await _tenant_for_customer(db, cust_id), active=False)
         # Throttled email
         try:
             await _maybe_email_past_due(db, cust_id)
@@ -271,6 +311,8 @@ async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
             {"stripe_customer_id": cust_id},
             {"$set": {"status": "active", "last_synced_at": _iso()}},
         )
+        # P0: pago exitoso → reactivar keys del tenant
+        await _sync_api_keys_for_tenant(db, await _tenant_for_customer(db, cust_id), active=True)
         handled = True
 
     return {"ok": True, "handled": handled, "type": etype}

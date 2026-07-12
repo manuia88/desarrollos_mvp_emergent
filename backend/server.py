@@ -1746,19 +1746,26 @@ async def startup():
     # Seed superadmin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")
-    if admin_pw == "Admin2026!" and os.environ.get("DMX_DEV_MODE", "false").lower() != "true":
-        logging.warning("[startup] ADMIN_PASSWORD usa el default público en entorno no-dev · setéala por env antes de exponer")
-    existing    = await db.users.find_one({"email": admin_email})
-    if not existing:
-        await db.users.insert_one({
-            "user_id": "user_admin_0001",
-            "email": admin_email,
-            "name": "Admin DMX",
-            "password_hash": hash_password(admin_pw),
-            "role": "superadmin",
-            "tenant_id": "dmx",
-            "created_at": datetime.now(timezone.utc),
-        })
+    _is_dev     = os.environ.get("DMX_DEV_MODE", "false").lower() == "true"
+    # SEGURIDAD P0 (auditoría 2026-07-12): NO sembrar un superadmin (god-view) con el password
+    # público default en entornos no-dev. El default estaba commiteado en git → cualquiera con la
+    # URL entraba como superadmin. Fail-closed: en no-dev con password default (o sin ADMIN_PASSWORD),
+    # NO se crea la cuenta; hay que setear ADMIN_PASSWORD por env explícitamente.
+    if admin_pw == "Admin2026!" and not _is_dev:
+        logging.error("[startup] SUPERADMIN NO sembrado: ADMIN_PASSWORD usa el default público en entorno no-dev. "
+                      "Setea ADMIN_PASSWORD (fuerte) por variable de entorno para crear el superadmin.")
+    else:
+        existing = await db.users.find_one({"email": admin_email})
+        if not existing:
+            await db.users.insert_one({
+                "user_id": "user_admin_0001",
+                "email": admin_email,
+                "name": "Admin DMX",
+                "password_hash": hash_password(admin_pw),
+                "role": "superadmin",
+                "tenant_id": "dmx",
+                "created_at": datetime.now(timezone.utc),
+            })
     # Cuentas demo con contraseñas públicas: SOLO en dev (DMX_DEV_MODE=true).
     # En producción no deben existir (eran un hoyo: login conocido).
     if os.environ.get("DMX_DEV_MODE", "false").lower() == "true":

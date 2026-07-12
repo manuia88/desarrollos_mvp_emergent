@@ -560,26 +560,11 @@ function AuthCallback() {
     if (hasProcessed.current) return;
     hasProcessed.current = true;
 
-    const hash = window.location.hash;
-    const match = hash.match(/session_id=([^&]+)/);
-    if (!match) { navigate('/'); return; }
-
-    const sessionId = match[1];
-
-    fetch(`${API}/api/auth/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ session_id: sessionId }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.user) { setHasSession(true); setUser(data.user); }
-        window.history.replaceState({}, document.title, '/');
-        const dest = data.user ? portalForRole(data.user.role) : '/';
-        navigate(dest, { replace: true });
-      })
-      .catch(() => navigate('/'));
+    // SEGURIDAD P0 (2026-07-12): el OAuth de Emergent (session_id en el hash) está retirado y su
+    // endpoint /api/auth/session fue desactivado (era account-takeover). Ya no procesamos session_id;
+    // si por historial llega uno, lo ignoramos y limpiamos la URL. Login real = /login.
+    window.history.replaceState({}, document.title, '/');
+    navigate('/', { replace: true });
   }, [navigate, setUser]);
 
   return (
