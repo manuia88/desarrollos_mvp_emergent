@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import { useAuth } from '../../App';
 import { fetchColonias, compareEntities, compareEntitiesBuyer, downloadComparePdf, downloadComparePdfBuyer } from '../../api/marketplace';
 import { X, Plus, Download, ArrowRight, Sparkle } from '../../components/icons';
@@ -51,16 +51,16 @@ function PremiumSectionRow({ label, badge = 'PREMIUM', children, blurred = false
       }}>
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
-          color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.01em',
+          color: '#1E2230', letterSpacing: '-0.01em',
         }}>
           {label}
         </div>
         <span style={{
           padding: '2px 8px', borderRadius: 9999,
-          background: 'rgba(240,235,224,0.10)',
-          border: '1px solid rgba(240,235,224,0.20)',
+          background: 'rgba(109,74,255,0.10)',
+          border: '1px solid rgba(109,74,255,0.24)',
           fontFamily: 'DM Sans', fontSize: 9, fontWeight: 800,
-          color: '#F0EBE0', letterSpacing: '0.08em',
+          color: '#6D4AFF', letterSpacing: '0.08em',
         }}>
           {badge}
         </span>
@@ -70,14 +70,14 @@ function PremiumSectionRow({ label, badge = 'PREMIUM', children, blurred = false
           <div style={{
             position: 'absolute', inset: 0, zIndex: Z.BASE,
             backdropFilter: 'blur(8px)',
-            background: 'rgba(6,8,15,0.65)',
+            background: 'rgba(255,255,255,0.72)',
             borderRadius: 12,
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 10,
           }}>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
-              color: 'rgba(240,235,224,0.85)',
+              color: '#5A5F6E',
             }}>
               Inicia sesión para ver más
             </div>
@@ -97,8 +97,8 @@ function PremiumSectionRow({ label, badge = 'PREMIUM', children, blurred = false
         )}
         <div style={{
           padding: '16px 18px', borderRadius: 12,
-          background: 'rgba(13,16,23,0.85)',
-          border: '1px solid rgba(240,235,224,0.08)',
+          background: '#FFFFFF',
+          border: '1px solid #ECECEC',
           filter: blurred ? 'blur(4px)' : 'none',
         }}>
           {children}
@@ -112,7 +112,7 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
   if (!entities || entities.length === 0) return null;
 
   const n = entities.length;
-  const COLORS = ['#6366F1', '#EC4899', '#86efac'];
+  const COLORS = ['#6366F1', '#EC4899', '#1FA06A'];
 
   return (
     <div style={{ marginTop: 28 }} data-testid="premium-sections">
@@ -131,7 +131,7 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
               <div key={entity?.id || i}>
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
-                  color: 'rgba(240,235,224,0.55)', marginBottom: 8,
+                  color: '#5A5F6E', marginBottom: 8,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {entity?.nombre || `Entidad ${i + 1}`}
@@ -140,7 +140,7 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
                 {lastVal > 0 && (
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
-                    color: 'var(--cream, #F0EBE0)', marginTop: 6,
+                    color: '#1E2230', marginTop: 6,
                   }}>
                     ${lastVal.toLocaleString('es-MX')} / m²
                   </div>
@@ -164,20 +164,20 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
                 style={{
                   flex: 1, minWidth: 100, padding: '12px 16px',
                   borderRadius: 10,
-                  background: pos ? 'rgba(134,239,172,0.08)' : 'rgba(252,165,165,0.08)',
-                  border: `1px solid ${pos ? 'rgba(134,239,172,0.20)' : 'rgba(252,165,165,0.20)'}`,
+                  background: pos ? 'rgba(31,160,106,0.08)' : 'rgba(229,72,77,0.08)',
+                  border: `1px solid ${pos ? 'rgba(31,160,106,0.24)' : 'rgba(229,72,77,0.24)'}`,
                 }}
               >
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 11,
-                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  color: '#5A5F6E', marginBottom: 4,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {entity.nombre}
                 </div>
                 <div style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
-                  color: pos ? '#86efac' : '#fca5a5',
+                  color: pos ? '#1FA06A' : '#E5484D',
                 }}>
                   {pos ? '+' : ''}{pct}%
                 </div>
@@ -199,26 +199,26 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
                 style={{
                   flex: 1, minWidth: 100, padding: '12px 16px',
                   borderRadius: 10,
-                  background: 'rgba(99,102,241,0.08)',
-                  border: '1px solid rgba(99,102,241,0.20)',
+                  background: 'rgba(109,74,255,0.08)',
+                  border: '1px solid rgba(109,74,255,0.20)',
                 }}
               >
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 11,
-                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  color: '#5A5F6E', marginBottom: 4,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {entity.nombre}
                 </div>
                 <div style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
-                  color: 'rgba(165,180,252,0.95)',
+                  color: '#6D4AFF',
                 }}>
                   {visits.toLocaleString('es-MX')}
                 </div>
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 10,
-                  color: 'rgba(240,235,224,0.4)', marginTop: 2,
+                  color: '#9AA0AE', marginTop: 2,
                 }}>
                   visitas
                 </div>
@@ -241,26 +241,26 @@ function PremiumSections({ premium, entities, isBuyer, onLogin }) {
                 style={{
                   flex: 1, minWidth: 100, padding: '12px 16px',
                   borderRadius: 10,
-                  background: 'rgba(134,239,172,0.06)',
-                  border: '1px solid rgba(134,239,172,0.18)',
+                  background: 'rgba(31,160,106,0.06)',
+                  border: '1px solid rgba(31,160,106,0.18)',
                 }}
               >
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 11,
-                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  color: '#5A5F6E', marginBottom: 4,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {entity.nombre}
                 </div>
                 <div style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
-                  color: '#86efac',
+                  color: '#1FA06A',
                 }}>
                   {roi}% anual
                 </div>
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 11,
-                  color: 'rgba(134,239,172,0.65)', marginTop: 2,
+                  color: '#1FA06A', marginTop: 2,
                 }}>
                   Plusvalía 5a: +{pv5}%
                 </div>
@@ -291,8 +291,8 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
         data-testid={`comp-slot-${index}-filled`}
         style={{
           padding: '14px 16px', borderRadius: 14,
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.32)',
+          background: 'rgba(109,74,255,0.08)',
+          border: '1px solid rgba(109,74,255,0.28)',
           minHeight: 84,
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
           gap: 10,
@@ -301,7 +301,7 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
         <div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-            color: 'rgba(99,102,241,0.85)',
+            color: '#6D4AFF',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             marginBottom: 4,
           }}>
@@ -309,7 +309,7 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
           </div>
           <div style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 17,
-            color: 'var(--cream, #F0EBE0)',
+            color: '#1E2230',
             letterSpacing: '-0.01em',
           }}>
             {value.label}
@@ -320,9 +320,9 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
           onClick={() => onClear(index)}
           style={{
             width: 26, height: 26, borderRadius: 9999,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(240,235,224,0.18)',
-            color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+            background: '#F6F7FA',
+            border: '1px solid #ECECEC',
+            color: '#5A5F6E', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}
@@ -338,14 +338,14 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
       data-testid={`comp-slot-${index}-empty`}
       style={{
         padding: '14px 16px', borderRadius: 14,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px dashed rgba(240,235,224,0.15)',
+        background: '#F6F7FA',
+        border: '1px dashed #ECECEC',
         minHeight: 84,
       }}
     >
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-        color: 'rgba(240,235,224,0.4)',
+        color: '#9AA0AE',
         textTransform: 'uppercase', letterSpacing: '0.08em',
         marginBottom: 6,
       }}>
@@ -359,8 +359,8 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
             width: '100%', padding: '8px 0',
             borderRadius: 9999,
             background: 'transparent',
-            border: '1px solid rgba(240,235,224,0.18)',
-            color: 'rgba(240,235,224,0.65)',
+            border: '1px solid #ECECEC',
+            color: '#5A5F6E',
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
             cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -378,24 +378,24 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
             placeholder={`Buscar ${entityType === 'colonia' ? 'colonia' : 'propiedad'}…`}
             style={{
               width: '100%', padding: '9px 11px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(240,235,224,0.18)',
+              background: '#FFFFFF',
+              border: '1px solid #ECECEC',
               borderRadius: 9, outline: 'none',
               fontFamily: 'DM Sans', fontSize: 13,
-              color: 'var(--cream, #F0EBE0)',
+              color: '#1E2230',
               boxSizing: 'border-box', marginBottom: 8,
             }}
           />
           <div style={{
             maxHeight: 200, overflowY: 'auto',
-            background: 'rgba(13,16,23,0.7)',
-            border: '1px solid rgba(240,235,224,0.10)',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC',
             borderRadius: 9,
           }}>
             {filtered.length === 0 ? (
               <div style={{
                 padding: 12, fontFamily: 'DM Sans', fontSize: 12,
-                color: 'rgba(240,235,224,0.4)', textAlign: 'center',
+                color: '#9AA0AE', textAlign: 'center',
               }}>
                 Sin coincidencias
               </div>
@@ -408,13 +408,13 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
                   width: '100%', padding: '9px 12px',
                   background: 'transparent', border: 'none', textAlign: 'left',
                   fontFamily: 'DM Sans', fontSize: 13,
-                  color: 'var(--cream, #F0EBE0)', cursor: 'pointer',
+                  color: '#1E2230', cursor: 'pointer',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
               >
                 <span>{opt.label}</span>
                 {opt.sub && (
-                  <span style={{ fontSize: 11, color: 'rgba(240,235,224,0.4)' }}>{opt.sub}</span>
+                  <span style={{ fontSize: 11, color: '#9AA0AE' }}>{opt.sub}</span>
                 )}
               </button>
             ))}
@@ -424,7 +424,7 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
             style={{
               width: '100%', marginTop: 6, padding: '6px 0', borderRadius: 9999,
               background: 'transparent', border: 'none',
-              color: 'rgba(240,235,224,0.4)',
+              color: '#9AA0AE',
               fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer',
             }}
           >
@@ -437,7 +437,7 @@ function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
 }
 
 export default function ColoniaComparator() {
-  const { user, logout, openAuth } = useAuth();
+  const { user, openAuth } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -546,8 +546,8 @@ export default function ColoniaComparator() {
   };
 
   return (
-    <div style={{ background: 'var(--bg, #06080F)', minHeight: '100vh' }}>
-      <Navbar onLogin={() => openAuth('login')} user={user} onLogout={logout} />
+    <div className="theme-light-scope" style={{ background: '#FBFAFC', minHeight: '100vh' }}>
+      <ToolNav />
 
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 28px 80px' }}>
         {/* Header */}
@@ -555,10 +555,10 @@ export default function ColoniaComparator() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '4px 12px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.28)',
+            background: 'rgba(109,74,255,0.10)',
+            border: '1px solid rgba(109,74,255,0.24)',
             fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-            color: 'rgba(99,102,241,0.9)',
+            color: '#6D4AFF',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             marginBottom: 12,
           }}>
@@ -567,14 +567,14 @@ export default function ColoniaComparator() {
           <h1 style={{
             fontFamily: 'Outfit', fontWeight: 800,
             fontSize: 'clamp(28px, 4vw, 44px)',
-            color: 'var(--cream, #F0EBE0)',
+            color: '#1E2230',
             letterSpacing: '-0.025em', lineHeight: 1.05, margin: 0,
           }}>
             Compara hasta 3 {entityType === 'colonia' ? 'colonias' : 'propiedades'}
           </h1>
           <p style={{
             fontFamily: 'DM Sans', fontSize: 15, marginTop: 12,
-            color: 'rgba(240,235,224,0.55)', maxWidth: 640,
+            color: '#5A5F6E', maxWidth: 640,
           }}>
             Decisión side-by-side con métricas reales: precios, scores IE, riesgos urbanos,
             climate twin y desarrollos activos. Descarga el PDF para llevarlo a tu reunión.
@@ -594,13 +594,13 @@ export default function ColoniaComparator() {
               style={{
                 padding: '8px 18px', borderRadius: 9999, cursor: 'pointer',
                 border: entityType === k
-                  ? '1px solid rgba(99,102,241,0.55)'
-                  : '1px solid rgba(240,235,224,0.15)',
+                  ? '1px solid rgba(109,74,255,0.45)'
+                  : '1px solid #ECECEC',
                 background: entityType === k
-                  ? 'rgba(99,102,241,0.15)'
-                  : 'rgba(255,255,255,0.04)',
+                  ? 'rgba(109,74,255,0.12)'
+                  : '#F6F7FA',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
-                color: entityType === k ? 'rgba(99,102,241,0.95)' : 'rgba(240,235,224,0.55)',
+                color: entityType === k ? '#6D4AFF' : '#5A5F6E',
                 transition: 'all 0.15s',
               }}
             >
@@ -636,7 +636,7 @@ export default function ColoniaComparator() {
             style={{
               padding: '12px 24px', borderRadius: 9999, border: 'none',
               background: !canCompare || loading
-                ? 'rgba(99,102,241,0.3)'
+                ? 'rgba(109,74,255,0.30)'
                 : 'linear-gradient(90deg,#6366F1,#EC4899)',
               color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
@@ -653,9 +653,9 @@ export default function ColoniaComparator() {
               disabled={pdfLoading}
               style={{
                 padding: '12px 22px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(240,235,224,0.18)',
-                color: 'var(--cream, #F0EBE0)',
+                background: '#F6F7FA',
+                border: '1px solid #ECECEC',
+                color: '#1E2230',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
                 cursor: pdfLoading ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -676,9 +676,9 @@ export default function ColoniaComparator() {
         {error && (
           <div style={{
             padding: '12px 16px', borderRadius: 10,
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.25)',
-            fontFamily: 'DM Sans', fontSize: 13, color: '#FCA5A5',
+            background: 'rgba(229,72,77,0.08)',
+            border: '1px solid rgba(229,72,77,0.25)',
+            fontFamily: 'DM Sans', fontSize: 13, color: '#E5484D',
             marginBottom: 18,
           }}>
             {error}
@@ -688,8 +688,8 @@ export default function ColoniaComparator() {
         {/* Matriz comparativa */}
         {matrix && matrix.entities && (
           <div data-testid="comp-matrix" style={{
-            background: 'rgba(13,16,23,0.85)',
-            border: '1px solid rgba(240,235,224,0.10)',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC',
             borderRadius: 16, overflow: 'hidden',
           }}>
             <div className="comp-table-wrap" style={{ overflowX: 'auto' }}>
@@ -712,7 +712,7 @@ export default function ColoniaComparator() {
                 <tbody>
                   {(matrix.metrics || []).map((m, ri) => (
                     <tr key={m.label} style={{
-                      borderTop: '1px solid rgba(240,235,224,0.06)',
+                      borderTop: '1px solid #ECECEC',
                     }}>
                       <td style={tdLabelStyle}>{m.label}</td>
                       {(m.values || []).map((v, ci) => {
@@ -723,10 +723,10 @@ export default function ColoniaComparator() {
                             data-testid={`comp-cell-${ri}-${ci}${winner ? '-winner' : ''}`}
                             style={{
                               ...tdValStyle,
-                              background: winner ? 'rgba(99,102,241,0.16)' : 'transparent',
+                              background: winner ? 'rgba(109,74,255,0.12)' : 'transparent',
                               fontWeight: winner ? 800 : 600,
-                              color: winner ? 'rgba(165,180,252,1)' : 'var(--cream, #F0EBE0)',
-                              borderLeft: '1px solid rgba(240,235,224,0.05)',
+                              color: winner ? '#6D4AFF' : '#1E2230',
+                              borderLeft: '1px solid #ECECEC',
                             }}
                           >
                             {v}
@@ -755,11 +755,11 @@ export default function ColoniaComparator() {
         {!matrix && !loading && filledIds.length < 2 && (
           <div style={{
             padding: '40px 24px', textAlign: 'center',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px dashed rgba(240,235,224,0.10)',
+            background: '#F6F7FA',
+            border: '1px dashed #ECECEC',
             borderRadius: 14,
             fontFamily: 'DM Sans', fontSize: 14,
-            color: 'rgba(240,235,224,0.45)',
+            color: '#9AA0AE',
           }}>
             Selecciona al menos 2 {entityType === 'colonia' ? 'colonias' : 'propiedades'} para comparar.
           </div>
@@ -781,8 +781,8 @@ export default function ColoniaComparator() {
             marginTop: 28,
             padding: '8px 14px', borderRadius: 9999,
             background: 'transparent',
-            border: '1px solid rgba(240,235,224,0.15)',
-            color: 'rgba(240,235,224,0.55)',
+            border: '1px solid #ECECEC',
+            color: '#5A5F6E',
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
             cursor: 'pointer',
           }}
@@ -803,7 +803,7 @@ export default function ColoniaComparator() {
 const thStyle = {
   padding: '12px 14px',
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-  color: 'rgba(240,235,224,0.85)',
+  color: '#1E2230',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   textAlign: 'left',
 };
@@ -811,7 +811,7 @@ const thStyle = {
 const tdLabelStyle = {
   padding: '12px 14px',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-  color: 'rgba(240,235,224,0.7)',
+  color: '#5A5F6E',
   whiteSpace: 'nowrap',
 };
 

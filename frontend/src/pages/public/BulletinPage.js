@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download, Share2 } from 'lucide-react';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import { fetchBulletin, bulletinPdfUrl } from '../../api/bulletins';
 
 function periodLabel(period) {
@@ -43,11 +43,11 @@ export default function BulletinPage() {
   const txt = encodeURIComponent(`Boletín DMX ${slug} · ${periodLabel(period)}`);
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar />
-      <main style={{ maxWidth: 820, margin: '0 auto', padding: '40px 24px 80px' }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
+      <main style={{ maxWidth: 820, margin: '0 auto', padding: '24px 24px 80px' }}>
         {err ? (
-          <div data-testid="bulletin-error" style={{ color: '#fca5a5', fontFamily: 'DM Sans' }}>{err}</div>
+          <div data-testid="bulletin-error" style={{ color: '#E5484D', fontFamily: 'DM Sans' }}>{err}</div>
         ) : !bul ? (
           <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando…</div>
         ) : (
@@ -76,7 +76,7 @@ export default function BulletinPage() {
             }}>
               {Object.entries(bul.kpis_summary || {}).map(([k, v]) => (
                 <div key={k} style={{
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)',
+                  background: '#FFFFFF', border: '1px solid #ECECEC',
                   borderRadius: 14, padding: 14,
                 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{k}</div>
@@ -143,8 +143,8 @@ export default function BulletinPage() {
 const pillStyle = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '10px 16px', borderRadius: 9999,
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.16)',
+  background: '#F6F7FA',
+  border: '1px solid #ECECEC',
   color: 'var(--cream)', textDecoration: 'none',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
 };

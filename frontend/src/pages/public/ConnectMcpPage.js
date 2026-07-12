@@ -1,7 +1,7 @@
 // W4.2B — ConnectMcpPage
 // Página pública /connect/mcp — setup guide para Claude Desktop, Cursor, ChatGPT.
 import React, { useState } from 'react';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import { Check } from '../../components/icons';
 import { useAuth } from '../../App';
 
@@ -78,12 +78,12 @@ function CopyBlock({ label, code }) {
           {label}
         </div>
       )}
-      <div style={{ position: 'relative', borderRadius: 14, border: '1px solid rgba(255,255,255,0.10)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', borderRadius: 14, border: '1px solid #ECECEC', overflow: 'hidden' }}>
         <pre style={{
           margin: 0, padding: '16px 20px',
-          background: 'rgba(13,16,23,0.95)',
+          background: '#F6F7FA',
           fontFamily: 'monospace', fontSize: 12.5, lineHeight: 1.65,
-          color: '#a5b4fc', overflow: 'auto',
+          color: '#5B37E0', overflow: 'auto',
         }}>
           {code}
         </pre>
@@ -93,9 +93,9 @@ function CopyBlock({ label, code }) {
             position: 'absolute', top: 10, right: 10,
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
             padding: '5px 14px', borderRadius: 9999,
-            background: copied ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.15)',
-            border: '1px solid rgba(99,102,241,0.35)',
-            color: copied ? '#a5b4fc' : 'var(--cream-2)',
+            background: copied ? 'rgba(109,74,255,0.20)' : 'rgba(109,74,255,0.10)',
+            border: '1px solid rgba(109,74,255,0.30)',
+            color: copied ? '#5B37E0' : 'var(--cream-2)',
             cursor: 'pointer', transition: 'background 0.15s',
             display: 'flex', alignItems: 'center', gap: 5,
           }}
@@ -133,9 +133,9 @@ export default function ConnectMcpPage() {
   const apiKeysUrl = user ? '/superadmin/api-keys' : '/';
 
   return (
-    <div data-testid="connect-mcp-page" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-      <Navbar user={user} />
-      <main style={{ maxWidth: 760, margin: '0 auto', padding: '48px 24px 80px' }}>
+    <div data-testid="connect-mcp-page" className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+      <ToolNav />
+      <main style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 80px' }}>
 
         {/* Hero */}
         <div style={{ marginBottom: 48 }}>
@@ -182,8 +182,8 @@ export default function ConnectMcpPage() {
         {/* Step 2 — Claude Desktop */}
         <Section step="2" title="Claude Desktop">
           <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 16 }}>
-            Abre <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>~/Library/Application Support/Claude/claude_desktop_config.json</code>{' '}
-            (macOS) o <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>%APPDATA%\Claude\claude_desktop_config.json</code>{' '}
+            Abre <code style={{ background: 'rgba(109,74,255,0.10)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>~/Library/Application Support/Claude/claude_desktop_config.json</code>{' '}
+            (macOS) o <code style={{ background: 'rgba(109,74,255,0.10)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>%APPDATA%\Claude\claude_desktop_config.json</code>{' '}
             (Windows) y agrega:
           </p>
           <CopyBlock label="claude_desktop_config.json" code={CLAUDE_CONFIG} />
@@ -202,12 +202,12 @@ export default function ConnectMcpPage() {
 
         {/* Step 4 — ChatGPT */}
         <Section step="4" title="ChatGPT GPTs (Custom Action)">
-          <div style={{ padding: '16px 20px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.03)' }}>
+          <div style={{ padding: '16px 20px', borderRadius: 14, border: '1px solid #ECECEC', background: '#F6F7FA' }}>
             <ol style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.8, margin: 0, paddingLeft: 20 }}>
-              <li>Crea un GPT en <a href="https://chat.openai.com/gpts/editor" style={{ color: '#a5b4fc' }} target="_blank" rel="noreferrer">chat.openai.com/gpts/editor</a></li>
+              <li>Crea un GPT en <a href="https://chat.openai.com/gpts/editor" style={{ color: '#5B37E0' }} target="_blank" rel="noreferrer">chat.openai.com/gpts/editor</a></li>
               <li>En <strong>Configure → Actions → Create new action</strong></li>
-              <li>Importa el OpenAPI spec desde <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 5px', borderRadius: 5, fontSize: 12 }}>{BASE_URL}/api/openapi.json</code></li>
-              <li>En Authentication, selecciona <strong>API Key</strong> → Header → <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 5px', borderRadius: 5, fontSize: 12 }}>X-DMX-API-Key</code></li>
+              <li>Importa el OpenAPI spec desde <code style={{ background: 'rgba(109,74,255,0.10)', padding: '2px 5px', borderRadius: 5, fontSize: 12 }}>{BASE_URL}/api/openapi.json</code></li>
+              <li>En Authentication, selecciona <strong>API Key</strong> → Header → <code style={{ background: 'rgba(109,74,255,0.10)', padding: '2px 5px', borderRadius: 5, fontSize: 12 }}>X-DMX-API-Key</code></li>
               <li>Activa las acciones: <code>get_zone_score</code>, <code>search_developments</code>, <code>get_dev_diagnostic</code></li>
             </ol>
           </div>
@@ -219,15 +219,15 @@ export default function ConnectMcpPage() {
             {TOOLS.map(t => (
               <div key={t.name} data-testid={`mcp-tool-${t.name}`} style={{
                 padding: '14px 16px', borderRadius: 12,
-                border: '1px solid rgba(99,102,241,0.20)',
-                background: 'rgba(99,102,241,0.05)',
+                border: '1px solid rgba(109,74,255,0.22)',
+                background: 'rgba(109,74,255,0.06)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#a5b4fc', fontWeight: 700 }}>{t.name}</code>
+                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#5B37E0', fontWeight: 700 }}>{t.name}</code>
                   <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{t.desc}</span>
                 </div>
                 <div style={{ fontFamily: 'monospace', fontSize: 11.5, color: 'var(--cream-3)', letterSpacing: '0.02em' }}>
-                  Ejemplo: <span style={{ color: '#a5b4fc' }}>{t.example}</span>
+                  Ejemplo: <span style={{ color: '#5B37E0' }}>{t.example}</span>
                 </div>
               </div>
             ))}
@@ -245,21 +245,21 @@ export default function ConnectMcpPage() {
             {DIRECTOR_TOOLS.map(t => (
               <div key={t.name} data-testid={`mcp-director-tool-${t.name}`} style={{
                 padding: '14px 16px', borderRadius: 12,
-                border: '1px solid rgba(236,72,153,0.25)',
-                background: 'rgba(236,72,153,0.05)',
+                border: '1px solid rgba(198,63,174,0.28)',
+                background: 'rgba(198,63,174,0.06)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#f9a8d4', fontWeight: 700 }}>{t.name}</code>
+                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#C63FAE', fontWeight: 700 }}>{t.name}</code>
                   <span style={{
                     fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10,
                     padding: '2px 8px', borderRadius: 9999,
-                    background: 'linear-gradient(90deg, rgba(99,102,241,0.30), rgba(236,72,153,0.30))',
-                    color: 'var(--cream)', letterSpacing: '0.06em',
+                    background: 'linear-gradient(90deg, #6D4AFF, #C63FAE)',
+                    color: '#fff', letterSpacing: '0.06em',
                   }}>{t.tier}</span>
                   <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{t.desc}</span>
                 </div>
                 <div style={{ fontFamily: 'monospace', fontSize: 11.5, color: 'var(--cream-3)', letterSpacing: '0.02em' }}>
-                  Ejemplo: <span style={{ color: '#f9a8d4' }}>{t.example}</span>
+                  Ejemplo: <span style={{ color: '#C63FAE' }}>{t.example}</span>
                 </div>
               </div>
             ))}
@@ -311,11 +311,11 @@ export default function ConnectMcpPage() {
         {/* Step 8 — Embed widgets en blogs */}
         <Section step="8" title="Embed widgets en tu blog">
           <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 16 }}>
-            Pega cualquier <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>&lt;iframe&gt;</code>{' '}
+            Pega cualquier <code style={{ background: 'rgba(109,74,255,0.10)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>&lt;iframe&gt;</code>{' '}
             de DesarrollosMX en tu blog o página. Los widgets son responsive, branded y
             se actualizan automáticamente con datos live. Cambia <code>polanco</code> por
             cualquier slug de colonia ({' '}
-            <a href="/marketplace" style={{ color: '#a5b4fc' }}>ver lista</a>
+            <a href="/marketplace" style={{ color: '#5B37E0' }}>ver lista</a>
             {' '}).
           </p>
 

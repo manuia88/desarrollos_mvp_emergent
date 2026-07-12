@@ -14,7 +14,7 @@ export default function MiniMap({ center, label }) {
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: ref.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/light-v11',
       center,
       zoom: 14,
       attributionControl: false,
@@ -38,7 +38,7 @@ export default function MiniMap({ center, label }) {
     return (
       <div style={{
         height: 220, borderRadius: 16,
-        background: '#0D1118', border: '1px solid var(--border)',
+        background: '#F6F7FA', border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
       }}>

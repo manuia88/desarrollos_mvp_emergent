@@ -42,10 +42,10 @@ export default function ShareMenu({ property }) {
           style={{
             position: 'absolute', top: 'calc(100% + 6px)', right: 0,
             minWidth: 200,
-            background: '#0D1118',
-            border: '1px solid var(--border-2)',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC',
             borderRadius: 14, padding: 6,
-            boxShadow: 'var(--sh-elev)',
+            boxShadow: '0 12px 32px rgba(16,24,40,0.12)',
             zIndex: Z.DROPDOWN,
           }}
         >

@@ -1,13 +1,13 @@
 // W3.5 — /docs/api public page (OpenAPI render + pricing table)
 import React, { useEffect, useState } from 'react';
-import { Code, Lock } from 'lucide-react';
-import Navbar from '../../components/landing/Navbar';
+import { Lock } from 'lucide-react';
+import ToolNav from '../../components/ui/ToolNav';
 import { fetchOpenAPI } from '../../api/superadminApiKeys';
 
 const TIER_BG = {
-  free: { bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.12)', fg: 'var(--cream-3)' },
-  pro:  { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.36)',  fg: '#a5b4fc' },
-  enterprise: { bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.36)', fg: '#fbcfe8' },
+  free: { bg: '#F6F7FA', bd: '#ECECEC', fg: 'var(--cream-3)' },
+  pro:  { bg: 'rgba(109,74,255,0.08)',  bd: 'rgba(109,74,255,0.30)',  fg: '#5B37E0' },
+  enterprise: { bg: 'rgba(198,63,174,0.08)', bd: 'rgba(198,63,174,0.30)', fg: '#C63FAE' },
 };
 
 function CurlSample({ path, tier }) {
@@ -15,8 +15,8 @@ function CurlSample({ path, tier }) {
   "https://api.desarrollosmx.io/api/v1${path}"`;
   return (
     <pre style={{
-      background: 'rgba(0,0,0,0.45)', padding: 12, borderRadius: 10,
-      fontFamily: 'monospace', fontSize: 11.5, color: '#a5b4fc',
+      background: '#F6F7FA', padding: 12, borderRadius: 10,
+      fontFamily: 'monospace', fontSize: 11.5, color: '#5B37E0',
       overflowX: 'auto', margin: '8px 0',
     }}>{sample}</pre>
   );
@@ -42,8 +42,8 @@ export default function ApiDocsPage() {
   }, []);
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar />
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
         <div data-testid="api-docs-hero">
           <div style={{
@@ -89,7 +89,7 @@ export default function ApiDocsPage() {
             ))}
           </div>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginTop: 14 }}>
-            Solicita tu API key escribiendo a <a href="mailto:api@desarrollosmx.io" style={{ color: '#a5b4fc' }}>api@desarrollosmx.io</a>.
+            Solicita tu API key escribiendo a <a href="mailto:api@desarrollosmx.io" style={{ color: '#5B37E0' }}>api@desarrollosmx.io</a>.
             Enterprise se negocia con cuotas y SLAs custom.
           </p>
         </section>
@@ -100,9 +100,9 @@ export default function ApiDocsPage() {
             Autenticación
           </h2>
           <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)' }}>
-            Header <code style={{ color: '#a5b4fc' }}>Authorization: Bearer dmx_test_&lt;tu_token&gt;</code>.
+            Header <code style={{ color: '#5B37E0' }}>Authorization: Bearer dmx_test_&lt;tu_token&gt;</code>.
             Sin auth → 401. Tier insuficiente → 402. Cuota mensual agotada → 429.
-            Respuestas incluyen <code style={{ color: '#a5b4fc' }}>X-DMX-Tier</code> y <code style={{ color: '#a5b4fc' }}>X-DMX-Calls-Remaining</code>.
+            Respuestas incluyen <code style={{ color: '#5B37E0' }}>X-DMX-Tier</code> y <code style={{ color: '#5B37E0' }}>X-DMX-Calls-Remaining</code>.
           </p>
         </section>
 
@@ -115,14 +115,14 @@ export default function ApiDocsPage() {
             {(spec?.endpoints || []).map((ep, i) => (
               <div key={i} data-testid={`api-docs-endpoint-${i}`} style={{
                 marginBottom: 16, padding: 16,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 borderRadius: 12,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <span style={{
                     padding: '3px 10px', borderRadius: 9999, fontSize: 10, fontFamily: 'DM Sans', fontWeight: 700,
-                    background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.40)', color: '#86efac',
+                    background: 'rgba(31,160,106,0.12)', border: '1px solid rgba(31,160,106,0.36)', color: '#1FA06A',
                     textTransform: 'uppercase',
                   }}>{ep.method}</span>
                   <code style={{ color: 'var(--cream)', fontFamily: 'monospace', fontSize: 14 }}>{ep.path}</code>

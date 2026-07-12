@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import InviteCodeInput from '../../components/private_beta/InviteCodeInput';
 import { useAuth } from '../../App';
 
@@ -12,19 +12,19 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const TAB_BTN = (active) => ({
   flex: 1, padding: '11px 18px', borderRadius: 9999, border: 'none',
-  background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.04)',
-  color: active ? '#fff' : 'rgba(240,235,224,0.7)',
+  background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#F6F7FA',
+  color: active ? '#fff' : '#5A5F6E',
   fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, cursor: 'pointer',
 });
 
 const INPUT = {
   width: '100%', padding: '12px 16px', borderRadius: 9999,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-  color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 14,
+  background: '#FFFFFF', border: '1px solid #E6E8EE',
+  color: '#1E2230', fontFamily: 'DM Sans', fontSize: 14,
 };
 
 const LBL = {
-  fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 6,
+  fontSize: 11, color: '#9AA0AE', marginBottom: 6,
   textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans',
 };
 
@@ -93,11 +93,11 @@ export default function BrokerPortal() {
   };
 
   return (
-    <div style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0' }}>
-      <Navbar />
-      <main style={{ paddingTop: 100, paddingBottom: 80, padding: '100px 24px 80px' }}>
+    <div className="theme-light-scope" style={{ background: '#FBFAFC', minHeight: '100vh', color: '#1E2230' }}>
+      <ToolNav />
+      <main style={{ padding: '16px 24px 80px' }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a5b4fc', marginBottom: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6D4AFF', marginBottom: 12, textAlign: 'center' }}>
             ACCESO PRIVADO · BETA
           </div>
           <h1 style={{
@@ -109,7 +109,7 @@ export default function BrokerPortal() {
 
           <div data-testid="broker-portal-tabs" style={{
             display: 'flex', gap: 8, padding: 6, borderRadius: 9999,
-            background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.08)',
+            background: '#FFFFFF', border: '1px solid #ECECEC',
             marginBottom: 22,
           }}>
             <button
@@ -132,8 +132,8 @@ export default function BrokerPortal() {
               onSubmit={submitLogin}
               style={{
                 padding: 26, borderRadius: 20,
-                background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 display: 'flex', flexDirection: 'column', gap: 14,
               }}
             >
@@ -146,7 +146,7 @@ export default function BrokerPortal() {
                 <input data-testid="broker-login-password" type="password" required value={loginPwd} onChange={e => setLoginPwd(e.target.value)} style={INPUT} />
               </label>
               {loginErr && (
-                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
+                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(229,72,77,0.10)', border: '1px solid rgba(229,72,77,0.3)', color: '#E5484D', fontSize: 12 }}>
                   {loginErr}
                 </div>
               )}
@@ -170,8 +170,8 @@ export default function BrokerPortal() {
               onSubmit={submitSignup}
               style={{
                 padding: 26, borderRadius: 20,
-                background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 display: 'flex', flexDirection: 'column', gap: 14,
               }}
             >
@@ -193,7 +193,7 @@ export default function BrokerPortal() {
                 <input data-testid="broker-signup-password" type="password" required minLength={8} value={signupPwd} onChange={e => setSignupPwd(e.target.value)} style={INPUT} />
               </label>
               {signupErr && (
-                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
+                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(229,72,77,0.10)', border: '1px solid rgba(229,72,77,0.3)', color: '#E5484D', fontSize: 12 }}>
                   {signupErr}
                 </div>
               )}

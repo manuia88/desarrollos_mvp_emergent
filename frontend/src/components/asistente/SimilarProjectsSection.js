@@ -15,8 +15,7 @@ function SkeletonCard() {
   return (
     <div style={{
       width: 220, flexShrink: 0, height: 220, borderRadius: 16,
-      background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.08)',
-      backdropFilter: 'blur(24px)',
+      background: '#F6F7FA', border: '1px solid #ECECEC',
       animation: 'kgPulse 1.4s ease-in-out infinite',
     }} />
   );
@@ -37,17 +36,19 @@ function ProjectCard({ row }) {
       style={{
         display: 'flex', flexDirection: 'column', width: 220, flexShrink: 0,
         borderRadius: 16, overflow: 'hidden', textDecoration: 'none',
-        background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        transition: 'transform 220ms ease, border-color 220ms ease',
+        background: '#FFFFFF',
+        border: '1px solid #ECECEC',
+        transition: 'transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.borderColor = 'rgba(99,102,241,0.42)';
+        e.currentTarget.style.borderColor = 'rgba(109,74,255,0.42)';
+        e.currentTarget.style.boxShadow = '0 10px 30px rgba(16,24,40,0.10)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+        e.currentTarget.style.borderColor = '#ECECEC';
+        e.currentTarget.style.boxShadow = 'none';
       }}>
       <div style={{
         width: '100%', height: 120,
@@ -57,15 +58,15 @@ function ProjectCard({ row }) {
       }} />
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{
-          fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: '#F0EBE0',
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: '#1E2230',
           lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{row.name || slug}</div>
-        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#9AA0AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {row.zone_slug || '—'}
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#a5b4fc' }}>{priceLabel}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#6D4AFF' }}>{priceLabel}</div>
         {row.score != null && (
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#86efac' }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#1FA06A' }}>
             score {Number(row.score).toFixed(1)}
           </div>
         )}
@@ -108,12 +109,12 @@ export default function SimilarProjectsSection({ seedProjectId, seedZoneSlug }) 
   if (hidden) return null;
 
   return (
-    <div data-testid="similar-projects-section" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+    <div data-testid="similar-projects-section" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #ECECEC' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Sparkles size={14} color="#a5b4fc" />
+        <Sparkles size={14} color="#6D4AFF" />
         <span style={{
           fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.08em',
-          color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase',
+          color: '#9AA0AE', textTransform: 'uppercase',
         }}>
           {t('knowledge_graph.consumers.also_might_interest', 'Tambien te puede interesar')}
         </span>
@@ -126,7 +127,7 @@ export default function SimilarProjectsSection({ seedProjectId, seedZoneSlug }) 
           <a href="/marketplace" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '0 18px', flexShrink: 0,
-            fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#a5b4fc',
+            fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#6D4AFF',
             textDecoration: 'none',
           }}>
             {t('knowledge_graph.consumers.view_all', 'Ver mas')} <ArrowRight size={12} />

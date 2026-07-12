@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import CtaFooter from '../../components/landing/CtaFooter';
 import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
@@ -85,12 +85,12 @@ export default function ValorColonia() {
 
   if (error === 'not_found') {
     return (
-      <div style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0' }}>
-        <Navbar />
-        <main style={{ padding: '120px 24px', textAlign: 'center', fontFamily: 'DM Sans' }}>
+      <div className="theme-light-scope" style={{ background: '#FBFAFC', minHeight: '100vh', color: '#1E2230' }}>
+        <ToolNav />
+        <main style={{ padding: '48px 24px', textAlign: 'center', fontFamily: 'DM Sans' }}>
           <h1 style={{ fontFamily: 'Outfit', fontSize: 32, fontWeight: 800 }}>Colonia no encontrada</h1>
-          <p style={{ color: 'rgba(240,235,224,0.6)', marginTop: 8 }}>
-            <Link to="/valores" style={{ color: '#a5b4fc' }}>Volver a Valores</Link>
+          <p style={{ color: '#5A5F6E', marginTop: 8 }}>
+            <Link to="/valores" style={{ color: '#6D4AFF' }}>Volver a Valores</Link>
           </p>
         </main>
         <CtaFooter />
@@ -100,43 +100,43 @@ export default function ValorColonia() {
 
   if (!data) {
     return (
-      <div style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0' }}>
-        <Navbar />
-        <main style={{ padding: '120px 24px', fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.6)' }}>Cargando…</main>
+      <div className="theme-light-scope" style={{ background: '#FBFAFC', minHeight: '100vh', color: '#1E2230' }}>
+        <ToolNav />
+        <main style={{ padding: '48px 24px', fontFamily: 'DM Sans', color: '#5A5F6E' }}>Cargando…</main>
       </div>
     );
   }
 
   const sample = data.sample_avm || {};
-  const embedUrl = `/widgets/avm/${slug}?theme=dark`;
+  const embedUrl = `/widgets/avm/${slug}?theme=light`;
   const embedSnippet = `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}${embedUrl}" width="100%" height="520" frameborder="0" style="border-radius:18px"></iframe>`;
 
   return (
-    <div data-testid="valor-colonia-page" style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0' }}>
-      <Navbar />
-      <main style={{ paddingTop: 80, paddingBottom: 60 }}>
+    <div className="theme-light-scope" data-testid="valor-colonia-page" style={{ background: '#FBFAFC', minHeight: '100vh', color: '#1E2230' }}>
+      <ToolNav />
+      <main style={{ paddingTop: 16, paddingBottom: 60 }}>
         {/* Hero */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px 16px' }}>
-          <nav aria-label="breadcrumb" style={{ fontSize: 12, color: 'rgba(240,235,224,0.5)', marginBottom: 12, fontFamily: 'DM Sans' }}>
-            <Link to="/" style={{ color: 'rgba(240,235,224,0.6)' }}>DesarrollosMX</Link>
+          <nav aria-label="breadcrumb" style={{ fontSize: 12, color: '#9AA0AE', marginBottom: 12, fontFamily: 'DM Sans' }}>
+            <Link to="/" style={{ color: '#5A5F6E' }}>DesarrollosMX</Link>
             <span style={{ margin: '0 8px' }}>›</span>
-            <Link to="/valores" style={{ color: 'rgba(240,235,224,0.6)' }}>Valores</Link>
+            <Link to="/valores" style={{ color: '#5A5F6E' }}>Valores</Link>
             <span style={{ margin: '0 8px' }}>›</span>
-            <span style={{ color: '#a5b4fc' }}>{data.colonia_name}</span>
+            <span style={{ color: '#6D4AFF' }}>{data.colonia_name}</span>
           </nav>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a5b4fc', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6D4AFF', marginBottom: 10 }}>
             Valuación · {data.alcaldia || 'CDMX'}
           </div>
           <h1 style={{
             fontFamily: 'Outfit', fontWeight: 800,
             fontSize: 'clamp(30px, 4.5vw, 52px)', letterSpacing: '-0.025em',
-            lineHeight: 1.05, margin: '0 0 14px', color: '#F0EBE0',
+            lineHeight: 1.05, margin: '0 0 14px', color: '#1E2230',
           }}>
             ¿Cuánto vale tu propiedad en {data.colonia_name}?
           </h1>
-          <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: 'rgba(240,235,224,0.7)', maxWidth: 720, lineHeight: 1.55, margin: 0 }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: '#5A5F6E', maxWidth: 720, lineHeight: 1.55, margin: 0 }}>
             Estimación automatizada gratuita basada en modelo hedónico OLS y datos de mercado reales.
-            Precio promedio: <strong style={{ color: '#F0EBE0' }}>{fmtMXN(data.price_m2)} / m²</strong>.
+            Precio promedio: <strong style={{ color: '#1E2230' }}>{fmtMXN(data.price_m2)} / m²</strong>.
           </p>
         </section>
 
@@ -144,16 +144,16 @@ export default function ValorColonia() {
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '12px 24px' }}>
           <div style={{
             padding: 28, borderRadius: 20,
-            background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(99,102,241,0.3)',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC',
           }}>
-            <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: '#6D4AFF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
               Vivienda típica · 80 m² · 2 rec · 2 baños · 8 años
             </div>
-            <div style={{ fontFamily: 'Outfit', fontSize: 44, fontWeight: 800, color: '#F0EBE0', lineHeight: 1 }}>
+            <div style={{ fontFamily: 'Outfit', fontSize: 44, fontWeight: 800, color: '#1E2230', lineHeight: 1 }}>
               {fmtMXN(sample.precio_estimado)}
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.6)', marginTop: 6 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', marginTop: 6 }}>
               Rango: {fmtMXN(sample.range_low)} — {fmtMXN(sample.range_high)} ·{' '}
               {fmtMXN(sample.precio_per_m2)}/m² · Confianza {sample.confidence}
             </div>
@@ -165,7 +165,7 @@ export default function ValorColonia() {
               >Estimar mi propiedad</Link>
               <Link
                 to={`/colonia/${slug}`}
-                style={{ padding: '10px 18px', borderRadius: 9999, border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.10)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                style={{ padding: '10px 18px', borderRadius: 9999, border: '1px solid rgba(109,74,255,0.4)', background: 'rgba(109,74,255,0.10)', color: '#6D4AFF', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
               >Ver landing colonia</Link>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function ValorColonia() {
         {/* Top desarrollos */}
         {Array.isArray(data.top_devs) && data.top_devs.length > 0 && (
           <section style={{ maxWidth: 1100, margin: '0 auto', padding: '24px' }}>
-            <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#9AA0AE', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
               Top desarrollos activos en {data.colonia_name}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
@@ -221,12 +221,12 @@ export default function ValorColonia() {
                   data-testid={`valor-colonia-dev-${d.dev_id}`}
                   style={{
                     padding: 16, borderRadius: 16,
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#F0EBE0', textDecoration: 'none', display: 'block',
+                    background: '#FFFFFF', border: '1px solid #ECECEC',
+                    color: '#1E2230', textDecoration: 'none', display: 'block',
                   }}
                 >
                   <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{d.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>desde {fmtMXN(d.price_from)} · {d.stage}</div>
+                  <div style={{ fontSize: 11, color: '#5A5F6E' }}>desde {fmtMXN(d.price_from)} · {d.stage}</div>
                 </Link>
               ))}
             </div>
@@ -235,15 +235,15 @@ export default function ValorColonia() {
 
         {/* Embed snippet */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '24px' }}>
-          <div style={{ padding: 18, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+          <div style={{ padding: 18, borderRadius: 16, background: '#FFFFFF', border: '1px solid #ECECEC' }}>
+            <div style={{ fontSize: 11, color: '#6D4AFF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Embeber widget AVM en tu sitio
             </div>
             <pre
               data-testid="valor-colonia-embed-snippet"
               style={{
-                fontFamily: 'monospace', fontSize: 11, color: 'rgba(240,235,224,0.7)',
-                background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 10,
+                fontFamily: 'monospace', fontSize: 11, color: '#1E2230',
+                background: '#F6F7FA', padding: 12, borderRadius: 10,
                 overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0,
               }}
             >{embedSnippet}</pre>

@@ -3,9 +3,8 @@
 // Schema.org NewsMediaOrganization markup. data-testid="prensa-page".
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import CtaFooter from '../../components/landing/CtaFooter';
-import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SITE_BASE = 'https://desarrollosmx.io';
@@ -65,9 +64,8 @@ function StatCard({ label, value, quote, testid }) {
       data-testid={testid}
       style={{
         padding: '20px 22px', borderRadius: 16,
-        border: '1px solid rgba(255,255,255,0.10)',
-        background: 'rgba(255,255,255,0.025)',
-        backdropFilter: 'blur(12px)',
+        border: '1px solid #ECECEC',
+        background: '#FFFFFF',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}
     >
@@ -95,9 +93,9 @@ function StatCard({ label, value, quote, testid }) {
         style={{
           alignSelf: 'flex-start',
           padding: '6px 16px', borderRadius: 9999,
-          background: copied ? 'rgba(34,197,94,0.18)' : 'rgba(99,102,241,0.14)',
-          border: `1px solid ${copied ? 'rgba(34,197,94,0.40)' : 'rgba(99,102,241,0.40)'}`,
-          color: copied ? '#86efac' : '#a5b4fc',
+          background: copied ? 'rgba(31,160,106,0.12)' : 'rgba(109,74,255,0.10)',
+          border: `1px solid ${copied ? 'rgba(31,160,106,0.40)' : 'rgba(109,74,255,0.35)'}`,
+          color: copied ? '#1FA06A' : '#6D4AFF',
           fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
           cursor: 'pointer', transition: 'background 0.18s ease',
         }}
@@ -109,7 +107,6 @@ function StatCard({ label, value, quote, testid }) {
 }
 
 export default function PrensaPage() {
-  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -182,12 +179,13 @@ export default function PrensaPage() {
 
   return (
     <div
+      className="theme-light-scope"
       data-testid="prensa-page"
       style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}
     >
+      <ToolNav />
       {stats && <PressJsonLd stats={stats} />}
-      <Navbar user={user} />
-      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 80px' }}>
+      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '16px 24px 80px' }}>
 
         {/* Breadcrumb */}
         <nav
@@ -198,7 +196,7 @@ export default function PrensaPage() {
           }}
         >
           <Link to="/" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>Inicio</Link>
-          <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+          <span style={{ margin: '0 8px', color: '#9AA0AE' }}>›</span>
           <span style={{ color: 'var(--cream-2)' }}>Prensa</span>
         </nav>
 
@@ -239,10 +237,10 @@ export default function PrensaPage() {
           )}
           {error && (
             <div style={{
-              fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',
+              fontFamily: 'DM Sans', fontSize: 13, color: '#E5484D',
               padding: '12px 16px', borderRadius: 12,
-              border: '1px solid rgba(239,68,68,0.30)',
-              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(229,72,77,0.30)',
+              background: 'rgba(229,72,77,0.06)',
             }}>
               No pudimos cargar las estadísticas. Reintenta en un momento.
             </div>
@@ -267,8 +265,8 @@ export default function PrensaPage() {
           <h2 style={sectionTitleStyle}>Press releases</h2>
           <div style={{
             padding: '20px 22px', borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.10)',
-            background: 'rgba(255,255,255,0.025)',
+            border: '1px solid #ECECEC',
+            background: '#FFFFFF',
             fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.7,
           }}>
             Los próximos comunicados se publicarán aquí. Para suscribirte y recibirlos
@@ -276,7 +274,7 @@ export default function PrensaPage() {
             <a
               href="mailto:prensa@desarrollosmx.io"
               data-testid="press-release-email"
-              style={{ color: '#a5b4fc', textDecoration: 'none' }}
+              style={{ color: '#6D4AFF', textDecoration: 'none' }}
             >
               prensa@desarrollosmx.io
             </a>
@@ -324,9 +322,8 @@ export default function PrensaPage() {
           <div
             style={{
               padding: '24px 26px', borderRadius: 18,
-              border: '1px solid rgba(99,102,241,0.25)',
-              background: 'rgba(99,102,241,0.06)',
-              backdropFilter: 'blur(14px)',
+              border: '1px solid rgba(109,74,255,0.25)',
+              background: 'rgba(109,74,255,0.05)',
               display: 'grid', gap: 14,
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             }}
@@ -345,7 +342,7 @@ export default function PrensaPage() {
           }}>
             Stats actualizados {new Date(stats.last_updated).toLocaleString('es-MX')} ·
             cache 10 min · API pública{' '}
-            <code style={{ fontFamily: 'monospace', color: '#a5b4fc' }}>
+            <code style={{ fontFamily: 'monospace', color: '#6D4AFF' }}>
               GET /api/public/press/stats
             </code>
           </div>
@@ -354,8 +351,8 @@ export default function PrensaPage() {
         {/* W5.21 · Atlax tool #23 query_global_insights pointer */}
         <section data-testid="prensa-external-insights" style={{
           marginTop: 32, padding: '22px',
-          background: 'rgba(99,102,241,0.08)',
-          border: '1px solid rgba(99,102,241,0.25)',
+          background: 'rgba(109,74,255,0.06)',
+          border: '1px solid rgba(109,74,255,0.25)',
           borderRadius: 14,
         }}>
           <h2 style={{
@@ -368,26 +365,26 @@ export default function PrensaPage() {
           }}>
             Agregamos BIS · OECD · IMF · World Bank · FRED · INEGI · BMV · HR Ratings · Numbeo · Global Property Guide · Zillow · Realtor para análisis comparativos.
             Para datos crudos contacta press@desarrollosmx.io. Atlax (asistente AI) responde queries
-            de prensa en tiempo real vía tool <code style={{ color: '#a5b4fc' }}>query_global_insights</code>{' '}
+            de prensa en tiempo real vía tool <code style={{ color: '#6D4AFF' }}>query_global_insights</code>{' '}
             sobre los 12 datasets cacheados.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a href="/insights/global" data-testid="prensa-link-insights-global" style={{
               fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
-              color: 'var(--cream)', textDecoration: 'none',
+              color: '#FFFFFF', textDecoration: 'none',
               background: 'linear-gradient(90deg, #6366F1, #EC4899)',
               padding: '10px 18px', borderRadius: 9999,
             }}>Ver dashboard global →</a>
             <a href="/insights/compare/home-prices" data-testid="prensa-link-insights-compare" style={{
               fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
               color: 'var(--cream-2)', textDecoration: 'none',
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: '1px solid #ECECEC',
               padding: '10px 18px', borderRadius: 9999,
             }}>8 comparativas long-tail</a>
             <a href="/methodology#fuentes-externas-globales-w520" data-testid="prensa-link-methodology" style={{
               fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
               color: 'var(--cream-2)', textDecoration: 'none',
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: '1px solid #ECECEC',
               padding: '10px 18px', borderRadius: 9999,
             }}>Metodología fuentes</a>
           </div>
@@ -407,13 +404,13 @@ function DownloadCard({ label, sub, href, testid }) {
       data-testid={testid}
       style={{
         padding: '16px 18px', borderRadius: 14, textDecoration: 'none',
-        border: '1px solid rgba(255,255,255,0.10)',
-        background: 'rgba(255,255,255,0.025)',
+        border: '1px solid #ECECEC',
+        background: '#FFFFFF',
         transition: 'background 0.18s ease',
         display: 'flex', flexDirection: 'column', gap: 4,
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = '#F6F7FA'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
     >
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>
         {label}
@@ -422,7 +419,7 @@ function DownloadCard({ label, sub, href, testid }) {
         {sub}
       </div>
       <div style={{
-        fontFamily: 'DM Sans', fontSize: 11.5, color: '#a5b4fc', marginTop: 6,
+        fontFamily: 'DM Sans', fontSize: 11.5, color: '#6D4AFF', marginTop: 6,
       }}>
         Descargar →
       </div>
@@ -440,12 +437,12 @@ function ContactRow({ label, value, href, testid }) {
       style={{
         textDecoration: 'none',
         padding: '10px 14px', borderRadius: 10,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: '#FFFFFF',
+        border: '1px solid #ECECEC',
         transition: 'background 0.18s ease',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = '#F6F7FA'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
     >
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)',

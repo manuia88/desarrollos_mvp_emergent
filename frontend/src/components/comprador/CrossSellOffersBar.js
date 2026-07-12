@@ -40,7 +40,7 @@ export default function CrossSellOffersBar({ propertyId }) {
       </div>
       {successMsg && (
         <p style={{
-          fontFamily: 'DM Sans', fontSize: 12, color: '#6ee7b7',
+          fontFamily: 'DM Sans', fontSize: 12, color: '#1FA06A',
           margin: '8px 0 0', lineHeight: 1.5,
         }}>
           {successMsg}

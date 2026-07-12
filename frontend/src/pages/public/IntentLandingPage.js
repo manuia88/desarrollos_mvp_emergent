@@ -3,10 +3,9 @@
 // Hero · Top colonias · Recent developments grid · Lead capture · JSON-LD SearchResultsPage
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import CtaFooter from '../../components/landing/CtaFooter';
 import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
-import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SITE_BASE = 'https://desarrollosmx.io';
@@ -96,8 +95,8 @@ function FaqAccordion({ faqs }) {
         return (
           <div key={idx} style={{
             borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.10)',
-            background: open ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)',
+            border: '1px solid #ECECEC',
+            background: open ? 'rgba(109,74,255,0.06)' : '#FFFFFF',
             overflow: 'hidden', transition: 'background 0.2s ease',
           }}>
             <button
@@ -112,7 +111,7 @@ function FaqAccordion({ faqs }) {
             >
               <span>{f.question}</span>
               <span style={{
-                fontFamily: 'DM Sans', fontSize: 18, color: '#a5b4fc',
+                fontFamily: 'DM Sans', fontSize: 18, color: '#6D4AFF',
                 transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
                 transition: 'transform 0.18s ease', flexShrink: 0,
               }}>+</span>
@@ -143,7 +142,6 @@ function nfMxn(value) {
 
 export default function IntentLandingPage() {
   const { intent } = useParams();
-  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -169,9 +167,9 @@ export default function IntentLandingPage() {
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-        <Navbar user={user} />
-        <main style={{ maxWidth: 960, margin: '0 auto', padding: '64px 24px' }}>
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ToolNav />
+        <main style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)' }}>
             Cargando…
           </div>
@@ -182,9 +180,9 @@ export default function IntentLandingPage() {
 
   if (error === 'not_found' || !data) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-        <Navbar user={user} />
-        <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 24px' }}>
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ToolNav />
+        <main style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px 80px' }}>
           <h1 style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(28px, 5vw, 40px)',
             margin: '0 0 12px', letterSpacing: '-0.025em',
@@ -213,10 +211,10 @@ export default function IntentLandingPage() {
   const showLeadCapture = devs.length === 0;
 
   return (
-    <div data-testid="intent-page" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+    <div data-testid="intent-page" className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+      <ToolNav />
       <IntentJsonLd data={data} />
-      <Navbar user={user} />
-      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 80px' }}>
+      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* Breadcrumb */}
         <nav aria-label="breadcrumb" style={{
@@ -224,9 +222,9 @@ export default function IntentLandingPage() {
           marginBottom: 18, letterSpacing: '0.04em',
         }}>
           <Link to="/" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>Inicio</Link>
-          <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+          <span style={{ margin: '0 8px', color: '#9AA0AE' }}>›</span>
           <span style={{ color: 'var(--cream-3)' }}>CDMX</span>
-          <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+          <span style={{ margin: '0 8px', color: '#9AA0AE' }}>›</span>
           <span style={{ color: 'var(--cream-2)' }}>{data.label}</span>
         </nav>
 
@@ -298,12 +296,12 @@ export default function IntentLandingPage() {
                   data-testid={`intent-dev-${d.id}`}
                   style={{
                     padding: '16px 18px', borderRadius: 14, textDecoration: 'none',
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid #ECECEC',
+                    background: '#FFFFFF',
                     transition: 'background 0.18s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F6F7FA'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
                 >
                   <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 4 }}>
                     {d.name}
@@ -315,7 +313,7 @@ export default function IntentLandingPage() {
                   {d.price_from_mxn && (
                     <div style={{
                       fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700,
-                      color: '#a5b4fc', marginTop: 8,
+                      color: '#6D4AFF', marginTop: 8,
                     }}>
                       Desde {nfMxn(d.price_from_mxn) || '—'}
                     </div>

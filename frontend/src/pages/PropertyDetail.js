@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '../components/landing/Navbar';
+import ToolNav from '../components/ui/ToolNav';
 import { Bed, Bath, Car, Ruler, Heart, MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import { fetchProperty, fetchColonia, fetchSimilar, isFavorite, toggleFavorite } from '../api/marketplace';
 import MortgageCalculator from '../components/property/MortgageCalculator';
@@ -67,8 +67,8 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
 
   if (loadErr) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-        <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <ToolNav />
         <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>
           <p style={{ marginBottom: 16 }}>No pudimos cargar esta propiedad.</p>
           <button className="btn btn-primary" onClick={() => window.location.reload()}>Reintentar</button>
@@ -79,8 +79,8 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
 
   if (!property) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-        <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <ToolNav />
         <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando la propiedad…</div>
       </div>
     );
@@ -95,9 +95,9 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
-      <main style={{ paddingTop: 80 }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
+      <main style={{ paddingTop: 8 }}>
         <section style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 64px' }}>
           <div className="eyebrow" style={{ marginBottom: 14 }}>
             <Link to="/marketplace" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>{t('marketplace.page_title')}</Link>
@@ -132,14 +132,14 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
               background: 'linear-gradient(to top, rgba(6,8,15,0.92), transparent)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <MapPin size={13} color="var(--cream-3)" />
-                <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
+                <MapPin size={13} color="rgba(255,255,255,0.72)" />
+                <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>
                   {property.colonia} · {property.alcaldia}
                 </span>
               </div>
               <h1 data-testid="detail-title" style={{
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 44px)',
-                letterSpacing: '-0.028em', color: 'var(--cream)',
+                letterSpacing: '-0.028em', color: '#fff',
               }}>
                 {title}
               </h1>
@@ -161,11 +161,11 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '10px 14px',
-                      background: 'rgba(255,255,255,0.04)',
+                      background: '#F6F7FA',
                       border: '1px solid var(--border)',
                       borderRadius: 12,
                     }}>
-                      <Icon size={14} color="var(--indigo-3)" />
+                      <Icon size={14} color="var(--theme)" />
                       <div>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>{v}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)' }}>{unit}</div>
@@ -226,8 +226,8 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
               {/* Colonia scores breakdown */}
               {colonia && (
                 <div style={{
-                  background: 'linear-gradient(180deg, #0E1220 0%, #0A0D16 100%)',
-                  border: '1px solid var(--border)',
+                  background: '#FFFFFF',
+                  border: '1px solid #ECECEC',
                   borderRadius: 20, padding: 22,
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -247,12 +247,12 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
                       return (
                         <div key={k} style={{
                           padding: '14px', borderRadius: 14,
-                          background: 'rgba(99,102,241,0.08)',
-                          border: '1px solid rgba(99,102,241,0.22)',
+                          background: 'rgba(var(--theme-rgb),0.06)',
+                          border: '1px solid rgba(var(--theme-rgb),0.20)',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                            <Icon size={13} color="var(--indigo-3)" />
-                            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, color: 'var(--indigo-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            <Icon size={13} color="var(--theme)" />
+                            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, color: 'var(--theme)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                               {t(`bento.layers.${k}`)}
                             </span>
                           </div>
@@ -272,10 +272,10 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
                     data-testid="colonia-link"
                     style={{
                       marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 6,
-                      fontFamily: 'DM Sans', fontSize: 13, color: 'var(--indigo-3)', textDecoration: 'none',
+                      fontFamily: 'DM Sans', fontSize: 13, color: 'var(--theme)', textDecoration: 'none',
                     }}
                   >
-                    {t('detail.colonia_link')} <ArrowRight size={12} color="var(--indigo-3)" />
+                    {t('detail.colonia_link')} <ArrowRight size={12} color="var(--theme)" />
                   </Link>
                 </div>
               )}
@@ -285,8 +285,8 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div style={{
                 padding: 20,
-                background: 'linear-gradient(180deg, #0E1220 0%, #0A0D16 100%)',
-                border: '1px solid var(--border)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 borderRadius: 20,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>

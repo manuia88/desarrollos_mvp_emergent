@@ -1,6 +1,6 @@
 // /asesores — B2B landing: "Únete a DMX como asesor verificado"
 import React from 'react';
-import Navbar from '../components/landing/Navbar';
+import ToolNav from '../components/ui/ToolNav';
 import CtaFooter from '../components/landing/CtaFooter';
 import { Sparkle, Database, TrendUp, Route, Shield, Bookmark, ArrowRight } from '../components/icons';
 import { useAuth } from '../App';
@@ -46,7 +46,7 @@ const STEPS = [
 ];
 
 export default function AsesoresLanding() {
-  const { user, logout, openAuth } = useAuth();
+  const { openAuth } = useAuth();
 
   const handleJoin = () => {
     // Opens AuthModal in register mode (user can pick role = advisor)
@@ -54,9 +54,9 @@ export default function AsesoresLanding() {
   };
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar onLogin={openAuth} user={user} onLogout={logout} />
-      <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
+      <main style={{ padding: '32px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
         <div className="eyebrow" style={{ marginBottom: 12 }}>PORTAL ASESOR · B2B</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
@@ -103,20 +103,20 @@ export default function AsesoresLanding() {
           gap: 14, marginBottom: 56,
         }}>
           {PILLARS.map(({ Icon, t, d }) => (
-            <div key={t} data-testid={`advisors-pillar-${t.split(' ')[0].toLowerCase()}`} style={{
+            <div key={t} data-testid={`advisors-pillar-${t.split(' ')[0].toLowerCase()}`} className="dmx-card" style={{
               padding: 22,
-              background: 'rgba(255,255,255,0.02)',
+              background: '#FFFFFF',
               border: '1px solid var(--border)',
               borderRadius: 16,
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10,
-                background: 'rgba(99,102,241,0.12)',
-                border: '1px solid rgba(99,102,241,0.28)',
+                background: 'rgba(109,74,255,0.10)',
+                border: '1px solid rgba(109,74,255,0.24)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: 14,
               }}>
-                <Icon size={18} color="var(--indigo-3)" />
+                <Icon size={18} color="var(--theme)" />
               </div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 6 }}>
                 {t}
@@ -135,9 +135,9 @@ export default function AsesoresLanding() {
           gap: 14, marginBottom: 48,
         }}>
           {STEPS.map(({ n, t, d }) => (
-            <div key={n} data-testid={`advisors-step-${n}`} style={{
+            <div key={n} data-testid={`advisors-step-${n}`} className="dmx-card" style={{
               padding: 22,
-              background: 'rgba(255,255,255,0.02)',
+              background: '#FFFFFF',
               border: '1px solid var(--border)',
               borderRadius: 16,
             }}>

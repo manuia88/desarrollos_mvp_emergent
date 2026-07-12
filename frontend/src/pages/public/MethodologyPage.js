@@ -1,13 +1,13 @@
 // W3.3 ZZ.3 — /methodology public page
 import React, { useEffect, useState } from 'react';
 import { fetchMethodology } from '../../api/bulletins';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import WatchlistSubscribeForm from '../../components/watchlist/WatchlistSubscribeForm';
 
 function Section({ title, children }) {
   return (
     <section style={{
-      padding: '28px 0', borderTop: '1px solid rgba(255,255,255,0.08)',
+      padding: '28px 0', borderTop: '1px solid #ECECEC',
     }}>
       <h2 style={{
         fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px, 2.4vw, 28px)',
@@ -22,7 +22,7 @@ function Section({ title, children }) {
 
 function KvLine({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '6px 0', borderBottom: '1px dashed rgba(255,255,255,0.06)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '6px 0', borderBottom: '1px dashed #ECECEC' }}>
       <span style={{ color: 'var(--cream-3)' }}>{label}</span>
       <span style={{ color: 'var(--cream)', fontWeight: 600 }}>{value}</span>
     </div>
@@ -95,9 +95,9 @@ export default function MethodologyPage() {
   }, []);
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-      <Navbar />
-      <main style={{ maxWidth: 920, margin: '0 auto', padding: '40px 24px 80px' }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+      <ToolNav />
+      <main style={{ maxWidth: 920, margin: '0 auto', padding: '32px 24px 80px' }}>
         <div data-testid="methodology-hero">
           <div style={{
             fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
@@ -218,7 +218,7 @@ export default function MethodologyPage() {
         <Section title="5 · Validación">
           <p>
             Métricas de validación rigurosas (R², RMSE, MAPE) están disponibles en formato JSON
-            público en <code style={{ color: '#a5b4fc' }}>{data?.validation_endpoint || '/api/data-lake/public/validation'}</code>,
+            público en <code style={{ color: '#6D4AFF' }}>{data?.validation_endpoint || '/api/data-lake/public/validation'}</code>,
             actualizadas snapshot-vs-snapshot.
           </p>
         </Section>
@@ -303,7 +303,7 @@ export default function MethodologyPage() {
               <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>
                 Los titulares pueden ejercer sus derechos de Acceso, Rectificación, Cancelación
                 y Oposición en{' '}
-                <a href="/privacy/dsr" style={{ color: '#a5b4fc' }}>/privacy/dsr</a>.
+                <a href="/privacy/dsr" style={{ color: '#6D4AFF' }}>/privacy/dsr</a>.
                 Cada consulta a la API se registra en un audit trail con retención de 5 años
                 por requerimiento LFPDPPP.
               </p>
@@ -350,7 +350,7 @@ export default function MethodologyPage() {
                       padding: '10px 12px', textAlign: 'left',
                       fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
                       color: 'var(--cream-3)', textTransform: 'uppercase',
-                      borderBottom: '1px solid rgba(255,255,255,0.10)',
+                      borderBottom: '1px solid #ECECEC',
                     }}>{h}</th>
                   ))}
                 </tr>
@@ -371,13 +371,13 @@ export default function MethodologyPage() {
                   ['Realtor.com Research', 'https://www.realtor.com/research/data/', 'Free CSV', 'Mensual', 'US aggregator'],
                 ].map(([name, url, lic, freq, tier], i) => (
                   <tr key={i}>
-                    <td style={{ padding: '8px 12px', color: 'var(--cream)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{name}</td>
-                    <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#a5b4fc', fontSize: 12 }}>{url.replace(/^https?:\/\//, '')}</a>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream)', borderBottom: '1px solid #F6F7FA' }}>{name}</td>
+                    <td style={{ padding: '8px 12px', borderBottom: '1px solid #F6F7FA' }}>
+                      <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#6D4AFF', fontSize: 12 }}>{url.replace(/^https?:\/\//, '')}</a>
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{lic}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{freq}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{tier}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid #F6F7FA' }}>{lic}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid #F6F7FA' }}>{freq}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid #F6F7FA' }}>{tier}</td>
                   </tr>
                 ))}
               </tbody>
@@ -385,9 +385,9 @@ export default function MethodologyPage() {
           </div>
           <p style={{ marginTop: 14, fontSize: 13, color: 'var(--cream-3)' }}>
             Ver dashboard interactivo en{' '}
-            <a href="/insights/global" style={{ color: '#a5b4fc' }}>/insights/global</a>
+            <a href="/insights/global" style={{ color: '#6D4AFF' }}>/insights/global</a>
             {' '}· comparativas long-tail en{' '}
-            <a href="/insights/compare/home-prices" style={{ color: '#a5b4fc' }}>/insights/compare/:topic</a>.
+            <a href="/insights/compare/home-prices" style={{ color: '#6D4AFF' }}>/insights/compare/:topic</a>.
           </p>
         </Section>
       </main>

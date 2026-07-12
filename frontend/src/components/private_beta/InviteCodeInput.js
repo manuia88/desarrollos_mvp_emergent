@@ -46,10 +46,10 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
   };
 
   const borderColor = {
-    idle:    'rgba(255,255,255,0.12)',
+    idle:    '#E6E8EE',
     loading: 'rgba(var(--theme-rgb),0.4)',
-    valid:   'rgba(34,197,94,0.6)',
-    invalid: 'rgba(239,68,68,0.6)',
+    valid:   'rgba(31,160,106,0.6)',
+    invalid: 'rgba(229,72,77,0.6)',
   }[status];
 
   const messages = {
@@ -63,7 +63,7 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
+      <div style={{ fontSize: 11, color: '#9AA0AE', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
         Código de invitación broker
       </div>
       <div style={{ position: 'relative' }}>
@@ -76,9 +76,9 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
           maxLength={14}
           style={{
             width: '100%', padding: '11px 44px 11px 14px', borderRadius: 9999,
-            background: 'rgba(255,255,255,0.05)',
+            background: '#FFFFFF',
             border: `1px solid ${borderColor}`,
-            color: '#F0EBE0', fontFamily: 'DM Mono, monospace', fontSize: 14, letterSpacing: '0.05em',
+            color: '#1E2230', fontFamily: 'DM Mono, monospace', fontSize: 14, letterSpacing: '0.05em',
             textTransform: 'uppercase', outline: 'none', transition: 'border-color 220ms ease',
           }}
         />
@@ -87,17 +87,17 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
           fontSize: 14, fontWeight: 700,
         }}>
           {status === 'loading' && <span style={{ color: 'var(--theme)' }}>·</span>}
-          {status === 'valid'   && <span style={{ color: '#22c55e' }}>✓</span>}
-          {status === 'invalid' && <span style={{ color: '#ef4444' }}>✗</span>}
+          {status === 'valid'   && <span style={{ color: '#1FA06A' }}>✓</span>}
+          {status === 'invalid' && <span style={{ color: '#E5484D' }}>✗</span>}
         </div>
       </div>
       {status === 'valid' && (
-        <div style={{ marginTop: 6, fontSize: 11, color: '#22c55e', fontFamily: 'DM Sans' }}>
+        <div style={{ marginTop: 6, fontSize: 11, color: '#1FA06A', fontFamily: 'DM Sans' }}>
           Código válido
         </div>
       )}
       {status === 'invalid' && (
-        <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', fontFamily: 'DM Sans' }}>
+        <div style={{ marginTop: 6, fontSize: 11, color: '#E5484D', fontFamily: 'DM Sans' }}>
           {messages[reason] || 'Código inválido'}
         </div>
       )}

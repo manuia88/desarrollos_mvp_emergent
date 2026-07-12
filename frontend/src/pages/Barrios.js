@@ -1,14 +1,13 @@
 // /barrios — stub page: "Los 16 barrios de CDMX leídos por IE Score"
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/landing/Navbar';
+import ToolNav from '../components/ui/ToolNav';
 import CtaFooter from '../components/landing/CtaFooter';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import { MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
-import { useAuth } from '../App';
 
 const FACTORS = [
   { Icon: Leaf,   k: 'vida',      t: 'Vida',      d: 'Áreas verdes, ruido, densidad de servicios y ritmo cotidiano.' },
@@ -26,13 +25,12 @@ const BARRIOS = [
 
 export default function Barrios() {
   const navigate = useNavigate();
-  const { user, logout, openAuth } = useAuth();
   const [explain, setExplain] = useState(null); // { zoneId, code } | null
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar onLogin={openAuth} user={user} onLogout={logout} />
-      <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
+      <main style={{ padding: '32px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
         <div className="eyebrow" style={{ marginBottom: 12 }}>CDMX · 16 barrios</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
@@ -80,7 +78,7 @@ export default function Barrios() {
           {FACTORS.map(({ Icon, k, t, d }) => (
             <div key={k} data-testid={`barrios-factor-${k}`} style={{
               padding: 20,
-              background: 'rgba(255,255,255,0.02)',
+              background: '#F6F7FA',
               border: '1px solid var(--border)',
               borderRadius: 16,
             }}>
@@ -91,7 +89,7 @@ export default function Barrios() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: 12,
               }}>
-                <Icon size={18} color="var(--indigo-3)" />
+                <Icon size={18} color="#6D4AFF" />
               </div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 6 }}>
                 {t}
@@ -112,7 +110,7 @@ export default function Barrios() {
           {BARRIOS.map(b => (
             <div key={b} data-testid={`barrio-chip-${b.replace(/\s+/g, '-').toLowerCase()}`} style={{
               padding: '10px 14px',
-              background: 'rgba(255,255,255,0.02)',
+              background: '#F6F7FA',
               border: '1px solid var(--border)',
               borderRadius: 10,
               fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
@@ -139,7 +137,7 @@ export default function Barrios() {
             {['roma_norte', 'polanco', 'condesa'].map(z => (
               <div key={z} data-testid={`barrio-live-${z}`} style={{
                 padding: 18,
-                background: 'rgba(255,255,255,0.02)',
+                background: '#F6F7FA',
                 border: '1px solid var(--border)',
                 borderRadius: 16,
               }}>

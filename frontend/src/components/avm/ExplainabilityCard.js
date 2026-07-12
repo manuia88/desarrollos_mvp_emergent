@@ -4,7 +4,7 @@
  * Recibe `explain` con `contributions: [{feature,label,pct,sign,...}]` y
  * renderiza una barra apilada horizontal + leyenda con porcentajes.
  *
- * Diseño: navy/cream + accent indigo/rose. rounded-full. Sin shadow-2xl.
+ * Diseño: tema claro (fondo blanco, texto #1E2230) + accent #6D4AFF. rounded-full. Sin shadow-2xl.
  */
 import React from 'react';
 
@@ -25,18 +25,17 @@ export default function ExplainabilityCard({ explain }) {
       style={{
         padding: 20,
         borderRadius: 18,
-        background: 'rgba(13,16,23,0.92)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: '#FFFFFF',
+        border: '1px solid #ECECEC',
         marginTop: 18,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: '#6D4AFF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
             Desglose de valor
           </div>
-          <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 700, color: '#F0EBE0' }}>
+          <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 700, color: '#1E2230' }}>
             ¿Por qué este precio?
           </div>
         </div>
@@ -44,9 +43,9 @@ export default function ExplainabilityCard({ explain }) {
           style={{
             padding: '4px 10px',
             borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.3)',
-            color: '#a5b4fc',
+            background: 'rgba(109,74,255,0.10)',
+            border: '1px solid rgba(109,74,255,0.3)',
+            color: '#6D4AFF',
             fontSize: 10,
             fontFamily: 'DM Sans',
             fontWeight: 700,
@@ -68,7 +67,7 @@ export default function ExplainabilityCard({ explain }) {
           height: 18,
           borderRadius: 9999,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid #ECECEC',
           marginBottom: 14,
         }}
       >
@@ -106,15 +105,15 @@ export default function ExplainabilityCard({ explain }) {
                 flexShrink: 0,
               }}
             />
-            <span style={{ color: 'rgba(240,235,224,0.85)', flex: 1 }}>{c.label}</span>
-            <span style={{ color: c.sign === 'negative' ? '#fca5a5' : '#a5b4fc', fontWeight: 700 }}>
+            <span style={{ color: '#1E2230', flex: 1 }}>{c.label}</span>
+            <span style={{ color: c.sign === 'negative' ? '#E5484D' : '#6D4AFF', fontWeight: 700 }}>
               {c.sign === 'negative' ? '−' : ''}{c.pct}%
             </span>
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 12, fontSize: 10.5, color: 'rgba(240,235,224,0.4)', fontStyle: 'italic' }}>
+      <div style={{ marginTop: 12, fontSize: 10.5, color: '#9AA0AE', fontStyle: 'italic' }}>
         Contribuciones relativas estimadas. No constituye avalúo profesional.
       </div>
     </div>

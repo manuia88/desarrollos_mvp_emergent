@@ -1,7 +1,7 @@
 // W3.7 — /privacy/dsr — Página pública LFPDPPP DSR
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import { submitDsr, verifyDsrToken } from '../../api/superadminCompliance';
 
 const REQUEST_TYPES = [
@@ -13,18 +13,18 @@ const REQUEST_TYPES = [
 
 const sectionStyle = {
   padding: '22px 0',
-  borderTop: '1px solid rgba(255,255,255,0.08)',
+  borderTop: '1px solid #ECECEC',
 };
 
 const labelStyle = {
   fontFamily: 'DM Sans', fontSize: 13,
-  color: 'var(--cream-3)', display: 'block', marginBottom: 6,
+  color: '#9AA0AE', display: 'block', marginBottom: 6,
 };
 
 const inputStyle = {
-  width: '100%', background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
-  color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 14,
+  width: '100%', background: '#F6F7FA',
+  border: '1px solid #ECECEC', borderRadius: 8,
+  color: '#1E2230', fontFamily: 'DM Sans', fontSize: 14,
   padding: '10px 14px', outline: 'none', boxSizing: 'border-box',
 };
 
@@ -91,19 +91,19 @@ export default function PrivacyDsrPage() {
   };
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-      <Navbar />
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px 80px' }}>
+    <div className="theme-light-scope" style={{ background: '#FBFAFC', minHeight: '100vh', color: '#1E2230' }}>
+      <ToolNav />
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '28px 24px 80px' }}>
 
         {/* ── Verification result banner ── */}
         {verifyResult && (
           <div style={{
-            background: verifyResult.ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-            border: `1px solid ${verifyResult.ok ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+            background: verifyResult.ok ? 'rgba(31,160,106,0.10)' : 'rgba(229,72,77,0.10)',
+            border: `1px solid ${verifyResult.ok ? 'rgba(31,160,106,0.35)' : 'rgba(229,72,77,0.35)'}`,
             borderRadius: 10, padding: '16px 20px', marginBottom: 28,
           }}>
             <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16,
-              color: verifyResult.ok ? '#6ee7b7' : '#fca5a5', margin: 0 }}>
+              color: verifyResult.ok ? '#1FA06A' : '#E5484D', margin: 0 }}>
               {verifyResult.ok ? 'Solicitud verificada correctamente' : 'Error de verificación'}
             </p>
             <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', margin: '6px 0 0' }}>
@@ -123,7 +123,7 @@ export default function PrivacyDsrPage() {
         <div data-testid="dsr-hero" style={{ marginBottom: 32 }}>
           <p style={{
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-            letterSpacing: '0.12em', color: '#818cf8', textTransform: 'uppercase',
+            letterSpacing: '0.12em', color: '#6D4AFF', textTransform: 'uppercase',
             margin: '0 0 10px',
           }}>
             Privacidad · LFPDPPP
@@ -156,8 +156,8 @@ export default function PrivacyDsrPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
             {REQUEST_TYPES.map(t => (
               <div key={t.id} style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 borderRadius: 8, padding: '12px 14px',
               }}>
                 <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', margin: '0 0 4px' }}>
@@ -182,11 +182,11 @@ export default function PrivacyDsrPage() {
 
           {result ? (
             <div data-testid="dsr-success-banner" style={{
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.35)',
+              background: 'rgba(109,74,255,0.08)',
+              border: '1px solid rgba(109,74,255,0.30)',
               borderRadius: 10, padding: '18px 22px',
             }}>
-              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: '#a5b4fc', margin: 0 }}>
+              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: '#6D4AFF', margin: 0 }}>
                 Solicitud enviada
               </p>
               <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', margin: '8px 0 0' }}>
@@ -199,7 +199,7 @@ export default function PrivacyDsrPage() {
                 <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', margin: '6px 0 0' }}>
                   [Modo debug — Resend no configurado]
                   <br />
-                  <a href={result.debug_verify_url} style={{ color: '#818cf8' }}>
+                  <a href={result.debug_verify_url} style={{ color: '#6D4AFF' }}>
                     Verificar solicitud
                   </a>
                 </p>
@@ -223,11 +223,11 @@ export default function PrivacyDsrPage() {
                         cursor: 'pointer', transition: 'all 0.15s',
                         background: form.request_type === t.id
                           ? 'linear-gradient(90deg, #6366F1, #EC4899)'
-                          : 'rgba(255,255,255,0.05)',
+                          : '#F6F7FA',
                         border: form.request_type === t.id
                           ? 'none'
-                          : '1px solid rgba(255,255,255,0.12)',
-                        color: 'var(--cream)',
+                          : '1px solid #ECECEC',
+                        color: form.request_type === t.id ? '#FFFFFF' : '#1E2230',
                       }}
                     >
                       {t.label}
@@ -280,7 +280,7 @@ export default function PrivacyDsrPage() {
               </div>
 
               {error && (
-                <p style={{ color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 13, margin: '0 0 12px' }}>
+                <p style={{ color: '#E5484D', fontFamily: 'DM Sans', fontSize: 13, margin: '0 0 12px' }}>
                   {error}
                 </p>
               )}
@@ -326,7 +326,7 @@ export default function PrivacyDsrPage() {
             </p>
             <p>
               Para consultas adicionales contacta: {' '}
-              <a href="mailto:privacidad@desarrollosmx.io" style={{ color: '#818cf8' }}>
+              <a href="mailto:privacidad@desarrollosmx.io" style={{ color: '#6D4AFF' }}>
                 privacidad@desarrollosmx.io
               </a>
             </p>

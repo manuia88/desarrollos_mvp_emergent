@@ -14,18 +14,17 @@ function Bubble({ role, content, simulated }) {
     }}>
       <div style={{
         maxWidth: '78%', padding: '10px 14px', borderRadius: 16,
-        background: isUser ? 'rgba(240,235,224,0.10)' : 'rgba(13,16,23,0.85)',
+        background: isUser ? 'rgba(var(--theme-rgb),0.10)' : '#F6F7FA',
         border: isUser
-          ? '1px solid rgba(240,235,224,0.18)'
-          : '1px solid rgba(var(--theme-rgb),0.25)',
-        backdropFilter: 'blur(24px)',
+          ? '1px solid rgba(var(--theme-rgb),0.25)'
+          : '1px solid #ECECEC',
         color: 'var(--cream)',
         fontFamily: 'DM Sans', fontSize: 13.5, lineHeight: 1.55,
       }}>
         {simulated && (
           <div style={{
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 9, letterSpacing: '0.10em',
-            color: '#fcd34d', marginBottom: 4,
+            color: '#E2982E', marginBottom: 4,
           }}>SIMULATED</div>
         )}
         <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
@@ -100,8 +99,8 @@ function inputStyle() {
   return {
     width: '100%', boxSizing: 'border-box',
     padding: '8px 12px', borderRadius: 10,
-    background: 'rgba(13,16,23,0.85)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: '#FFFFFF',
+    border: '1px solid #ECECEC',
     color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5,
     outline: 'none',
   };
@@ -113,8 +112,8 @@ function LoadingDots() {
     <div data-testid="asistente-loading" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
       <div style={{
         padding: '12px 16px', borderRadius: 16,
-        background: 'rgba(13,16,23,0.85)',
-        border: '1px solid rgba(var(--theme-rgb),0.25)', backdropFilter: 'blur(24px)',
+        background: '#F6F7FA',
+        border: '1px solid #ECECEC',
       }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {[0, 1, 2].map(i => (
@@ -186,8 +185,8 @@ export default function AsistenteChat({
         {showEmpty && messages.length === 0 && (
           <div style={{
             padding: 24, borderRadius: 14, textAlign: 'center',
-            background: 'rgba(13,16,23,0.55)',
-            border: '1px dashed rgba(255,255,255,0.10)',
+            background: '#F6F7FA',
+            border: '1px dashed #D8DAE2',
             color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13.5, lineHeight: 1.55,
           }}>
             Pregúntame: zonas en CDMX, precios por colonia, comparables, qué proyecto se ajusta a tu presupuesto…
@@ -232,8 +231,8 @@ export default function AsistenteChat({
         {captureSuccess && (
           <div data-testid="asistente-capture-success" style={{
             padding: '12px 16px', borderRadius: 14, marginBottom: 14,
-            background: 'rgba(74,222,128,0.10)', border: '1px solid rgba(74,222,128,0.30)',
-            color: '#86efac', fontFamily: 'DM Sans', fontSize: 13,
+            background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.30)',
+            color: '#1FA06A', fontFamily: 'DM Sans', fontSize: 13,
           }}>
             ¡Listo! Un asesor te contactará por WhatsApp en menos de 4 horas hábiles.
           </div>
@@ -245,14 +244,14 @@ export default function AsistenteChat({
       {/* Input footer */}
       <div style={{
         position: 'sticky', bottom: 0, padding: '14px 16px 18px',
-        background: 'linear-gradient(0deg, rgba(6,8,15,1) 70%, rgba(6,8,15,0))',
+        background: 'linear-gradient(0deg, #FBFAFC 70%, rgba(251,250,252,0))',
       }}>
         <div style={{
           display: 'flex', alignItems: 'flex-end', gap: 8,
           padding: 8, borderRadius: 16,
-          background: 'rgba(13,16,23,0.95)',
+          background: '#FFFFFF',
           border: '1px solid rgba(var(--theme-rgb),0.30)',
-          backdropFilter: 'blur(24px)',
+          boxShadow: '0 2px 10px rgba(16,24,40,0.05)',
         }}>
           <textarea
             ref={taRef}

@@ -3,10 +3,9 @@
 // Hero · Grid colonias hijas (links a /zona/:slug) · Lead capture si vacía · FAQ · JSON-LD
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import CtaFooter from '../../components/landing/CtaFooter';
 import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
-import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SITE_BASE = 'https://desarrollosmx.io';
@@ -105,8 +104,8 @@ function FaqAccordion({ faqs }) {
         return (
           <div key={idx} style={{
             borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.10)',
-            background: open ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)',
+            border: '1px solid #ECECEC',
+            background: open ? 'rgba(109,74,255,0.05)' : '#FFFFFF',
             overflow: 'hidden', transition: 'background 0.2s ease',
           }}>
             <button
@@ -121,7 +120,7 @@ function FaqAccordion({ faqs }) {
             >
               <span>{f.question}</span>
               <span style={{
-                fontFamily: 'DM Sans', fontSize: 18, color: '#a5b4fc',
+                fontFamily: 'DM Sans', fontSize: 18, color: '#6D4AFF',
                 transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
                 transition: 'transform 0.18s ease', flexShrink: 0,
               }}>+</span>
@@ -143,7 +142,6 @@ function FaqAccordion({ faqs }) {
 
 export default function AlcaldiaPage() {
   const { slug } = useParams();
-  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,9 +163,9 @@ export default function AlcaldiaPage() {
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-        <Navbar user={user} />
-        <main style={{ maxWidth: 960, margin: '0 auto', padding: '64px 24px' }}>
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ToolNav />
+        <main style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px' }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)' }}>
             Cargando alcaldía…
           </div>
@@ -178,9 +176,9 @@ export default function AlcaldiaPage() {
 
   if (error === 'not_found' || !data) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-        <Navbar user={user} />
-        <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 24px' }}>
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ToolNav />
+        <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px' }}>
           <h1 style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(28px, 5vw, 40px)',
             margin: '0 0 12px', letterSpacing: '-0.025em',
@@ -209,9 +207,9 @@ export default function AlcaldiaPage() {
   const showLeadCapture = data.lead_capture_enabled || cwd.length === 0;
 
   return (
-    <div data-testid="alcaldia-page" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+    <div data-testid="alcaldia-page" className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+      <ToolNav />
       <AlcaldiaJsonLd data={data} />
-      <Navbar user={user} />
       <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 80px' }}>
 
         {/* Breadcrumb */}
@@ -220,9 +218,9 @@ export default function AlcaldiaPage() {
           marginBottom: 18, letterSpacing: '0.04em',
         }}>
           <Link to="/" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>Inicio</Link>
-          <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+          <span style={{ margin: '0 8px', color: '#9AA0AE' }}>›</span>
           <span style={{ color: 'var(--cream-3)' }}>Alcaldías</span>
-          <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+          <span style={{ margin: '0 8px', color: '#9AA0AE' }}>›</span>
           <span style={{ color: 'var(--cream-2)' }}>{data.name}</span>
         </nav>
 
@@ -273,12 +271,12 @@ export default function AlcaldiaPage() {
                   data-testid={`alcaldia-col-${c.slug}`}
                   style={{
                     padding: '14px 16px', borderRadius: 14, textDecoration: 'none',
-                    border: '1px solid rgba(99,102,241,0.20)',
-                    background: 'rgba(99,102,241,0.05)',
+                    border: '1px solid rgba(109,74,255,0.22)',
+                    background: 'rgba(109,74,255,0.05)',
                     transition: 'background 0.18s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.05)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(109,74,255,0.11)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(109,74,255,0.05)'; }}
                 >
                   <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
                     {c.name}
@@ -303,13 +301,13 @@ export default function AlcaldiaPage() {
                   to={`/zona/${c.slug}`}
                   style={{
                     padding: '10px 14px', borderRadius: 10, textDecoration: 'none',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid #ECECEC',
+                    background: '#FFFFFF',
                     fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)',
                     transition: 'background 0.18s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F6F7FA'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
                 >
                   {c.name}
                 </Link>
@@ -347,9 +345,8 @@ function KpiBox({ label, value, testid }) {
     <div data-testid={testid} style={{
       flex: '1 1 180px', minWidth: 160, padding: '16px 20px',
       borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.10)',
-      background: 'rgba(255,255,255,0.025)',
-      backdropFilter: 'blur(12px)',
+      border: '1px solid #ECECEC',
+      background: '#FFFFFF',
     }}>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,

@@ -1,6 +1,6 @@
 // /inteligencia — stub educativo: "Los 97 indicadores detrás de cada precio"
 import React, { useState } from 'react';
-import Navbar from '../components/landing/Navbar';
+import ToolNav from '../components/ui/ToolNav';
 import CtaFooter from '../components/landing/CtaFooter';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
@@ -9,7 +9,6 @@ import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } f
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import ScoreBadge from '../components/investment/ScoreBadge';
 import DMXMarketIndex from '../components/marketplace/DMXMarketIndex';
-import { useAuth } from '../App';
 import { tc } from '../lib/titleCase';
 
 const CATEGORIES = [
@@ -34,14 +33,13 @@ const DEMO_ZONES = [
 ];
 
 export default function Inteligencia() {
-  const { user, logout, openAuth } = useAuth();
   const [explainCode, setExplainCode] = useState(null);
   const [zone, setZone] = useState(DEMO_ZONES[0]);   // colonia del demo LIVE
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar onLogin={openAuth} user={user} onLogout={logout} />
-      <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <ToolNav />
+      <main style={{ padding: '24px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
         <div className="eyebrow" style={{ marginBottom: 12 }}>{tc('Cómo medimos cada zona')}</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
@@ -87,7 +85,7 @@ export default function Inteligencia() {
                 aria-label="Elegir colonia"
                 value={zone.id}
                 onChange={(e) => setZone(DEMO_ZONES.find(z => z.id === e.target.value) || DEMO_ZONES[0])}
-                style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)', background: 'rgba(255,255,255,0.07)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', cursor: 'pointer' }}
+                style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)', background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', cursor: 'pointer' }}
               >
                 {DEMO_ZONES.map(z => <option key={z.id} value={z.id} style={{ color: '#111' }}>📍 {z.name}</option>)}
               </select>
@@ -125,7 +123,7 @@ export default function Inteligencia() {
           {CATEGORIES.map(({ Icon, n, t, d }) => (
             <div key={t} data-testid={`intel-cat-${t.split(' ')[0].toLowerCase()}`} style={{
               padding: 22,
-              background: 'rgba(255,255,255,0.02)',
+              background: '#FFFFFF',
               border: '1px solid var(--border)',
               borderRadius: 16,
               position: 'relative',
@@ -137,7 +135,7 @@ export default function Inteligencia() {
                   border: '1px solid rgba(99,102,241,0.28)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={18} color="var(--indigo-3)" />
+                  <Icon size={18} color="#6D4AFF" />
                 </div>
                 <div style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 28,
@@ -254,7 +252,7 @@ function TopColoniasByScore() {
       ) : items.length === 0 ? (
         <div data-testid="top-colonias-empty" style={{
           padding: '28px 24px', textAlign: 'center',
-          background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: 16,
+          background: '#FFFFFF', border: '1px dashed var(--border)', borderRadius: 16,
         }}>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 6 }}>
             Aún no podemos publicar el ranking
@@ -274,16 +272,15 @@ function TopColoniasByScore() {
               href={`/simulador?colonia=${encodeURIComponent(it.colonia_slug)}`}
               data-testid={`top-colonia-card-${it.colonia_slug}`}
               style={{
-                background: 'rgba(13,16,23,0.92)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: '#FFFFFF',
+                border: '1px solid #E6E8EE',
                 borderRadius: 16, padding: 16,
-                backdropFilter: 'blur(24px)',
                 textDecoration: 'none',
                 display: 'flex', alignItems: 'center', gap: 12,
                 transition: 'transform 220ms ease, border-color 220ms ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.4)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#E6E8EE'; }}
             >
               <div style={{
                 minWidth: 28, fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,

@@ -1,12 +1,11 @@
 // W4.4E — Phase Y.1E · Public Asistente page (/asistente)
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 import AsistenteChat from '../../components/asistente/AsistenteChat';
 import AtlaxVoiceButton from '../../components/landing/AtlaxVoiceButton';
 import SimilarProjectsSection from '../../components/asistente/SimilarProjectsSection';
 import * as asistenteApi from '../../api/asistenteApi';
-import { useAuth } from '../../App';
 import { Z } from '../../styles/zIndex';
 
 const STORAGE_KEY = 'dmx_asistente_session';
@@ -19,7 +18,6 @@ const EMPTY_CHIPS = [
 ];
 
 export default function AsistentePage() {
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [sessionToken, setSessionToken] = useState(null);
   const [messages, setMessages] = useState([]); // {role, content, simulated}
@@ -176,20 +174,20 @@ export default function AsistentePage() {
   // Disabled state
   if (disabled) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
-        <Navbar user={user} />
-        <main style={{ maxWidth: 640, margin: '60px auto', padding: '24px' }}>
+      <div className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ToolNav />
+        <main style={{ maxWidth: 640, margin: '32px auto', padding: '24px' }}>
           <div data-testid="asistente-disabled" style={{
             padding: 28, borderRadius: 14, textAlign: 'center',
-            background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)',
+            background: 'rgba(226,152,46,0.08)', border: '1px solid rgba(226,152,46,0.30)',
           }}>
             <h1 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 22, margin: '0 0 10px' }}>
               Asistente temporalmente fuera de servicio
             </h1>
             <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', margin: 0 }}>
               Estamos haciendo mejoras al asistente. Mientras tanto, puedes explorar el{' '}
-              <a href="/marketplace" style={{ color: '#a5b4fc' }}>marketplace</a> o ver{' '}
-              <a href="/inteligencia" style={{ color: '#a5b4fc' }}>inteligencia por barrio</a>.
+              <a href="/marketplace" style={{ color: '#6D4AFF' }}>marketplace</a> o ver{' '}
+              <a href="/inteligencia" style={{ color: '#6D4AFF' }}>inteligencia por barrio</a>.
             </p>
           </div>
         </main>
@@ -198,11 +196,11 @@ export default function AsistentePage() {
   }
 
   return (
-    <div data-testid="asistente-page" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
-      <Navbar user={user} />
+    <div data-testid="asistente-page" className="theme-light-scope" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
+      <ToolNav />
 
       {/* Hero */}
-      <section style={{ maxWidth: 760, margin: '0 auto', padding: '36px 20px 8px', textAlign: 'center' }}>
+      <section style={{ maxWidth: 760, margin: '0 auto', padding: '28px 20px 8px', textAlign: 'center' }}>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
           textTransform: 'uppercase', marginBottom: 10,
@@ -254,8 +252,8 @@ export default function AsistentePage() {
         <div data-testid="asistente-error" style={{
           position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
           padding: '8px 14px', borderRadius: 9999,
-          background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.30)',
-          color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12,
+          background: 'rgba(229,72,77,0.10)', border: '1px solid rgba(229,72,77,0.30)',
+          color: '#E5484D', fontFamily: 'DM Sans', fontSize: 12,
           backdropFilter: 'blur(24px)', zIndex: Z.DROPDOWN,
         }}>{error}</div>
       )}

@@ -29,8 +29,8 @@ export default function MortgageCalculator({ price }) {
     <div
       data-testid="mortgage-calc"
       style={{
-        background: 'linear-gradient(180deg, #0E1220 0%, #0A0D16 100%)',
-        border: '1px solid var(--border)',
+        background: '#FFFFFF',
+        border: '1px solid #ECECEC',
         borderRadius: 20, padding: 22,
       }}
     >
@@ -49,7 +49,7 @@ export default function MortgageCalculator({ price }) {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>{t('detail.calc_down')}</span>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--indigo-3)' }}>{down}%</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>{down}%</span>
           </div>
           <input data-testid="calc-down" type="range" min={5} max={60} step={1} value={down}
             onChange={e => setDown(+e.target.value)} style={sliderStyle} />
@@ -57,7 +57,7 @@ export default function MortgageCalculator({ price }) {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>{t('detail.calc_term')}</span>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--indigo-3)' }}>{years}</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>{years}</span>
           </div>
           <input data-testid="calc-term" type="range" min={5} max={30} step={1} value={years}
             onChange={e => setYears(+e.target.value)} style={sliderStyle} />
@@ -65,7 +65,7 @@ export default function MortgageCalculator({ price }) {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>{t('detail.calc_rate')}</span>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--indigo-3)' }}>{rate.toFixed(1)}%</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>{rate.toFixed(1)}%</span>
           </div>
           <input data-testid="calc-rate" type="range" min={6} max={16} step={0.1} value={rate}
             onChange={e => setRate(+e.target.value)} style={sliderStyle} />
@@ -92,7 +92,7 @@ export default function MortgageCalculator({ price }) {
           { k: t('detail.calc_total'), v: fmt(total) },
           { k: t('detail.calc_interest'), v: fmt(interest) },
         ].map(({ k, v }) => (
-          <div key={k} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
+          <div key={k} style={{ padding: '10px 12px', background: '#F6F7FA', border: '1px solid var(--border)', borderRadius: 12 }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)' }}>{k}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>{v}</div>
           </div>
