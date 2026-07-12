@@ -83,6 +83,18 @@ async def reverse_search_endpoint(body: ReverseSearchBody, request: Request):
     _rate_limit(request)
     db = request.app.state.db
 
+    # SEGURIDAD P1 (auditoría 2026-07-12): endpoint PÚBLICO sin auth que dispara Claude → sin tope de
+    # presupuesto, un anónimo podía generar factura ilimitada de Anthropic. Gate PRE-gasto (kill-switch +
+    # cap del bucket público), fail-closed: si no hay presupuesto, 429 antes de tocar el LLM.
+    try:
+        from services.llm_guard import within_budget
+        if not await within_budget(db, "__public__"):
+            raise HTTPException(status_code=429, detail="Servicio de IA temporalmente sin presupuesto. Intenta más tarde.")
+    except HTTPException:
+        raise
+    except Exception as _wbe:  # noqa: BLE001
+        log.warning(f"[reverse_search] within_budget no verificable: {_wbe}")
+
     # user_id opcional para budget tracking (no auth required)
     user_id: Optional[str] = None
     try:

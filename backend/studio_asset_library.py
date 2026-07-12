@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -157,7 +158,9 @@ async def list_assets(db, *, user_id: str,
     if tags:
         q["tags"] = {"$in": tags}
     if search:
-        q["filename"] = {"$regex": search, "$options": "i"}
+        safe_search = re.escape((search or "").strip()[:200])
+        if safe_search:
+            q["filename"] = {"$regex": safe_search, "$options": "i"}
     cur = db.studio_assets.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
     items = [d async for d in cur]
     # Reconstruir r2_url al vuelo (auto-fix assets viejos con URL S3 API rota)

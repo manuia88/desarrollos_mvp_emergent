@@ -12,6 +12,7 @@ Colección db.dmx_picks:
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -275,7 +276,7 @@ async def picks_vigentes(db, estrategia: Optional[str] = None, limit: int = 40,
     if estrategia:
         q["estrategia"] = estrategia
     if alcaldia:
-        q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
+        q["alcaldia"] = {"$regex": f"^{re.escape(alcaldia.strip()[:60])}$", "$options": "i"}
     picks = [p async for p in db.dmx_picks.find(q, {"_id": 0}).sort("senal", -1).limit(200)]
     if presupuesto is not None:   # 0 = nada cabe (no 'sin límite'); vacío llega como None desde la UI
         tope = presupuesto * 1.05   # 5% de holgura

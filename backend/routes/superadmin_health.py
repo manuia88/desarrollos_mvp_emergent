@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Literal, Optional
@@ -106,9 +107,10 @@ async def _check_services(db) -> List[Dict[str, Any]]:
     has_emergent = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
     for model_name, label in [("haiku", "claude_haiku"), ("sonnet", "claude_sonnet")]:
         recent_ok = None
+        model_regex = re.escape((model_name or "").strip()[:128])
         try:
             recent_ok = await db.ai_usage.find_one(
-                {"model": {"$regex": model_name, "$options": "i"},
+                {"model": {"$regex": model_regex, "$options": "i"},
                  "ts": {"$gte": (_now() - timedelta(hours=24)).isoformat()}},
                 {"_id": 0, "ts": 1},
                 sort=[("ts", -1)],

@@ -52,7 +52,7 @@ async def test_register_rejects_superadmin(mock_db, monkeypatch):
     _stub_server(monkeypatch)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as ei:
-        await _register(mock_db, email="hacker@x.com", password="x", name="H", role="superadmin")
+        await _register(mock_db, email="hacker@x.com", password="ValidPass123", name="H", role="superadmin")
     assert ei.value.status_code == 400
     assert await mock_db.users.find_one({"email": "hacker@x.com"}) is None
 
@@ -65,7 +65,7 @@ async def test_register_rejects_other_privileged(mock_db, monkeypatch, bad_role)
     _stub_server(monkeypatch)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as ei:
-        await _register(mock_db, email=f"{bad_role}@x.com", password="x", name="X", role=bad_role)
+        await _register(mock_db, email=f"{bad_role}@x.com", password="ValidPass123", name="X", role=bad_role)
     assert ei.value.status_code == 400
 
 
@@ -75,7 +75,7 @@ async def test_register_rejects_other_privileged(mock_db, monkeypatch, bad_role)
 @pytest.mark.parametrize("ok_role", ["buyer", "advisor", "developer_admin"])
 async def test_register_allows_self_serve(mock_db, monkeypatch, ok_role):
     _stub_server(monkeypatch)
-    out = await _register(mock_db, email=f"{ok_role}@x.com", password="x", name="X", role=ok_role)
+    out = await _register(mock_db, email=f"{ok_role}@x.com", password="ValidPass123", name="X", role=ok_role)
     assert out["user"].role == ok_role
     doc = await mock_db.users.find_one({"email": f"{ok_role}@x.com"})
     assert doc and doc["role"] == ok_role
@@ -86,5 +86,14 @@ async def test_register_allows_self_serve(mock_db, monkeypatch, ok_role):
 @pytest.mark.asyncio
 async def test_register_default_buyer(mock_db, monkeypatch):
     _stub_server(monkeypatch)
-    out = await _register(mock_db, email="default@x.com", password="x", name="X")
+    out = await _register(mock_db, email="default@x.com", password="ValidPass123", name="X")
     assert out["user"].role == "buyer"
+
+
+# ─── 5 · política de contraseñas (auditoría P1 2026-07-12): débil → ValidationError ──
+@pytest.mark.unit
+@pytest.mark.parametrize("weak", ["x", "short1", "123456789012", "abcdefghijkl"])
+def test_register_rejects_weak_password(weak):
+    import pydantic
+    with pytest.raises(pydantic.ValidationError):
+        auth_mod.RegisterIn(email="w@x.com", password=weak, name="X", role="buyer")

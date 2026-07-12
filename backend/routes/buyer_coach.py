@@ -80,6 +80,16 @@ async def send_message(conversation_id: str, body: MessageBody, request: Request
     if not body.message.strip():
         raise HTTPException(422, "message_required")
     db = _db(request)
+    # SEGURIDAD P1 (auditoría 2026-07-12): endpoint público que llama a Claude sin tope de presupuesto.
+    # Gate PRE-gasto (kill-switch + cap del bucket público), fail-closed → 429 si no hay presupuesto.
+    try:
+        from services.llm_guard import within_budget
+        if not await within_budget(db, "__public__"):
+            raise HTTPException(status_code=429, detail="Asistente temporalmente sin presupuesto. Intenta más tarde.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     result = await eng.respond(db, conversation_id, body.message.strip()[:500])
     if "error" in result:
         raise HTTPException(404, result["error"])

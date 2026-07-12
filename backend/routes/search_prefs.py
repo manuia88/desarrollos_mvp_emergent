@@ -86,6 +86,8 @@ async def universal_search(
 
     requested = set((types or "").split(",")) & SEARCH_TYPES if types else SEARCH_TYPES
     pattern = re.compile(re.escape(q.strip()), re.IGNORECASE)
+    # Sanitiza input para $regex de Mongo (evita ReDoS / regex-injection)
+    esc = re.escape((q or "").strip()[:80])
 
     results = []
 
@@ -129,7 +131,7 @@ async def universal_search(
         query_filter: dict = {}
         if role != "superadmin":
             query_filter["dev_org_id"] = tenant_id
-        text_filter = {"$regex": q, "$options": "i"}
+        text_filter = {"$regex": esc, "$options": "i"}
         query_filter["$or"] = [
             {"client_name": text_filter},
             {"client_email": text_filter},
@@ -148,7 +150,7 @@ async def universal_search(
 
     # ── Asesores (advisor-scoped) ─────────────────────────────────────────────
     if "asesor" in requested and role in ("advisor", "asesor_admin", "superadmin"):
-        text_filter = {"$regex": q, "$options": "i"}
+        text_filter = {"$regex": esc, "$options": "i"}
         filter_q: dict = {"$or": [{"name": text_filter}, {"email": text_filter}]}
         if role != "superadmin":
             filter_q["tenant_id"] = tenant_id

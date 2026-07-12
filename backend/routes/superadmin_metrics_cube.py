@@ -11,6 +11,7 @@ are registered BEFORE the dynamic /{tier} route to avoid path-shadowing.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
@@ -992,7 +993,7 @@ async def list_tier_route(
     tier: TierLit,
     request: Request,
     parent_id: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, max_length=120),
     sort: Literal["units_desc", "name_asc", "leads_desc", "price_desc"] = "units_desc",
     period: PeriodLit = "current",
     limit: int = Query(50, ge=1, le=200),
@@ -1015,7 +1016,9 @@ async def list_tier_route(
     if parent_id:
         q["parent_tier_id"] = parent_id
     if search:
-        q["name"] = {"$regex": search, "$options": "i"}
+        _search_safe = re.escape((search or "").strip()[:120])
+        if _search_safe:
+            q["name"] = {"$regex": _search_safe, "$options": "i"}
 
     sort_spec: List[tuple] = []
     if sort == "units_desc":

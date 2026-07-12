@@ -11,6 +11,7 @@ Consume W5.FF1+FF2: feature_flags_engine + feature_legacy_adapter + feature_gate
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from typing import Any, Dict, List, Optional
@@ -104,7 +105,7 @@ async def list_users_with_features(
     request: Request,
     role: Optional[str] = Query(None),
     tier: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, max_length=80),
     limit: int = Query(50, ge=1, le=200),
     skip: int = Query(0, ge=0),
 ):
@@ -116,10 +117,11 @@ async def list_users_with_features(
     if role:
         query["role"] = role
     if search:
-        # case-insensitive on email or name
+        # case-insensitive on email or name · re.escape evita ReDoS/regex-injection
+        _search_re = re.escape((search or "").strip())
         query["$or"] = [
-            {"email": {"$regex": search, "$options": "i"}},
-            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": _search_re, "$options": "i"}},
+            {"name": {"$regex": _search_re, "$options": "i"}},
         ]
 
     items: List[Dict[str, Any]] = []

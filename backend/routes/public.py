@@ -4,6 +4,7 @@ Endpoints: /api/colonias/*, /api/properties/*, /api/developments/*, /api/develop
 Backward-compat: same URLs, same response shape.
 """
 import os
+import re
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
@@ -1093,7 +1094,7 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
         pass
     q: Dict[str, Any] = {"geometry": {"$exists": True}}
     if alcaldia:
-        q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
+        q["alcaldia"] = {"$regex": f"^{re.escape(alcaldia.strip()[:60])}$", "$options": "i"}
     feats: List[Dict[str, Any]] = []
     try:
         cursor = db.colonias.find(q, {
@@ -3522,8 +3523,20 @@ async def nlp_search(payload: NLPSearchIn):
 
 # ─── Health ────────────────────────────────────────────────────────────────────
 @router.get("/api/health")
-async def health():
-    return {
-        "status": "ok", "service": "DesarrollosMX API v2",
+async def health(request: Request):
+    # PROD/OBSERVABILIDAD (auditoría 2026-07-12): antes devolvía "ok" incondicional → Render/uptime
+    # reportaban "Live" aunque Mongo estuviera caída (routeaba tráfico a un backend muerto). Ahora hace
+    # ping a la DB; si no responde, 503 (Render marca el servicio down y deja de enrutar).
+    from fastapi.responses import JSONResponse
+    db_ok = False
+    try:
+        await request.app.state.db.command("ping")
+        db_ok = True
+    except Exception:
+        db_ok = False
+    body = {
+        "status": "ok" if db_ok else "degraded", "service": "DesarrollosMX API v2",
+        "db": "up" if db_ok else "down",
         "colonias": len(SEED_COLONIAS), "properties": len(SEED_PROPERTIES),
     }
+    return body if db_ok else JSONResponse(status_code=503, content=body)

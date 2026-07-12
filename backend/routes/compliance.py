@@ -12,6 +12,7 @@ SUPERADMIN:
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -227,7 +228,8 @@ async def compliance_audit_trail(
     if api_key_id:
         q["api_key_id"] = api_key_id
     if endpoint:
-        q["endpoint"] = {"$regex": endpoint, "$options": "i"}
+        _endpoint = re.escape((endpoint or "").strip()[:200])
+        q["endpoint"] = {"$regex": _endpoint, "$options": "i"}
 
     cursor = db.compliance_audit.find(q, {"_id": 0}).sort("ts", -1).limit(limit)
     items = [d async for d in cursor]

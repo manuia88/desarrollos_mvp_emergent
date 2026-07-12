@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 from typing import Optional
 
 log = logging.getLogger("dmx.auth")
@@ -107,9 +107,19 @@ class LoginIn(BaseModel):
 
 class RegisterIn(BaseModel):
     email: str
-    password: str
+    password: str = Field(..., min_length=10, max_length=200)
     name: str
     role: str = "buyer"
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v: str) -> str:
+        # SEGURIDAD P1 (auditoría 2026-07-12): antes register aceptaba passwords de 1 carácter.
+        # Mínimo 10 chars (Field) + debe combinar letras y números. (max_length: bcrypt trunca a 72 bytes;
+        # el cap evita DoS por hashing de passwords gigantes.)
+        if not any(c.isalpha() for c in v) or not any(c.isdigit() for c in v):
+            raise ValueError("La contraseña debe incluir letras y números")
+        return v
 
 
 class SessionCreate(BaseModel):

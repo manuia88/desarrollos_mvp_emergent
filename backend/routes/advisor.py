@@ -5,6 +5,7 @@ Role-gated to advisor / asesor_admin / superadmin.
 """
 
 import os
+import re
 import uuid
 import hashlib
 import logging  # usado por logging.getLogger("dmx.advisor") en varios except (antes faltaba → NameError latente)
@@ -777,10 +778,13 @@ async def list_contactos(
     if tipo: flt["tipo"] = tipo
     if temp: flt["temperatura"] = temp
     if q:
+        # Seguridad: escapar input antes de $regex (evita ReDoS / regex-injection).
+        # re.escape sobre el valor ya .strip() y acotado en longitud; misma lógica de búsqueda.
+        esc = re.escape((q or "").strip()[:80])
         flt["$or"] = [
-            {"first_name": {"$regex": q, "$options": "i"}},
-            {"last_name": {"$regex": q, "$options": "i"}},
-            {"phones": {"$regex": q}},
+            {"first_name": {"$regex": esc, "$options": "i"}},
+            {"last_name": {"$regex": esc, "$options": "i"}},
+            {"phones": {"$regex": esc}},
         ]
     items = await db.asesor_contactos.find(flt, {"_id": 0}).sort("created_at", -1).limit(500).to_list(500)
 
