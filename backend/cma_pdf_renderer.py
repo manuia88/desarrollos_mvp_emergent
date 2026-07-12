@@ -56,7 +56,18 @@ def _register_fonts() -> None:
         pdfmetrics.registerFont(TTFont("CMADisplay", str(LIB / "LiberationSerif-Bold.ttf")))
         _FONTS_REGISTERED = True
     except Exception as exc:
-        log.warning(f"[cma_pdf] font registration failed: {exc}")
+        # BUGFIX (auditoría 2026-07-12): las Liberation TTF son Linux-only → en macOS/otros el registro
+        # fallaba, dejaba _FONTS_REGISTERED=False y el primer setFont('CMABody') tronaba con KeyError →
+        # PDF de CMA daba 500. Alias a fuentes NATIVAS de reportlab bajo los MISMOS nombres CMA* (mismo
+        # fallback que estudio_pdf_renderer), así setFont SIEMPRE resuelve.
+        log.warning(f"[cma_pdf] TTF Liberation no disponibles, usando alias nativas: {exc}")
+        try:
+            pdfmetrics.registerFont(pdfmetrics.Font("CMABody", "Helvetica", "WinAnsiEncoding"))
+            pdfmetrics.registerFont(pdfmetrics.Font("CMABold", "Helvetica-Bold", "WinAnsiEncoding"))
+            pdfmetrics.registerFont(pdfmetrics.Font("CMADisplay", "Times-Bold", "WinAnsiEncoding"))
+            _FONTS_REGISTERED = True
+        except Exception as e2:
+            log.warning(f"[cma_pdf] alias fallback también falló: {e2}")
 
 
 def _fetch_logo_bytes(url: Optional[str]) -> Optional[ImageReader]:

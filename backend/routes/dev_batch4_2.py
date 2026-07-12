@@ -17,6 +17,19 @@ from pydantic import BaseModel
 log = logging.getLogger("dmx.batch4_2")
 router = APIRouter(tags=["batch4.2"])
 
+
+def _origin_dict(lead: Dict[str, Any]) -> Dict[str, Any]:
+    # BUGFIX (auditoría 2026-07-12): 'origin' puede venir como STRING ('asesor_manual','marketplace')
+    # o como dict {type,...}. origin.get('type') sobre un string → 500 (el Kanban del asesor tronaba con
+    # su primer lead manual). Normaliza SIEMPRE a dict; si es string, lo mapea a {'type': <string>} para
+    # no perder el tipo de origen.
+    o = (lead or {}).get("origin")
+    if isinstance(o, dict):
+        return o
+    if isinstance(o, str) and o:
+        return {"type": o}
+    return {}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants (shared with batch4)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -162,7 +175,7 @@ def can_move_lead(user, lead: Dict) -> bool:
     # Developer director: can move dev_direct/dev_inhouse (NOT broker_external)
     if lvl == "developer_director":
         if lead.get("dev_org_id") == getattr(user, "tenant_id", ""):
-            origin_type = (lead.get("origin") or {}).get("type", "")
+            origin_type = _origin_dict(lead).get("type", "")
             return origin_type in ("dev_direct", "dev_inhouse", "")
     # Inmobiliaria director: can move all inmobiliaria leads
     if lvl == "inmobiliaria_director":
@@ -236,7 +249,7 @@ def _build_card(lead: Dict, name_by_id: Dict[str, str], now: datetime,
         "red"
     )
     assigned_id = lead.get("assigned_to")
-    origin = lead.get("origin") or {}
+    origin = _origin_dict(lead)
     origin_type = origin.get("type", "")
     if can_full:
         contact_name = lead.get("contact", {}).get("name", "—")
@@ -504,7 +517,7 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
     # Permission check
     if not can_move_lead(user, lead):
         lvl = get_user_permission_level(user)
-        origin_type = (lead.get("origin") or {}).get("type", "")
+        origin_type = _origin_dict(lead).get("type", "")
         if origin_type == "broker_external":
             detail = "Solo el asesor puede mover este lead (origen externo)"
         else:
@@ -872,7 +885,7 @@ async def client_cross_project_leads(client_gid: str, request: Request):
             "project_id": l.get("project_id"),
             "project_name": project_name_map.get(l.get("project_id", ""), l.get("project_id")),
             "status": l.get("status"),
-            "origin_type": (l.get("origin") or {}).get("type", ""),
+            "origin_type": _origin_dict(l).get("type", ""),
             "asesor_name": name_by_id.get(assigned, "—"),
             "last_activity_at": l.get("last_activity_at"),
             "created_at": l.get("created_at"),

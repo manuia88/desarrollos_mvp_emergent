@@ -56,7 +56,18 @@ def _register_fonts():
         pdfmetrics.registerFont(TTFont("Display-Regular", str(LIB / "LiberationSerif-Regular.ttf")))
         _FONTS_REGISTERED = True
     except Exception as exc:
-        log.warning(f"[renderer] font registration failed: {exc}")
+        # BUGFIX (auditoría 2026-07-12): Liberation TTF Linux-only → en macOS/otros el registro fallaba,
+        # dejaba _FONTS_REGISTERED=False y setFont('Display') tronaba con KeyError → brochure daba 500.
+        # Alias a fuentes NATIVAS de reportlab bajo los MISMOS nombres, así setFont SIEMPRE resuelve.
+        log.warning(f"[renderer] TTF Liberation no disponibles, usando alias nativas: {exc}")
+        try:
+            pdfmetrics.registerFont(pdfmetrics.Font("Body", "Helvetica", "WinAnsiEncoding"))
+            pdfmetrics.registerFont(pdfmetrics.Font("Body-Bold", "Helvetica-Bold", "WinAnsiEncoding"))
+            pdfmetrics.registerFont(pdfmetrics.Font("Display", "Times-Bold", "WinAnsiEncoding"))
+            pdfmetrics.registerFont(pdfmetrics.Font("Display-Regular", "Times-Roman", "WinAnsiEncoding"))
+            _FONTS_REGISTERED = True
+        except Exception as e2:
+            log.warning(f"[renderer] alias fallback también falló: {e2}")
 
 
 def _font_path(variant: str = "regular") -> Optional[str]:
