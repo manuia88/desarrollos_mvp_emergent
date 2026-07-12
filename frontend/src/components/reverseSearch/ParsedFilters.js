@@ -2,17 +2,17 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
 const RED = '#EF4444';
-const MUTED = 'rgba(240,235,224,0.62)';
+const MUTED = '#5A5F6E';
 
 const chipBase = {
   display: 'inline-flex', alignItems: 'center',
   padding: '6px 14px', borderRadius: 9999, fontSize: 12,
   letterSpacing: '0.08em', fontFamily: 'DM Sans, sans-serif',
-  background: 'rgba(13,16,23,0.6)', color: CREAM,
+  background: '#F6F7FA', color: CREAM,
   marginRight: 8, marginBottom: 8, whiteSpace: 'nowrap',
 };
 

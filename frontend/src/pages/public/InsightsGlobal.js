@@ -11,18 +11,19 @@ import { Z } from '../../styles/zIndex';
 import { fetchAllSourcesStatus, fetchGlobalSource } from '../../api/insights_external';
 import FactCheckBadge from '../../components/insights/FactCheckBadge';
 import CoursesPanel from '../../components/insights/CoursesPanel';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
+import { LightScope } from '../../components/ui';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const PALETTE = {
-  mx: '#6366F1',
+  mx: '#6D4AFF',
   world: '#EC4899',
-  us: '#22C55E',
-  neutral: '#F59E0B',
-  warn: '#EF4444',
-  cream: '#F0EBE0',
-  cream2: '#a0a4b0',
+  us: '#1FA06A',
+  neutral: '#E2982E',
+  warn: '#E5484D',
+  cream: '#1E2230',   // texto principal (antes crema #F0EBE0)
+  cream2: '#5A5F6E',  // texto secundario (antes gris claro)
 };
 
 const CATEGORIES = [
@@ -78,10 +79,10 @@ const DEMO_DOING_BUSINESS = [
 
 // Status pill colors per source status
 const STATUS_TONE = {
-  ok: { bg: 'rgba(34,197,94,0.14)', fg: '#22C55E', label: 'OK' },
-  error: { bg: 'rgba(239,68,68,0.14)', fg: '#EF4444', label: 'Error' },
-  skipped: { bg: 'rgba(245,158,11,0.14)', fg: '#F59E0B', label: 'API key faltante' },
-  never_fetched: { bg: 'rgba(160,164,176,0.14)', fg: '#a0a4b0', label: 'Pendiente cron' },
+  ok: { bg: 'rgba(31,160,106,0.12)', fg: '#1FA06A', label: 'OK' },
+  error: { bg: 'rgba(229,72,77,0.12)', fg: '#E5484D', label: 'Error' },
+  skipped: { bg: 'rgba(226,152,46,0.14)', fg: '#B87613', label: 'API key faltante' },
+  never_fetched: { bg: 'rgba(154,160,174,0.14)', fg: '#5A5F6E', label: 'Pendiente cron' },
 };
 
 function StatusPill({ status }) {
@@ -96,12 +97,15 @@ function StatusPill({ status }) {
   );
 }
 
+// Recharts axis/tick color en tema claro (spec founder).
+const AXIS = '#6B7385';
+
 function tooltipStyle() {
   return {
-    background: 'rgba(13,16,23,0.95)',
-    border: '1px solid rgba(240,235,224,0.15)',
+    background: '#FFFFFF',
+    border: '1px solid #E6E8EE',
     borderRadius: 10,
-    color: PALETTE.cream,
+    color: '#1E2230',
     fontFamily: 'DM Sans', fontSize: 12,
   };
 }
@@ -109,8 +113,8 @@ function tooltipStyle() {
 function ChartCard({ title, subtitle, source, children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: '#FFFFFF',
+      border: '1px solid #ECECEC',
       borderRadius: 14, padding: '18px 18px 14px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
@@ -205,12 +209,11 @@ export default function InsightsGlobal() {
   }, [statusList]);
 
   return (
-    <div data-testid="insights-global-page" style={{
-      background: 'var(--bg, #06080F)', color: PALETTE.cream, minHeight: '100vh',
+    <LightScope data-testid="insights-global-page" style={{
+      background: 'var(--bg, #FBFAFC)', color: PALETTE.cream, minHeight: '100vh',
       paddingBottom: 100,
     }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+      <ToolNav />
       {/* Brand gradient top bar */}
       <div style={{
         height: 6,
@@ -249,7 +252,7 @@ export default function InsightsGlobal() {
       {/* Tabs */}
       <section style={{ maxWidth: 1180, margin: '0 auto', padding: '0 24px 8px' }}>
         <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC',
           paddingBottom: 14, marginBottom: 24,
         }}>
           {CATEGORIES.map(c => (
@@ -259,8 +262,8 @@ export default function InsightsGlobal() {
               onClick={() => setActiveTab(c.key)}
               style={{
                 padding: '8px 16px', borderRadius: 8,
-                background: activeTab === c.key ? 'rgba(99,102,241,0.18)' : 'transparent',
-                border: activeTab === c.key ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.10)',
+                background: activeTab === c.key ? 'rgba(109,74,255,0.12)' : 'transparent',
+                border: activeTab === c.key ? '1px solid rgba(109,74,255,0.4)' : '1px solid #ECECEC',
                 color: activeTab === c.key ? PALETTE.mx : PALETTE.cream2,
                 fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer',
@@ -281,9 +284,9 @@ export default function InsightsGlobal() {
             >
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={DEMO_PRICE_TREND}>
-                  <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="year" stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
-                  <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
+                  <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+                  <XAxis dataKey="year" stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
+                  <YAxis stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
                   <Tooltip contentStyle={tooltipStyle()} />
                   <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 12 }} />
                   <Line type="monotone" dataKey="mx_index" name="México (INEGI)" stroke={PALETTE.mx} strokeWidth={2.5} dot={{ r: 3 }} />
@@ -301,9 +304,9 @@ export default function InsightsGlobal() {
             >
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={DEMO_YIELDS} margin={{ left: 0, right: 20, top: 10, bottom: 30 }}>
-                  <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="city" stroke={PALETTE.cream2} tick={{ fontSize: 11 }} angle={-30} dy={10} />
-                  <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} unit="%" />
+                  <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+                  <XAxis dataKey="city" stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} angle={-30} dy={10} />
+                  <YAxis stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} unit="%" />
                   <Tooltip contentStyle={tooltipStyle()} formatter={(v) => `${v}%`} />
                   <Bar dataKey="gross_yield_pct" radius={[6, 6, 0, 0]}>
                     {DEMO_YIELDS.map((d, i) => (
@@ -323,9 +326,9 @@ export default function InsightsGlobal() {
             >
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={DEMO_DOING_BUSINESS} layout="vertical" margin={{ left: 100, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-                  <XAxis type="number" stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="metric" type="category" stroke={PALETTE.cream2} tick={{ fontSize: 11 }} width={120} />
+                  <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+                  <XAxis type="number" stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
+                  <YAxis dataKey="metric" type="category" stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} width={120} />
                   <Tooltip contentStyle={tooltipStyle()} />
                   <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 12 }} />
                   <Bar dataKey="mx_value" name="México" fill={PALETTE.mx} radius={[0, 6, 6, 0]} />
@@ -343,9 +346,9 @@ export default function InsightsGlobal() {
             >
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={(wbPayload[1] || []).filter(r => r && r.value != null).slice(0, 15).reverse()}>
-                  <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
-                  <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
+                  <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
+                  <YAxis stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
                   <Tooltip contentStyle={tooltipStyle()} />
                   <Line type="monotone" dataKey="value" name="Procedimientos" stroke={PALETTE.mx} strokeWidth={2.5} dot={{ r: 3 }} />
                 </LineChart>
@@ -361,9 +364,9 @@ export default function InsightsGlobal() {
             >
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={(fredPayload.observations || []).filter(o => o.value !== '.').slice(0, 24).reverse().map(o => ({ date: o.date, value: parseFloat(o.value) }))}>
-                  <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke={PALETTE.cream2} tick={{ fontSize: 10 }} angle={-30} dy={8} />
-                  <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
+                  <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" stroke={AXIS} tick={{ fontSize: 10, fill: AXIS }} angle={-30} dy={8} />
+                  <YAxis stroke={AXIS} tick={{ fontSize: 11, fill: AXIS }} />
                   <Tooltip contentStyle={tooltipStyle()} />
                   <Line type="monotone" dataKey="value" name="CSUSHPINSA" stroke={PALETTE.us} strokeWidth={2.5} dot={false} />
                 </LineChart>
@@ -393,8 +396,8 @@ export default function InsightsGlobal() {
           }}>
             {visibleSources.map(s => (
               <div key={s.source_id} style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: '#FFFFFF',
+                border: '1px solid #ECECEC',
                 borderRadius: 10, padding: 14,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
@@ -421,8 +424,8 @@ export default function InsightsGlobal() {
       {/* CTAs */}
       <section style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 24px' }}>
         <div style={{
-          background: 'rgba(99,102,241,0.08)',
-          border: '1px solid rgba(99,102,241,0.25)',
+          background: 'rgba(109,74,255,0.06)',
+          border: '1px solid rgba(109,74,255,0.22)',
           borderRadius: 14, padding: '24px 22px',
           display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between',
         }}>
@@ -438,7 +441,7 @@ export default function InsightsGlobal() {
           </div>
           <Link to="/insights/compare/mortgage-rates" style={{
             fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700,
-            color: PALETTE.cream, textDecoration: 'none',
+            color: '#FFFFFF', textDecoration: 'none',
             background: 'linear-gradient(90deg, #6366F1, #EC4899)',
             padding: '12px 22px', borderRadius: 9999,
             whiteSpace: 'nowrap',
@@ -463,6 +466,6 @@ export default function InsightsGlobal() {
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
         <CoursesPanel limit={6} />
       </section>
-    </div>
+    </LightScope>
   );
 }

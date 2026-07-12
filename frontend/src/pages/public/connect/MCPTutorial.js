@@ -1,6 +1,7 @@
 // W4.16 Sub-C — MCP Tutorial (public /connect/mcp/tutorial)
 import React, { useEffect, useState } from 'react';
-import Navbar from '../../../components/landing/Navbar';
+import ToolNav from '../../../components/ui/ToolNav';
+import { LightScope } from '../../../components/ui';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -71,11 +72,10 @@ export default function MCPTutorial() {
   };
 
   return (
-    <div data-testid="mcp-tutorial-page" style={{
-      background: '#06080F', color: '#F0EBE0', minHeight: '100vh', paddingBottom: 100,
+    <LightScope data-testid="mcp-tutorial-page" style={{
+      background: '#FBFAFC', color: '#1E2230', minHeight: '100vh', paddingBottom: 100,
     }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+      <ToolNav />
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Hero */}
@@ -88,10 +88,10 @@ export default function MCPTutorial() {
           Conecta <span style={gradientText}>Claude Desktop</span> a DesarrollosMX
         </h1>
         <p style={{
-          fontFamily: 'DM Sans', fontSize: 17, color: 'var(--cream-3, #a0a4b0)',
+          fontFamily: 'DM Sans', fontSize: 17, color: '#5A5F6E',
           maxWidth: 760, lineHeight: 1.55,
         }}>
-          DMX MCP server expone <strong style={{ color: 'var(--cream)' }}>18 herramientas agentic</strong> · queries naturales
+          DMX MCP server expone <strong style={{ color: '#1E2230' }}>18 herramientas agentic</strong> · queries naturales
           sobre inteligencia inmobiliaria CDMX directo desde tu IDE.
         </p>
       </div>
@@ -100,7 +100,7 @@ export default function MCPTutorial() {
       <Section title="¿Qué es MCP?">
         <div style={card}>
           <p style={p}>
-            <strong style={{ color: 'var(--cream)' }}>Model Context Protocol</strong> (MCP) es el estándar
+            <strong style={{ color: '#1E2230' }}>Model Context Protocol</strong> (MCP) es el estándar
             abierto de Anthropic para conectar modelos de IA a fuentes de datos y herramientas externas
             de forma segura y composable.
           </p>
@@ -136,10 +136,10 @@ export default function MCPTutorial() {
               style={{
                 position: 'absolute', top: 12, right: 12,
                 background: copied === 'config'
-                  ? 'rgba(34,197,94,0.18)'
-                  : 'rgba(240,235,224,0.10)',
-                color: copied === 'config' ? '#86efac' : 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.20)', borderRadius: 9999,
+                  ? 'rgba(31,160,106,0.12)'
+                  : '#F6F7FA',
+                color: copied === 'config' ? '#1FA06A' : '#1E2230',
+                border: '1px solid #ECECEC', borderRadius: 9999,
                 padding: '5px 14px',
                 fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
                 cursor: 'pointer',
@@ -174,10 +174,10 @@ export default function MCPTutorial() {
               data-testid={`mcp-query-example-${i + 1}`}
               style={{ ...card, padding: 18 }}
             >
-              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: '#1E2230', marginBottom: 8 }}>
                 "{eq.q}"
               </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3, #a0a4b0)', lineHeight: 1.55 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#5A5F6E', lineHeight: 1.55 }}>
                 → {eq.a}
               </div>
             </div>
@@ -192,12 +192,12 @@ export default function MCPTutorial() {
             <span
               key={c}
               style={{
-                background: 'rgba(99,102,241,0.10)',
+                background: 'rgba(99,102,241,0.08)',
                 border: '1px solid rgba(99,102,241,0.30)',
                 borderRadius: 9999,
                 padding: '8px 18px',
                 fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, letterSpacing: '0.04em',
-                color: 'var(--cream)',
+                color: '#6D4AFF',
               }}
             >
               {c}
@@ -210,16 +210,16 @@ export default function MCPTutorial() {
       <div style={{ maxWidth: 1000, margin: '60px auto 0', padding: '0 24px' }}>
         <div style={{
           ...card,
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.08))',
           border: '1px solid rgba(99,102,241,0.30)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 16, flexWrap: 'wrap',
         }}>
           <div style={{ maxWidth: 540 }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#1E2230', marginBottom: 6 }}>
               ¿Eres asesor o desarrollador?
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)', lineHeight: 1.55 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: '#5A5F6E', lineHeight: 1.55 }}>
               Studio brochures · briefings IE · simulator · 3D tours · CRM agéntico. Empieza gratis.
             </div>
           </div>
@@ -232,14 +232,14 @@ export default function MCPTutorial() {
           </a>
         </div>
       </div>
-    </div>
+    </LightScope>
   );
 }
 
 function Section({ title, children }) {
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px 0' }}>
-      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, margin: '0 0 18px', letterSpacing: '-0.01em' }}>
+      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, margin: '0 0 18px', letterSpacing: '-0.01em', color: '#1E2230' }}>
         {title}
       </h2>
       {children}
@@ -260,7 +260,7 @@ function Step({ n, title, children, testid }) {
           color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
         }}>{n}</span>
-        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: '#1E2230' }}>
           {title}
         </div>
       </div>
@@ -272,47 +272,46 @@ function Step({ n, title, children, testid }) {
 // Styles
 const eyebrow = {
   fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.12em',
-  color: 'var(--cream-3, #a0a4b0)',
+  color: '#9AA0AE',
 };
 const gradientText = {
   background: 'linear-gradient(90deg, #6366F1, #EC4899)',
   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
 };
 const card = {
-  background: 'rgba(13,16,23,0.92)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: '#FFFFFF',
+  border: '1px solid #ECECEC',
   borderRadius: 18, padding: 22,
-  backdropFilter: 'blur(24px)',
 };
-const p = { fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)', lineHeight: 1.6, margin: '0 0 10px' };
-const link = { color: '#a5b4fc', textDecoration: 'underline' };
+const p = { fontFamily: 'DM Sans', fontSize: 14, color: '#5A5F6E', lineHeight: 1.6, margin: '0 0 10px' };
+const link = { color: '#6D4AFF', textDecoration: 'underline' };
 const codeInline = {
-  background: 'rgba(15,18,28,0.85)',
-  border: '1px solid rgba(240,235,224,0.10)',
+  background: '#F6F7FA',
+  border: '1px solid #ECECEC',
   borderRadius: 6,
   padding: '2px 8px',
   fontFamily: 'monospace', fontSize: 12,
-  color: 'var(--cream)',
+  color: '#1E2230',
 };
 const codeBlock = {
-  background: '#0a0d14',
-  border: '1px solid rgba(240,235,224,0.10)',
+  background: '#F6F7FA',
+  border: '1px solid #ECECEC',
   borderRadius: 12,
   padding: '18px 16px',
   fontFamily: 'monospace', fontSize: 12,
-  color: '#a5b4fc',
+  color: '#5B37E0',
   overflow: 'auto',
   margin: 0,
 };
 const quote = {
-  background: 'rgba(99,102,241,0.08)',
+  background: 'rgba(99,102,241,0.06)',
   border: '1px solid rgba(99,102,241,0.30)',
   borderLeft: '3px solid #EC4899',
   borderRadius: 10,
   padding: '12px 16px',
   marginTop: 10,
   fontFamily: 'DM Sans', fontStyle: 'italic',
-  color: 'var(--cream)',
+  color: '#1E2230',
   fontSize: 14,
 };
 const ctaPrimary = {

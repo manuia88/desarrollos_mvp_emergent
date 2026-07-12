@@ -3,8 +3,8 @@ import React from 'react';
 
 const fieldStyle = {
   width: '100%',
-  background: 'rgba(15,18,28,0.85)',
-  border: '1px solid rgba(240,235,224,0.12)',
+  background: '#FFFFFF',
+  border: '1px solid #E6E8EE',
   borderRadius: 10,
   color: 'var(--cream)',
   padding: '11px 14px',

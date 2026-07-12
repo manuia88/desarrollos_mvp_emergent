@@ -2,10 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -46,7 +46,7 @@ export default function MoodQuizCard({ question, progress = 0, onSelect, stepInd
       <div data-testid="mood-quiz-progress-wrap" style={{ marginBottom: 28 }}>
         <div style={{
           height: 4, borderRadius: 9999,
-          background: 'rgba(240,235,224,0.06)', overflow: 'hidden',
+          background: '#F6F7FA', overflow: 'hidden',
         }}>
           <div
             data-testid="mood-quiz-progress-bar"
@@ -59,7 +59,7 @@ export default function MoodQuizCard({ question, progress = 0, onSelect, stepInd
           />
         </div>
         <div style={{
-          marginTop: 10, fontSize: 11, color: 'rgba(240,235,224,0.45)',
+          marginTop: 10, fontSize: 11, color: '#9AA0AE',
           fontFamily: 'DM Sans, sans-serif', letterSpacing: '0.18em', textTransform: 'uppercase',
           textAlign: 'center',
         }}>{`${stepIndex + 1} / ${total}`}</div>

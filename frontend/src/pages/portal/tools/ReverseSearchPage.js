@@ -8,14 +8,14 @@ import { postReverseSearch } from '../../../api/reverse_search';
 // W5.x F7 — Lead Capture
 import useBehavioralTracker from '../../../hooks/useBehavioralTracker';
 import LeadCaptureModal from '../../../components/leadCapture/LeadCaptureModal';
-import Navbar from '../../../components/landing/Navbar';
+import ToolNav from '../../../components/ui/ToolNav';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
-const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BG = '#FBFAFC';
+const CREAM = '#1E2230';
+const INDIGO = '#6D4AFF';
+const MUTED = '#5A5F6E';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export default function ReverseSearchPage() {
@@ -69,9 +69,8 @@ export default function ReverseSearchPage() {
   ];
 
   return (
-    <div data-testid="reverse-search-page" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <div data-testid="reverse-search-page" className="theme-light-scope" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
+      <ToolNav />
       <header style={{ padding: '64px 24px 24px', maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>DesarrollosMX · Tools</div>
         <h1 style={{

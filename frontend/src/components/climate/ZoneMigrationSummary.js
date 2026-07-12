@@ -2,12 +2,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const MUTED_2 = '#9AA0AE';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 const gradientText = {
@@ -155,7 +155,7 @@ export default function ZoneMigrationSummary({ zone }) {
             padding: '14px 16px', borderRadius: 12,
             background: 'rgba(99,102,241,0.06)',
             borderLeft: `3px solid ${INDIGO}`,
-            color: 'rgba(240,235,224,0.85)',
+            color: '#434A5C',
             fontSize: 13, lineHeight: 1.6,
             marginBottom: zone.recommendation ? 14 : 0,
           }}

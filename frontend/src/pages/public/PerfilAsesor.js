@@ -6,7 +6,8 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
+import { LightScope } from '../../components/ui';
 import TrustScoreBadge from '../../components/asesor/TrustScoreBadge';
 import EndorsementsCard from '../../components/asesor/EndorsementsCard';
 import { fetchPublicProfile, fetchPublicProfileBySlug, revealAsesorContact } from '../../api/asesor_identity';
@@ -31,9 +32,8 @@ function detectSubdomainSlug() {
 
 const cardStyle = {
   padding: 20, borderRadius: 16,
-  background: 'rgba(13,16,23,0.92)',
-  border: '1px solid rgba(240,235,224,0.12)',
-  backdropFilter: 'blur(24px)',
+  background: '#FFFFFF',
+  border: '1px solid #ECECEC',
 };
 
 function buildWaHref(phone, name) {
@@ -83,8 +83,8 @@ function ContactGate({ asesorId, asesorName }) {
 
   const inp = {
     padding: '10px 12px', borderRadius: 10, fontSize: 13,
-    background: 'rgba(240,235,224,0.06)', color: 'var(--cream)',
-    border: '1px solid rgba(240,235,224,0.18)', outline: 'none', width: '100%',
+    background: '#F6F7FA', color: 'var(--cream)',
+    border: '1px solid #ECECEC', outline: 'none', width: '100%',
   };
   return (
     <form data-testid="public-contact-gate" onSubmit={submit}
@@ -174,9 +174,9 @@ export default function PerfilAsesor() {
       {justConfirmed && (
         <div data-testid="confirmed-banner" style={{
           padding: '10px 16px', borderRadius: 9999,
-          background: 'rgba(34,197,94,0.1)',
-          border: '1px solid rgba(34,197,94,0.3)',
-          color: '#86efac', fontSize: 12,
+          background: 'rgba(31,160,106,0.1)',
+          border: '1px solid rgba(31,160,106,0.3)',
+          color: '#1FA06A', fontSize: 12,
           textAlign: 'center', marginBottom: 18,
         }}>
           ¡Tu reseña fue confirmada! Ya aparece en este perfil.
@@ -195,7 +195,7 @@ export default function PerfilAsesor() {
             <img src={photo} alt={asesor.name}
                  style={{ width: 96, height: 96, borderRadius: 9999,
                           objectFit: 'cover',
-                          border: '1px solid rgba(240,235,224,0.18)' }} />
+                          border: '1px solid #ECECEC' }} />
           ) : (
             <div style={{
               width: 96, height: 96, borderRadius: 9999,
@@ -335,8 +335,8 @@ export default function PerfilAsesor() {
                    data-testid={`public-project-${p.id}`}
                    style={{
                      padding: 12, borderRadius: 12,
-                     background: 'rgba(240,235,224,0.04)',
-                     border: '1px solid rgba(240,235,224,0.1)',
+                     background: '#F6F7FA',
+                     border: '1px solid #ECECEC',
                      color: 'var(--cream)', textDecoration: 'none',
                      display: 'flex', flexDirection: 'column', gap: 6,
                    }}>
@@ -358,22 +358,19 @@ export default function PerfilAsesor() {
 
 function PageShell({ children }) {
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      padding: '60px 20px',
-    }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
-      <div style={{ maxWidth: 920, margin: '0 auto' }}>
-        <Link to="/" data-testid="public-perfil-home-link"
-              style={{
-                display: 'inline-block', marginBottom: 18,
-                fontSize: 12, color: 'var(--cream-3)',
-                textDecoration: 'none',
-              }}>← DesarrollosMX</Link>
-        {children}
+    <LightScope>
+      <ToolNav />
+      <div style={{ padding: '40px 20px' }}>
+        <div style={{ maxWidth: 920, margin: '0 auto' }}>
+          <Link to="/" data-testid="public-perfil-home-link"
+                style={{
+                  display: 'inline-block', marginBottom: 18,
+                  fontSize: 12, color: 'var(--cream-3)',
+                  textDecoration: 'none',
+                }}>← DesarrollosMX</Link>
+          {children}
+        </div>
       </div>
-    </div>
+    </LightScope>
   );
 }

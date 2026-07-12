@@ -2,12 +2,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #E6E8EE';
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

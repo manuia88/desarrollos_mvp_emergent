@@ -3,11 +3,11 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceSearchButton from '../voice/VoiceSearchButton';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
+const MUTED = '#5A5F6E';
+const CARD_BG = '#FFFFFF';
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const MAX_CHARS = 500;
@@ -41,7 +41,7 @@ export default function SearchBar({ value, onChange, onSubmit, loading, placehol
         display: 'flex', alignItems: 'flex-end', gap: 12,
         padding: '14px 16px 14px 22px',
         background: CARD_BG,
-        border: `1px solid ${tooLong ? ROSE : 'rgba(240,235,224,0.14)'}`,
+        border: `1px solid ${tooLong ? ROSE : '#E6E8EE'}`,
         borderRadius: 28,
         backdropFilter: 'blur(24px)',
         transition: `border-color 320ms ${EASE}`,

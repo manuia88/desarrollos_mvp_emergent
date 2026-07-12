@@ -29,7 +29,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
     <div
       data-testid="audit-result-card"
       style={{
-        background: 'rgba(13,16,23,0.92)',
+        background: '#FFFFFF',
         border: '1px solid rgba(99,102,241,0.35)',
         borderRadius: 18,
         padding: 28,
@@ -82,7 +82,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
           disabled={resending}
           style={{
             background: 'transparent', color: 'var(--cream)',
-            border: '1px solid rgba(240,235,224,0.3)', borderRadius: 9999,
+            border: '1px solid #D5D8E2', borderRadius: 9999,
             padding: '12px 24px',
             fontFamily: 'Outfit', fontWeight: 700, fontSize: 12,
             letterSpacing: '0.08em',
@@ -110,7 +110,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
 
       <div style={{
         marginTop: 22, paddingTop: 18,
-        borderTop: '1px solid rgba(240,235,224,0.08)',
+        borderTop: '1px solid #ECECEC',
         fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
       }}>
         ¿Quieres profundizar? Un asesor DMX puede ayudarte a estructurar la comercialización.

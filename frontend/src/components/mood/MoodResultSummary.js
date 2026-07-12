@@ -3,10 +3,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import WhatsAppCTAButton from '../whatsapp/WhatsAppCTAButton';
 
-const CREAM = '#F0EBE0';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CREAM = '#1E2230';
+const MUTED_2 = '#9AA0AE';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -74,8 +74,8 @@ export default function MoodResultSummary({ mood_vector = {}, mood_label = '', o
               </div>
               <div style={{
                 position: 'relative', height: 6, borderRadius: 9999,
-                background: 'rgba(240,235,224,0.06)',
-                border: '1px solid rgba(240,235,224,0.06)',
+                background: '#F6F7FA',
+                border: '1px solid #F6F7FA',
               }}>
                 <span
                   aria-hidden="true"
@@ -106,14 +106,14 @@ export default function MoodResultSummary({ mood_vector = {}, mood_label = '', o
           style={{
             padding: '10px 22px', borderRadius: 9999,
             background: 'transparent', color: CREAM,
-            border: `1px solid rgba(240,235,224,0.30)`,
+            border: `1px solid #D5D8E2`,
             fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 13,
             letterSpacing: '0.04em', cursor: 'pointer',
             transition: `transform 280ms ${EASE}, background 280ms ${EASE}`,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.background = 'rgba(240,235,224,0.04)';
+            e.currentTarget.style.background = '#F6F7FA';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';

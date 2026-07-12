@@ -9,15 +9,15 @@ import {
 import MigrationHeatmap from '../../components/climate/MigrationHeatmap';
 import MigrationPatternCard from '../../components/climate/MigrationPatternCard';
 import ZoneMigrationSummary from '../../components/climate/ZoneMigrationSummary';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = '#FBFAFC';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const MUTED_2 = '#9AA0AE';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 
 export default function ClimateMigrationPage() {
   const { t } = useTranslation('common');
@@ -67,9 +67,8 @@ export default function ClimateMigrationPage() {
   const patternList = Array.isArray(patterns?.patterns) ? patterns.patterns.slice(0, 6) : [];
 
   return (
-    <div data-testid="climate-migration-page" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <div data-testid="climate-migration-page" className="theme-light-scope" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
+      <ToolNav />
       <header style={{ padding: '64px 24px 16px', maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>
           DesarrollosMX · Inteligencia Climatica
@@ -142,7 +141,7 @@ export default function ClimateMigrationPage() {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} style={{
                   height: 240, borderRadius: 24, border: BORDER,
-                  background: 'linear-gradient(90deg, rgba(240,235,224,0.03), rgba(240,235,224,0.08), rgba(240,235,224,0.03))',
+                  background: 'linear-gradient(90deg, #F6F7FA, #ECECEC, #F6F7FA)',
                   backgroundSize: '200% 100%', animation: 'cmShimmer 1.4s linear infinite',
                 }} />
               ))}

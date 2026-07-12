@@ -10,14 +10,14 @@ import { useTranslation } from 'react-i18next';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getMetaDashboard, exportPdfUrl } from '../../api/accuracy';
 import AccuracyTopZonesTicker from '../../components/shared/AccuracyTopZonesTicker';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const CONF_STYLE = {
-  ALTA:  { bg: 'rgba(34,197,94,0.14)',  fg: '#86efac', border: 'rgba(34,197,94,0.45)' },
-  MEDIA: { bg: 'rgba(234,179,8,0.14)',  fg: '#fde68a', border: 'rgba(234,179,8,0.45)' },
-  BAJA:  { bg: 'rgba(239,68,68,0.14)',  fg: '#fecaca', border: 'rgba(239,68,68,0.45)' },
+  ALTA:  { bg: 'rgba(31,160,106,0.12)',  fg: '#1FA06A', border: 'rgba(31,160,106,0.40)' },
+  MEDIA: { bg: 'rgba(226,152,46,0.12)',  fg: '#B4740F', border: 'rgba(226,152,46,0.40)' },
+  BAJA:  { bg: 'rgba(229,72,77,0.12)',   fg: '#E5484D', border: 'rgba(229,72,77,0.40)' },
 };
 
 export default function ConfianzaPage() {
@@ -52,22 +52,21 @@ export default function ConfianzaPage() {
 
   return (
     <div data-testid="confianza-page" style={{
-      background: '#06080F', minHeight: '100vh', color: '#F0EBE0',
+      background: '#FBFAFC', minHeight: '100vh', color: '#1E2230',
       padding: '48px 24px 80px', fontFamily: 'DM Sans',
     }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+      <ToolNav />
       <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
         {/* Hero */}
         <header data-testid="confianza-hero">
-          <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 10 }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 10 }}>
             {t('confianza.eyebrow')}
           </div>
-          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 48, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.05 }}>
+          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 48, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.05, color: '#1E2230' }}>
             {t('confianza.title')}
           </h1>
-          <p style={{ fontSize: 15.5, color: 'rgba(240,235,224,0.70)', marginTop: 12, maxWidth: 680, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 15.5, color: '#5A5F6E', marginTop: 12, maxWidth: 680, lineHeight: 1.55 }}>
             {t('confianza.subtitle')}
           </p>
         </header>
@@ -79,13 +78,13 @@ export default function ConfianzaPage() {
         {insufficient ? (
           <section data-testid="confianza-insufficient" style={{
             padding: 28, borderRadius: 18,
-            background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC', textAlign: 'center',
           }}>
-            <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'rgba(165,180,252,0.85)', textTransform: 'uppercase', letterSpacing: '0.10em' }}>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.10em' }}>
               {t('confianza.fallback.sample_label')}: {meta?.sample_size ?? 0} / {meta?.min_required ?? 20}
             </div>
-            <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 24, margin: '12px 0 0' }}>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 24, margin: '12px 0 0', color: '#1E2230' }}>
               {t('confianza.fallback.insufficient', { n: meta?.eta_days ?? '—' })}
             </h2>
           </section>
@@ -108,16 +107,16 @@ export default function ConfianzaPage() {
             {/* Reliability diagram */}
             <section data-testid="confianza-reliability" style={{
               padding: 22, borderRadius: 16,
-              background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: '#FFFFFF',
+              border: '1px solid #ECECEC',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
                 <div>
-                  <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 19, margin: 0 }}>{t('confianza.sections.reliability')}</h2>
-                  <p style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{t('confianza.sections.reliability_sub')}</p>
+                  <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 19, margin: 0, color: '#1E2230' }}>{t('confianza.sections.reliability')}</h2>
+                  <p style={{ fontSize: 12, color: '#5A5F6E', marginTop: 4 }}>{t('confianza.sections.reliability_sub')}</p>
                 </div>
                 {meta?.calibration_error != null && (
-                  <span style={{ fontFamily: 'DM Mono', fontSize: 11.5, color: '#a5b4fc' }}>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: 11.5, color: '#4F46E5' }}>
                     {t('confianza.sections.calibration_error')}: {Number(meta.calibration_error).toFixed(3)}
                   </span>
                 )}
@@ -127,10 +126,10 @@ export default function ConfianzaPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <ScatterChart margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
-                    <XAxis type="number" dataKey="predicted_confidence" domain={[0, 1]} tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" name="predicted" />
-                    <YAxis type="number" dataKey="actual_accuracy" domain={[0, 1]} tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" name="actual" />
-                    <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="rgba(255,255,255,0.30)" strokeDasharray="4 4" ifOverflow="extendDomain" />
-                    <Tooltip contentStyle={{ background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(99,102,241,0.45)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11 }} />
+                    <XAxis type="number" dataKey="predicted_confidence" domain={[0, 1]} tick={{ fontSize: 10, fill: '#6B7385' }} stroke="#ECECEC" name="predicted" />
+                    <YAxis type="number" dataKey="actual_accuracy" domain={[0, 1]} tick={{ fontSize: 10, fill: '#6B7385' }} stroke="#ECECEC" name="actual" />
+                    <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="rgba(30,34,48,0.25)" strokeDasharray="4 4" ifOverflow="extendDomain" />
+                    <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E6E8EE', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11, color: '#1E2230' }} />
                     <Scatter
                       data={(meta?.calibration_curve_data || []).filter((b) => b.actual_accuracy != null)}
                       fill="#6366F1"
@@ -143,10 +142,10 @@ export default function ConfianzaPage() {
             {/* Per-zone table */}
             <section data-testid="confianza-per-zone" style={{
               padding: 22, borderRadius: 16,
-              background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: '#FFFFFF',
+              border: '1px solid #ECECEC',
             }}>
-              <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 19, margin: '0 0 14px' }}>
+              <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 19, margin: '0 0 14px', color: '#1E2230' }}>
                 {t('confianza.sections.per_zone')}
               </h2>
               {perZone.length === 0 ? (
@@ -154,7 +153,7 @@ export default function ConfianzaPage() {
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(99,102,241,0.10)' }}>
+                    <tr style={{ background: '#F6F7FA' }}>
                       <Th>{t('confianza.fields.zone')}</Th>
                       <Th>{t('confianza.fields.mape')}</Th>
                       <Th>{t('confianza.fields.hit_rate')}</Th>
@@ -165,7 +164,7 @@ export default function ConfianzaPage() {
                   </thead>
                   <tbody>
                     {perZone.map((z) => (
-                      <tr key={z.zone_slug} data-testid={`confianza-zone-${z.zone_slug}`} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <tr key={z.zone_slug} data-testid={`confianza-zone-${z.zone_slug}`} style={{ borderTop: '1px solid #ECECEC' }}>
                         <Td><span style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{z.zone_slug}</span></Td>
                         <Td>{fmtPct(z.mape_30d)}</Td>
                         <Td>{z.hit_rate != null ? `${(z.hit_rate * 100).toFixed(1)}%` : '—'}</Td>
@@ -201,28 +200,28 @@ export default function ConfianzaPage() {
         {/* CTA download */}
         <section data-testid="confianza-cta" style={{
           padding: 22, borderRadius: 18,
-          background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(99,102,241,0.18)',
+          background: '#FFFFFF',
+          border: '1px solid #ECECEC',
           display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, margin: 0 }}>
+            <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, margin: 0, color: '#1E2230' }}>
               {t('confianza.cta.download_pdf')}
             </h3>
-            <p style={{ fontSize: 12.5, color: 'rgba(240,235,224,0.65)', marginTop: 4 }}>
+            <p style={{ fontSize: 12.5, color: '#5A5F6E', marginTop: 4 }}>
               {t('confianza.footer.audit_trail')}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>{t('confianza.cta.select_period')}</label>
+            <label style={{ fontSize: 11, color: '#9AA0AE' }}>{t('confianza.cta.select_period')}</label>
             <select
               data-testid="confianza-period-select"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               style={{
                 padding: '8px 14px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12,
-                background: 'rgba(255,255,255,0.05)', color: '#F0EBE0',
-                border: '1px solid rgba(99,102,241,0.30)',
+                background: '#F6F7FA', color: '#1E2230',
+                border: '1px solid #ECECEC',
               }}>
               <option value="30d">{t('confianza.periods.30d')}</option>
               <option value="90d">{t('confianza.periods.90d')}</option>
@@ -242,7 +241,7 @@ export default function ConfianzaPage() {
         </section>
 
         {/* Footer */}
-        <footer style={{ fontSize: 11, color: 'rgba(240,235,224,0.45)', textAlign: 'center', marginTop: 8 }}>
+        <footer style={{ fontSize: 11, color: '#9AA0AE', textAlign: 'center', marginTop: 8 }}>
           {t('confianza.footer.audit_trail')} · {t('confianza.footer.last_updated')}: {(meta?.last_updated || '').slice(0, 16).replace('T', ' ')}
         </footer>
       </div>
@@ -254,10 +253,10 @@ function Kpi({ label, value }) {
   return (
     <div data-testid={`confianza-kpi-${(label || '').toLowerCase().replace(/\s+/g, '-')}`} style={{
       padding: 16, borderRadius: 14,
-      background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+      background: '#F6F7FA', border: '1px solid #ECECEC',
     }}>
-      <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(165,180,252,0.85)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4 }}>{value || '—'}</div>
+      <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4, color: '#1E2230' }}>{value || '—'}</div>
     </div>
   );
 }
@@ -268,13 +267,13 @@ function HorizonCard({ label, value }) {
   return (
     <div style={{
       padding: 16, borderRadius: 14,
-      background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-      border: '1px solid rgba(99,102,241,0.18)',
+      background: '#FFFFFF',
+      border: '1px solid #ECECEC',
     }}>
-      <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(165,180,252,0.85)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4 }}>{fmtPct(value)}</div>
+      <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4, color: '#1E2230' }}>{fmtPct(value)}</div>
       {value == null && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 6 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#9AA0AE', marginTop: 6 }}>
           Sin datos suficientes.
         </div>
       )}
@@ -283,14 +282,14 @@ function HorizonCard({ label, value }) {
 }
 
 function Th({ children }) {
-  return <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600, fontSize: 10.5, color: 'rgba(240,235,224,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</th>;
+  return <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600, fontSize: 10.5, color: '#5A5F6E', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</th>;
 }
 function Td({ children }) {
-  return <td style={{ padding: '10px 14px', color: '#F0EBE0' }}>{children}</td>;
+  return <td style={{ padding: '10px 14px', color: '#1E2230' }}>{children}</td>;
 }
 function EmptyState({ text }) {
   return (
-    <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)' }}>
+    <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12.5, color: '#9AA0AE' }}>
       {text}
     </div>
   );

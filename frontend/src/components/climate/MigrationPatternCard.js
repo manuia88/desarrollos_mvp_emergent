@@ -2,12 +2,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const MUTED_2 = '#9AA0AE';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -27,7 +27,7 @@ function confidenceChipStyle(conf) {
       return { bg: 'rgba(99,102,241,0.14)', color: '#C7D2FE', border: `1px solid ${INDIGO}55` };
     case 'baja':
     default:
-      return { bg: 'rgba(240,235,224,0.04)', color: MUTED, border: '1px solid rgba(240,235,224,0.16)' };
+      return { bg: '#F6F7FA', color: MUTED, border: '1px solid #E6E8EE' };
   }
 }
 
@@ -76,8 +76,8 @@ export default function MigrationPatternCard({ pattern }) {
             style={{
               display: 'inline-block', padding: '4px 12px', borderRadius: 9999,
               fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em',
-              background: 'rgba(240,235,224,0.06)', color: CREAM,
-              border: '1px solid rgba(240,235,224,0.10)',
+              background: '#F6F7FA', color: CREAM,
+              border: '1px solid #ECECEC',
             }}
           >{pattern.climate_driver}</span>
         )}
@@ -116,7 +116,7 @@ export default function MigrationPatternCard({ pattern }) {
           <span>{t('climateMigration.pattern_magnitude_label', 'Magnitud')}</span>
           <span style={{ color: CREAM, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{magnitude}/100</span>
         </div>
-        <span style={{ display: 'block', height: 6, borderRadius: 9999, background: 'rgba(240,235,224,0.06)', overflow: 'hidden' }}>
+        <span style={{ display: 'block', height: 6, borderRadius: 9999, background: '#F6F7FA', overflow: 'hidden' }}>
           <span style={{
             display: 'block', height: '100%',
             width: `${magnitude}%`, background: GRAD, borderRadius: 9999,
@@ -129,7 +129,7 @@ export default function MigrationPatternCard({ pattern }) {
       {pattern.narrative_short && (
         <p data-testid="migration-pattern-narrative" style={{
           margin: '0 0 14px',
-          color: 'rgba(240,235,224,0.85)',
+          color: '#434A5C',
           fontSize: 13, lineHeight: 1.5, fontStyle: 'italic',
         }}>{pattern.narrative_short}</p>
       )}

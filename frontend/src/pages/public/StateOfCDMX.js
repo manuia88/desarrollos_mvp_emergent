@@ -1,7 +1,8 @@
 // W4.16 — StateOfCDMX (public /insights/state-of-cdmx-2026)
 import React, { useEffect, useState } from 'react';
 import { HorizontalBars, DemandSupplyBars, VelocityLineChart } from '../../components/marketing/StateOfCDMXChart';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
+import { LightScope } from '../../components/ui';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -52,26 +53,28 @@ export default function StateOfCDMX() {
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--cream)', fontFamily: 'DM Sans',
-      }}>
-        <Navbar />
-        <div style={{ height: 60 }} />
-        {error}
-      </div>
+      <LightScope>
+        <ToolNav />
+        <div style={{
+          minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--cream)', fontFamily: 'DM Sans',
+        }}>
+          {error}
+        </div>
+      </LightScope>
     );
   }
   if (!metrics) {
     return (
-      <div data-testid="state-of-cdmx-page" style={{
-        minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--cream-3, #a0a4b0)', fontFamily: 'DM Sans', fontSize: 14,
-      }}>
-        <Navbar />
-        <div style={{ height: 60 }} />
-        Cargando…
-      </div>
+      <LightScope>
+        <ToolNav />
+        <div data-testid="state-of-cdmx-page" style={{
+          minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#9AA0AE', fontFamily: 'DM Sans', fontSize: 14,
+        }}>
+          Cargando…
+        </div>
+      </LightScope>
     );
   }
 
@@ -98,12 +101,12 @@ export default function StateOfCDMX() {
   ];
 
   return (
-    <div data-testid="state-of-cdmx-page" style={{
-      background: '#06080F', color: '#F0EBE0', minHeight: '100vh',
-      paddingBottom: 100,
-    }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <LightScope>
+      <ToolNav />
+      <div data-testid="state-of-cdmx-page" style={{
+        background: '#FBFAFC', color: '#1E2230', minHeight: '100vh',
+        paddingBottom: 100,
+      }}>
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Hero */}
@@ -116,14 +119,14 @@ export default function StateOfCDMX() {
           State of <span style={gradientText}>CDMX 2026</span>
         </h1>
         <p style={{
-          fontFamily: 'DM Sans', fontSize: 18, color: 'var(--cream-3, #a0a4b0)',
+          fontFamily: 'DM Sans', fontSize: 18, color: '#5A5F6E',
           maxWidth: 720, lineHeight: 1.55,
         }}>
           Datos brutos del mercado inmobiliario CDMX · análisis IA + predicciones agregadas
           desde el corpus DMX (modelo hedónico + Zone Score + match weights ML).
         </p>
         <div style={{
-          fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3, #a0a4b0)',
+          fontFamily: 'DM Sans', fontSize: 12, color: '#9AA0AE',
           marginTop: 12, letterSpacing: '0.02em',
         }}>
           Período: <strong>{metrics.period}</strong> · actualizado {String(metrics.generated_at || '').slice(0, 10)}
@@ -138,13 +141,13 @@ export default function StateOfCDMX() {
         }}>
           {kpiCards.map((k) => (
             <div key={k.id} data-testid={`state-kpi-${k.id}`} style={kpiStyle}>
-              <div style={{ fontFamily: 'Outfit', fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-3, #a0a4b0)' }}>
+              <div style={{ fontFamily: 'Outfit', fontSize: 11, letterSpacing: '0.08em', color: '#9AA0AE' }}>
                 {k.label.toUpperCase()}
               </div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, marginTop: 8 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, marginTop: 8, color: '#1E2230' }}>
                 {k.value}
               </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#a5b4fc', marginTop: 4 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#6D4AFF', marginTop: 4 }}>
                 {k.sub}
               </div>
             </div>
@@ -188,9 +191,9 @@ export default function StateOfCDMX() {
             <div style={bigNum}>{preds.q_next_avg_appreciation != null ? `~+${preds.q_next_avg_appreciation.toFixed(1)}%` : '—'}</div>
             <div style={sub}>{preds.nota || 'Promedio direccional de las zonas top'}</div>
           </div>
-          <div style={{ ...gradientCard, background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <div style={{ ...gradientCard, background: '#FFFFFF', border: '1px solid #ECECEC' }}>
             <div style={eyebrow}>HOT ZONES</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginTop: 12, lineHeight: 1.6 }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: '#1E2230', marginTop: 12, lineHeight: 1.6 }}>
               {(preds.hot_zones || []).map((s) => s.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())).join(' · ') || '—'}
             </div>
           </div>
@@ -205,9 +208,9 @@ export default function StateOfCDMX() {
           textAlign: 'center',
           fontFamily: 'DM Sans',
           fontSize: 14,
-          color: 'var(--cream-3, #a0a4b0)',
+          color: '#5A5F6E',
         }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, color: 'var(--cream)', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, color: '#1E2230', marginBottom: 8 }}>
             {metrics.dmx_index_top_creatives_count ?? 12}
           </div>
           creatives en top 1% conversión preventa CDMX · datos reales en versión Pro
@@ -218,7 +221,7 @@ export default function StateOfCDMX() {
       <Section testid="state-section-7" title="¿Quieres este reporte como PDF?" sub="Personalizado con tu nombre · entregado por email.">
         <div style={chartCard}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: '#5A5F6E' }}>
               Genera tu audit propio + recibe el State of CDMX 2026 anexo.
             </div>
             <a
@@ -241,10 +244,10 @@ export default function StateOfCDMX() {
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ maxWidth: 540 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginBottom: 6 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#1E2230', marginBottom: 6 }}>
                 DMX automatiza tu marketing inmobiliario
               </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)', lineHeight: 1.55 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: '#5A5F6E', lineHeight: 1.55 }}>
                 Studio brochures · briefings IE · investment simulator · tour 3D Gaussian Splatting · CRM agéntico.
                 Empieza gratis.
               </div>
@@ -262,11 +265,12 @@ export default function StateOfCDMX() {
 
       <div style={{
         textAlign: 'center', marginTop: 32, fontFamily: 'DM Sans', fontSize: 11,
-        color: 'var(--cream-3, #a0a4b0)',
+        color: '#9AA0AE',
       }}>
         DMX no opina, mide · Solo uso informativo · LFPDPPP compliant
       </div>
-    </div>
+      </div>
+    </LightScope>
   );
 }
 
@@ -277,7 +281,7 @@ function Section({ title, sub, children, testid }) {
         {title}
       </h2>
       {sub && (
-        <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)', margin: '0 0 18px' }}>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: '#5A5F6E', margin: '0 0 18px' }}>
           {sub}
         </p>
       )}
@@ -293,21 +297,20 @@ const gradientText = {
 };
 const eyebrow = {
   fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.12em',
-  color: 'var(--cream-3, #a0a4b0)',
+  color: '#9AA0AE',
 };
 const eyebrowOnGradient = {
   fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.12em',
   color: 'rgba(255,255,255,0.75)',
 };
 const chartCard = {
-  background: 'rgba(13,16,23,0.92)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: '#FFFFFF',
+  border: '1px solid #ECECEC',
   borderRadius: 18, padding: 22,
-  backdropFilter: 'blur(24px)',
 };
 const kpiStyle = {
-  background: 'rgba(13,16,23,0.92)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: '#FFFFFF',
+  border: '1px solid #ECECEC',
   borderRadius: 14, padding: '18px 20px',
   position: 'relative', overflow: 'hidden',
 };

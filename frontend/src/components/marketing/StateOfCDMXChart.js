@@ -22,15 +22,15 @@ export function HorizontalBars({ data, dataKey, labelKey = 'name', height = 380,
         layout="vertical"
         margin={{ left: 80, right: 30, top: 10, bottom: 10 }}
       >
-        <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-        <XAxis type="number" stroke="#a0a4b0" tick={{ fontSize: 11 }} />
-        <YAxis dataKey={labelKey} type="category" stroke="#a0a4b0" tick={{ fontSize: 11 }} width={130} />
+        <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+        <XAxis type="number" stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} />
+        <YAxis dataKey={labelKey} type="category" stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} width={130} />
         <Tooltip
           contentStyle={{
-            background: 'rgba(13,16,23,0.95)',
-            border: '1px solid rgba(240,235,224,0.15)',
+            background: '#FFFFFF',
+            border: '1px solid #E6E8EE',
             borderRadius: 10,
-            color: '#F0EBE0',
+            color: '#1E2230',
             fontFamily: 'DM Sans', fontSize: 12,
           }}
           formatter={(v) => [fmt(v), '']}
@@ -51,19 +51,19 @@ export function VelocityLineChart({ data, height = 320 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ left: 12, right: 24, top: 10, bottom: 10 }}>
-        <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-        <XAxis dataKey="categoria" stroke="#a0a4b0" tick={{ fontSize: 11 }} />
-        <YAxis stroke="#a0a4b0" tick={{ fontSize: 11 }} label={{ value: 'Meses', angle: -90, position: 'insideLeft', fill: '#a0a4b0', fontSize: 11 }} />
+        <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+        <XAxis dataKey="categoria" stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} />
+        <YAxis stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} label={{ value: 'Meses', angle: -90, position: 'insideLeft', fill: '#6B7385', fontSize: 11 }} />
         <Tooltip
           contentStyle={{
-            background: 'rgba(13,16,23,0.95)',
-            border: '1px solid rgba(240,235,224,0.15)',
+            background: '#FFFFFF',
+            border: '1px solid #E6E8EE',
             borderRadius: 10,
-            color: '#F0EBE0',
+            color: '#1E2230',
             fontFamily: 'DM Sans', fontSize: 12,
           }}
         />
-        <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 11, color: '#a0a4b0' }} />
+        <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 11, color: '#6B7385' }} />
         <Line type="monotone" dataKey="meses" stroke={PALETTE.rose} strokeWidth={3} dot={{ r: 5, fill: PALETTE.indigo }} />
       </LineChart>
     </ResponsiveContainer>
@@ -76,15 +76,15 @@ export function DemandSupplyBars({ data, height = 380 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ left: 80, right: 30, top: 10, bottom: 10 }}>
-        <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-        <XAxis type="number" stroke="#a0a4b0" tick={{ fontSize: 11 }} />
-        <YAxis dataKey="name" type="category" stroke="#a0a4b0" tick={{ fontSize: 11 }} width={130} />
+        <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+        <XAxis type="number" stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} />
+        <YAxis dataKey="name" type="category" stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} width={130} />
         <Tooltip
           contentStyle={{
-            background: 'rgba(13,16,23,0.95)',
-            border: '1px solid rgba(240,235,224,0.15)',
+            background: '#FFFFFF',
+            border: '1px solid #E6E8EE',
             borderRadius: 10,
-            color: '#F0EBE0',
+            color: '#1E2230',
             fontFamily: 'DM Sans', fontSize: 12,
           }}
         />

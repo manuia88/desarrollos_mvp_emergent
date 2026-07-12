@@ -3,11 +3,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SearchResultCard from './SearchResultCard';
 
-const CREAM = '#F0EBE0';
+const CREAM = '#1E2230';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #E6E8EE';
 
 const gridStyle = {
   display: 'grid',
@@ -22,7 +22,7 @@ function Skeleton() {
     }}>
       <div style={{
         width: '100%', aspectRatio: '16/9',
-        background: 'linear-gradient(90deg, rgba(240,235,224,0.04), rgba(240,235,224,0.10), rgba(240,235,224,0.04))',
+        background: 'linear-gradient(90deg, #F6F7FA, #E6E8EE, #F6F7FA)',
         backgroundSize: '200% 100%',
         animation: 'rs-skeleton 1.2s ease-in-out infinite',
       }} />
@@ -30,7 +30,7 @@ function Skeleton() {
         {[88, 70, 52].map((w, i) => (
           <div key={i} style={{
             height: 12, width: `${w}%`, borderRadius: 9999,
-            background: 'rgba(240,235,224,0.06)',
+            background: '#F6F7FA',
           }} />
         ))}
       </div>

@@ -6,16 +6,16 @@ import { submitMoodQuiz, getUserLatestMood } from '../../../api/mood';
 import MoodQuizCard from '../../../components/mood/MoodQuizCard';
 import MoodResultSummary from '../../../components/mood/MoodResultSummary';
 import MoodMatchCard from '../../../components/mood/MoodMatchCard';
-import Navbar from '../../../components/landing/Navbar';
+import ToolNav from '../../../components/ui/ToolNav';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = '#FBFAFC';
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#5A5F6E';
+const MUTED_2 = '#9AA0AE';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -108,9 +108,8 @@ export default function MoodQuizPage() {
   const matches = Array.isArray(result?.matches) ? result.matches.slice(0, 5) : [];
 
   return (
-    <div data-testid="mood-quiz-page" data-step={step} style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <div data-testid="mood-quiz-page" data-step={step} className="theme-light-scope" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
+      <ToolNav />
       <header style={{ padding: '64px 24px 16px', maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>
           DesarrollosMX · Vibe
@@ -156,15 +155,15 @@ export default function MoodQuizPage() {
                   onClick={handleSeePrevious}
                   style={{
                     marginTop: 14, padding: '12px 28px', borderRadius: 9999,
-                    border: '1px solid rgba(240,235,224,0.32)', background: 'transparent',
-                    color: 'rgba(240,235,224,0.85)',
+                    border: '1px solid #D8D8DE', background: '#FFFFFF',
+                    color: '#5A5F6E',
                     fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
                     fontSize: 13, letterSpacing: '0.06em',
                     cursor: 'pointer', display: 'block', marginLeft: 'auto', marginRight: 'auto',
                     transition: `border-color 320ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.6)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.32)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D4AFF'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#D8D8DE'; }}
                 >{t('mood.btn_see_previous', 'Ver mi resultado anterior')}</button>
               )}
             </div>
@@ -188,11 +187,10 @@ export default function MoodQuizPage() {
             <div style={{
               maxWidth: 720, margin: '0 auto', width: '100%',
               padding: 36, background: CARD_BG, border: BORDER, borderRadius: 32,
-              backdropFilter: 'blur(24px)',
             }}>
-              <div style={{ height: 16, width: '60%', margin: '0 auto 24px', borderRadius: 9999, background: 'rgba(240,235,224,0.08)' }} />
+              <div style={{ height: 16, width: '60%', margin: '0 auto 24px', borderRadius: 9999, background: '#ECECEC' }} />
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} style={{ height: 10, borderRadius: 9999, background: 'rgba(240,235,224,0.06)', marginBottom: 14 }} />
+                <div key={i} style={{ height: 10, borderRadius: 9999, background: '#F1F1F4', marginBottom: 14 }} />
               ))}
             </div>
             <div style={{
@@ -202,7 +200,7 @@ export default function MoodQuizPage() {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} style={{
                   height: 260, borderRadius: 24,
-                  background: 'linear-gradient(90deg, rgba(240,235,224,0.03), rgba(240,235,224,0.08), rgba(240,235,224,0.03))',
+                  background: 'linear-gradient(90deg, #F6F7FA, #ECECEC, #F6F7FA)',
                   backgroundSize: '200% 100%', animation: 'moodShimmer 1.4s linear infinite',
                   border: BORDER,
                 }} />

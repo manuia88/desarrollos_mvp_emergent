@@ -4,9 +4,9 @@
  *  notarías/fondos consumen índices, scores y snapshots de mercado CDMX por API.
  */
 import React from 'react';
-import Navbar from '../components/landing/Navbar';
+import ToolNav from '../components/ui/ToolNav';
 
-const C = { bg: '#0C0A14', ink: '#F4F1FA', ink2: '#B8B2C8', faint: '#7C7690', line: 'rgba(255,255,255,0.1)', card: '#15121F', accent: '#8B6DFF', green: '#4ADE80' };
+const C = { bg: '#FBFAFC', ink: '#1E2230', ink2: '#5A5F6E', faint: '#9AA0AE', line: '#ECECEC', card: '#FFFFFF', accent: '#6D4AFF', green: '#1FA06A' };
 const GRAD = 'linear-gradient(120deg, #6D4AFF, #C63FAE)';
 const FONT = "'DM Sans', system-ui, -apple-system, sans-serif";
 const HEAD = "'Outfit', system-ui, -apple-system, sans-serif";
@@ -34,9 +34,8 @@ const MAILTO = 'mailto:hola@desarrollosmx.io?subject=Acceso%20a%20la%20API%20de%
 
 export default function DatosAPI() {
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <div className="theme-light-scope" style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+      <ToolNav />
       <div style={{ background: GRAD, padding: '56px 20px 44px' }}>
         <div style={{ maxWidth: 1040, margin: '0 auto' }}>
           <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, opacity: 0.9, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#fff' }}>DMX Data · API</div>
@@ -87,7 +86,7 @@ export default function DatosAPI() {
                   <div key={i} style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2, display: 'flex', gap: 8 }}><span style={{ color: C.green }}>✓</span> {it}</div>
                 ))}
               </div>
-              <a href={`${MAILTO}${t.name}`} style={{ display: 'block', textAlign: 'center', marginTop: 18, background: t.destacado ? GRAD : 'transparent', border: t.destacado ? 'none' : `1.5px solid ${C.line}`, color: '#fff', borderRadius: 11, padding: '11px', fontFamily: HEAD, fontWeight: 800, fontSize: 14.5, textDecoration: 'none' }}>{t.name === 'Free' ? 'Empezar gratis' : 'Cotizar'}</a>
+              <a href={`${MAILTO}${t.name}`} style={{ display: 'block', textAlign: 'center', marginTop: 18, background: t.destacado ? GRAD : 'transparent', border: t.destacado ? 'none' : `1.5px solid ${C.line}`, color: t.destacado ? '#fff' : C.ink, borderRadius: 11, padding: '11px', fontFamily: HEAD, fontWeight: 800, fontSize: 14.5, textDecoration: 'none' }}>{t.name === 'Free' ? 'Empezar gratis' : 'Cotizar'}</a>
             </div>
           ))}
         </div>

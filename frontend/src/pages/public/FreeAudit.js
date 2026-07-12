@@ -1,6 +1,7 @@
 // W4.16 — FreeAudit landing (public /free-audit)
 import React, { useEffect, useState } from 'react';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
+import { LightScope } from '../../components/ui';
 import AuditFormStep from '../../components/marketing/AuditFormStep';
 import AuditResultCard from '../../components/marketing/AuditResultCard';
 
@@ -124,14 +125,14 @@ export default function FreeAudit() {
   };
 
   return (
-    <div data-testid="free-audit-page" style={{
-      minHeight: '100vh',
-      background: '#06080F',
-      color: '#F0EBE0',
-      paddingTop: 80, paddingBottom: 80,
-    }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+    <LightScope>
+      <ToolNav />
+      <div data-testid="free-audit-page" style={{
+        minHeight: '100vh',
+        background: '#FBFAFC',
+        color: '#1E2230',
+        paddingTop: 40, paddingBottom: 80,
+      }}>
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 6,
         background: 'linear-gradient(90deg, #6366F1, #EC4899)',
@@ -142,8 +143,8 @@ export default function FreeAudit() {
           <span style={{
             display: 'inline-block',
             padding: '5px 14px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            color: '#a5b4fc',
+            background: 'rgba(109,74,255,0.10)',
+            color: '#6D4AFF',
             fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em',
             marginBottom: 18,
           }}>
@@ -160,7 +161,7 @@ export default function FreeAudit() {
             }}>CDMX</span> gratis
           </h1>
           <p style={{
-            fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-3, #a0a4b0)',
+            fontFamily: 'DM Sans', fontSize: 16, color: '#5A5F6E',
             marginTop: 18, lineHeight: 1.55,
           }}>
             DMX te dice cuánto vale, dónde está parada en el mercado y qué hacer para optimizar venta.
@@ -170,11 +171,10 @@ export default function FreeAudit() {
 
         {!result ? (
           <div style={{
-            background: 'rgba(13,16,23,0.92)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: '#FFFFFF',
+            border: '1px solid #ECECEC',
             borderRadius: 18,
             padding: 28,
-            backdropFilter: 'blur(24px)',
           }}>
             {/* Stepper */}
             <div style={{
@@ -190,7 +190,7 @@ export default function FreeAudit() {
                       flex: 1, height: 4, borderRadius: 9999,
                       background: active
                         ? 'linear-gradient(90deg, #6366F1, #EC4899)'
-                        : 'rgba(240,235,224,0.10)',
+                        : '#ECECEC',
                       transition: 'background 240ms ease',
                     }}
                   />
@@ -209,10 +209,10 @@ export default function FreeAudit() {
             {globalError && (
               <div style={{
                 marginTop: 18, padding: '10px 14px',
-                background: 'rgba(239,68,68,0.12)',
-                border: '1px solid rgba(239,68,68,0.4)',
+                background: 'rgba(229,72,77,0.08)',
+                border: '1px solid rgba(229,72,77,0.35)',
                 borderRadius: 10,
-                color: '#fca5a5',
+                color: '#E5484D',
                 fontFamily: 'DM Sans', fontSize: 13,
               }}>
                 {globalError}
@@ -226,7 +226,7 @@ export default function FreeAudit() {
                 disabled={step === 1 || submitting}
                 style={{
                   background: 'transparent', color: 'var(--cream)',
-                  border: '1px solid rgba(240,235,224,0.25)', borderRadius: 9999,
+                  border: '1px solid #ECECEC', borderRadius: 9999,
                   padding: '10px 22px',
                   fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
                   cursor: step === 1 ? 'not-allowed' : 'pointer',
@@ -264,11 +264,12 @@ export default function FreeAudit() {
 
         <div style={{
           marginTop: 32, textAlign: 'center',
-          fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3, #a0a4b0)',
+          fontFamily: 'DM Sans', fontSize: 11, color: '#9AA0AE',
         }}>
           LFPDPPP · Tus datos están protegidos · DMX no comparte tu información con terceros.
         </div>
       </div>
-    </div>
+      </div>
+    </LightScope>
   );
 }

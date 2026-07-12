@@ -8,7 +8,8 @@ import {
   LineChart, Line, Legend, Cell,
 } from 'recharts';
 import { fetchGlobalSource } from '../../api/insights_external';
-import Navbar from '../../components/landing/Navbar';
+import ToolNav from '../../components/ui/ToolNav';
+import { LightScope } from '../../components/ui';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,8 +17,8 @@ const PALETTE = {
   mx: '#6366F1',
   world: '#EC4899',
   us: '#22C55E',
-  cream: '#F0EBE0',
-  cream2: '#a0a4b0',
+  cream: '#1E2230',   // texto principal (antes crema/blanco)
+  cream2: '#5A5F6E',  // texto secundario
 };
 
 // 8 SEO long-tail topics · MX vs Mundo
@@ -199,10 +200,10 @@ const TOPIC_MAP = Object.fromEntries(TOPICS.map(t => [t.slug, t]));
 
 function tooltipStyle() {
   return {
-    background: 'rgba(13,16,23,0.95)',
-    border: '1px solid rgba(240,235,224,0.15)',
+    background: '#FFFFFF',
+    border: '1px solid #E6E8EE',
     borderRadius: 10,
-    color: PALETTE.cream,
+    color: '#1E2230',
     fontFamily: 'DM Sans', fontSize: 12,
   };
 }
@@ -236,9 +237,9 @@ function ChartPanel({ topic }) {
     return (
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={topic.chart_data}>
-          <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-          <XAxis dataKey={Object.keys(topic.chart_data[0]).find(k => /year|month|date/i.test(k))} stroke={PALETTE.cream2} tick={{ fontSize: 11 }} />
-          <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} unit={topic.unit} />
+          <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+          <XAxis dataKey={Object.keys(topic.chart_data[0]).find(k => /year|month|date/i.test(k))} stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} />
+          <YAxis stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} unit={topic.unit} />
           <Tooltip contentStyle={tooltipStyle()} />
           <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 12 }} />
           {topic.series.map(s => (
@@ -253,9 +254,9 @@ function ChartPanel({ topic }) {
   return (
     <ResponsiveContainer width="100%" height={320}>
       <BarChart data={topic.chart_data} margin={{ left: 0, right: 20, top: 10, bottom: 30 }}>
-        <CartesianGrid stroke="rgba(240,235,224,0.06)" strokeDasharray="3 3" />
-        <XAxis dataKey={xKey} stroke={PALETTE.cream2} tick={{ fontSize: 11 }} angle={-25} dy={10} />
-        <YAxis stroke={PALETTE.cream2} tick={{ fontSize: 11 }} unit={topic.unit} />
+        <CartesianGrid stroke="#ECECEC" strokeDasharray="3 3" />
+        <XAxis dataKey={xKey} stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} angle={-25} dy={10} />
+        <YAxis stroke="#6B7385" tick={{ fontSize: 11, fill: '#6B7385' }} unit={topic.unit} />
         <Tooltip contentStyle={tooltipStyle()} />
         <Legend wrapperStyle={{ fontFamily: 'DM Sans', fontSize: 12 }} />
         {topic.series.map(s => (
@@ -290,7 +291,7 @@ function DataTable({ topic }) {
                 padding: '10px 12px', textAlign: 'left',
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
                 color: PALETTE.cream2, textTransform: 'uppercase',
-                borderBottom: '1px solid rgba(255,255,255,0.10)',
+                borderBottom: '1px solid #ECECEC',
               }}>{c.replace(/_/g, ' ')}</th>
             ))}
           </tr>
@@ -301,7 +302,7 @@ function DataTable({ topic }) {
               {cols.map(c => (
                 <td key={c} style={{
                   padding: '10px 12px', color: PALETTE.cream,
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  borderBottom: '1px solid #F0F0F2',
                 }}>{String(row[c])}</td>
               ))}
             </tr>
@@ -394,12 +395,10 @@ export default function InsightsCompare() {
   }
 
   return (
-    <div data-testid="insights-compare-page" style={{
-      background: 'var(--bg, #06080F)', color: PALETTE.cream, minHeight: '100vh',
-      paddingBottom: 100,
+    <LightScope data-testid="insights-compare-page" style={{
+      color: PALETTE.cream, paddingBottom: 100,
     }}>
-      <Navbar />
-      <div style={{ height: 60 }} />
+      <ToolNav />
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Breadcrumb */}
@@ -436,8 +435,8 @@ export default function InsightsCompare() {
       {/* Chart */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '24px' }}>
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: '#FFFFFF',
+          border: '1px solid #ECECEC',
           borderRadius: 14, padding: 22,
         }}>
           <ChartPanel topic={topic} />
@@ -477,8 +476,8 @@ export default function InsightsCompare() {
       {/* CTAs */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         <div style={{
-          background: 'rgba(99,102,241,0.08)',
-          border: '1px solid rgba(99,102,241,0.25)',
+          background: 'rgba(109,74,255,0.06)',
+          border: '1px solid rgba(109,74,255,0.22)',
           borderRadius: 14, padding: '22px',
           display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between',
         }}>
@@ -493,7 +492,7 @@ export default function InsightsCompare() {
           </div>
           <Link to="/insights/global" style={{
             fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700,
-            color: PALETTE.cream, textDecoration: 'none',
+            color: '#FFFFFF', textDecoration: 'none',
             background: 'linear-gradient(90deg, #6366F1, #EC4899)',
             padding: '12px 22px', borderRadius: 9999,
             whiteSpace: 'nowrap',
@@ -505,7 +504,8 @@ export default function InsightsCompare() {
           {TOPICS.filter(t => t.slug !== slug).map(t => (
             <Link key={t.slug} to={`/insights/compare/${t.slug}`} style={{
               display: 'block', padding: '12px 14px',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: '#FFFFFF',
+              border: '1px solid #ECECEC',
               borderRadius: 10,
               fontFamily: 'DM Sans', fontSize: 13,
               color: PALETTE.cream, textDecoration: 'none',
@@ -513,7 +513,7 @@ export default function InsightsCompare() {
           ))}
         </div>
       </section>
-    </div>
+    </LightScope>
   );
 }
 
