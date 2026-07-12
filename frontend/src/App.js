@@ -75,14 +75,12 @@ const MoodQuizPage = lazy(() => import('./pages/portal/tools/MoodQuizPage'));
 // W5.19 wire — Probability page (publico T0 · consume ProbabilityCard)
 const ProbabilityPage = lazy(() => import('./pages/portal/tools/ProbabilityPage'));
 // W5.15 wire — Superadmin FSD accuracy dashboard
-const SuperadminFSDAccuracy = lazy(() => import('./pages/superadmin/SuperadminFSDAccuracy'));
 // W5.17 wire — Superadmin Virtual Staging stats/debug
 // W5.x F11 wire — AsesorMarketplace (advisor view with per-card fit-score)
 const AsesorMarketplace = lazy(() => import('./pages/asesor/AsesorMarketplace'));
 // W5.x F11 close — PropertyFitLeadsPage (consumes FitTopLeadsList huérfano)
 const PropertyFitLeadsPage = lazy(() => import('./pages/asesor/PropertyFitLeadsPage'));
 // W5 cleanup — Superadmin Entity Resolution (dedup queue)
-const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
 // W5.9 — Climate Migration (T0 publico + superadmin debug)
 const ClimateMigrationPage = lazy(() => import('./pages/public/ClimateMigrationPage'));
 // W5.17 — Virtual Staging IA (Studio dev tool)
@@ -109,21 +107,15 @@ const VideoStandalonePage = lazy(() => import('./pages/portal/asesor/VideoStanda
 // W7.AS.3.A — Conversation AI Agent (asesor playground + superadmin inbox)
 const ConversationPlayground = lazy(() => import('./pages/asesor/ConversationPlayground'));
 const SuperadminIaConversacionalHub  = lazy(() => import('./pages/superadmin/SuperadminIaConversacionalHub'));
-const SuperadminConversations = lazy(() => import('./components/superadmin/SuperadminConversations'));
 // W7.AS.3.G — Round 3 · A/B Testing de prompts (superadmin)
-const SuperadminAbTesting = lazy(() => import('./components/superadmin/SuperadminAbTesting'));
 // W7.AS.3.D — Round 2 · UI Advanced (Inbox asesor + KB Gaps superadmin)
 const ConversationInbox = lazy(() => import('./pages/asesor/ConversationInbox'));
 // Omnicanal · Conectar canales (asesor vincula WhatsApp/Meta/etc para que Atlax responda)
 const CanalesPage = lazy(() => import('./pages/portal/asesor/CanalesPage'));
 const ConexionesPage = lazy(() => import('./pages/portal/asesor/ConexionesPage')); // B7 F2 · hub Canales+Anuncios+Campañas
-const SuperadminKbGaps = lazy(() => import('./components/superadmin/SuperadminKbGaps'));
 // W7.AS.3.F — Round 2 · Cost dashboard (Terminal F · post-merge activado).
-const SuperadminConversationCost = lazy(() => import('./components/superadmin/SuperadminConversationCost'));
 // Copiloto · inteligencia agregada de operación (cierre de ciclo)
-const SuperadminCopilot = lazy(() => import('./components/superadmin/SuperadminCopilot'));
 // W7.AS.3.I — Round 3 · Drift Dashboard (post-merge activado)
-const SuperadminConversationDrift = lazy(() => import('./components/superadmin/SuperadminConversationDrift'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -136,7 +128,6 @@ const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 
 // W4.18.2B Sub-D — public AVM + colonia landings
 const Valores           = lazy(() => import('./pages/public/Valores'));
-const Barrios           = lazy(() => import('./pages/Barrios'));
 const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
 const Picks             = lazy(() => import('./pages/Picks'));   // DMX Picks IA — superficie del moat
 const Screener          = lazy(() => import('./pages/Screener'));   // Screener por métricas de inversión
@@ -144,7 +135,6 @@ const Indice            = lazy(() => import('./pages/Indice'));      // El Índi
 const Fundamentales     = lazy(() => import('./pages/Fundamentales'));  // Fundamentales de zona (CMA público)
 const DatosAPI          = lazy(() => import('./pages/DatosAPI'));       // Landing pública del negocio B2B de datos
 const Ideas             = lazy(() => import('./pages/Ideas'));          // Feed de ideas / oportunidades de zona
-const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
 const AsesorDashboard   = lazy(() => import('./pages/asesor/AsesorDashboard'));
@@ -181,14 +171,10 @@ const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/Superadmi
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
 const SuperadminInmobiliariaLeads = lazy(() => import('./pages/superadmin/SuperadminInmobiliariaLeads'));
-const SuperadminCerebroMercado = lazy(() => import('./pages/superadmin/SuperadminCerebroMercado'));
 const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
 const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
 // W5.11 Parte 2 — Entity resolution + audit chain
-const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
-const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
-const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
 const SuperadminTerminalZona = lazy(() => import('./pages/superadmin/SuperadminTerminalZona'));
 // W5.FF3 — UI Visibility Matrix
 // W5.25 — Widget Embed Analytics
@@ -205,13 +191,11 @@ const DesarrolladorLegajo            = lazy(() => import('./pages/developer/Desa
 const DesarrolladorPricing           = lazy(() => import('./pages/developer/DesarrolladorPricing'));
 const DesarrolladorUsuarios          = lazy(() => import('./pages/developer/DesarrolladorUsuarios'));
 const DesarrolladorConfiguracion     = lazy(() => import('./pages/developer/DesarrolladorConfiguracion'));
-const DesarrolladorCalendarioSubidas = lazy(() => import('./pages/developer/DesarrolladorCalendarioSubidas'));
 const DesarrolladorCompetidores      = lazy(() => import('./pages/developer/DesarrolladorCompetidores'));
 const DeveloperBattleCard            = lazy(() => import('./pages/developer/DeveloperBattleCard'));
 const DesarrolladorIEDetail          = lazy(() => import('./pages/developer/DesarrolladorIEDetail'));
 const DesarrolladorLeads             = lazy(() => import('./pages/developer/DesarrolladorLeads'));
 const DesarrolladorAgentes           = lazy(() => import('./pages/developer/DesarrolladorAgentes'));
-const DesarrolladorCitas             = lazy(() => import('./pages/developer/DesarrolladorCitas'));
 const InmobiliariaDashboard          = lazy(() => import('./pages/developer/InmobiliariaDashboard'));
 const InmobiliariaAsesores           = lazy(() => import('./pages/developer/InmobiliariaAsesores'));
 const InmobiliariaLeads              = lazy(() => import('./pages/developer/InmobiliariaLeads'));
@@ -267,7 +251,6 @@ const PerfilAsesor                   = lazy(() => import('./pages/public/PerfilA
 
 // Phase 13 Batch 36 — Marketplace Asesor + Whitelist Developer
 const AsesorMiniMarket               = lazy(() => import('./pages/asesor/AsesorMiniMarket'));
-const AsesorInventario               = lazy(() => import('./pages/asesor/AsesorInventario'));
 const PlaybookProyecto               = lazy(() => import('./pages/asesor/PlaybookProyecto'));
 const DesarrolladorSolicitudes       = lazy(() => import('./pages/developer/DesarrolladorSolicitudes'));
 
@@ -281,7 +264,6 @@ const InmobiliariaCrossPartnerships  = lazy(() => import('./pages/inmobiliaria/I
 
 // Phase 15 Batch 38 — Directorio Cruzado
 const DesarrolladorRedComercial      = lazy(() => import('./pages/developer/DesarrolladorRedComercial'));
-const AsesorMisAliados               = lazy(() => import('./pages/asesor/AsesorMisAliados'));
 // Bug-fix 2026-05-15: AsesorDesarrollos consolida Mis Aliados + Inventario en 1 tab con sub-tabs
 const AsesorDesarrollos              = lazy(() => import('./pages/asesor/AsesorDesarrollos'));
 const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/InmobiliariaRedComercial'));
@@ -294,21 +276,15 @@ const SuperadminCrecimientoHub       = lazy(() => import('./pages/superadmin/Sup
 const SuperadminDatosHub             = lazy(() => import('./pages/superadmin/SuperadminDatosHub'));
 const SuperadminInteligenciaHub      = lazy(() => import('./pages/superadmin/SuperadminInteligenciaHub'));
 const SuperadminDevtoolsHub          = lazy(() => import('./pages/superadmin/SuperadminDevtoolsHub'));
-const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
 const SuperadminDesarrolladorFicha   = lazy(() => import('./pages/superadmin/SuperadminDesarrolladorFicha'));
 const SuperadminProyectoFicha        = lazy(() => import('./pages/superadmin/SuperadminProyectoFicha'));
 // W2.1 SA2 — Data Sources Hub (unified connectors)
 // W2.2 SA3 — Audit Log Viewer (cross-org)
-const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
-const SuperadminAuditUnified         = lazy(() => import('./pages/superadmin/SuperadminAuditUnified'));
 // W2.3 SA4 — AI Cost Observatory
-const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
 // W5.x F2 — RAG Inspector
-const SuperadminRagInspector         = lazy(() => import('./pages/superadmin/SuperadminRagInspector'));
 // W2.4 SA5 — Commercial Foundation (feature flags + plan templates + GHL snapshots)
-const SuperadminCommercial           = lazy(() => import('./pages/superadmin/SuperadminCommercial'));
 // W5.22 Z.1 — Studio: Brand Kit + Listing Importer + Asset Library
 const StudioBrandKitPage     = lazy(() => import('./pages/portal/studio/BrandKitPage'));
 const StudioListingImportPage = lazy(() => import('./pages/portal/studio/ListingImportPage'));
@@ -325,7 +301,6 @@ const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/Proper
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 const SuperadminHubMercado           = lazy(() => import('./pages/superadmin/SuperadminHubMercado'));
 const SuperadminModeloHub            = lazy(() => import('./pages/superadmin/SuperadminModeloHub'));
-const SuperadminAprendizaje           = lazy(() => import('./pages/superadmin/SuperadminAprendizaje'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
 const SuperadminDesarrollos          = lazy(() => import('./pages/superadmin/SuperadminDesarrollos'));
@@ -336,24 +311,14 @@ const SuperadminIntelligenceHub      = lazy(() => import('./pages/superadmin/Sup
 const SuperadminPhase5Foundation     = lazy(() => import('./pages/superadmin/SuperadminPhase5Foundation'));
 const SuperadminTransactionNetwork   = lazy(() => import('./pages/superadmin/SuperadminTransactionNetwork'));
 // W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
-const SuperadminDRPI                 = lazy(() => import('./pages/superadmin/SuperadminDRPI'));
-const SuperadminIndices              = lazy(() => import('./pages/superadmin/SuperadminIndices'));
-const SuperadminCalibracion          = lazy(() => import('./pages/superadmin/SuperadminCalibracion'));
 const MethodologyPage                = lazy(() => import('./pages/public/MethodologyPage'));
 const BulletinPage                   = lazy(() => import('./pages/public/BulletinPage'));
 // W3.4A ZZ.4 — Fraud Detection + Risk Score
-const SuperadminFraudAlerts          = lazy(() => import('./pages/superadmin/SuperadminFraudAlerts'));
-const SuperadminRiskScore            = lazy(() => import('./pages/superadmin/SuperadminRiskScore'));
-const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/SuperadminRiskAlerts'));
 // W3.5 — Public API + Stripe
 const SuperadminMonetizacionHub      = lazy(() => import('./pages/superadmin/SuperadminMonetizacionHub'));
-const SuperadminApiKeys              = lazy(() => import('./pages/superadmin/SuperadminApiKeys'));
 const ApiDocsPage                    = lazy(() => import('./pages/public/ApiDocsPage'));
 // W3.6 — Vertical Data Products + Data Licensing (Phase Z.4)
-const SuperadminVerticalProducts     = lazy(() => import('./pages/superadmin/SuperadminVerticalProducts'));
-const SuperadminDataLicensing        = lazy(() => import('./pages/superadmin/SuperadminDataLicensing'));
 // W3.7 — Phase Z.5 Compliance LFPDPPP
-const SuperadminCompliance           = lazy(() => import('./pages/superadmin/SuperadminCompliance'));
 const PrivacyDsrPage                 = lazy(() => import('./pages/public/PrivacyDsrPage'));
 // W4.2B — MCP connect page
 const ConnectMcpPage                 = lazy(() => import('./pages/public/ConnectMcpPage'));
@@ -380,17 +345,12 @@ const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets
 const AvmWidgetPage                  = lazy(() => import('./pages/widgets/AvmWidgetPage'));
 const ValorColonia                   = lazy(() => import('./pages/public/ValorColonia'));
 const ReclamarDev                    = lazy(() => import('./pages/public/ReclamarDev'));
-const SuperadminAvmAccuracy          = lazy(() => import('./pages/superadmin/SuperadminAvmAccuracy'));
 // W5.3 Parte 2A — Forecast Accuracy dashboard
-const SuperadminForecastAccuracy     = lazy(() => import('./pages/superadmin/SuperadminForecastAccuracy'));
 // W5.2 — Zone Score desagregado · SEO themed landings
 const SeoThemedLanding               = lazy(() => import('./pages/public/SeoThemedLanding'));
 
 // Superadmin
 const DataSourceDetailPage       = lazy(() => import('./pages/superadmin/DataSourceDetailPage'));
-const ScoresPage                 = lazy(() => import('./pages/superadmin/ScoresPage'));
-const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
-const SuperadminPhaseYObservability = lazy(() => import('./pages/superadmin/SuperadminObservability'));
 const SuperadminDataSourcesPage = lazy(() => import('./pages/superadmin/SuperadminDataSources'));
 // W4.10 — WhatsApp + Newsletter
 
