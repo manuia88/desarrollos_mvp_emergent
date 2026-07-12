@@ -1,4 +1,4 @@
-name: CI Smoke
+name: CI
 
 on:
   push:
@@ -78,7 +78,7 @@ jobs:
           python audit_routes.py
 
   frontend-build:
-    name: Frontend Build
+    name: Frontend Build + Tests
     runs-on: ubuntu-latest
     # CI hardening 2026-05-13: removido continue-on-error · ahora si yarn build falla, job rojo.
     steps:
@@ -95,6 +95,13 @@ jobs:
         run: |
           cd frontend
           yarn install --frozen-lockfile
+
+      # QA (auditoría 2026-07-12): antes el CI solo buildeaba el front. Ahora corre la suite de tests
+      # (jsdom, sin infra) — incluye el guard de regresión que falla si vuelve el token a localStorage.
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          CI=true yarn test --watchAll=false
 
       - name: Build frontend
         run: |
