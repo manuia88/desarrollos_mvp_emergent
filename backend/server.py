@@ -2725,11 +2725,19 @@ async def startup():
         except Exception as e:
             logging.warning(f"[W6.MOV.3] reviews_residents startup register failed: {e}")
         # W6.MOV.2 — Gov Data MX: indexes + 2 crons (weekly dom 04:00 + monthly día 1 05:00 UTC)
+        # HONESTIDAD DE DATOS (auditoría 2026-07-12): el cron actual solo guardaba el HTML de la landing
+        # (~3.9KB), NUNCA los datasets (INEGI/IMSS/ENVIPE/SEP) → daba FALSA frescura (ingested_at avanzaba,
+        # el dato no). Se apaga por default (GOV_DATA_MX_CRON_ENABLED != 'true') hasta que el parser real
+        # descargue y parsee los datasets. Así no fabrica frescura. (Los índices sí se crean, son inocuos.)
         try:
             from gov_data_mx_engine import ensure_gov_data_mx_indexes
-            from gov_data_mx_cron import register_gov_data_mx_jobs
             await ensure_gov_data_mx_indexes(db)
-            register_gov_data_mx_jobs(sched, db)
+            if os.environ.get("GOV_DATA_MX_CRON_ENABLED", "false").lower() == "true":
+                from gov_data_mx_cron import register_gov_data_mx_jobs
+                register_gov_data_mx_jobs(sched, db)
+            else:
+                logging.info("[W6.MOV.2] gov_data_mx cron APAGADO (solo fetchea HTML, no datasets) · "
+                             "prender con GOV_DATA_MX_CRON_ENABLED=true cuando el parser real esté listo")
         except Exception as e:
             logging.warning(f"[W6.MOV.2] gov_data_mx startup register failed: {e}")
         # W7.AS.6 — Reputation Monitor: indexes + 1 cron (scan diario 05:00 UTC)

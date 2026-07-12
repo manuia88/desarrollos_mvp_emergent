@@ -165,9 +165,15 @@ async def get_one(request: Request, brochure_id: str):
 
 @router.get("/api/brochures/files/{brochure_id}/pdf")
 async def download_pdf(request: Request, brochure_id: str):
+    # SEGURIDAD (auditoría 2026-07-12): endpoint PÚBLICO por DISEÑO — un brochure es material de marketing
+    # que el asesor comparte con prospectos que NO tienen login. El brochure_id es un UUID4 (122 bits,
+    # inadivinable) → funciona como URL-capacidad ("cualquiera con el link"), no como IDOR enumerable.
+    # Se sirve solo si el brochure está publicado (no 'draft') para no exponer borradores.
     db = _db(request)
     doc = await engine.get_brochure(db, brochure_id)
     if not doc:
+        raise HTTPException(404, "brochure_not_found")
+    if (doc.get("status") or "").lower() == "draft":
         raise HTTPException(404, "brochure_not_found")
     path = engine.resolve_pdf_path(brochure_id)
     if not path:
