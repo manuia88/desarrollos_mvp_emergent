@@ -2325,7 +2325,10 @@ async def dev_archivo_publico(dev_id: str, file_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(502, f"No se pudo leer el archivo: {e}")
+        # SEGURIDAD (auditoría 2026-07-12): no filtrar la excepción interna al cliente.
+        import logging
+        logging.getLogger("dmx.public").exception("[public] descarga de archivo falló")
+        raise HTTPException(502, "No se pudo leer el archivo")
     from fastapi.responses import Response
     return Response(content=data, media_type=eff_mime or mime,
                     headers={"Cache-Control": "public, max-age=86400"})

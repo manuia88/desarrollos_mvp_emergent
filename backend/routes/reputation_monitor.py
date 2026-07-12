@@ -166,8 +166,9 @@ async def post_scan_now(request: Request, body: Optional[ScanNowBody] = None):
     try:
         result = await scan_mentions(db, brand_keywords=bk, sources=srcs)
     except Exception as exc:
-        log.warning(f"[reputation_routes] scan_now fail: {exc}")
-        raise HTTPException(500, f"scan_failed: {exc}")
+        # SEGURIDAD (auditoría 2026-07-12): loguear server-side, no filtrar la excepción al cliente.
+        log.exception(f"[reputation_routes] scan_now fail: {exc}")
+        raise HTTPException(500, "scan_failed")
 
     return JSONResponse({"status": "ok", **(result or {})})
 
