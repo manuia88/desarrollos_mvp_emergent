@@ -4,7 +4,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Sparkle, AlertTriangle, BarChart, ArrowRight, RefreshCw } from '../../components/icons';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const authH = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dmx_token')}` });
+const authH = () => ({ 'Content-Type': 'application/json' });
 
 function Card({ children, tone = 'default' }) {
   const borders = {

@@ -29,9 +29,9 @@ const METRIC_LABEL = {
   avg_confidence: 'metric_avg_confidence',
 };
 
+// Auth via cookie httponly (credentials:'include'); sin Bearer/localStorage (XSS).
 function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 function fmtPct(v) {

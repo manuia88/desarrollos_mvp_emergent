@@ -13,9 +13,7 @@ const PERIOD_OPTIONS = [
 ];
 
 async function authFetch(path) {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
   const res = await fetch(`${API}${path}`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     credentials: 'include',
   });
   if (!res.ok) {

@@ -25,8 +25,7 @@ async function executeAction(action, navigate) {
       const res = await fetch(url, {
         method: p.method || 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json',
-                   Authorization: `Bearer ${localStorage.getItem('dmx_token')}` },
+        headers: { 'Content-Type': 'application/json' },
         body: p.body ? JSON.stringify(p.body) : undefined,
       });
       return await res.json().catch(() => ({}));
@@ -34,8 +33,7 @@ async function executeAction(action, navigate) {
   } else if (t === 'impersonate') {
     try {
       const url = `${API}/api/superadmin/tenants/${encodeURIComponent(p.tenant_id)}/impersonate`;
-      await fetch(url, { method: 'POST', credentials: 'include',
-        headers: { Authorization: `Bearer ${localStorage.getItem('dmx_token')}` } });
+      await fetch(url, { method: 'POST', credentials: 'include' });
       window.location.href = '/desarrollador';
     } catch (e) { console.warn(e); }
   }

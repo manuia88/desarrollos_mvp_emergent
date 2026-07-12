@@ -11,11 +11,6 @@ const API = process.env.REACT_APP_BACKEND_URL || '';
 const GRADIENT = 'linear-gradient(135deg, #6366F1, #EC4899)';
 const AUTO_MIN_N = 100;
 
-function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
-
 export default function SuperadminAbTesting({ embedded }) {
   const { t } = useTranslation('conversation_ab_testing');
   const [tests, setTests] = useState([]);
@@ -27,7 +22,7 @@ export default function SuperadminAbTesting({ embedded }) {
   const loadTests = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/superadmin/ab-testing/list`, { credentials: 'include', headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/ab-testing/list`, { credentials: 'include' });
       const data = res.ok ? await res.json() : { tests: [] };
       setTests(data.tests || []);
     } catch (e) {
@@ -40,7 +35,7 @@ export default function SuperadminAbTesting({ embedded }) {
   const loadResults = useCallback(async (id) => {
     setResults(null);
     try {
-      const res = await fetch(`${API}/api/superadmin/ab-testing/results/${id}`, { credentials: 'include', headers: authHeaders() });
+      const res = await fetch(`${API}/api/superadmin/ab-testing/results/${id}`, { credentials: 'include' });
       if (res.ok) setResults(await res.json());
     } catch (e) { /* no-op */ }
   }, []);
@@ -55,7 +50,8 @@ export default function SuperadminAbTesting({ embedded }) {
     try {
       await fetch(`${API}/api/superadmin/ab-testing/pick-winner`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ test_id: selectedId, variant: variant || null }),
       });
       await loadTests();
@@ -67,7 +63,7 @@ export default function SuperadminAbTesting({ embedded }) {
     // eslint-disable-next-line no-alert
     if (!window.confirm(t('confirm_delete'))) return;
     try {
-      await fetch(`${API}/api/superadmin/ab-testing/${id}`, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
+      await fetch(`${API}/api/superadmin/ab-testing/${id}`, { method: 'DELETE', credentials: 'include' });
       if (selectedId === id) { setSelectedId(null); setResults(null); }
       await loadTests();
     } catch (e) { /* no-op */ }

@@ -70,8 +70,9 @@ function KPI({ label, value, testId, sub }) {
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 function authHeaders() {
-  const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return tk ? { Authorization: `Bearer ${tk}` } : {};
+  // Seguridad: la cookie httponly (access_token) autentica vía credentials:'include'.
+  // Ya no se lee el token de localStorage (vector XSS).
+  return {};
 }
 const OBJ_LABEL = { precio: 'Precio', ubicacion: 'Ubicación', financiamiento: 'Financiamiento', tiempo: 'No es el momento', competencia: 'Comparando', duda: 'Dudas' };
 

@@ -6,7 +6,6 @@ const PUB = `${API}/api/public`;
 
 const _h = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dmx_token')}`,
 });
 
 async function _j(res) {
@@ -79,5 +78,6 @@ export async function getZoneScoreHistory(zone_id, days = 90) {
 // ─── Public (no auth) ─────────────────────────────────────────────────────────
 
 export async function getPublicZoneScore(zone_id) {
-  return _j(await fetch(`${PUB}/zone-score/${encodeURIComponent(zone_id)}`));
+  return _j(await fetch(`${PUB}/zone-score/${encodeURIComponent(zone_id)}`,
+    { credentials: 'include' }));
 }

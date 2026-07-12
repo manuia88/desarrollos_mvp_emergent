@@ -36,10 +36,8 @@ const kpi = {
 
 async function fetchVsStats() {
   const base = process.env.REACT_APP_BACKEND_URL;
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
   const res = await fetch(`${base}/api/virtual-staging/admin/stats`, {
     credentials: 'include',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();

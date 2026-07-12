@@ -2,9 +2,7 @@
 const API = process.env.REACT_APP_BACKEND_URL;
 const BASE = `${API}/api/superadmin/transactions`;
 
-const _h = () => ({
-  Authorization: `Bearer ${localStorage.getItem('dmx_token')}`,
-});
+const _h = () => ({});
 
 async function _j(res) {
   if (!res.ok) {

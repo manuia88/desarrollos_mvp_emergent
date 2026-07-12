@@ -4,7 +4,6 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dmx_token')}`,
 });
 
 async function _j(res) {

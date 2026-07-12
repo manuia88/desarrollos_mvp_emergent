@@ -3,7 +3,6 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const h = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dmx_token')}`,
 });
 
 async function _j(res) {
@@ -56,8 +55,7 @@ export function exportPdfUrl({ zone_id, tier = 'colonia', period = 'current' }) 
 
 export async function downloadPdf({ zone_id, tier = 'colonia', period = 'current' }) {
   const res = await fetch(exportPdfUrl({ zone_id, tier, period }),
-    { headers: { Authorization: `Bearer ${localStorage.getItem('dmx_token')}` },
-      credentials: 'include' });
+    { credentials: 'include' });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try { const d = await res.json(); msg = d.detail || msg; } catch {}

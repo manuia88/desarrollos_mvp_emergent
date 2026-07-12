@@ -13,9 +13,9 @@ const SIGNAL_COLOR = {
   technical_error_reply: 'var(--theme-muted, #94A3B8)',
 };
 
+// Auth via cookie httponly (credentials:'include'); sin Bearer/localStorage (XSS).
 function authHeaders() {
-  const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return tk ? { Authorization: `Bearer ${tk}` } : {};
+  return {};
 }
 
 export default function SuperadminKbGaps({ embedded }) {
@@ -62,6 +62,7 @@ export default function SuperadminKbGaps({ embedded }) {
     try {
       const res = await fetch(`${API}/api/superadmin/kb-gaps/add-faq`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           gap_id: gap.gap_id, question: gap.sample_question,
@@ -76,6 +77,7 @@ export default function SuperadminKbGaps({ embedded }) {
     try {
       const res = await fetch(`${API}/api/superadmin/kb-gaps/dismiss-gap`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ gap_id: gapId }),
       });

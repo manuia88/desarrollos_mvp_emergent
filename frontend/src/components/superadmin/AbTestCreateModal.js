@@ -8,11 +8,6 @@ import { X, FlaskConical, Loader2 } from 'lucide-react';
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const GRADIENT = 'linear-gradient(135deg, #6366F1, #EC4899)';
 
-function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
-
 export default function AbTestCreateModal({ open, onClose, onCreated }) {
   const { t } = useTranslation('conversation_ab_testing');
   const [name, setName] = useState('');
@@ -60,7 +55,7 @@ export default function AbTestCreateModal({ open, onClose, onCreated }) {
     try {
       const res = await fetch(`${API}/api/superadmin/ab-testing/create`, {
         method: 'POST',
-        credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(), description: description.trim() || null,
           prompt_a: promptA, prompt_b: promptB, split_pct: splitA,

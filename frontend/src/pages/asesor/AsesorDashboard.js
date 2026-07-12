@@ -44,11 +44,10 @@ export default function AsesorDashboard({ user, onLogout }) {
     // F0.2·Sub-B — Leaderboard widget
     (async () => {
       try {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        // Seguridad: autentica la cookie httponly vía credentials:'include' (sin token en localStorage).
         const res = await fetch(
           `${process.env.REACT_APP_BACKEND_URL}/api/lead-journey/leaderboard?period_days=30&limit=5`,
           {
-            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             credentials: 'include',
           },
         );

@@ -19,9 +19,9 @@ const STATUS_COLOR = {
   closed: 'var(--theme-muted-dark, #64748B)',
 };
 
+// Auth via cookie httponly (credentials:'include'); sin Bearer/localStorage (XSS).
 function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 export default function SuperadminConversations({ embedded }) {
@@ -73,6 +73,7 @@ export default function SuperadminConversations({ embedded }) {
     try {
       const res = await fetch(`${API}/api/superadmin/conversations/takeover`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ conversation_id: convId }),
       });

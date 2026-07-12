@@ -3,15 +3,6 @@
 // Usa fetch nativo · NO depende de axios.
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const token =
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token') ||
-    '';
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function _req(url, opts = {}) {
   const res = await fetch(`${API}${url}`, {
     credentials: 'include',
@@ -41,9 +32,7 @@ export async function listByQuality({ min_score, tier, limit = 50, skip = 0 } = 
 }
 
 export async function getQualityStats() {
-  return _req(`/api/superadmin/construction-quality/stats`, {
-    headers: authHeaders(),
-  });
+  return _req(`/api/superadmin/construction-quality/stats`);
 }
 
 export async function refreshQuality(developmentId) {
@@ -51,7 +40,6 @@ export async function refreshQuality(developmentId) {
     `/api/superadmin/construction-quality/refresh/${encodeURIComponent(developmentId)}`,
     {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({}),
     },
   );
@@ -60,7 +48,6 @@ export async function refreshQuality(developmentId) {
 export async function setManualOverride({ development_id, score, reason }) {
   return _req(`/api/superadmin/construction-quality/manual-override`, {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify({ development_id, score, reason }),
   });
 }

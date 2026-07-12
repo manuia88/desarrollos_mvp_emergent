@@ -74,13 +74,12 @@ export function FeatureFlagsProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // Initial fetch only if logged in (cookie present)
+    // Initial fetch only if logged in (session cookie present).
+    // Seguridad: auth es por cookie httponly (access_token) — ya no se lee token de localStorage.
     if (typeof window !== 'undefined' && document.cookie.includes('dmx_session')) {
       refresh();
     } else {
-      // Also try if there's a token in localStorage (safer)
-      if (localStorage.getItem('dmx_token')) refresh();
-      else setState(s => ({ ...s, loading: false }));
+      setState(s => ({ ...s, loading: false }));
     }
     // Auto-refresh on interval (5min)
     const t = setInterval(() => {

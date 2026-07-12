@@ -17,9 +17,9 @@ const TIER_COLOR = {
   other: 'var(--theme-muted-dark, #64748B)',
 };
 
+// Auth via cookie httponly (credentials:'include'); sin Bearer/localStorage (XSS).
 function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 function fmtUsd(v) {

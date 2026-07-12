@@ -38,12 +38,10 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
     setRegenLoading(true);
     setRegenError(null);
     try {
-      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
       const res = await fetch(`${API}/api/brochures/regenerate/${brochure.brochure_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({ variant: selectedVariant }),

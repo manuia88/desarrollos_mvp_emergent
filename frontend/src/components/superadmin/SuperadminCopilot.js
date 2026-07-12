@@ -9,9 +9,9 @@ import PortalLayout from '../shared/PortalLayout';
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const BASE = `${API}/api/asesor/superadmin/copilot`;
 
+// Auth via cookie httponly (credentials:'include'); sin Bearer/localStorage (XSS).
 function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 const SCRIPT_LABEL = {

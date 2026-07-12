@@ -438,7 +438,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     if (!open) return;
     let w; try { w = localStorage.getItem('dmx.watcher_id'); } catch { w = null; }
     if (!w) return;
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonia-watch?watcher=${w}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonia-watch?watcher=${w}`, { credentials: 'include' })
       .then((r) => r.json())
       .then((d) => {
         const al = (d && d.alerts) || [];
@@ -489,6 +489,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     try {
       const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble', thread_id: threadId || null, page_context: contextRef.current || null, visitor_id: visitorId() }),
       });
@@ -523,10 +524,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     setMessages(prev => [...prev, { role: 'user', content: '🏠 Encuéntrame mi casa (búsqueda guiada con IA)', ts: Date.now() }]);
     setBusy(true);
     try {
-      const tok = (() => { try { return localStorage.getItem('dmx_token'); } catch { return null; } })();
       const r = await fetch(`${API}/api/cerebro/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal_id: 'find_home' }),
       });
       if (r.status === 401) {
@@ -551,7 +552,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     setBusy(true);
     try {
       let w = null; try { w = localStorage.getItem('dmx.watcher_id'); } catch {}
-      const r = await fetch(`${API}/api/para-ti${w ? `?watcher=${w}` : ''}`);
+      const r = await fetch(`${API}/api/para-ti${w ? `?watcher=${w}` : ''}`, { credentials: 'include' });
       const d = await r.json();
       const list = (d.para_ti || []).map(c => `• ${c.name} (${c.alcaldia})${c.valor_m2 ? ` — $${c.valor_m2.toLocaleString('es-MX')}/m² suelo` : ''}`).join('\n');
       const lead = d.basis === 'personalizado'
@@ -574,7 +575,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     if (!newThreadId || newThreadId === threadId) return;
     setBusy(true);
     try {
-      const r = await fetch(`${API}/api/atlax/threads/${newThreadId}/messages?session_token=${encodeURIComponent(asistenteToken || '')}`);
+      const r = await fetch(`${API}/api/atlax/threads/${newThreadId}/messages?session_token=${encodeURIComponent(asistenteToken || '')}`, { credentials: 'include' });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
       const loaded = (d.messages || []).map(m => ({

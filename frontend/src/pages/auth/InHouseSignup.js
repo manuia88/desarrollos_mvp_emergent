@@ -48,9 +48,6 @@ export default function InHouseSignup() {
     try {
       const res = await acceptInvitation(token, form.name.trim(), form.password || undefined);
       setSuccess(true);
-      if (res.token) {
-        try { localStorage.setItem('dmx_token', res.token); } catch {}
-      }
       if (res.user && setUser) setUser(res.user);
       setTimeout(() => navigate(res.redirect || '/desarrollador'), 1800);
     } catch (e) { setFormErr(e.message || 'Error al activar la cuenta'); }

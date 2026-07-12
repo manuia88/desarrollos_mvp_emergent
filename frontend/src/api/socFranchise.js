@@ -3,15 +3,6 @@
 // Usa fetch nativo · NO depende de axios.
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const token =
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token') ||
-    '';
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function _req(url, opts = {}) {
   const res = await fetch(`${API}${url}`, {
     credentials: 'include',
@@ -36,23 +27,20 @@ export async function getLeaderboard({ level, limit = 20, skip = 0 } = {}) {
 }
 
 export async function getMyScore() {
-  return _req(`/api/soc-franchise/my-score`, { headers: authHeaders() });
+  return _req(`/api/soc-franchise/my-score`);
 }
 
 export async function getUserScore(userId) {
-  return _req(`/api/soc-franchise/user/${encodeURIComponent(userId)}`, {
-    headers: authHeaders(),
-  });
+  return _req(`/api/soc-franchise/user/${encodeURIComponent(userId)}`);
 }
 
 export async function getSocStats() {
-  return _req(`/api/superadmin/soc-franchise/stats`, { headers: authHeaders() });
+  return _req(`/api/superadmin/soc-franchise/stats`);
 }
 
 export async function certifyUser({ user_id, level, reason }) {
   return _req(`/api/superadmin/soc-franchise/certify`, {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify({ user_id, level, reason }),
   });
 }
@@ -60,7 +48,6 @@ export async function certifyUser({ user_id, level, reason }) {
 export async function revokeUser({ user_id, reason }) {
   return _req(`/api/superadmin/soc-franchise/revoke`, {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify({ user_id, reason }),
   });
 }

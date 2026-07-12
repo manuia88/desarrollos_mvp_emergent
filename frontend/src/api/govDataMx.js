@@ -5,15 +5,6 @@
 // Public · aggregated indicator
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const token =
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token') ||
-    '';
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function _req(url, opts = {}) {
   const res = await fetch(`${API}${url}`, {
     credentials: 'include',
@@ -33,9 +24,7 @@ async function _req(url, opts = {}) {
 
 // ── Track A · sources status ────────────────────────────────────────────────
 export async function listSources() {
-  return _req('/api/superadmin/gov-data-mx/sources', {
-    headers: authHeaders(),
-  });
+  return _req('/api/superadmin/gov-data-mx/sources');
 }
 
 export async function refreshSource(sourceId) {
@@ -43,7 +32,6 @@ export async function refreshSource(sourceId) {
     `/api/superadmin/gov-data-mx/refresh/${encodeURIComponent(sourceId)}`,
     {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({}),
     },
   );
@@ -51,16 +39,12 @@ export async function refreshSource(sourceId) {
 
 // ── Track B · cron status ───────────────────────────────────────────────────
 export async function getCronStatus() {
-  return _req('/api/superadmin/gov-data-mx/cron-status', {
-    headers: authHeaders(),
-  });
+  return _req('/api/superadmin/gov-data-mx/cron-status');
 }
 
 // ── Aggregated stats ────────────────────────────────────────────────────────
 export async function getStats() {
-  return _req('/api/superadmin/gov-data-mx/stats', {
-    headers: authHeaders(),
-  });
+  return _req('/api/superadmin/gov-data-mx/stats');
 }
 
 // ── Track C · upload ────────────────────────────────────────────────────────
@@ -73,7 +57,6 @@ export async function uploadFile({ file, source_label, schema_hint }) {
   const res = await fetch(`${API}/api/superadmin/gov-data-mx/upload`, {
     method: 'POST',
     credentials: 'include',
-    headers: { ...authHeaders() },
     body: fd,
   });
   if (!res.ok) {
@@ -93,9 +76,7 @@ export async function listUploads({ limit = 50, offset = 0, include_deleted = fa
     offset: String(offset),
     include_deleted: String(include_deleted),
   });
-  return _req(`/api/superadmin/gov-data-mx/uploads?${params.toString()}`, {
-    headers: authHeaders(),
-  });
+  return _req(`/api/superadmin/gov-data-mx/uploads?${params.toString()}`);
 }
 
 export async function deleteUpload(uploadId, reason) {
@@ -103,7 +84,6 @@ export async function deleteUpload(uploadId, reason) {
     `/api/superadmin/gov-data-mx/uploads/${encodeURIComponent(uploadId)}`,
     {
       method: 'DELETE',
-      headers: authHeaders(),
       body: JSON.stringify(reason ? { reason } : {}),
     },
   );

@@ -2,19 +2,10 @@
 // 5 endpoints: POST publish, POST schedule, GET history, GET stats, DELETE scheduled/{id}.
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const token =
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token') ||
-    '';
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function _req(url, opts = {}) {
   const res = await fetch(`${API}${url}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(opts.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     ...opts,
   });
   if (!res.ok) {

@@ -8,8 +8,8 @@ import { FaWhatsapp, FaFacebookMessenger, FaInstagram, FaLinkedinIn, FaTiktok, F
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
 function authHeaders() {
-  const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return tk ? { Authorization: `Bearer ${tk}` } : {};
+  // Auth vía cookie httponly (credentials:'include'). Sin Bearer en localStorage (anti-XSS).
+  return {};
 }
 
 const LOGO = {

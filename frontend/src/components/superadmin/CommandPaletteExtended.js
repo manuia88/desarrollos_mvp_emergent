@@ -105,7 +105,6 @@ export default function CommandPaletteExtended({ onClose }) {
           // Impersonate flow: POST to api then redirect
           await fetch(`${API}${result.redirect_url}`, {
             method: 'POST', credentials: 'include',
-            headers: { Authorization: `Bearer ${localStorage.getItem('dmx_token')}` },
           });
           window.location.href = '/desarrollador';
         } else if (result.redirect_url.startsWith('/')) {
@@ -116,8 +115,7 @@ export default function CommandPaletteExtended({ onClose }) {
         const url = a.url.startsWith('http') ? a.url : `${API}${a.url}`;
         await fetch(url, {
           method: a.method || 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json',
-                     Authorization: `Bearer ${localStorage.getItem('dmx_token')}` },
+          headers: { 'Content-Type': 'application/json' },
         });
       }
     } catch (e) {

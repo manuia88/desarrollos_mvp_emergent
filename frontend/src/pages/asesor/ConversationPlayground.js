@@ -12,8 +12,9 @@ const CHANNELS = ['inapp', 'web', 'email', 'whatsapp'];
 const SENTIMENT_COLOR = { positive: '#22C55E', neutral: '#94A3B8', negative: '#EF4444' };
 
 function authHeaders() {
-  const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  // Seguridad: la cookie httponly (access_token) autentica vía credentials:'include'.
+  // Ya no se lee el token de localStorage (vector XSS).
+  return {};
 }
 
 function ConversationPlaygroundBody() {

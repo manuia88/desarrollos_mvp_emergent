@@ -1,12 +1,11 @@
 // W5.FF3 · UI Feature Visibility Matrix · API client
-// 4 endpoints superadmin · auth via Bearer token + credentials cookie.
+// 4 endpoints superadmin · auth via cookie httponly (credentials: 'include').
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const BASE = `${API}/api/superadmin/features`;
 
 const _h = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dmx_token') || ''}`,
 });
 
 async function _j(r) {
@@ -120,7 +119,6 @@ export async function uploadBulkCSV(file) {
   // Note: NO Content-Type header · browser sets multipart boundary automáticamente.
   const r = await fetch(`${BASE}/bulk-csv`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('dmx_token') || ''}` },
     credentials: 'include',
     body: fd,
   });

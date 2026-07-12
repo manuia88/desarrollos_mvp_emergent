@@ -3,7 +3,6 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const h = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dmx_token')}`,
 });
 
 async function _j(res) {
@@ -17,7 +16,7 @@ async function _j(res) {
 
 export async function createCrossPartnership(payload) {
   return _j(await fetch(`${API}/api/cross-partnerships`, {
-    method: 'POST', headers: h(), body: JSON.stringify(payload),
+    method: 'POST', credentials: 'include', headers: h(), body: JSON.stringify(payload),
   }));
 }
 
@@ -26,23 +25,23 @@ export async function getCrossPartnerships(role, status) {
   if (role) params.set('role', role);
   if (status) params.set('status', status);
   const qs = params.toString() ? `?${params.toString()}` : '';
-  return _j(await fetch(`${API}/api/cross-partnerships${qs}`, { headers: h() }));
+  return _j(await fetch(`${API}/api/cross-partnerships${qs}`, { credentials: 'include', headers: h() }));
 }
 
 export async function approveCrossPartnership(partnershipId) {
   return _j(await fetch(`${API}/api/cross-partnerships/${partnershipId}/approve`, {
-    method: 'POST', headers: h(), body: JSON.stringify({}),
+    method: 'POST', credentials: 'include', headers: h(), body: JSON.stringify({}),
   }));
 }
 
 export async function rejectCrossPartnership(partnershipId, reason) {
   return _j(await fetch(`${API}/api/cross-partnerships/${partnershipId}/reject`, {
-    method: 'POST', headers: h(), body: JSON.stringify({ reason }),
+    method: 'POST', credentials: 'include', headers: h(), body: JSON.stringify({ reason }),
   }));
 }
 
 export async function revokeCrossPartnership(partnershipId, reason) {
   return _j(await fetch(`${API}/api/cross-partnerships/${partnershipId}/revoke`, {
-    method: 'POST', headers: h(), body: JSON.stringify({ reason }),
+    method: 'POST', credentials: 'include', headers: h(), body: JSON.stringify({ reason }),
   }));
 }

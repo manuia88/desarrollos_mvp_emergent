@@ -3,15 +3,6 @@
 // Usa fetch nativo · NO depende de axios.
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const token =
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token') ||
-    '';
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function _req(url, opts = {}) {
   const res = await fetch(`${API}${url}`, {
     credentials: 'include',
@@ -44,17 +35,17 @@ export async function getReviewsSummary(entityType, entityId) {
 export async function forceScrapeReviews(entityType, entityId) {
   return _req(
     `/api/superadmin/reviews/scrape/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
-    { method: 'POST', headers: authHeaders(), body: JSON.stringify({}) },
+    { method: 'POST', body: JSON.stringify({}) },
   );
 }
 
 export async function getReviewsStats() {
-  return _req(`/api/superadmin/reviews/stats`, { headers: authHeaders() });
+  return _req(`/api/superadmin/reviews/stats`);
 }
 
 export async function deleteEntityReviews(entityType, entityId) {
   return _req(
     `/api/superadmin/reviews/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
-    { method: 'DELETE', headers: authHeaders() },
+    { method: 'DELETE' },
   );
 }

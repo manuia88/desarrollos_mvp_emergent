@@ -2,11 +2,6 @@
 // Las URLs de las imágenes públicas se construyen inline (no necesitan fetch).
 const API = process.env.REACT_APP_BACKEND_URL;
 
-function authHeaders() {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function handle(res) {
   if (!res.ok) {
     let body = null;
@@ -21,7 +16,7 @@ async function handle(res) {
 
 export async function getSocialCardsStats() {
   const res = await fetch(`${API}/api/superadmin/social-cards/stats`, {
-    credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include', headers: { 'Content-Type': 'application/json' },
   });
   return handle(res);
 }

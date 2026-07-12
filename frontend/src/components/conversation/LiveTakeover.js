@@ -7,11 +7,6 @@ import { Hand, X, Gauge } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-function authHeaders() {
-  const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
-  return tk ? { Authorization: `Bearer ${tk}` } : {};
-}
-
 export default function LiveTakeover({ conversationId, onTakenOver, disabled = false, floating = false }) {
   const { t } = useTranslation('conversation_round2_ui');
   const [open, setOpen] = useState(false);
@@ -25,7 +20,7 @@ export default function LiveTakeover({ conversationId, onTakenOver, disabled = f
     try {
       const res = await fetch(`${API}/api/superadmin/conversations/takeover`, {
         method: 'POST',
-        credentials: 'include', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversation_id: conversationId }),
       });
       if (res.ok) {

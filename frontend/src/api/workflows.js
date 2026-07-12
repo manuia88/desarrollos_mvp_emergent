@@ -3,11 +3,8 @@
 const BASE = process.env.REACT_APP_BACKEND_URL || '';
 
 function _authHeaders() {
-  const token =
-    localStorage.getItem('token') || sessionStorage.getItem('token') || '';
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 

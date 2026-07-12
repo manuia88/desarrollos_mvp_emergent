@@ -1,6 +1,6 @@
 // Inteligencia de demanda — cliente API
 const API = process.env.REACT_APP_BACKEND_URL;
-const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dmx_token')}` });
+const h = () => ({ 'Content-Type': 'application/json' });
 async function _j(res) {
   if (!res.ok) { let m = `HTTP ${res.status}`; try { const d = await res.json(); m = d.detail || m; } catch {} throw new Error(m); }
   return res.json();
