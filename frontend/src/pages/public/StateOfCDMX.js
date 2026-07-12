@@ -1,6 +1,7 @@
 // W4.16 — StateOfCDMX (public /insights/state-of-cdmx-2026)
 import React, { useEffect, useState } from 'react';
 import { HorizontalBars, DemandSupplyBars, VelocityLineChart } from '../../components/marketing/StateOfCDMXChart';
+import Navbar from '../../components/landing/Navbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,6 +56,8 @@ export default function StateOfCDMX() {
         minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--cream)', fontFamily: 'DM Sans',
       }}>
+        <Navbar />
+        <div style={{ height: 60 }} />
         {error}
       </div>
     );
@@ -65,6 +68,8 @@ export default function StateOfCDMX() {
         minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--cream-3, #a0a4b0)', fontFamily: 'DM Sans', fontSize: 14,
       }}>
+        <Navbar />
+        <div style={{ height: 60 }} />
         Cargando…
       </div>
     );
@@ -97,6 +102,8 @@ export default function StateOfCDMX() {
       background: '#06080F', color: '#F0EBE0', minHeight: '100vh',
       paddingBottom: 100,
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Hero */}

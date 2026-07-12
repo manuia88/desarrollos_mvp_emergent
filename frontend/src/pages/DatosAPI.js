@@ -4,6 +4,7 @@
  *  notarías/fondos consumen índices, scores y snapshots de mercado CDMX por API.
  */
 import React from 'react';
+import Navbar from '../components/landing/Navbar';
 
 const C = { bg: '#0C0A14', ink: '#F4F1FA', ink2: '#B8B2C8', faint: '#7C7690', line: 'rgba(255,255,255,0.1)', card: '#15121F', accent: '#8B6DFF', green: '#4ADE80' };
 const GRAD = 'linear-gradient(120deg, #6D4AFF, #C63FAE)';
@@ -34,6 +35,8 @@ const MAILTO = 'mailto:hola@desarrollosmx.io?subject=Acceso%20a%20la%20API%20de%
 export default function DatosAPI() {
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ background: GRAD, padding: '56px 20px 44px' }}>
         <div style={{ maxWidth: 1040, margin: '0 auto' }}>
           <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, opacity: 0.9, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#fff' }}>DMX Data · API</div>

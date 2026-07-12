@@ -8,6 +8,7 @@ import {
   LineChart, Line, Legend, Cell,
 } from 'recharts';
 import { fetchGlobalSource } from '../../api/insights_external';
+import Navbar from '../../components/landing/Navbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -397,6 +398,8 @@ export default function InsightsCompare() {
       background: 'var(--bg, #06080F)', color: PALETTE.cream, minHeight: '100vh',
       paddingBottom: 100,
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Breadcrumb */}

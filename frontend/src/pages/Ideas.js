@@ -3,6 +3,7 @@
  *  el mercado, cada una con su tesis y qué la disparó. Reusa /api/ideas (screener/gentrificación). Lead-gen.
  */
 import React, { useEffect, useState } from 'react';
+import ToolNav from '../components/ui/ToolNav';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const C = { bg: '#FBFAFC', ink: '#15121C', ink2: '#5B5568', faint: '#9A93A6', line: '#EFEBF4', card: '#FFF', accent: '#6D4AFF', green: '#1E9E63', amber: '#D98A00' };
@@ -32,6 +33,7 @@ export default function Ideas({ user, onLogin }) {
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+      <ToolNav />
       <div style={{ background: GRAD, color: '#fff', padding: '48px 20px 36px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, opacity: 0.85, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Ideas DMX</div>

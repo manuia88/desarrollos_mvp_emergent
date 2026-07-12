@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { visitorId } from '../lib/buyerSignal';   // segmentación por persona: tus zonas exploradas
+import ToolNav from '../components/ui/ToolNav';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -111,6 +112,7 @@ export default function Picks({ user, onLogin }) {
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+      <ToolNav />
       {/* Hero */}
       <div style={{ background: GRAD, color: '#fff', padding: '52px 20px 40px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>

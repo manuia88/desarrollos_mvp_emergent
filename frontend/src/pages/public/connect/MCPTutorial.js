@@ -1,5 +1,6 @@
 // W4.16 Sub-C — MCP Tutorial (public /connect/mcp/tutorial)
 import React, { useEffect, useState } from 'react';
+import Navbar from '../../../components/landing/Navbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -73,6 +74,8 @@ export default function MCPTutorial() {
     <div data-testid="mcp-tutorial-page" style={{
       background: '#06080F', color: '#F0EBE0', minHeight: '100vh', paddingBottom: 100,
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ height: 6, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }} />
 
       {/* Hero */}

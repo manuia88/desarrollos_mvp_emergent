@@ -6,6 +6,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
+import Navbar from '../../components/landing/Navbar';
 import TrustScoreBadge from '../../components/asesor/TrustScoreBadge';
 import EndorsementsCard from '../../components/asesor/EndorsementsCard';
 import { fetchPublicProfile, fetchPublicProfileBySlug, revealAsesorContact } from '../../api/asesor_identity';
@@ -362,6 +363,8 @@ function PageShell({ children }) {
       background: 'var(--bg)',
       padding: '60px 20px',
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
         <Link to="/" data-testid="public-perfil-home-link"
               style={{

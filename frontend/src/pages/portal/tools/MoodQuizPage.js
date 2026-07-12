@@ -6,6 +6,7 @@ import { submitMoodQuiz, getUserLatestMood } from '../../../api/mood';
 import MoodQuizCard from '../../../components/mood/MoodQuizCard';
 import MoodResultSummary from '../../../components/mood/MoodResultSummary';
 import MoodMatchCard from '../../../components/mood/MoodMatchCard';
+import Navbar from '../../../components/landing/Navbar';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -108,6 +109,8 @@ export default function MoodQuizPage() {
 
   return (
     <div data-testid="mood-quiz-page" data-step={step} style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <header style={{ padding: '64px 24px 16px', maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>
           DesarrollosMX · Vibe

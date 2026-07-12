@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getMetaDashboard, exportPdfUrl } from '../../api/accuracy';
 import AccuracyTopZonesTicker from '../../components/shared/AccuracyTopZonesTicker';
+import Navbar from '../../components/landing/Navbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,6 +55,8 @@ export default function ConfianzaPage() {
       background: '#06080F', minHeight: '100vh', color: '#F0EBE0',
       padding: '48px 24px 80px', fontFamily: 'DM Sans',
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
         {/* Hero */}

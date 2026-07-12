@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import ToolNav from '../components/ui/ToolNav';
 
 const ForecastChart = lazy(() => import('../components/forecast/ForecastChart'));  // pronóstico ARIMA de zona (ya LIVE)
 
@@ -51,6 +52,7 @@ export default function Fundamentales() {
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONT, color: C.ink }}>
+      <ToolNav />
       <div style={{ background: GRAD, color: '#fff', padding: '40px 20px 32px' }}>
         <div style={{ maxWidth: 920, margin: '0 auto' }}>
           <Link to="/screener" style={{ fontFamily: FONT, fontSize: 13, color: '#fff', opacity: 0.85, textDecoration: 'none' }}>← Screener</Link>

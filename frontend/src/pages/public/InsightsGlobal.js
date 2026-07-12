@@ -11,6 +11,7 @@ import { Z } from '../../styles/zIndex';
 import { fetchAllSourcesStatus, fetchGlobalSource } from '../../api/insights_external';
 import FactCheckBadge from '../../components/insights/FactCheckBadge';
 import CoursesPanel from '../../components/insights/CoursesPanel';
+import Navbar from '../../components/landing/Navbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -208,6 +209,8 @@ export default function InsightsGlobal() {
       background: 'var(--bg, #06080F)', color: PALETTE.cream, minHeight: '100vh',
       paddingBottom: 100,
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       {/* Brand gradient top bar */}
       <div style={{
         height: 6,

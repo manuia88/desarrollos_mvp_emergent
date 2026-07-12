@@ -1,5 +1,6 @@
 // W4.16 — FreeAudit landing (public /free-audit)
 import React, { useEffect, useState } from 'react';
+import Navbar from '../../components/landing/Navbar';
 import AuditFormStep from '../../components/marketing/AuditFormStep';
 import AuditResultCard from '../../components/marketing/AuditResultCard';
 
@@ -129,6 +130,8 @@ export default function FreeAudit() {
       color: '#F0EBE0',
       paddingTop: 80, paddingBottom: 80,
     }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 6,
         background: 'linear-gradient(90deg, #6366F1, #EC4899)',

@@ -9,6 +9,7 @@ import {
 import MigrationHeatmap from '../../components/climate/MigrationHeatmap';
 import MigrationPatternCard from '../../components/climate/MigrationPatternCard';
 import ZoneMigrationSummary from '../../components/climate/ZoneMigrationSummary';
+import Navbar from '../../components/landing/Navbar';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -67,6 +68,8 @@ export default function ClimateMigrationPage() {
 
   return (
     <div data-testid="climate-migration-page" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
+      <Navbar />
+      <div style={{ height: 60 }} />
       <header style={{ padding: '64px 24px 16px', maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>
           DesarrollosMX · Inteligencia Climatica
