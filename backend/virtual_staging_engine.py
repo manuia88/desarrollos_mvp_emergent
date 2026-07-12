@@ -306,6 +306,18 @@ async def stage_image(
         cached["processing_ms_total"] = int((time.monotonic() - started_total) * 1000)
         return cached
 
+    # ── SEGURIDAD P1 (auditoría 2026-07-12): cap de presupuesto PRE-gasto ──
+    # El caché ya cortó los hits gratis. Ante cache-miss, verificar presupuesto ANTES de invocar
+    # Replicate (SDXL es API paga). Sin esto un asesor podía generar miles de imágenes/día sin tope.
+    try:
+        from ai_budget import is_within_budget
+        _budget_ok = await is_within_budget(db, dev_org_id)
+    except Exception:
+        _budget_ok = True  # si el guard no es verificable, no bloquear (fail-open del CHECK, no del gasto)
+    if not _budget_ok:
+        from fastapi import HTTPException
+        raise HTTPException(403, "Presupuesto de IA agotado para tu organización. Intenta más tarde.")
+
     # ── Replicate parallel ──────────────────────────────────────────────
     try:
         results = await asyncio.gather(

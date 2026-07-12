@@ -403,6 +403,15 @@ async def patch_subscription(
     if res.matched_count == 0:
         raise HTTPException(404, "Subscription no encontrada")
 
+    # SEGURIDAD (auditoría 2026-07-12): el entitlement de la API (public_api_keys) debe seguir a la
+    # suscripción. Al cancelar/expirar, REVOCAR la key emitida (ligada por subscription_id) — antes
+    # sobrevivía hasta el expires_at anual = ingreso regalado. validate_api_key ya rechaza status!=active.
+    if body.status in ("canceled", "expired"):
+        await db.public_api_keys.update_many(
+            {"subscription_id": sub_id, "status": {"$ne": "revoked"}},
+            {"$set": {"status": "revoked", "revoked_at": _iso()}},
+        )
+
     try:
         from audit_log import log_mutation
         await log_mutation(
