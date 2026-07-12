@@ -23,6 +23,23 @@ RL_IP_LIMIT = 30
 RL_EMAIL_LIMIT = 5
 RL_WINDOW_S = 60
 
+# SEGURIDAD (hardening upload sin auth): tamaño máximo y validación de magic bytes.
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
+def _sniff_upload_ext(content: bytes) -> Optional[str]:
+    """Devuelve la extensión canónica según los magic bytes reales del contenido,
+    o None si no es un JPEG/PNG/PDF/WebP válido. NO confía en el filename del cliente."""
+    if content[:3] == b"\xff\xd8\xff":
+        return "jpg"  # JPEG
+    if content[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"  # PNG
+    if content[:5] == b"%PDF-":
+        return "pdf"  # PDF
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "webp"  # WebP
+    return None
+
 
 def _client_ip(request: Request) -> str:
     fwd =_dmx_canon_ip(request)
@@ -94,14 +111,15 @@ async def upload_floor_plan(request: Request, file: UploadFile = File(...)):
     _bucket_check(_RL_IP, ip, RL_IP_LIMIT)
     if not file.filename:
         raise HTTPException(400, "invalid_file")
-    name_lower = file.filename.lower()
-    allowed_exts = ("pdf", "png", "jpg", "jpeg", "webp")
-    if not any(name_lower.endswith(f".{e}") for e in allowed_exts):
-        raise HTTPException(400, "format_not_allowed")
     content = await file.read()
-    if len(content) > 10 * 1024 * 1024:
+    # (2) cap de tamaño estricto — rechazar antes de escribir a disco
+    if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(400, "file_too_large")
-    ext = name_lower.rsplit(".", 1)[-1]
+    # (1) validar magic bytes REALES del contenido (no la extensión del filename)
+    ext = _sniff_upload_ext(content)
+    if ext is None:
+        raise HTTPException(400, "format_not_allowed")
+    # (3) nombre sanitizado: uuid + extensión validada; nunca el filename del cliente (anti path-traversal)
     fid = f"{uuid.uuid4()}.{ext}"
     target = engine.UPLOAD_DIR / fid
     with open(target, "wb") as f:

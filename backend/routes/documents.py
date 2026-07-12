@@ -365,8 +365,9 @@ async def download_document(doc_id: str, request: Request):
         data = await asyncio.to_thread(read_encrypted_file, storage_path)
     except FileNotFoundError:
         raise HTTPException(410, "Archivo no encontrado en storage")
-    except Exception as e:
-        raise HTTPException(500, f"No se pudo descifrar el archivo: {e}")
+    except Exception:
+        log.exception("Error al descifrar/leer el archivo (doc_id=%s)", doc_id)
+        raise HTTPException(500, "No se pudo procesar el archivo")
 
     # verify hash on-read (defense in depth)
     if sha256_bytes(data) != doc.get("file_hash"):

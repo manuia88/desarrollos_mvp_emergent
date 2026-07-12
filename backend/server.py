@@ -1562,9 +1562,13 @@ async def _load_revoked_jtis():
         async for d in cur:
             if d.get("jti"):
                 _REVOKED_JTIS.add(d["jti"])
+        # SEGURIDAD (auditoría 2026-07-12): marcar 'cargado' SOLO si la carga tuvo éxito. Antes se marcaba
+        # siempre (incluso tras excepción) → si la 1ª carga fallaba, la lista de revocados quedaba vacía para
+        # siempre y los tokens de logout seguían válidos (fail-open). Ahora, si falla, se reintenta en el
+        # próximo request (no se marca cargado).
+        _revoked_loaded = True
     except Exception as e:
-        logging.getLogger("dmx.auth").warning(f"[revoked] load fail-open: {e}")
-    _revoked_loaded = True
+        logging.getLogger("dmx.auth").warning(f"[revoked] load falló, se reintentará en el próximo request: {e}")
 
 
 async def _revoke_token_str(token: str):

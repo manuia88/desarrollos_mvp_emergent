@@ -414,8 +414,8 @@ async def analyze_marketing(body: AnalyzeIn, request: Request):
     except MarketingAgentRateLimitError as e:
         raise HTTPException(429, str(e))
     except Exception as e:
-        log.error(f"[routes_subagents] analyze_marketing error: {e}")
-        raise HTTPException(500, f"Error interno del agente de marketing: {e}")
+        log.exception("[routes_subagents] analyze_marketing error")
+        raise HTTPException(500, "Error interno del agente de marketing")
 
     return JSONResponse(status_code=201, content=result)
 
@@ -598,8 +598,8 @@ async def analyze_lead_funnel(body: AnalyzeFunnelIn, request: Request):
     except LeadAgentRateLimitError as e:
         raise HTTPException(429, str(e))
     except Exception as e:
-        log.error(f"[routes_subagents] analyze_lead_funnel error: {e}")
-        raise HTTPException(500, f"Error interno del agente de leads: {e}")
+        log.exception("[routes_subagents] analyze_lead_funnel error")
+        raise HTTPException(500, "Error interno del agente de leads")
 
     return JSONResponse(status_code=201, content=result)
 

@@ -119,10 +119,10 @@ class WAEngine:
         """Envía mensaje. Modo stub solo loguea + persiste."""
         phase_ok = await self._check_phase_y()
         if not phase_ok:
-            log.info(f"[whatsapp] tier off — stub send to {to_number}: {body[:60]}…")
+            log.info(f"[whatsapp] tier off — stub send to ***{to_number[-4:]}")
             result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}", "status": "queued"}
         elif PROVIDER == "stub":
-            log.info(f"[whatsapp] stub send to {to_number}: {body[:80]}")
+            log.info(f"[whatsapp] stub send to ***{to_number[-4:]}")
             result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}", "status": "queued"}
         elif PROVIDER == "twilio":
             result = _twilio_send(to_number, body)

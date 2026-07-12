@@ -14,6 +14,7 @@ import mimetypes
 import re
 import zipfile
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 log = logging.getLogger("dmx.dropbox_source")
 
@@ -21,7 +22,11 @@ MAX_ZIP_BYTES = 400 * 1024 * 1024
 
 
 def is_dropbox_url(url: str) -> bool:
-    return "dropbox.com" in (url or "").lower()
+    try:
+        host = (urlparse(url or "").hostname or "").lower()
+    except Exception:
+        return False
+    return host == "dropbox.com" or host.endswith(".dropbox.com")
 
 
 def _zip_url(url: str) -> str:
@@ -36,8 +41,14 @@ async def fetch_tree(url: str) -> Tuple[List[Dict[str, Any]], Dict[str, bytes]]:
     """Descarga el zip del share y devuelve (files_meta compatibles con el pipeline, bytes por id).
     files_meta: id=ruta dentro del zip · name · mimeType (por extensión) · immediate_folder."""
     import httpx
-    async with httpx.AsyncClient(timeout=300, follow_redirects=True) as c:
-        r = await c.get(_zip_url(url))
+    fetch_url = _zip_url(url)
+    try:
+        from services.url_guard import assert_safe_url
+        fetch_url = assert_safe_url(fetch_url, label="dropbox_source")
+    except ImportError:
+        log.warning("[dropbox] services.url_guard no disponible → sin verificación anti-SSRF")
+    async with httpx.AsyncClient(timeout=300, follow_redirects=False) as c:
+        r = await c.get(fetch_url)
         r.raise_for_status()
         data = r.content
     if len(data) > MAX_ZIP_BYTES:

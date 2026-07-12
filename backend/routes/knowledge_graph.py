@@ -67,8 +67,8 @@ async def kg_stats(request: Request) -> Dict[str, Any]:
             rows = await drv.run(f"MATCH ()-[r:{et}]->() RETURN count(r) AS n", retries=1)
             edges[et] = int((rows[0].get("n") if rows else 0) or 0)
     except Exception as exc:
-        log.warning(f"[KG stats] count failed: {exc}")
-        raise HTTPException(500, f"Error contando nodos/edges: {exc}")
+        log.exception("[KG stats] count failed")
+        raise HTTPException(500, "Error interno al procesar la consulta")
 
     # last_rebuild + queries_24h desde audit_immutable
     last_rebuild = None
@@ -156,7 +156,8 @@ async def kg_query(payload: KGQueryBody, request: Request) -> Dict[str, Any]:
             "template": payload.template, "params": norm_params,
             "error": str(exc)[:200], "latency_ms": (time.perf_counter() - started) * 1000,
         })
-        raise HTTPException(500, f"Error ejecutando query: {exc}")
+        log.exception("[KG query] execution failed")
+        raise HTTPException(500, "Error interno al procesar la consulta")
 
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
     await _audit_route(db, user, "kg_query", {
@@ -250,7 +251,8 @@ async def kg_subgraph(
             rows = await drv.run(cypher_fallback, {"node_id": node_id}, retries=1)
     except Exception as exc:
         await _audit_route(db, user, "kg_subgraph", {"node_id": node_id, "error": str(exc)[:200]})
-        raise HTTPException(500, f"Error: {exc}")
+        log.exception("[KG subgraph] query failed")
+        raise HTTPException(500, "Error interno al procesar la consulta")
 
     nodes_out: List[Dict[str, Any]] = []
     edges_out: List[Dict[str, Any]] = []

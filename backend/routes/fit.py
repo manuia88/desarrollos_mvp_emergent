@@ -116,21 +116,9 @@ async def top_properties(
     _rate_limit(user.user_id)
     db = _db(request)
 
-    # Advisor solo puede ver leads suyos
-    if not _is_admin(user):
-        try:
-            lc = await db.lead_captures.find_one(
-                {"lead_id": lead_id}, {"_id": 0, "advisor_id": 1, "assigned_to": 1}
-            )
-            if not lc:
-                raise HTTPException(404, "Lead no encontrado")
-            owner = lc.get("advisor_id") or lc.get("assigned_to")
-            if owner and owner != user.user_id:
-                raise HTTPException(403, "Ese lead no te pertenece")
-        except HTTPException:
-            raise
-        except Exception:
-            pass
+    # Candado canónico fail-closed (superadmin pasa; asesor plano solo sus leads).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
 
     from fit_engine import top_properties_for_lead
     res = await top_properties_for_lead(db, lead_id, limit=limit, user_id=user.user_id)
