@@ -202,7 +202,11 @@ async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
     async def _count(q):
         try:
             return await db.marketplace_searches.count_documents(q)
-        except Exception:
+        except Exception as _ce:
+            # #11 (auditoría): antes tragaba el error de DB y servía "0" como métrica real (silencioso).
+            # Ahora el fallo queda VISIBLE en logs; el 0 sigue como fallback fail-soft.
+            import logging
+            logging.getLogger("dmx.dev_market").warning("[dev_market] _count falló, devuelvo 0: %s", _ce)
             return 0
 
     total = await _count(base)
