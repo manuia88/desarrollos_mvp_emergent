@@ -79,6 +79,23 @@ async def r_load_market_4s(request: Request):
     return await load_market_4s(_db(request))
 
 
+# ── GENOMA DE DEMANDA · átomos de la señal VIVA (Ola A · GENOMA_DEMANDA_BLUEPRINT.md) ──
+@router.post("/api/superadmin/genoma/explotar")
+async def r_genoma_explotar(request: Request):
+    """Backfill: explota TODAS las búsquedas del marketplace en átomos de demanda (idempotente)."""
+    await require_superadmin(request)
+    from demand_genome import explotar_busquedas
+    return await explotar_busquedas(_db(request))
+
+
+@router.get("/api/superadmin/genoma/resumen")
+async def r_genoma_resumen(request: Request):
+    """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""
+    await require_superadmin(request)
+    from demand_genome import resumen_genoma
+    return await resumen_genoma(_db(request))
+
+
 # ── CUBO 4S · átomos macro→nano (2,200+ hechos de los 4 estudios · superadmin-only) ──
 @router.post("/api/superadmin/cubo-4s/load")
 async def r_cubo4s_load(request: Request):
