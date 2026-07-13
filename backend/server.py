@@ -164,6 +164,10 @@ app.include_router(agent_workforce_router)
 from routes.auto_pilot import router as auto_pilot_router
 app.include_router(auto_pilot_router)
 
+# Precio de Equilibrio + Gap de mercado (dato REAL 4S) — keystone demanda↔oferta↔precio↔absorción
+from routes.equilibrium import router as equilibrium_router
+app.include_router(equilibrium_router)
+
 # Wire developer portal router
 from routes.developer import router as developer_router
 app.include_router(developer_router)
@@ -2724,6 +2728,15 @@ async def startup():
             register_reviews_residents_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W6.MOV.3] reviews_residents startup register failed: {e}")
+        # Dato REAL de mercado 4S (estudios de demanda vertical) → alimenta absorcion/EPRAV/equilibrium.
+        # Idempotente y sin costo de API (solo lee un JSON del repo e inserta). Fail-open.
+        try:
+            from market_4s_loader import load_market_4s
+            _s4 = await load_market_4s(db)
+            logging.info("[startup] market_4s cargado: %s", _s4)
+        except Exception as e:
+            logging.warning("[startup] market_4s load fail-open: %s", e)
+
         # W6.MOV.2 — Gov Data MX: indexes + 2 crons (weekly dom 04:00 + monthly día 1 05:00 UTC)
         # HONESTIDAD DE DATOS (auditoría 2026-07-12): el cron actual solo guardaba el HTML de la landing
         # (~3.9KB), NUNCA los datasets (INEGI/IMSS/ENVIPE/SEP) → daba FALSA frescura (ingested_at avanzaba,

@@ -1,0 +1,115 @@
+{
+  "_meta": {
+    "fuente": "4s_real_estate_estudio_demanda_vertical",
+    "periodo": "2026-05",
+    "tipo": "estudio_demanda_vertical",
+    "cobertura": "primaria (mystery shopper + encuesta 100 calificados/zona) + secundaria (INEGI/DENUE/avaluos)",
+    "nota": "Dato REAL de mercado. Alimenta absorcion_engine, demanda_demografica (EPRAV), equilibrium_engine, dmx_indices (fuente=real). NO es demo.",
+    "eprav_split": {"demografico": 0.47, "movilidad_social": 0.21, "segunda_vivienda": 0.16, "migracion": 0.16},
+    "indice_verticalizacion": 0.85
+  },
+  "proyectos": [
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Edison Park", "clasificacion": "Residencial", "absorcion_historica": 9.50, "unidades_totales": 427, "unidades_vendidas": 372, "unidades_inventario": 55, "precio_promedio": 3984684, "m2_promedio": 48, "precio_m2": 76681, "tiempo_en_mercado_meses": 39},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Be Grand Reforma", "clasificacion": "Premium", "absorcion_historica": 5.90, "unidades_totales": 720, "unidades_vendidas": 620, "unidades_inventario": 100, "precio_promedio": 14315948, "m2_promedio": 112, "precio_m2": 150871, "tiempo_en_mercado_meses": 105},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Gabino Barreda 89", "clasificacion": "Residencial Plus", "absorcion_historica": 2.90, "unidades_totales": 46, "unidades_vendidas": 41, "unidades_inventario": 5, "precio_promedio": 5016837, "m2_promedio": 71, "precio_m2": 74235, "tiempo_en_mercado_meses": 14},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Via Insurgentes", "clasificacion": "Residencial", "absorcion_historica": 2.20, "unidades_totales": 102, "unidades_vendidas": 76, "unidades_inventario": 26, "precio_promedio": 3131156, "m2_promedio": 40, "precio_m2": 78430, "tiempo_en_mercado_meses": 35},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Sky Town Insurgentes", "clasificacion": "Residencial Plus", "absorcion_historica": 1.80, "unidades_totales": 237, "unidades_vendidas": 155, "unidades_inventario": 82, "precio_promedio": 5569916, "m2_promedio": 57, "precio_m2": 98032, "tiempo_en_mercado_meses": 86},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Serapio Rendon 21", "clasificacion": "Residencial Plus", "absorcion_historica": 1.70, "unidades_totales": 59, "unidades_vendidas": 57, "unidades_inventario": 2, "precio_promedio": 4246469, "m2_promedio": 66, "precio_m2": 65879, "tiempo_en_mercado_meses": 33},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Park San Rafael", "clasificacion": "Residencial", "absorcion_historica": 1.60, "unidades_totales": 68, "unidades_vendidas": 60, "unidades_inventario": 8, "precio_promedio": 3367189, "m2_promedio": 40, "precio_m2": 86464, "tiempo_en_mercado_meses": 37},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Lirio Reforma", "clasificacion": "Residencial", "absorcion_historica": 1.50, "unidades_totales": 112, "unidades_vendidas": 82, "unidades_inventario": 30, "precio_promedio": 3308393, "m2_promedio": 41, "precio_m2": 79202, "tiempo_en_mercado_meses": 55},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "All Vista Reforma", "clasificacion": "Residencial Plus", "absorcion_historica": 1.50, "unidades_totales": 168, "unidades_vendidas": 128, "unidades_inventario": 40, "precio_promedio": 4884511, "m2_promedio": 81, "precio_m2": 60594, "tiempo_en_mercado_meses": 86},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "JMI 59 Sennse Tabacalera", "clasificacion": "Residencial Plus", "absorcion_historica": 1.40, "unidades_totales": 123, "unidades_vendidas": 117, "unidades_inventario": 6, "precio_promedio": 4893640, "m2_promedio": 55, "precio_m2": 88135, "tiempo_en_mercado_meses": 86},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Maxica", "clasificacion": "Residencial", "absorcion_historica": 1.30, "unidades_totales": 229, "unidades_vendidas": 28, "unidades_inventario": 201, "precio_promedio": 3849891, "m2_promedio": 47, "precio_m2": 82465, "tiempo_en_mercado_meses": 21},
+    {"estudio": "insurgentes", "zona": "Tabacalera", "proyecto": "Casa Colon", "clasificacion": "Residencial", "absorcion_historica": 1.00, "unidades_totales": 77, "unidades_vendidas": 76, "unidades_inventario": 1, "precio_promedio": 3290717, "m2_promedio": 38, "precio_m2": 83215, "tiempo_en_mercado_meses": 77},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Altamirano 39", "clasificacion": "Residencial", "absorcion_historica": 0.50, "unidades_totales": 39, "unidades_vendidas": 14, "unidades_inventario": 25, "precio_promedio": 3696353, "m2_promedio": 58, "precio_m2": 67621, "tiempo_en_mercado_meses": 26},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Miguel Schultz I / Cantera San Rafael", "clasificacion": "Residencial Plus", "absorcion_historica": 0.50, "unidades_totales": 30, "unidades_vendidas": 12, "unidades_inventario": 18, "precio_promedio": 4764437, "m2_promedio": 73, "precio_m2": 70088, "tiempo_en_mercado_meses": 26},
+    {"estudio": "insurgentes", "zona": "San Rafael", "proyecto": "Gabino Barreda 139", "clasificacion": "Residencial", "absorcion_historica": 0.00, "unidades_totales": 90, "unidades_vendidas": 0, "unidades_inventario": 90, "precio_promedio": 3891706, "m2_promedio": 55, "precio_m2": 71375, "tiempo_en_mercado_meses": 3},
+
+    {"estudio": "periferico", "zona": "Pedregal de San Nicolas", "proyecto": "Origina Pedregal Torre 2", "clasificacion": "Premium", "absorcion_historica": 3.20, "unidades_totales": 300, "unidades_vendidas": 240, "unidades_inventario": 60, "precio_promedio": 15857045, "m2_promedio": 182, "precio_m2": 87607, "tiempo_en_mercado_meses": 76},
+    {"estudio": "periferico", "zona": "Jardines de Pedregal", "proyecto": "Living Pedregal Torre B y C", "clasificacion": "Premium", "absorcion_historica": 2.90, "unidades_totales": 74, "unidades_vendidas": 64, "unidades_inventario": 10, "precio_promedio": 10633559, "m2_promedio": 167, "precio_m2": 63253, "tiempo_en_mercado_meses": 22},
+    {"estudio": "periferico", "zona": "Villa Coapa", "proyecto": "Qaliza Distrito Coyoacan", "clasificacion": "Residencial Plus", "absorcion_historica": 2.70, "unidades_totales": 122, "unidades_vendidas": 19, "unidades_inventario": 103, "precio_promedio": 4353553, "m2_promedio": 60, "precio_m2": 73114, "tiempo_en_mercado_meses": 7},
+    {"estudio": "periferico", "zona": "Villa Coapa", "proyecto": "Qantera Distrito Coyoacan T1 y 2", "clasificacion": "Residencial Plus", "absorcion_historica": 2.40, "unidades_totales": 107, "unidades_vendidas": 78, "unidades_inventario": 29, "precio_promedio": 5628196, "m2_promedio": 89, "precio_m2": 62858, "tiempo_en_mercado_meses": 32},
+    {"estudio": "periferico", "zona": "San Angel", "proyecto": "Arista San Angel", "clasificacion": "Residencial Plus", "absorcion_historica": 1.40, "unidades_totales": 250, "unidades_vendidas": 131, "unidades_inventario": 119, "precio_promedio": 4328218, "m2_promedio": 67, "precio_m2": 64488, "tiempo_en_mercado_meses": 97},
+    {"estudio": "periferico", "zona": "San Angel", "proyecto": "Pedre", "clasificacion": "Premium Plus", "absorcion_historica": 1.30, "unidades_totales": 110, "unidades_vendidas": 94, "unidades_inventario": 16, "precio_promedio": 25559209, "m2_promedio": 227, "precio_m2": 111135, "tiempo_en_mercado_meses": 75},
+    {"estudio": "periferico", "zona": "San Angel", "proyecto": "Rio Magdalena 260", "clasificacion": "Premium", "absorcion_historica": 0.80, "unidades_totales": 46, "unidades_vendidas": 43, "unidades_inventario": 3, "precio_promedio": 6838161, "m2_promedio": 130, "precio_m2": 52566, "tiempo_en_mercado_meses": 51},
+    {"estudio": "periferico", "zona": "San Angel", "proyecto": "Landmark Pedregal", "clasificacion": "Residencial Plus", "absorcion_historica": 0.70, "unidades_totales": 86, "unidades_vendidas": 64, "unidades_inventario": 22, "precio_promedio": 4758636, "m2_promedio": 91, "precio_m2": 52204, "tiempo_en_mercado_meses": 86},
+    {"estudio": "periferico", "zona": "Jardines de Pedregal", "proyecto": "Geyser Ocho", "clasificacion": "Premium", "absorcion_historica": 0.40, "unidades_totales": 30, "unidades_vendidas": 27, "unidades_inventario": 3, "precio_promedio": 6286667, "m2_promedio": 136, "precio_m2": 48580, "tiempo_en_mercado_meses": 75},
+    {"estudio": "periferico", "zona": "Pedregal de San Nicolas", "proyecto": "Cobalto 104 Torre E", "clasificacion": "Premium", "absorcion_historica": 0.20, "unidades_totales": 16, "unidades_vendidas": 11, "unidades_inventario": 5, "precio_promedio": 13139063, "m2_promedio": 171, "precio_m2": 76243, "tiempo_en_mercado_meses": 46},
+    {"estudio": "periferico", "zona": "Jardines de Pedregal", "proyecto": "Cefiro Cinco", "clasificacion": "Residencial Plus", "absorcion_historica": 0.20, "unidades_totales": 35, "unidades_vendidas": 28, "unidades_inventario": 7, "precio_promedio": 4970000, "m2_promedio": 93, "precio_m2": 54627, "tiempo_en_mercado_meses": 118},
+    {"estudio": "periferico", "zona": "Pedregal de San Nicolas", "proyecto": "Cobalto 104 TD", "clasificacion": "Premium", "absorcion_historica": 0.20, "unidades_totales": 16, "unidades_vendidas": 13, "unidades_inventario": 3, "precio_promedio": 13003313, "m2_promedio": 180, "precio_m2": 81945, "tiempo_en_mercado_meses": 58},
+    {"estudio": "periferico", "zona": "Pedregal de San Nicolas", "proyecto": "Cobalto 104 Torre F", "clasificacion": "Premium Plus", "absorcion_historica": 0.10, "unidades_totales": 8, "unidades_vendidas": 7, "unidades_inventario": 1, "precio_promedio": 18024604, "m2_promedio": 256, "precio_m2": 80901, "tiempo_en_mercado_meses": 61},
+
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Be Grand del Valle Torre Sur y Norte", "clasificacion": "Premium", "absorcion_historica": 5.80, "unidades_totales": 461, "unidades_vendidas": 389, "unidades_inventario": 72, "precio_promedio": 8835753, "m2_promedio": 97, "precio_m2": 93946, "tiempo_en_mercado_meses": 67},
+    {"estudio": "coyoacan", "zona": "Portales", "proyecto": "Archandel Del Valle", "clasificacion": "Premium", "absorcion_historica": 4.70, "unidades_totales": 191, "unidades_vendidas": 61, "unidades_inventario": 130, "precio_promedio": 6386199, "m2_promedio": 92, "precio_m2": 69748, "tiempo_en_mercado_meses": 13},
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Vitant Del Valle", "clasificacion": "Residencial Plus", "absorcion_historica": 3.80, "unidades_totales": 336, "unidades_vendidas": 111, "unidades_inventario": 225, "precio_promedio": 5297125, "m2_promedio": 82, "precio_m2": 64751, "tiempo_en_mercado_meses": 29},
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Square Coyoacan", "clasificacion": "Residencial Plus", "absorcion_historica": 3.70, "unidades_totales": 253, "unidades_vendidas": 157, "unidades_inventario": 96, "precio_promedio": 4946739, "m2_promedio": 71, "precio_m2": 69310, "tiempo_en_mercado_meses": 42},
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Skypark San Lorenzo", "clasificacion": "Premium", "absorcion_historica": 2.40, "unidades_totales": 168, "unidades_vendidas": 128, "unidades_inventario": 40, "precio_promedio": 6527883, "m2_promedio": 84, "precio_m2": 79227, "tiempo_en_mercado_meses": 54},
+    {"estudio": "coyoacan", "zona": "Portales", "proyecto": "Splendor Coyoacan Torre B", "clasificacion": "Residencial Plus", "absorcion_historica": 1.50, "unidades_totales": 48, "unidades_vendidas": 30, "unidades_inventario": 18, "precio_promedio": 5309977, "m2_promedio": 86, "precio_m2": 62660, "tiempo_en_mercado_meses": 20},
+    {"estudio": "coyoacan", "zona": "Portales", "proyecto": "Unico Coyoacan Edificio 1", "clasificacion": "Premium", "absorcion_historica": 1.40, "unidades_totales": 150, "unidades_vendidas": 149, "unidades_inventario": 1, "precio_promedio": 6407150, "m2_promedio": 101, "precio_m2": 59789, "tiempo_en_mercado_meses": 107},
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Unico Privee", "clasificacion": "Residencial Plus", "absorcion_historica": 1.30, "unidades_totales": 84, "unidades_vendidas": 52, "unidades_inventario": 32, "precio_promedio": 5243467, "m2_promedio": 69, "precio_m2": 77929, "tiempo_en_mercado_meses": 39},
+    {"estudio": "coyoacan", "zona": "Del Valle", "proyecto": "Skypark Amores", "clasificacion": "Premium", "absorcion_historica": 1.30, "unidades_totales": 129, "unidades_vendidas": 111, "unidades_inventario": 18, "precio_promedio": 7053075, "m2_promedio": 83, "precio_m2": 86643, "tiempo_en_mercado_meses": 86},
+    {"estudio": "coyoacan", "zona": "Portales", "proyecto": "Splendor Coyoacan Torre A", "clasificacion": "Premium", "absorcion_historica": 0.90, "unidades_totales": 47, "unidades_vendidas": 21, "unidades_inventario": 26, "precio_promedio": 6174870, "m2_promedio": 90, "precio_m2": 68976, "tiempo_en_mercado_meses": 24},
+    {"estudio": "coyoacan", "zona": "Portales", "proyecto": "Splendor Coyoacan Torre C", "clasificacion": "Residencial Plus", "absorcion_historica": 0.70, "unidades_totales": 24, "unidades_vendidas": 13, "unidades_inventario": 11, "precio_promedio": 5324873, "m2_promedio": 86, "precio_m2": 65059, "tiempo_en_mercado_meses": 18}
+  ],
+  "demanda_estimacion": [
+    {"estudio": "insurgentes", "zona_influencia": ["Santa Maria", "Guerrero", "Peralvillo", "Atampa"], "segmentos": [
+      {"nse": "B", "segmento": "Residencial Plus", "valor_min": 4000000, "valor_max": 6000000, "demanda_3anos": 817, "inventario_formal": 182, "gap_vertical_3anos": 512, "venta_anual": 171, "venta_mensual": 14},
+      {"nse": "C+", "segmento": "Residencial", "valor_min": 2000000, "valor_max": 4000000, "demanda_3anos": 3624, "inventario_formal": 601, "gap_vertical_3anos": 2479, "venta_anual": 826, "venta_mensual": 69}
+    ]},
+    {"estudio": "antonio_caso", "zona_influencia": ["Tabacalera", "San Rafael", "Santa Maria", "Guerrero", "Juarez"], "segmentos": [
+      {"nse": "A", "segmento": "Premium", "valor_min": 6000000, "valor_max": null, "demanda_3anos": 2315, "inventario_formal": 356, "gap_vertical_3anos": 1612, "venta_anual": 537, "venta_mensual": 45},
+      {"nse": "B", "segmento": "Residencial Plus", "valor_min": 4000000, "valor_max": 6000000, "demanda_3anos": 3161, "inventario_formal": 483, "gap_vertical_3anos": 2204, "venta_anual": 735, "venta_mensual": 61},
+      {"nse": "C+", "segmento": "Residencial", "valor_min": 2000000, "valor_max": 4000000, "demanda_3anos": 4258, "inventario_formal": 514, "gap_vertical_3anos": 3105, "venta_anual": 1035, "venta_mensual": 86}
+    ]},
+    {"estudio": "periferico", "zona_influencia": ["Del Valle", "Portales", "Viveros", "Florida"], "segmentos": [
+      {"nse": "A", "segmento": "Premium", "valor_min": 6000000, "valor_max": null, "demanda_3anos": 2164, "inventario_formal": 704, "gap_vertical_3anos": 1135, "venta_anual": 378, "venta_mensual": 32},
+      {"nse": "B", "segmento": "Residencial Plus", "valor_min": 4000000, "valor_max": 6000000, "demanda_3anos": 3097, "inventario_formal": 699, "gap_vertical_3anos": 1933, "venta_anual": 644, "venta_mensual": 54}
+    ]},
+    {"estudio": "coyoacan", "zona_influencia": ["Coapa", "Jardines del Pedregal", "Pedregal de Coyoacan", "Pedregal de San Nicolas", "Santa Ursula Coapa", "Tlalpan"], "segmentos": [
+      {"nse": "A", "segmento": "Premium", "valor_min": 6000000, "valor_max": null, "demanda_3anos": 534, "inventario_formal": 111, "gap_vertical_3anos": 327, "venta_anual": 109, "venta_mensual": 9},
+      {"nse": "B", "segmento": "Residencial Plus", "valor_min": 4000000, "valor_max": 6000000, "demanda_3anos": 993, "inventario_formal": 92, "gap_vertical_3anos": 722, "venta_anual": 241, "venta_mensual": 20}
+    ]}
+  ],
+  "willingness_to_pay": {
+    "cajon_extra_400k_interesado_pct": {"insurgentes": 29, "periferico": 28, "coyoacan": 35},
+    "cajon_extra_precio_alternativo_mxn": [200000, 300000],
+    "elevautos_400k_decisivo_pct": {"insurgentes": 62, "periferico": 39, "coyoacan": 65},
+    "bodega_compra_mxn": [80000, 200000],
+    "bodega_renta_mensual_mxn": [9000, 15000],
+    "mantenimiento_tope_mensual_mxn": {"insurgentes": [2500, 3000], "periferico": [2601, 3000], "coyoacan": [3000, 3600]},
+    "tolerancia_precio_mas_8pct_si_pct": {"insurgentes_zona1": 83, "insurgentes_zona2": 92, "periferico": 62, "coyoacan": 84},
+    "descuento_mas_atractivo_pct": 10,
+    "enganche_mas_comun_pct": 20
+  },
+  "preferencias_producto": {
+    "recamaras_pct": {"1": [14, 20], "2": [47, 56], "3": [28, 39]},
+    "banos_pct": {"1": [11, 20], "1.5": [17, 19], "2": [28, 54], "2.5": [14, 23], "3": [8, 21]},
+    "area_maximizar_pct": {"social": [30, 45], "dormitorios": [30, 44], "cocina": [15, 20]},
+    "espacio_adicional_pct": {"estudio_home_office": [28, 38], "dormitorio_adicional": [31, 50], "cuarto_tv": [22, 39]},
+    "cocina_pct": {"abierta_con_barra": [26, 54], "cerrada": [24, 51], "abierta_americana": [22, 23]},
+    "intencion_habitar_pct": [80, 86],
+    "intencion_inversion_pct": [14, 20],
+    "renta_airbnb_pct": [30, 63],
+    "personas_estilo_vida": {"tecnofilos": [50, 57], "sensualistas": [32, 40], "chefs": [3, 15]}
+  },
+  "sustentabilidad_factor_decision_si_pct": {
+    "paneles_solares": [83, 96], "reciclaje_aguas_pluviales": [77, 98], "punto_limpio_reciclaje": [88, 94],
+    "materiales_sustentables": [82, 94], "espacios_libres_areas_verdes": [85, 94], "certificacion_leed": [72, 76], "certificacion_edge": [72, 80]
+  },
+  "nse_zona": {
+    "insurgentes_3km": {"total_hogares": 153034, "distribucion_pct": {"B": 24, "C+": 20, "C": 40, "D+": 16}},
+    "insurgentes_inmediata": {"total_hogares": 14427, "distribucion_pct": {"B": 17, "C+": 58, "C": 25}},
+    "periferico_3km": {"total_hogares": 84023, "distribucion_pct": {"A": 4, "B": 7, "C+": 28, "C": 23, "D+": 32, "DE": 7}},
+    "periferico_inmediata": {"total_hogares": 14150, "distribucion_pct": {"A": 18, "B": 30, "C+": 35, "C": 15, "D+": 1}},
+    "coyoacan_3km": {"total_hogares": 124241, "distribucion_pct": {"B": 55, "C+": 43, "C": 2}},
+    "coyoacan_inmediata": {"total_hogares": 19780, "distribucion_pct": {"B": 99, "C+": 1}}
+  },
+  "avaluos_reventa": [
+    {"estudio": "insurgentes", "tipo": "reventa", "total": 948, "precio_prom": 4838932, "precio_m2_prom": 69974, "m2_prom": 73},
+    {"estudio": "insurgentes", "tipo": "avaluo", "total": 200, "precio_prom": 3674390, "precio_m2_prom": 54458, "m2_prom": 70},
+    {"estudio": "periferico", "tipo": "reventa", "total": 458, "precio_prom": 7485991, "precio_m2_prom": 53660, "m2_prom": 142},
+    {"estudio": "periferico", "tipo": "avaluo", "total": 205, "precio_prom": 4266453, "precio_m2_prom": 44169, "m2_prom": 95},
+    {"estudio": "coyoacan", "tipo": "reventa", "total": 1461, "precio_prom": 5780830, "precio_m2_prom": 57638, "m2_prom": 107},
+    {"estudio": "coyoacan", "tipo": "avaluo", "total": 407, "precio_prom": 5230602, "precio_m2_prom": 52545, "m2_prom": 102}
+  ]
+}
