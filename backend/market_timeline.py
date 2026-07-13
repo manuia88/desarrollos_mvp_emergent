@@ -74,13 +74,13 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
     from demand_mirror import _oferta_vectores
     unidades = await _oferta_vectores(db)
 
-    # último hash conocido por unidad
-    ultimo: Dict[str, str] = {}
+    # último EVENTO completo conocido por unidad (hash para dedup + estado para detectar retiros)
+    ultimo: Dict[str, Dict[str, Any]] = {}
     try:
-        async for e in db.oferta_timeline.find({}, {"_id": 0, "unit_id": 1, "hash": 1, "ts": 1}):
+        async for e in db.oferta_timeline.find({}, {"_id": 0}):
             uid = str(e.get("unit_id"))
-            if uid not in ultimo or str(e.get("ts", "")) > ultimo[uid][1]:
-                ultimo[uid] = (e.get("hash"), str(e.get("ts", "")))
+            if uid not in ultimo or str(e.get("ts", "")) > str(ultimo[uid].get("ts", "")):
+                ultimo[uid] = e
     except Exception as e:
         log.warning("[timeline] leer fail-open: %s", e)
 
@@ -91,7 +91,7 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
         if not uid:
             continue
         h = _hash_estado(u)
-        if ultimo.get(uid, (None,))[0] == h:
+        if ultimo.get(uid, {}).get("hash") == h:
             sin_cambio += 1
             continue
         evento = {"unit_id": uid, "colonia": u["colonia"], "dev_id": u.get("dev_id"),
@@ -107,11 +107,32 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
             nuevos += 1
         except Exception as e:
             log.warning("[timeline] insert fail-open: %s", e)
+    # DETECCIÓN DE RETIRO (pregunta founder): una unidad que estaba DISPONIBLE en la bitácora y
+    # DESAPARECIÓ de la lista de precios actual → evento sintético 'retirada_de_lista'. La doctrina
+    # de ingesta reconoce ausente≈vendido, pero SIN confirmación explícita se marca como retiro
+    # (venta probable, no confirmada) — si la unidad reaparece, el evento siguiente lo corrige solo.
+    vivas = {str(u.get("unit_id")) for u in unidades if u.get("unit_id")}
+    retiradas = 0
+    for uid, ev in ultimo.items():
+        if uid in vivas or not ev.get("disponible"):
+            continue   # sigue viva, o ya estaba fuera — nada que hacer
+        sintetico = {**{k: v for k, v in ev.items() if k != "hash"},
+                     "ts": ts, "disponible": False,
+                     "status": "retirada_de_lista",
+                     "tipo_salida": "retirada_probable_venta",
+                     "hash": f"ret_{ev.get('hash')}"}
+        try:
+            await db.oferta_timeline.insert_one(sintetico)
+            retiradas += 1
+        except Exception as e:
+            log.warning("[timeline] retiro fail-open: %s", e)
+
     try:
         await db.oferta_timeline.create_index("unit_id")
     except Exception:
         pass
-    return {"unidades": len(unidades), "eventos_nuevos": nuevos, "sin_cambio": sin_cambio}
+    return {"unidades": len(unidades), "eventos_nuevos": nuevos, "sin_cambio": sin_cambio,
+            "retiradas_detectadas": retiradas}
 
 
 # ── snapshot de CONTEXTO (el clima del mercado, diario idempotente) ───────────
@@ -388,13 +409,18 @@ async def instantanea(db, *, fecha: Optional[str] = None,
             continue
         estado = pasados[-1]   # cómo ERA la unidad en esa fecha
 
-        # transición de VENTA dentro del rango pedido (disponible → no disponible)
+        # transición de VENTA dentro del rango pedido (disponible → no disponible).
+        # Distingue procedencia (pregunta founder): 'vendido' EXPLÍCITO en la lista = confirmada;
+        # desaparición de la lista (evento sintético del cron) = retirada_probable_venta.
         if vendidas_desde or vendidas_hasta:
-            venta_ts = None
+            venta_ts, venta_tipo = None, None
             previo_disponible = False
             for e in evs:
                 if previo_disponible and not e.get("disponible"):
                     venta_ts = str(e.get("ts", ""))
+                    venta_tipo = (e.get("tipo_salida") or
+                                  ("vendido_confirmado" if str(e.get("status")) == "vendido"
+                                   else "salida_de_disponibilidad"))
                 previo_disponible = bool(e.get("disponible"))
             if not venta_ts:
                 continue
@@ -404,6 +430,7 @@ async def instantanea(db, *, fecha: Optional[str] = None,
                 continue
             estado = dict(estado)
             estado["vendida_ts"] = venta_ts
+            estado["tipo_salida"] = venta_tipo
 
         if all(_aplica_corte(estado, c) for c in (cortes or [])):
             seleccion.append(estado)

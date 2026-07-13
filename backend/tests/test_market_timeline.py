@@ -276,6 +276,49 @@ async def test_instantanea_mezcla_de_operadores():
 
 
 @pytest.mark.asyncio
+async def test_pregunta_founder_desaparece_de_lista_de_precios(monkeypatch):
+    """'¿Vendidos aplica si la lista de precios QUITA un depa?' — SÍ: el cron detecta la
+    desaparición y escribe 'retirada_probable_venta' (distinta de 'vendido_confirmado')."""
+    from market_timeline import instantanea
+    db = _DB()
+    # día 1: el depa está en la lista de precios, disponible
+    _patch(monkeypatch, [_ph(12000000)])
+    await snapshot_oferta(db)
+    # día 2: el dev SACA el depa de su lista (nadie lo marcó 'vendido' — solo desapareció)
+    _patch(monkeypatch, [])
+    r = await snapshot_oferta(db)
+    assert r["retiradas_detectadas"] == 1              # el cron lo detecta SOLO
+    eventos = sorted(db.oferta_timeline.docs.values(), key=lambda e: str(e["ts"]))
+    assert eventos[-1]["status"] == "retirada_de_lista"
+    assert eventos[-1]["disponible"] is False
+    # y la instantánea lo cuenta como salida, ETIQUETADA como probable (no confirmada)
+    hoy = datetime.now(timezone.utc).isoformat()[:10]
+    q = await instantanea(db, vendidas_desde=hoy, vendidas_hasta=hoy)
+    assert q["n_unidades"] == 1
+    assert q["unidades"][0]["tipo_salida"] == "retirada_probable_venta"
+    # tercera corrida sin cambios: NO duplica el retiro
+    r2 = await snapshot_oferta(db)
+    assert r2["retiradas_detectadas"] == 0
+
+
+@pytest.mark.asyncio
+async def test_vendido_explicito_vs_retirada(monkeypatch):
+    """Si la lista SÍ trae la marca 'vendido' → evento con status vendido → 'vendido_confirmado'."""
+    from market_timeline import instantanea
+    db = _DB()
+    u = _ph(12000000)
+    _patch(monkeypatch, [u])
+    await snapshot_oferta(db)
+    vendido = {**u, "disponible": False, "status": "vendido"}
+    _patch(monkeypatch, [vendido])
+    await snapshot_oferta(db)
+    hoy = datetime.now(timezone.utc).isoformat()[:10]
+    q = await instantanea(db, vendidas_desde=hoy, vendidas_hasta=hoy)
+    assert q["n_unidades"] == 1
+    assert q["unidades"][0]["tipo_salida"] == "vendido_confirmado"
+
+
+@pytest.mark.asyncio
 async def test_contexto_diario_idempotente(monkeypatch):
     db = _DB()
     _patch(monkeypatch, [_ph(12000000)])
