@@ -163,7 +163,11 @@ PESO_SENAL = {"search": 1.0, "intent": 0.8, "like": 0.6, "save": 0.6, "unit_save
               "compare": 0.5, "ficha_view": 0.3, "unit_view": 0.3,
               "photo_dwell": 0.2, "photo_zoom": 0.2,
               # cliente REAL sentado con un asesor > búsqueda anónima (cable portal asesor→genoma)
-              "asesor_busqueda": 1.3}
+              "asesor_busqueda": 1.3,
+              # dejar sus datos = la señal más fuerte del embudo (lens/module_open son telemetría
+              # de UI, NO deseo del comprador — quedan fuera del genoma a propósito)
+              "lead": 1.5, "atlax_apartado": 1.5,
+              "registro_interes": 1.1}
 
 
 def _atomo(doc_id: str, colonia: str, dimension: str, valor: Any, *,
@@ -541,3 +545,35 @@ async def explotar_busquedas_asesor(db, limite: int = 20000) -> Dict[str, Any]:
     except Exception as e:
         log.warning("[genoma] asesor fail-open: %s", e)
     return {"ok": True, "busquedas_asesor": n_docs, "atomos": n_atomos}
+
+
+async def explotar_registros_interes(db) -> Dict[str, Any]:
+    """CABLE LANDING → GENOMA (deep-audit: registros_interes era write-only, nadie lo leía).
+    El lead-magnet de landing trae colonia + tipo + precio = deseo declarado con datos de
+    contacto (peso registro_interes). Identidad estable por email hasheado (sin PII en el átomo).
+    Idempotente (clave natural). Universal: campos extra futuros caen al átomo busqueda.<campo>."""
+    import hashlib
+    peso = PESO_SENAL.get("registro_interes", 1.1)
+    extra = await cargar_taxonomia_extra(db)
+    n_docs, n_atomos = 0, 0
+    try:
+        async for r in db.registros_interes.find({}, {"_id": 0}):
+            n_docs += 1
+            ident = hashlib.sha256(str(r.get("email") or r.get("ip_hash") or n_docs).encode()).hexdigest()[:16]
+            pseudo = {"id": f"reg_{ident}_{str(r.get('created_at_dt'))[:10]}",
+                      "visitor_id": f"registro:{ident}",
+                      "colonias": [r["colonia"]] if r.get("colonia") else [],
+                      "precio_max": r.get("precio"),
+                      "tipo_pedido": r.get("tipo"),
+                      "created_at_dt": r.get("created_at_dt"),
+                      "source": "landing_leadmagnet"}
+            for a in atomos_de_busqueda(pseudo, taxonomia_extra=extra):
+                a["peso"] = peso
+                a["fuente"] = "registro_interes"
+                key = {"search_id": a["search_id"], "colonia": a["colonia"],
+                       "dimension": a["dimension"], "valor": a["valor"]}
+                await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
+                n_atomos += 1
+    except Exception as e:
+        log.warning("[genoma] registros fail-open: %s", e)
+    return {"ok": True, "registros": n_docs, "atomos": n_atomos}

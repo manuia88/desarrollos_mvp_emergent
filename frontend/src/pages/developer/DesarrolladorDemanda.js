@@ -386,10 +386,12 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
               <div className="eyebrow" style={{ marginBottom: 10 }}>EMBUDO DEL MARKETPLACE · 30D</div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', height: 130 }}>
                 {[
-                  { k: 'Impresiones', v: legacy.funnel.impressions, h: 100, c: '#6366F1' },
+                  // FIX NaN (auditoría asesor-prod #10): las llaves REALES del backend son
+                  // searches/clicks/leads/citas — etiquetas honestas de lo que sí se mide.
+                  { k: 'Búsquedas', v: legacy.funnel.searches, h: 100, c: '#6366F1' },
                   { k: 'Clicks', v: legacy.funnel.clicks, h: 70, c: '#8B5CF6' },
-                  { k: 'Fichas', v: legacy.funnel.fichas, h: 42, c: '#EC4899' },
-                  { k: 'Contactos', v: legacy.funnel.contacts, h: 14, c: '#F472B6' },
+                  { k: 'Leads', v: legacy.funnel.leads, h: 42, c: '#EC4899' },
+                  { k: 'Citas', v: legacy.funnel.citas, h: 14, c: '#F472B6' },
                 ].map(b => (
                   <div key={b.k} style={{ flex: 1, textAlign: 'center' }}>
                     <div style={{ height: `${b.h}%`, background: b.c, borderRadius: '8px 8px 0 0', opacity: 0.85 }} />

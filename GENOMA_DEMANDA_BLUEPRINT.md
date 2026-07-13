@@ -183,3 +183,13 @@ GATES: **calibración E1 runtime** ✅ (db.genoma_calibracion fusiona multiplica
 5. **Respaldo Mongo** ✅ — mongodump 2.0GB → ~/dmx-backups/ (el contenedor ya no es el único dueño de los datos).
 6. Limpieza: capturas de verificación fuera de la raíz del repo.
 DECISIONES DOCUMENTADAS (no defectos): espejo×3 y gemelo×2 coexisten por diseño (canónicos declarados en memoria); skips AUD-011 = tests era-emergent que piden backend:8001. ACCIONES FOUNDER: restringir token Mapbox por dominio (dashboard) · 444 precios con devs · foto-tipo en metadata.
+
+## BUILDS CANDIDATOS RESUELTOS (menos deploy y lead-hirviendo, por orden founder) — ✅ 2026-07-13
+Verificación previa contra repo (regla grep-antes-de-construir): la MAYORÍA de los 13 blockers asesor-prod (06-01) ya estaban corregidos por las olas de pentest (wa-template auth+dev-org ✓ · outbound-claim scope ✓ · daily-feed IDOR ✓ · Atlax PUBLIC_TOOLS ✓ · salt server-side ✓ · rate-limit señales FLY-02 ✓ · /leads/public ✓ · webhook WA con firma ✓ · índices CRM ✓ · likes con unit_number ✓ · grafo comprador CON front ✓). Lo VIVO, resuelto hoy:
+1. **Funnel del dev sin NaN** ✅ — el front leía llaves inexistentes (impressions/fichas); ahora lee las REALES (Búsquedas/Clicks/Leads/Citas) — /desarrollador/demanda honesto.
+2. **Cable landing→genoma** ✅ — explotar_registros_interes(): el lead-magnet (colonia+tipo+precio) entra al genoma con identidad hasheada (sin PII), peso registro_interes=1.1, idempotente, en arranque+tick. Verificado en producción (2 átomos del registro real).
+3. **Pesos de señal completados** ✅ — lead=1.5 y atlax_apartado=1.5 entran al genoma; lens/module_open quedan FUERA a propósito (telemetría de UI, no deseo — documentado).
+4. **WhatsApp stub honesto** ✅ — el envío simulado ya viaja con simulado:true + nota "NO entregado al cliente" (muere el falso-éxito del asesor).
+5. **Estudio DMX VENDIBLE** ✅ — print CSS del Hub: al imprimir sale SOLO el reporte en tinta-sobre-blanco + PORTADA de producto (branding DMX, folio, zona, licencia, procedencia) con salto de página — PDF licenciable desde el botón Imprimir.
+6. **AUD-011 RESUELTO** ✅ — 29 archivos test_batch* de la era Emergent (E2E vs localhost:8001) retirados formalmente a tests/legacy_emergent/ (retired_*, no-coleccionables, README con el porqué): skips 472→180, cero tests vivos tocados.
+Tuning de cierres (#9): vocabulario ya alineado (WON incluye cerrado_ganado); aprende en cuanto haya cierres reales. PENDIENTE EXPLÍCITO (excluidos por founder): deploy · lead hirviendo→asesor. Dev-UI comercio-pb/cuota-recomendada: pendiente menor del portal dev.

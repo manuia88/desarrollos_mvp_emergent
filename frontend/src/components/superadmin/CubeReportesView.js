@@ -265,6 +265,26 @@ export default function CubeReportesView() {
 
   return (
     <div data-testid="cube-reportes-view">
+      {/* EMPAQUE VENDIBLE (G1): al imprimir sale SOLO el reporte, en tinta sobre blanco, con
+          portada de producto cuando es un Estudio DMX (folio) — listo para PDF licenciable. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .rep-print-area, .rep-print-area * { visibility: visible; }
+          .rep-print-area { position: absolute; left: 0; top: 0; width: 100%;
+            background: #fff !important; color: #111 !important; padding: 24px; }
+          .rep-print-area * { color: #111 !important; background: transparent !important;
+            border-color: #bbb !important; text-shadow: none !important; }
+          .rep-print-area .no-print, .no-print { display: none !important; }
+          .rep-print-area table { border-collapse: collapse; }
+          .rep-print-area th, .rep-print-area td { border-bottom: 1px solid #ddd !important; }
+          .rep-portada { page-break-after: always; padding-top: 18vh; text-align: center; }
+          .rep-portada h1 { font-size: 34px; margin: 0 0 8px; }
+          .rep-licencia { margin-top: 24px; font-size: 10px; color: #555 !important; }
+        }
+        .rep-portada, .rep-solo-print { display: none; }
+        @media print { .rep-portada, .rep-solo-print { display: block; } }
+      `}</style>
       <div className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <FileText size={18} color="var(--theme)" />
@@ -357,7 +377,17 @@ export default function CubeReportesView() {
 
       {reporte && (() => {
         const pinta = (rep, etiqueta) => (
-          <div>
+          <div className="rep-print-area">
+            {rep.folio && (
+              <div className="rep-portada">
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, letterSpacing: '0.2em' }}>DESARROLLOSMX · INTELIGENCIA DE MERCADO</div>
+                <h1 style={{ fontFamily: 'Outfit', fontWeight: 800 }}>Estudio DMX de Zona</h1>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20 }}>{Array.isArray(rep.territorio?.colonias) ? rep.territorio.colonias.map(tc).join(', ') : 'Ciudad de México'}</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, marginTop: 10 }}>Folio {rep.folio} · {String(rep.generado).slice(0, 10)}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, marginTop: 18 }}>{rep.n_bloques} secciones · datos medidos por DesarrollosMX (bitácora de inventario, genoma de demanda de buscadores reales, tasas BANXICO) · cada sección declara su procedencia</div>
+                <div className="rep-licencia">Documento generado por DesarrollosMX (desarrollosmx.io). Uso bajo licencia del titular del folio; prohibida su reproducción o distribución sin autorización escrita. Los estimados se señalan como tales — sin cajas negras.</div>
+              </div>
+            )}
             {etiqueta && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme)', marginBottom: 6 }}>{etiqueta}</div>}
             {rep.folio && (
               <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.25)' }}>

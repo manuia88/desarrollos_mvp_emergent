@@ -120,10 +120,16 @@ class WAEngine:
         phase_ok = await self._check_phase_y()
         if not phase_ok:
             log.info(f"[whatsapp] tier off — stub send to ***{to_number[-4:]}")
-            result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}", "status": "queued"}
+            # HONESTIDAD (auditoría R2): antes el asesor veía 'enviado' aunque el cliente no
+            # recibía NADA. El flag simulado viaja al timeline/UI — falso-éxito muerto.
+            result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}",
+                      "status": "queued", "simulado": True,
+                      "nota": "WhatsApp real apagado (tier) — mensaje NO entregado al cliente"}
         elif PROVIDER == "stub":
             log.info(f"[whatsapp] stub send to ***{to_number[-4:]}")
-            result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}", "status": "queued"}
+            result = {"ok": True, "provider_message_id": f"stub_{uuid.uuid4().hex[:8]}",
+                      "status": "queued", "simulado": True,
+                      "nota": "proveedor en modo stub — mensaje NO entregado al cliente"}
         elif PROVIDER == "twilio":
             result = _twilio_send(to_number, body)
         elif PROVIDER == "business":

@@ -266,3 +266,27 @@ async def test_cable_asesor_a_genoma():
     n = len(atomos)
     await explotar_busquedas_asesor(db)
     assert len(db.demand_atoms.docs) == n
+
+
+@pytest.mark.asyncio
+async def test_cable_registros_interes_a_genoma():
+    """Deep-audit: registros_interes era write-only. Ahora el lead-magnet de landing (colonia+
+    precio+tipo) entra al genoma con identidad hasheada (sin PII), peso propio y es idempotente."""
+    from demand_genome import explotar_registros_interes, PESO_SENAL
+    db = _DB()
+    await db.registros_interes.insert_one({
+        "rol": "comprador", "nombre": "T", "email": "x@y.com",
+        "colonia": "del-valle-centro", "tipo": "departamento", "precio": 4000000,
+        "source": "landing_leadmagnet", "created_at_dt": "2026-06-24T20:49:13"})
+    r = await explotar_registros_interes(db)
+    assert r["registros"] == 1 and r["atomos"] > 0
+    atomos = list(db.demand_atoms.docs.values())
+    assert all(a["fuente"] == "registro_interes" for a in atomos)
+    assert all(a["peso"] == PESO_SENAL["registro_interes"] for a in atomos)
+    assert all(a["visitor_id"].startswith("registro:") for a in atomos)
+    assert all("@" not in str(a) for a in atomos)          # sin PII en el átomo
+    dims = {(a["dimension"], a["valor"]) for a in atomos}
+    assert ("intencion.tipo", "departamento") in dims
+    n = len(atomos)
+    await explotar_registros_interes(db)                    # idempotente
+    assert len(db.demand_atoms.docs) == n

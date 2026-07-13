@@ -2757,8 +2757,9 @@ async def startup():
             async def _genoma_tick():
                 try:
                     await explotar_busquedas(db)
-                    from demand_genome import explotar_busquedas_asesor
+                    from demand_genome import explotar_busquedas_asesor, explotar_registros_interes
                     await explotar_busquedas_asesor(db)   # cable portal asesor → genoma
+                    await explotar_registros_interes(db)  # cable landing lead-magnet → genoma
                     await explotar_senales(db)
                     await snapshot_kpi(db)
                     # D4.2 · la campana del termómetro: un lead que pasa a HIRVIENDO no espera
@@ -2780,8 +2781,9 @@ async def startup():
             try:   # la báscula y la campana no esperan al primer tick horario (auditoría D-G)
                 from ola_f_engines import registrar_predicciones
                 from ola_d_engines import revisar_termometro
-                from demand_genome import explotar_busquedas_asesor
+                from demand_genome import explotar_busquedas_asesor, explotar_registros_interes
                 await explotar_busquedas_asesor(db)
+                await explotar_registros_interes(db)
                 _b1 = await registrar_predicciones(db)
                 _b2 = await revisar_termometro(db)
                 logging.info("[startup] báscula: %s · termómetro: %s", _b1, _b2)
