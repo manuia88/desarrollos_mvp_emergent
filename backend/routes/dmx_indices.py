@@ -56,6 +56,21 @@ async def _user_tier(request: Request) -> str:
         return "free"
 
 
+def _norm4s(name: Optional[str]) -> str:
+    """Normalizador para cruzar el mapa 4S (una sola fuente de verdad: market_4s_bridge)."""
+    from market_4s_bridge import norm_colonia
+    return norm_colonia(name or "")
+
+
+async def _abs4s_map(db) -> Dict[str, Dict[str, Any]]:
+    """Absorción REAL 4S por colonia (agregado de estudios, k-anon en la fuente). Vacío si no hay 4S."""
+    try:
+        from market_4s_bridge import absorcion_4s_by_colonia
+        return await absorcion_4s_by_colonia(db)
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def _market_absorcion_by_colonia() -> Dict[str, Dict[str, int]]:
     """Absorción de mercado por colonia (vendido/total de TODOS los proyectos)."""
     from data_developments import DEVELOPMENTS, is_sold  # P1.7 · vocabulario único de "vendido"
@@ -98,15 +113,25 @@ async def _demanda_score_map(db) -> Dict[str, float]:
     return _DEMANDA_MAP_CACHE
 
 
-def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]], dem_map: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]], dem_map: Optional[Dict[str, float]] = None,
+             abs4s: Optional[Dict[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
     a = abs_map.get(colonia.get("name")) or {}
     ctx: Dict[str, Any] = {}
+    # Fallback dato REAL 4S: si no hay absorción propia para esta colonia, usa la del estudio 4S
+    # que la cubre (agregado de ≥3 competidores → k-anon en la fuente, ya publicable como zona).
+    if not a.get("total") and abs4s:
+        from market_4s_bridge import norm_colonia
+        a = abs4s.get(norm_colonia(colonia.get("name") or "")) or {}
     if a.get("total"):
-        # F6 (auditoría): la absorción alimenta el IAB público; con <3 devs sería el ritmo de
-        # venta de UN competidor identificable → se omite y el IAB degrada a 'estimado'.
-        from anonymization_engine import ventas_publicables
-        if ventas_publicables(colonia.get("name") or colonia.get("id") or ""):
+        if a.get("fuente") == "4s":
+            # agregado multi-competidor 4S → IAB REAL sin pasar por el gate de-un-solo-dev.
             ctx["absorcion_pct"] = round(a["sold"] / a["total"] * 100, 1)
+        else:
+            # F6 (auditoría): la absorción alimenta el IAB público; con <3 devs sería el ritmo de
+            # venta de UN competidor identificable → se omite y el IAB degrada a 'estimado'.
+            from anonymization_engine import ventas_publicables
+            if ventas_publicables(colonia.get("name") or colonia.get("id") or ""):
+                ctx["absorcion_pct"] = round(a["sold"] / a["total"] * 100, 1)
     if dem_map:
         # demanda REAL observada → IDS real (dmx_demand); sin señal → no se pasa (IDS estimado honesto).
         ds = dem_map.get(colonia.get("id") or "")
@@ -190,10 +215,11 @@ async def compute_zone_indices(db, zone_id: str, tier_label: str) -> Dict[str, A
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
+    abs4s = await _abs4s_map(db)             # dato REAL 4S → IAB real donde el estudio cubre la colonia
     dem_map = await _demanda_score_map(db)   # demanda REAL → IDS real donde haya señal
     # Distribución de percentiles del UNIVERSO COMPLETO (1,812) → bandas reales, no "estimado".
-    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map))
-    ctx = _ctx_for(colonia, abs_map, dem_map)
+    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map, abs4s))
+    ctx = _ctx_for(colonia, abs_map, dem_map, abs4s)
     try:
         from live_pulse_engine import compute_pulse
         pulse = await compute_pulse(db, colonia.get("id") or zone_id)
@@ -231,14 +257,15 @@ async def superadmin_indices(
     await _sa(request)
     db = request.app.state.db
     abs_map = _market_absorcion_by_colonia()
+    abs4s = await _abs4s_map(db)          # dato REAL 4S → IAB real donde el estudio cubre la colonia
     dem_map = await _demanda_score_map(db)
     universo = await _all_colonias(db)   # 1,812 colonias, no solo 16 seed
-    ix.ensure_index_distributions(universo, ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map))
+    ix.ensure_index_distributions(universo, ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map, abs4s))
     rows: List[Dict[str, Any]] = []
     for c in universo:
         if tier and (c.get("tier") or "").lower() != tier.lower():
             continue
-        r = ix.compute_indices(c, _ctx_for(c, abs_map, dem_map))
+        r = ix.compute_indices(c, _ctx_for(c, abs_map, dem_map, abs4s))
         rows.append(r)
     rows.sort(key=lambda x: -x["idm"]["valor"])
     rows = rows[:limit]
@@ -256,7 +283,11 @@ async def superadmin_indices(
             # Escala REAL del índice (esta sesión: de 16 seed → universo completo)
             "colonias_universo": len(universo),
             "con_ids_real": len(dem_map),                                          # demanda observada → IDS real
-            "con_iab_real": sum(1 for c in universo if abs_map.get(c.get("name"))),  # absorción real → IAB real
+            # absorción real → IAB real: proyectos propios O estudio 4S (dato de mercado real)
+            "con_iab_real": sum(1 for c in universo
+                                if abs_map.get(c.get("name"))
+                                or (abs4s.get(_norm4s(c.get("name"))) if abs4s else None)),
+            "con_iab_4s": sum(1 for c in universo if abs4s.get(_norm4s(c.get("name")))) if abs4s else 0,
         },
         "leyenda": [{"key": k, **v} for k, v in ix.INDICES_META.items()],
         "idm_meta": ix.IDM_META,
