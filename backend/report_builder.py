@@ -112,6 +112,37 @@ async def _b_consumidor_4s(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "medido", **(await inteligencia_consumidor(db))}
 
 
+# ── bloques Ola C (scores del mercado) ──
+async def _b_precio_sombra(db, ctx) -> Dict[str, Any]:
+    from market_scores_engine import precio_sombra
+    return await precio_sombra(db, ctx.get("colonias"))
+
+
+async def _b_liquidez(db, ctx) -> Dict[str, Any]:
+    from market_scores_engine import score_liquidez
+    return await score_liquidez(db, ctx.get("colonias"))
+
+
+async def _b_screener(db, ctx) -> Dict[str, Any]:
+    from market_scores_engine import screener
+    return await screener(db, ctx.get("colonias"))
+
+
+async def _b_curva_vertical(db, ctx) -> Dict[str, Any]:
+    from market_scores_engine import curva_vertical
+    return await curva_vertical(db, ctx.get("colonias"))
+
+
+async def _b_land_bank(db, ctx) -> Dict[str, Any]:
+    from market_scores_engine import land_bank
+    return await land_bank(db)
+
+
+async def _b_corredores(db, ctx) -> Dict[str, Any]:
+    from demand_graph_engine import corredores
+    return await corredores(db)
+
+
 # ═══ EL REGISTRO (universalidad: bloque nuevo = una entrada aquí) ═══
 BLOQUES: Dict[str, Dict[str, Any]] = {
     "demanda_viva": {"fn": _b_demanda_viva, "titulo": "Demanda viva (átomos del genoma)",
@@ -138,6 +169,19 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                  "desc": "La orden de trabajo: qué construir, para quién, a qué precio (requiere estudio)."},
     "consumidor_4s": {"fn": _b_consumidor_4s, "titulo": "Inteligencia del consumidor 4S",
                       "desc": "WTP + producto ideal + score verde + plusvalía validada."},
+    # Ola C · scores del mercado (cada uno aparece solo en el menú del founder)
+    "precio_sombra": {"fn": _b_precio_sombra, "titulo": "Precio sombra por feature",
+                      "desc": "Cuánto vale cada feature en $/m² (mediana con-vs-sin, n≥3 por lado)."},
+    "liquidez": {"fn": _b_liquidez, "titulo": "Liquidez por unidad",
+                 "desc": "Qué unidades se venden más rápido según la demanda sobre sus llaves."},
+    "screener": {"fn": _b_screener, "titulo": "Screener sobre/infravaloradas",
+                 "desc": "Unidades fuera de precio vs su valor justo (comparables + sombras)."},
+    "curva_vertical": {"fn": _b_curva_vertical, "titulo": "Curva de valor vertical",
+                       "desc": "La prima de altura: $/m² por nivel del edificio, por dato."},
+    "land_bank": {"fn": _b_land_bank, "titulo": "Land Bank Scorer",
+                  "desc": "Dónde comprar tierra: demanda × potencial normativo × brecha suelo→mercado."},
+    "corredores": {"fn": _b_corredores, "titulo": "Corredores de demanda",
+                   "desc": "Colonias que comparten buscadores — el mercado real, no el radio."},
 }
 
 

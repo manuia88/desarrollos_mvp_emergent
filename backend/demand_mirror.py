@@ -40,6 +40,20 @@ async def _oferta_vectores(db, colonias: Optional[Set[str]] = None) -> List[Dict
     def _quiere(col: str) -> bool:
         return not colonias or col in colonias
 
+    def _fila(col: str, u: Dict[str, Any], dev_id=None) -> Dict[str, Any]:
+        from demand_genome import _get
+        m2 = _get(u, "m2_construido", "m2", "m2_total", "sqm", "superficie")
+        precio = _get(u, "precio_lista", "precio", "price", "price_mxn")
+        return {"colonia": col, "dev_id": dev_id,
+                "disponible": (u.get("status") == "disponible"),
+                "unit_id": u.get("id"),
+                # crudos para scores (C1/C3/C5): $/m², m², piso — el vector trae las bandas
+                "precio": float(precio) if precio else None,
+                "m2": float(m2) if m2 else None,
+                "piso": u.get("piso") if u.get("piso") is not None else u.get("nivel"),
+                "recamaras": u.get("recamaras"),
+                "vector": vector_unidad(u)}
+
     # 1) semilla (units embebidas)
     try:
         from data_developments import DEVELOPMENTS
@@ -48,10 +62,7 @@ async def _oferta_vectores(db, colonias: Optional[Set[str]] = None) -> List[Dict
             if not col or not _quiere(col):
                 continue
             for u in d.get("units") or []:
-                out.append({"colonia": col,
-                            "disponible": (u.get("status") == "disponible"),
-                            "unit_id": u.get("id"),
-                            "vector": vector_unidad(u)})
+                out.append(_fila(col, u, d.get("id")))
                 if len(out) >= _MAX_UNITS:
                     return out
     except Exception as e:
@@ -65,10 +76,7 @@ async def _oferta_vectores(db, colonias: Optional[Set[str]] = None) -> List[Dict
             if not col or not _quiere(col):
                 continue
             for u in await units_for_dev(db, d.get("id")):
-                out.append({"colonia": col,
-                            "disponible": (u.get("status") == "disponible"),
-                            "unit_id": u.get("id"),
-                            "vector": vector_unidad(u)})
+                out.append(_fila(col, u, d.get("id")))
                 if len(out) >= _MAX_UNITS:
                     return out
     except Exception as e:

@@ -71,15 +71,15 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 - [x] B5. ✅2026-07-13 · Data negativa v1: inventario invisible (0 vistas/30d) + fichas sin like + zonas nunca buscadas → alertas
 - [x] B6. ✅2026-07-13 · Radar léxico (corpus de queries → términos emergentes por trimestre)
 
-### OLA C · SCORES DEL MERCADO (la inteligencia encima del espejo)
-- [ ] C1. Precio Sombra por feature×zona (hedonic_regression_engine + pesos de demanda)
-- [ ] C2. Score de Liquidez por unidad (vector × tensión × absorción → prob_venta v2)
-- [ ] C3. Screener de unidades infravaloradas (Σ precios sombra vs precio lista) + UI superadmin
-- [ ] C4. Radar de lo Inexistente → auto-brief (conecta brief_4s_engine + generador_producto)
-- [ ] C5. Curva de Valor Vertical (piso×orientación×zona desde units)
-- [ ] C6. Corredores de demanda / sustituibilidad (grafo colonias que comparten buscadores)
-- [ ] C7. Grafo de comparaciones → set competitivo real por unidad → battle cards auto
-- [ ] C8. Land Bank Scorer ⭐ (catastro × demanda × valor residual, ranked por predio) + UI
+### OLA C · SCORES DEL MERCADO (la inteligencia encima del espejo) — ✅ COMPLETA 2026-07-13
+- [x] C1. ✅2026-07-13 · Precio Sombra por feature×zona (hedonic_regression_engine + pesos de demanda)
+- [x] C2. ✅2026-07-13 · Score de Liquidez por unidad (vector × tensión × absorción → prob_venta v2)
+- [x] C3. ✅2026-07-13 · Screener de unidades infravaloradas (Σ precios sombra vs precio lista) + UI superadmin
+- [x] C4. ✅2026-07-13 · Radar de lo Inexistente → auto-brief (conecta brief_4s_engine + generador_producto)
+- [x] C5. ✅2026-07-13 · Curva de Valor Vertical (piso×orientación×zona desde units)
+- [x] C6. ✅2026-07-13 · Corredores de demanda / sustituibilidad (grafo colonias que comparten buscadores)
+- [x] C7. ✅2026-07-13 (motor set_competitivo + endpoint; integración battle cards UI pendiente) · Grafo de comparaciones → set competitivo real por unidad → battle cards auto
+- [x] C8. ✅2026-07-13 (v1 colonia; drill a predio con catastro_predios+AVM = v2) · Land Bank Scorer ⭐ (catastro × demanda × valor residual, ranked por predio) + UI
 
 ### OLA D · TIEMPO + FINANZAS (los indicadores adelantados)
 - [ ] D1. Índice Adelantado de Plusvalía (aceleración de demanda vs serie de precios)

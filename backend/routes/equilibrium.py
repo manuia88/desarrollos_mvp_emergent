@@ -132,6 +132,71 @@ async def r_genoma_lexico(request: Request):
     return await radar_lexico(_db(request))
 
 
+# ── SCORES del mercado (Ola C) ──
+def _cols_param(colonias: Optional[str]):
+    from market_4s_bridge import norm_colonia
+    return {norm_colonia(c) for c in colonias.split(",") if c.strip()} if colonias else None
+
+
+@router.get("/api/superadmin/genoma/precio-sombra")
+async def r_precio_sombra(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from market_scores_engine import precio_sombra
+    return await precio_sombra(_db(request), _cols_param(colonias))
+
+
+@router.get("/api/superadmin/genoma/liquidez")
+async def r_liquidez(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from market_scores_engine import score_liquidez
+    return await score_liquidez(_db(request), _cols_param(colonias))
+
+
+@router.get("/api/superadmin/genoma/screener")
+async def r_screener(request: Request, colonias: Optional[str] = Query(None),
+                     umbral_pct: float = Query(10.0, ge=1, le=50)):
+    await require_superadmin(request)
+    from market_scores_engine import screener
+    return await screener(_db(request), _cols_param(colonias), umbral_pct=umbral_pct)
+
+
+@router.get("/api/superadmin/genoma/curva-vertical")
+async def r_curva_vertical(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from market_scores_engine import curva_vertical
+    return await curva_vertical(_db(request), _cols_param(colonias))
+
+
+@router.get("/api/superadmin/genoma/land-bank")
+async def r_land_bank(request: Request):
+    await require_superadmin(request)
+    from market_scores_engine import land_bank
+    return await land_bank(_db(request))
+
+
+@router.get("/api/superadmin/genoma/corredores")
+async def r_corredores(request: Request):
+    await require_superadmin(request)
+    from demand_graph_engine import corredores
+    return await corredores(_db(request))
+
+
+@router.get("/api/superadmin/genoma/set-competitivo")
+async def r_set_competitivo(request: Request, unit_id: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from demand_graph_engine import set_competitivo
+    return await set_competitivo(_db(request), unit_id=unit_id)
+
+
+@router.post("/api/superadmin/genoma/inexistente-a-brief")
+async def r_inexistente_brief(request: Request, colonias: Optional[str] = Query(None)):
+    """Lo inexistente (demanda con cero oferta) → orden de trabajo al buzón del dev."""
+    u = await require_superadmin(request)
+    from demand_graph_engine import inexistente_a_brief
+    actor = getattr(u, "email", None) or "superadmin"
+    return await inexistente_a_brief(_db(request), _cols_param(colonias), actor=actor)
+
+
 # ── GENOMA DE DEMANDA · átomos de la señal VIVA (Ola A · GENOMA_DEMANDA_BLUEPRINT.md) ──
 @router.post("/api/superadmin/genoma/explotar")
 async def r_genoma_explotar(request: Request):
