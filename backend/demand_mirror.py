@@ -68,14 +68,26 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
         from demand_genome import _get
         m2 = _get(u, "m2_construido", "m2", "m2_total", "sqm", "superficie")
         precio = _get(u, "precio_lista", "precio", "price", "price_mxn")
+        # GARANTÍA UNIVERSAL lado-oferta: TODO campo numérico de la unidad se conserva como crudo
+        # (m2_balcon=10, m2_terraza, precio_cierre…) — las MAGNITUDES no se pierden, solo el flag.
+        crudos = {}
+        for k, v in u.items():
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            try:
+                crudos[k] = float(v)
+            except (TypeError, ValueError):
+                continue
         return {"colonia": col, "dev_id": dev_id,
                 "disponible": (u.get("status") == "disponible"),
+                "status": u.get("status"),
                 "unit_id": u.get("id"),
                 # crudos para scores (C1/C3/C5): $/m², m², piso — el vector trae las bandas
                 "precio": float(precio) if precio else None,
                 "m2": float(m2) if m2 else None,
                 "piso": u.get("piso") if u.get("piso") is not None else u.get("nivel"),
                 "recamaras": u.get("recamaras"),
+                "crudos": crudos,
                 "vector": vector_unidad(u)}
 
     # 1) semilla (units embebidas)

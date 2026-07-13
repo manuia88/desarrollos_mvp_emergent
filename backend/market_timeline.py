@@ -36,7 +36,8 @@ def _ahora():
 
 
 def _hash_estado(u: Dict[str, Any]) -> str:
-    base = {"p": u.get("precio"), "d": u.get("disponible"), "v": u.get("vector")}
+    base = {"p": u.get("precio"), "d": u.get("disponible"), "v": u.get("vector"),
+            "c": u.get("crudos"), "s": u.get("status")}
     return hashlib.sha256(json.dumps(base, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
@@ -98,7 +99,9 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
                   "precio": u.get("precio"), "m2": u.get("m2"),
                   "recamaras": u.get("recamaras"), "piso": u.get("piso"),
                   "pm2": round(u["precio"] / u["m2"]) if (u.get("precio") and u.get("m2")) else None,
-                  "disponible": u["disponible"], "vector": u["vector"]}
+                  "disponible": u["disponible"], "status": u.get("status"),
+                  "crudos": u.get("crudos") or {},
+                  "vector": u["vector"]}
         try:
             await db.oferta_timeline.insert_one(evento)
             nuevos += 1
@@ -309,3 +312,133 @@ async def evolucion(db, *, colonias: Optional[Set[str]] = None,
             "lectura": (f"{len(series)} periodos ({granularidad}). La bitácora acumula desde hoy — "
                         f"cada cambio de precio/estado queda escrito para siempre.") if series else
                        "Bitácora vacía aún — los snapshots corren solos (arranque + cron diario)."}
+
+
+# ── INSTANTÁNEA: la pregunta-2033 del founder ────────────────────────────────
+# "¿De qué tamaño eran los depas VENDIDOS con balcón de 10m² en mayo 2027? ¿qué precio? ¿qué
+# amenidades? ¿3 recámaras?" — cualquier fecha, cualquier mezcla de dimensiones, y la respuesta
+# trae VALORES UNITARIOS (cada depa con todo su estado de ESE momento) + VALORES MÚLTIPLES
+# (agregados). Operadores universales sobre cualquier campo: =, >=, <=, rango, tiene.
+_OPS = {"=", ">=", "<=", "rango", "tiene"}
+
+
+def _valor_en_evento(ev: Dict[str, Any], campo: str) -> Any:
+    """Resuelve un campo en CUALQUIER capa del evento: top-level → crudos → vector. Universal:
+    un campo nuevo capturado mañana ya es consultable hoy."""
+    if campo in ev and not isinstance(ev.get(campo), dict):
+        return ev.get(campo)
+    crudos = ev.get("crudos") or {}
+    if campo in crudos:
+        return crudos[campo]
+    vec = ev.get("vector") or {}
+    if campo in vec:
+        return vec[campo]
+    corto = f"producto.{campo}"
+    if corto in vec:
+        return vec[corto]
+    return None
+
+
+def _aplica_corte(ev: Dict[str, Any], c: Dict[str, Any]) -> bool:
+    campo, op = c.get("campo") or c.get("dimension"), c.get("op", "=")
+    if op == "tiene":   # feature por slug: balcon, roof_garden…
+        return f"producto.feature.{c.get('valor')}" in (ev.get("vector") or {})
+    v = _valor_en_evento(ev, campo)
+    if v is None:
+        return False
+    try:
+        fv, cv = float(v), float(c.get("valor"))
+        if op == "=":
+            return abs(fv - cv) < 1e-9
+        if op == ">=":
+            return fv >= cv
+        if op == "<=":
+            return fv <= cv
+        if op == "rango":
+            return cv <= fv <= float(c.get("valor2"))
+    except (TypeError, ValueError):
+        return str(v).strip().lower() == str(c.get("valor")).strip().lower() if op == "=" else False
+    return False
+
+
+async def instantanea(db, *, fecha: Optional[str] = None,
+                      colonias: Optional[Set[str]] = None,
+                      cortes: Optional[List[Dict[str, Any]]] = None,
+                      vendidas_desde: Optional[str] = None, vendidas_hasta: Optional[str] = None,
+                      limite: int = 100) -> Dict[str, Any]:
+    """El mercado COMO ERA en `fecha` (o hoy), filtrado por cualquier mezcla de cortes.
+    vendidas_desde/hasta: solo unidades cuya VENTA (disponible→no) ocurrió en ese rango.
+    Devuelve los registros unitarios (cada depa con su estado de ese momento) + agregados."""
+    corte_fecha = fecha or "9999-12-31"
+
+    eventos: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        async for ev in db.oferta_timeline.find({}, {"_id": 0}):
+            if colonias and ev.get("colonia") not in colonias:
+                continue
+            eventos.setdefault(str(ev["unit_id"]), []).append(ev)
+    except Exception as e:
+        log.warning("[instantanea] fail-open: %s", e)
+
+    seleccion = []
+    for uid, evs in sorted(eventos.items()):
+        evs.sort(key=lambda e: str(e.get("ts", "")))
+        pasados = [e for e in evs if str(e.get("ts", ""))[:len(corte_fecha)] <= corte_fecha]
+        if not pasados:
+            continue
+        estado = pasados[-1]   # cómo ERA la unidad en esa fecha
+
+        # transición de VENTA dentro del rango pedido (disponible → no disponible)
+        if vendidas_desde or vendidas_hasta:
+            venta_ts = None
+            previo_disponible = False
+            for e in evs:
+                if previo_disponible and not e.get("disponible"):
+                    venta_ts = str(e.get("ts", ""))
+                previo_disponible = bool(e.get("disponible"))
+            if not venta_ts:
+                continue
+            if vendidas_desde and venta_ts[:len(vendidas_desde)] < vendidas_desde:
+                continue
+            if vendidas_hasta and venta_ts[:len(vendidas_hasta)] > vendidas_hasta:
+                continue
+            estado = dict(estado)
+            estado["vendida_ts"] = venta_ts
+
+        if all(_aplica_corte(estado, c) for c in (cortes or [])):
+            seleccion.append(estado)
+
+    # VALORES MÚLTIPLES (agregados) sobre la selección
+    def _med(vals):
+        s = sorted(v for v in vals if v is not None)
+        return s[len(s) // 2] if s else None
+    feats: Dict[str, int] = {}
+    recs: Dict[str, int] = {}
+    for e in seleccion:
+        for k in (e.get("vector") or {}):
+            if k.startswith("producto.feature."):
+                f = k.rsplit(".", 1)[1]
+                feats[f] = feats.get(f, 0) + 1
+        if e.get("recamaras") is not None:
+            r = str(int(e["recamaras"]))
+            recs[r] = recs.get(r, 0) + 1
+
+    return {
+        "fecha_consulta": fecha or "ahora",
+        "ventana_venta": {"desde": vendidas_desde, "hasta": vendidas_hasta}
+                         if (vendidas_desde or vendidas_hasta) else None,
+        "cortes": cortes or [], "n_unidades": len(seleccion),
+        "es_estimado": not bool(seleccion),
+        # VALORES UNITARIOS: cada depa con TODO su estado de ese momento
+        "unidades": [{k: v for k, v in e.items() if k != "hash"} for e in seleccion[:limite]],
+        "agregados": {"precio_mediana": _med([e.get("precio") for e in seleccion]),
+                      "m2_mediana": _med([e.get("m2") for e in seleccion]),
+                      "pm2_mediana": _med([e.get("pm2") for e in seleccion]),
+                      "recamaras_dist": recs,
+                      "features_frecuencia": dict(sorted(feats.items(), key=lambda x: -x[1])[:15])},
+        "lectura": (f"{len(seleccion)} unidades cumplen el corte"
+                    + (f" (vendidas {vendidas_desde or ''}→{vendidas_hasta or ''})" if vendidas_desde or vendidas_hasta else "")
+                    + (f" al {fecha}" if fecha else " hoy")
+                    + ".") if seleccion else
+                   "Ninguna unidad de la bitácora cumple ese corte — respuesta honesta, no vacío por error.",
+    }

@@ -172,6 +172,19 @@ async def _b_evolucion(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "observado", **r}
 
 
+async def _b_instantanea(db, ctx) -> Dict[str, Any]:
+    """La pregunta-2033: el mercado COMO ERA en una fecha, con cualquier mezcla de cortes —
+    registros unitarios (cada depa con su estado de ese momento) + agregados."""
+    from market_timeline import instantanea
+    corte = ctx.get("cortes") or {}
+    lista = corte if isinstance(corte, list) else ([corte] if corte.get("dimension") else [])
+    r = await instantanea(db, fecha=ctx.get("fecha"), colonias=ctx.get("colonias"),
+                          cortes=lista,
+                          vendidas_desde=ctx.get("vendidas_desde"),
+                          vendidas_hasta=ctx.get("vendidas_hasta"))
+    return {"procedencia": "observado", **r}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -239,6 +252,9 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "evolucion": {"fn": _b_evolucion, "titulo": "Evolución en el tiempo (bitácora)",
                   "desc": "Cualquier corte del genoma × tiempo: demanda, oferta, $/m² y tasa por día/mes/año. Con unit_id: la vida de UNA unidad.",
                   "necesita": ["tiempo"]},
+    "instantanea": {"fn": _b_instantanea, "titulo": "Instantánea (el mercado como era)",
+                    "desc": "Cualquier fecha del pasado + cualquier mezcla de cortes → los depas exactos con su estado de ese momento (unitarios) + agregados. Incluye 'vendidos en' un rango.",
+                    "necesita": ["fecha"]},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
@@ -258,12 +274,16 @@ async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: 
                           cortes: Optional[Dict[str, str]] = None,
                           unit_id: Optional[str] = None,
                           granularidad: Optional[str] = None,
-                          desglosar_por: Optional[str] = None) -> Dict[str, Any]:
+                          desglosar_por: Optional[str] = None,
+                          fecha: Optional[str] = None,
+                          vendidas_desde: Optional[str] = None,
+                          vendidas_hasta: Optional[str] = None) -> Dict[str, Any]:
     """El reporte a la medida: cada bloque corre AISLADO (uno truena → los demás viven)."""
     from market_4s_bridge import norm_colonia
     cols: Optional[Set[str]] = {norm_colonia(c) for c in colonias if c} if colonias else None
     ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}, "unit_id": unit_id,
-           "granularidad": granularidad, "desglosar_por": desglosar_por}
+           "granularidad": granularidad, "desglosar_por": desglosar_por,
+           "fecha": fecha, "vendidas_desde": vendidas_desde, "vendidas_hasta": vendidas_hasta}
     pedidos = [b for b in (bloques or list(BLOQUES))]
 
     secciones = []

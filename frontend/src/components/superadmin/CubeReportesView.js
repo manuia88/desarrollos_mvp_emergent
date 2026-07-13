@@ -138,6 +138,9 @@ export default function CubeReportesView() {
   const [estudios, setEstudios] = useState(['']);
   const [granularidad, setGranularidad] = useState('mes');
   const [desglose, setDesglose] = useState('');
+  const [fecha, setFecha] = useState('');
+  const [vendDesde, setVendDesde] = useState('');
+  const [vendHasta, setVendHasta] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -167,6 +170,9 @@ export default function CubeReportesView() {
         unit_id: unitId || null,
         granularidad,
         desglosar_por: desglose || null,
+        fecha: fecha || null,
+        vendidas_desde: vendDesde || null,
+        vendidas_hasta: vendHasta || null,
         guardar,
       };
       const r = await generarReporte(payload);
@@ -213,6 +219,16 @@ export default function CubeReportesView() {
               </select>
               <input value={desglose} onChange={(e) => setDesglose(e.target.value)}
                 placeholder="Desglosar por dimensión (producto.recamaras)" style={{ ...inp, minWidth: 240 }} data-testid="rep-desglose" />
+            </>
+          )}
+          {catalogoB.some((b) => sel.has(b.id) && (b.necesita || []).includes('fecha')) && (
+            <>
+              <input value={fecha} onChange={(e) => setFecha(e.target.value)}
+                placeholder="Como era en… (2027-05)" style={{ ...inp, width: 160 }} data-testid="rep-fecha" />
+              <input value={vendDesde} onChange={(e) => setVendDesde(e.target.value)}
+                placeholder="Vendidas desde (2027-05)" style={{ ...inp, width: 170 }} />
+              <input value={vendHasta} onChange={(e) => setVendHasta(e.target.value)}
+                placeholder="hasta (2027-05)" style={{ ...inp, width: 140 }} />
             </>
           )}
         </div>

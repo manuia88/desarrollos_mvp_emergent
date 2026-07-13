@@ -98,7 +98,10 @@ async def r_reportes_generar(request: Request):
                               colonias=body.get("colonias"), estudio=body.get("estudio"),
                               bloques=body.get("bloques"), cortes=body.get("cortes"),
                               unit_id=body.get("unit_id"), granularidad=body.get("granularidad"),
-                              desglosar_por=body.get("desglosar_por"))
+                              desglosar_por=body.get("desglosar_por"),
+                              fecha=body.get("fecha"),
+                              vendidas_desde=body.get("vendidas_desde"),
+                              vendidas_hasta=body.get("vendidas_hasta"))
     if body.get("guardar"):   # memoria: comparar hoy vs hace un mes
         g = await guardar_reporte(_db(request), r, nombre=body.get("nombre"))
         r["guardado"] = g
@@ -280,6 +283,23 @@ async def r_evolucion(request: Request,
     return await evolucion(_db(request), colonias=_cols_param(colonias),
                            dimension=dimension, valor=valor, desglosar_por=desglosar_por,
                            unit_id=unit_id, desde=desde, hasta=hasta, granularidad=granularidad)
+
+
+@router.post("/api/superadmin/genoma/instantanea")
+async def r_instantanea(request: Request):
+    """La pregunta-2033: el mercado COMO ERA en cualquier fecha, con cualquier mezcla de cortes
+    (=, >=, <=, rango, tiene) sobre cualquier campo — registros unitarios + agregados.
+    Body: {fecha?, colonias?, cortes?[{campo,op,valor,valor2}], vendidas_desde?, vendidas_hasta?, limite?}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from market_timeline import instantanea
+    from market_4s_bridge import norm_colonia
+    cols = {norm_colonia(c) for c in (body.get("colonias") or []) if c} or None
+    return await instantanea(_db(request), fecha=body.get("fecha"), colonias=cols,
+                             cortes=body.get("cortes"),
+                             vendidas_desde=body.get("vendidas_desde"),
+                             vendidas_hasta=body.get("vendidas_hasta"),
+                             limite=int(body.get("limite") or 100))
 
 
 @router.get("/api/superadmin/genoma/resumen")

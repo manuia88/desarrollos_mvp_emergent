@@ -204,6 +204,77 @@ async def test_v2_desglose_una_serie_por_valor(monkeypatch):
     assert r["series_por_valor"]["3"][0]["demanda_visitantes"] == 2
 
 
+def _evento(uid, ts, precio, m2, rec, disponible, feats=(), crudos=None, colonia="condesa"):
+    vec = {"producto.recamaras": str(rec)}
+    for f in feats:
+        vec[f"producto.feature.{f}"] = "si"
+    return {"unit_id": uid, "colonia": colonia, "dev_id": "d1", "ts": ts, "hash": f"h{uid}{ts}",
+            "precio": precio, "m2": m2, "pm2": round(precio / m2), "recamaras": rec,
+            "piso": 3, "disponible": disponible, "status": "disponible" if disponible else "vendido",
+            "crudos": crudos or {}, "vector": vec}
+
+
+@pytest.mark.asyncio
+async def test_pregunta_2033_del_founder():
+    """LITERAL: 'Estamos en feb-2033. ¿De qué tamaño eran los depas VENDIDOS con balcón de 10m²
+    en mayo 2027? ¿qué precio tenían? ¿qué amenidades? ¿tenían 3 recámaras?'"""
+    from market_timeline import instantanea
+    db = _DB()
+    # dep-A: balcón de 10m², 3 rec, 95m², gym+alberca — se vende en MAYO 2027 ✓ (el objetivo)
+    await db.oferta_timeline.insert_one(_evento("dep-A", "2027-03-01T10:00:00+00:00", 8400000, 95, 3,
+                                                True, ("balcon", "gimnasio", "alberca"),
+                                                {"m2_balcon": 10.0}))
+    await db.oferta_timeline.insert_one(_evento("dep-A", "2027-05-12T10:00:00+00:00", 8400000, 95, 3,
+                                                False, ("balcon", "gimnasio", "alberca"),
+                                                {"m2_balcon": 10.0}))
+    # dep-B: balcón de 4m² — vendido en mayo, pero NO cumple el corte de 10m²
+    await db.oferta_timeline.insert_one(_evento("dep-B", "2027-04-01T10:00:00+00:00", 6000000, 70, 2,
+                                                True, ("balcon",), {"m2_balcon": 4.0}))
+    await db.oferta_timeline.insert_one(_evento("dep-B", "2027-05-20T10:00:00+00:00", 6000000, 70, 2,
+                                                False, ("balcon",), {"m2_balcon": 4.0}))
+    # dep-C: balcón de 10m² pero vendido en AGOSTO — fuera de la ventana
+    await db.oferta_timeline.insert_one(_evento("dep-C", "2027-06-01T10:00:00+00:00", 9000000, 100, 3,
+                                                True, ("balcon",), {"m2_balcon": 10.0}))
+    await db.oferta_timeline.insert_one(_evento("dep-C", "2027-08-15T10:00:00+00:00", 9000000, 100, 3,
+                                                False, ("balcon",), {"m2_balcon": 10.0}))
+
+    # LA PREGUNTA, desde 2033: cortes mixtos (magnitud exacta + venta en ventana)
+    r = await instantanea(db, fecha="2033-02",
+                          cortes=[{"campo": "m2_balcon", "op": "rango", "valor": 9.5, "valor2": 10.5}],
+                          vendidas_desde="2027-05", vendidas_hasta="2027-05")
+    assert r["n_unidades"] == 1                          # solo dep-A cumple TODO
+    u = r["unidades"][0]
+    assert u["unit_id"] == "dep-A"
+    assert u["m2"] == 95                                 # "¿de qué tamaño eran?" → 95 m²
+    assert u["precio"] == 8400000                        # "¿qué precio tenían?" → $8.4M
+    assert u["recamaras"] == 3                           # "¿tenían 3 recámaras?" → sí
+    assert u["crudos"]["m2_balcon"] == 10.0              # el balcón ERA de 10 m² (magnitud, no flag)
+    assert "producto.feature.gimnasio" in u["vector"]    # "¿qué amenidades?" → gym + alberca
+    assert u["vendida_ts"].startswith("2027-05")         # vendido EN mayo 2027
+    # VALORES MÚLTIPLES: los agregados del corte
+    assert r["agregados"]["precio_mediana"] == 8400000
+    assert r["agregados"]["recamaras_dist"] == {"3": 1}
+    assert r["agregados"]["features_frecuencia"]["balcon"] == 1
+
+
+@pytest.mark.asyncio
+async def test_instantanea_mezcla_de_operadores():
+    """Mix de datos específicos: >= en m² + tiene feature + <= en precio — todo junto."""
+    from market_timeline import instantanea
+    db = _DB()
+    await db.oferta_timeline.insert_one(_evento("u1", "2027-01-01T00:00:00+00:00", 5000000, 80, 2,
+                                                True, ("balcon",), {"m2_balcon": 6.0}))
+    await db.oferta_timeline.insert_one(_evento("u2", "2027-01-01T00:00:00+00:00", 12000000, 150, 3,
+                                                True, ("balcon", "roof_garden"), {"m2_balcon": 12.0}))
+    r = await instantanea(db, cortes=[{"campo": "m2", "op": ">=", "valor": 100},
+                                      {"campo": "roof_garden", "op": "tiene", "valor": "roof_garden"},
+                                      {"campo": "precio", "op": "<=", "valor": 13000000}])
+    assert r["n_unidades"] == 1 and r["unidades"][0]["unit_id"] == "u2"
+    # corte imposible → honesto, no error
+    r2 = await instantanea(db, cortes=[{"campo": "m2_balcon", "op": ">=", "valor": 50}])
+    assert r2["n_unidades"] == 0 and "honesta" in r2["lectura"]
+
+
 @pytest.mark.asyncio
 async def test_contexto_diario_idempotente(monkeypatch):
     db = _DB()
