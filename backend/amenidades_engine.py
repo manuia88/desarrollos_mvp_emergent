@@ -130,12 +130,44 @@ async def recomendar_cuota(db, m2: float, amenidades: Optional[List[str]] = None
     else:
         veredicto, banda = "Muy alta · revisa el paquete de amenidades", "premium"
 
+    # DATO REAL 4S por zona: si la colonia cae en zona de influencia de un estudio, el tope de
+    # cuota que ese mercado declara aguantar reemplaza la referencia genérica (átomos facts_4s).
+    referencia = "Segmento C/C+ paga ~$1,001–$1,400/mes (estudio 4S · referencia, no aplica a premium CDMX)"
+    es_estimado = True
+    tope_zona = None
+    try:
+        if colonia_id:
+            nombre = colonia_id
+            try:
+                from data_seed import COLONIAS_BY_ID
+                c = COLONIAS_BY_ID.get(colonia_id)
+                if c:
+                    nombre = c.get("name") or colonia_id
+            except Exception:
+                pass
+            from market_4s_prior import cuota_tope_por_colonia
+            tope_zona = await cuota_tope_por_colonia(db, nombre)
+    except Exception as e:
+        log.warning(f"[amenidades] tope 4s fail-open: {e}")
+    if tope_zona and tope_zona.get("rango_mxn"):
+        lo, hi = tope_zona["rango_mxn"]
+        referencia = (f"Esta zona declara aguantar ${lo:,}–${hi:,}/mes de mantenimiento "
+                      f"({tope_zona['pct_mercado']}% del mercado · estudio 4S real)")
+        es_estimado = False
+        if cuota is not None:
+            if cuota > hi:
+                veredicto, banda = f"Por ENCIMA de lo que esta zona declara aguantar (${hi:,})", "sobre_tope_zona"
+            elif cuota >= lo:
+                veredicto, banda = "En el tope declarado de la zona — cobrable pero sin holgura", "en_tope_zona"
+
     return {
         "m2": round(m2), "amenidades_premium": n_premium,
         "tarifa_m2": round(tarifa_m2, 1),
         "cuota_estimada_mxn": cuota,
         "banda": banda, "veredicto": veredicto,
-        "referencia_segmento": "Segmento C/C+ paga ~$1,001–$1,400/mes (estudio 4S · referencia, no aplica a premium CDMX)",
-        "es_estimado": True,
-        "fuente": "Recomendador DMX · base $/m² CDMX + paquete de amenidades · vs disposición real",
+        "referencia_segmento": referencia,
+        "tope_zona_4s": tope_zona,
+        "es_estimado": es_estimado,
+        "fuente": ("Recomendador DMX · tope real de la zona (estudio 4S)" if tope_zona
+                   else "Recomendador DMX · base $/m² CDMX + paquete de amenidades · vs disposición real"),
     }

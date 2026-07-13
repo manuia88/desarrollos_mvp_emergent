@@ -89,6 +89,21 @@ def compilar_facts(data: Optional[Dict[str, Any]] = None, path: Optional[str] = 
     return facts
 
 
+def _compila_curva_fino(facts: List, estudio: str, cuerpo: Dict[str, Any],
+                        subzona: Optional[str] = None) -> None:
+    """Curva demanda/inventario/GAP por rango FINO de precio (bins de 0.2 mdp) → un átomo por bin.
+    Validada: gap = estimación − inventario en el 100% de los bins (procedencia exacta)."""
+    inicio = float(cuerpo.get("inicio_mdp") or 0)
+    paso = float(cuerpo.get("paso_mdp") or 0.2)
+    pagina = cuerpo.get("_pagina")
+    for serie in ("estimacion_total", "inventario_formal", "gap"):
+        vals = cuerpo.get(serie) or []
+        for i, v in enumerate(vals):
+            lo, hi = inicio + i * paso, inicio + (i + 1) * paso
+            facts.append(_fact(estudio, "gap_rango_fino", serie, f"{lo:.1f}-{hi:.1f}",
+                               valor=v, subzona=subzona, pagina=pagina))
+
+
 def _compila_tema(facts: List, estudio: str, tema: str, cuerpo: Any, subzona: Optional[str] = None) -> None:
     if _es_escalar(cuerpo):
         facts.append(_fact(estudio, tema, tema, "total", valor=cuerpo, subzona=subzona))
@@ -97,6 +112,16 @@ def _compila_tema(facts: List, estudio: str, tema: str, cuerpo: Any, subzona: Op
         return
     pagina = cuerpo.get("_pagina")
     nota = cuerpo.get("_nota")
+
+    # curva fina de gap por rango de precio (única o por subzona de encuesta)
+    if tema == "gap_rango_fino":
+        if "estimacion_total" in cuerpo:
+            _compila_curva_fino(facts, estudio, cuerpo)
+        else:
+            for sz, cur in cuerpo.items():
+                if not sz.startswith("_") and isinstance(cur, dict):
+                    _compila_curva_fino(facts, estudio, cur, subzona=sz)
+        return
 
     # tema con subzonas como primer nivel (oferta por subzona, etc.)
     if tema in _TEMAS_SUBZONA:

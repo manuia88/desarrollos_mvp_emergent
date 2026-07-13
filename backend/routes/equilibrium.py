@@ -130,6 +130,22 @@ async def r_cubo4s_dims(request: Request):
     return await dimensiones_nano(_db(request))
 
 
+@router.get("/api/superadmin/cubo-4s/prior")
+async def r_cubo4s_prior(request: Request, estudio: str = Query(...)):
+    """El prior de mercado de la zona (dominantes 4S) que alimenta cuota/pagos/producto."""
+    await require_superadmin(request)
+    from market_4s_prior import prior_zona
+    return await prior_zona(_db(request), estudio)
+
+
+@router.get("/api/superadmin/cubo-4s/contraste")
+async def r_cubo4s_contraste(request: Request, dias: int = Query(90, ge=7, le=365)):
+    """Prior 4S (foto may/jun-2026) vs comprador OBSERVADO en el marketplace → confirma o DRIFT."""
+    await require_superadmin(request)
+    from market_4s_prior import contraste_4s_vs_observado
+    return await contraste_4s_vs_observado(_db(request), dias=dias)
+
+
 @router.get("/api/superadmin/market-4s/consumidor")
 async def r_market_4s_consumidor(request: Request):
     """Inteligencia del CONSUMIDOR 4S (god-view): WTP (cuánto paga) + producto ideal (qué quiere)
