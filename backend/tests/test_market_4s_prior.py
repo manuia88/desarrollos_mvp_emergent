@@ -123,3 +123,25 @@ async def test_contraste_confirma_con_senal_viva():
     pa = next(e for e in c["estudios"] if e["estudio"] in ("puente_alvarado", "antonio_caso"))
     assert pa["estado"] == "confirmado"                    # 4S dice 2 rec, marketplace observa 2 rec
     assert pa["observado"]["n_senales"] >= 12
+
+
+@pytest.mark.asyncio
+async def test_contraste_a8_metraje_y_features():
+    """A8: m² y features también entran al contraste (antes solo recámaras+presupuesto)."""
+    db = await _db_cargada()
+    now = datetime.now(timezone.utc)
+    for i in range(12):
+        await db.marketplace_searches.insert_one({
+            "visitor_id": f"m{i}", "colonias": ["Tabacalera"],
+            "recamaras_min": 2, "precio_max": 4500000, "m2_min": 75,
+            "features_pedidos": ["balcón", "roof garden"], "created_at_dt": now,
+        })
+    c = await contraste_4s_vs_observado(db)
+    pa = next(e for e in c["estudios"] if e["estudio"] == "puente_alvarado")
+    # metraje: 4S dice 71-80 m² dominante en PA; el mercado pide banda 70-80 → SE TOCAN
+    assert pa["prior_4s"]["metraje"]["opcion"] == "71_80"
+    assert pa["observado"]["m2_bandas"].get("70-80") == 12
+    assert pa["metraje_coincide"] is True
+    # features observadas normalizadas a taxonomía
+    assert pa["features_observadas_top"].get("balcon") == 12
+    assert pa["features_observadas_top"].get("roof_garden") == 12

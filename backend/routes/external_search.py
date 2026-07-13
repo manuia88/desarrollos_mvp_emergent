@@ -273,6 +273,17 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
             "stages": [f["stage"]] if f.get("stage") else [],
             "plazo": f.get("plazo") or "cualquiera",
             "features_pedidos": f.get("unit_feature") or [],
+            # Genoma A4 — dimensiones antes perdidas; fluyen al átomo cuando el front/parser las mande
+            "piso_min": _num(f.get("piso_min")),
+            "estacionamiento_independiente": f.get("estacionamiento_independiente"),
+            "mensualidad_max": _num(f.get("mensualidad_max")),
+            "enganche_max": _num(f.get("enganche_max") or f.get("enganche_max_pct")),
+            "meses_entrega_max": _num(f.get("meses_entrega_max")),
+            "tipo_credito": f.get("tipo_credito"),
+            "descuento_min_pct": _num(f.get("descuento_min_pct")),
+            "max_unidades_edificio": _num(f.get("max_unidades_edificio")),
+            "soft_criteria": f.get("soft_criteria") or [],
+            "negative_criteria": f.get("negative_criteria") or [],
             "source": "saved_search",
             "created_at_dt": _dt.utcnow(),
         }

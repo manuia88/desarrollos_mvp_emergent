@@ -128,15 +128,18 @@ def _band_precio_mdp(v: float) -> str:
 
 
 async def _observado_en_zona(db, colonias_norm: set, dias: int = 90) -> Dict[str, Any]:
-    """Lo que el marketplace observó en esas colonias: recámaras pedidas + presupuesto (precio_max)."""
+    """Lo que el marketplace observó en esas colonias: recámaras + presupuesto + m² + features (A8)."""
     from market_4s_bridge import norm_colonia
     cutoff = datetime.now(timezone.utc) - timedelta(days=dias)
     rec: Dict[str, int] = {}
     pres: Dict[str, int] = {}
+    m2b: Dict[str, int] = {}
+    feats: Dict[str, int] = {}
     n = 0
     try:
         async for s in db.marketplace_searches.find({}, {"_id": 0, "colonias": 1, "recamaras_min": 1,
-                                                         "precio_max": 1, "created_at_dt": 1}):
+                                                         "precio_max": 1, "m2_min": 1, "features_pedidos": 1,
+                                                         "amenidades_pedidas": 1, "created_at_dt": 1}):
             dt = s.get("created_at_dt")
             if dt is not None and hasattr(dt, "tzinfo"):
                 if dt.tzinfo is None:
@@ -154,9 +157,32 @@ async def _observado_en_zona(db, colonias_norm: set, dias: int = 90) -> Dict[str
             if p:
                 b = _band_precio_mdp(float(p))
                 pres[b] = pres.get(b, 0) + 1
+            m2 = s.get("m2_min")
+            if m2:
+                from demand_genome import banda_m2
+                bb = banda_m2(float(m2))
+                m2b[bb] = m2b.get(bb, 0) + 1
+            from demand_genome import normalizar_features
+            nf = normalizar_features((s.get("features_pedidos") or []) + (s.get("amenidades_pedidas") or []))
+            for slug in nf["reconocidos"]:
+                feats[slug] = feats.get(slug, 0) + 1
     except Exception as e:
         log.warning("[4s_prior] observado fail-open: %s", e)
-    return {"n_senales": n, "recamaras": rec, "presupuesto_bandas": pres}
+    return {"n_senales": n, "recamaras": rec, "presupuesto_bandas": pres,
+            "m2_bandas": m2b, "features": dict(sorted(feats.items(), key=lambda x: -x[1])[:10])}
+
+
+def _rangos_se_tocan(a: str, b: str) -> bool:
+    """'71_80' (4S) vs '70-80' (banda observada) → ¿se traslapan? Fail-open False."""
+    import re
+    try:
+        na = [int(x) for x in re.split(r"[_\-]", str(a)) if x.isdigit()]
+        nb = [int(x) for x in re.split(r"[_\-]", str(b)) if x.isdigit()]
+        if len(na) < 2 or len(nb) < 2:
+            return False
+        return na[0] <= nb[1] and nb[0] <= na[1]
+    except Exception:
+        return False
 
 
 async def contraste_4s_vs_observado(db, dias: int = 90) -> Dict[str, Any]:
@@ -171,6 +197,11 @@ async def contraste_4s_vs_observado(db, dias: int = 90) -> Dict[str, Any]:
         rec_prior = (prior.get("recamaras") or {}).get("opcion")
         rec_obs = max(obs["recamaras"], key=obs["recamaras"].get) if obs["recamaras"] else None
         suficiente = obs["n_senales"] >= MIN_SENAL
+        # A8 · m² también entra al veredicto (metraje dominante 4S vs banda observada)
+        met_prior = _dominante(await _facts(db, estudio, "hipotesis_qc", "metraje_pct"))
+        m2_obs = max(obs["m2_bandas"], key=obs["m2_bandas"].get) if obs.get("m2_bandas") else None
+        metraje_coincide = (_rangos_se_tocan(met_prior["opcion"], m2_obs)
+                            if (suficiente and met_prior and m2_obs) else None)
         if not suficiente:
             veredicto = f"Sin señal suficiente ({obs['n_senales']}/{MIN_SENAL}) — el prior 4S manda."
             estado = "prior_4s"
@@ -181,11 +212,16 @@ async def contraste_4s_vs_observado(db, dias: int = 90) -> Dict[str, Any]:
             veredicto = (f"DRIFT: 4S dice {rec_prior} rec (may-2026), el marketplace observa {rec_obs} rec "
                          f"con {obs['n_senales']} señales — revisar mezcla.")
             estado = "drift"
+        if metraje_coincide is False:
+            veredicto += f" OJO m²: 4S dice {met_prior['opcion']} m², el mercado pide {m2_obs} m²."
         estudios.append({
             "estudio": estudio, "n_colonias_influencia": len(cols),
             "prior_4s": {"recamaras": prior.get("recamaras"), "enganche": prior.get("enganche"),
-                         "cuota": prior.get("cuota_mantenimiento")},
-            "observado": obs, "estado": estado, "veredicto": veredicto,
+                         "cuota": prior.get("cuota_mantenimiento"), "metraje": met_prior},
+            "observado": obs, "estado": estado,
+            "metraje_coincide": metraje_coincide,
+            "features_observadas_top": obs.get("features"),
+            "veredicto": veredicto,
         })
     con_senal = sum(1 for e in estudios if e["estado"] != "prior_4s")
     return {

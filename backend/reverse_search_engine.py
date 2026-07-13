@@ -34,6 +34,10 @@ DEFAULT_LIMIT = 10
 HARD_FILTER_KEYS = {
     "precio_max", "precio_min", "recamaras_min", "banos_min",
     "m2_min", "m2_max", "colonia", "alcaldia",
+    # Genoma A4 — dimensiones que antes se perdían (GENOMA_DEMANDA_BLUEPRINT.md)
+    "estacionamientos_min", "estacionamiento_independiente", "piso_min",
+    "mensualidad_max", "enganche_max_pct", "meses_entrega_max",
+    "tipo_credito", "descuento_min_pct", "max_unidades_edificio",
 }
 VALID_INTENTS = {"family", "investor", "first_home", "luxury", "boutique", "neutral"}
 
@@ -55,7 +59,14 @@ _PARSER_SYSTEM = (
     "markdown) con exactamente 4 keys:\n"
     "1. hard_filters: dict con keys opcionales precio_max (int MXN), precio_min "
     "(int MXN), recamaras_min (int), banos_min (int), m2_min (int), m2_max (int), "
-    "colonia (str lowercase), alcaldia (str lowercase). Omite keys no mencionadas.\n"
+    "colonia (str lowercase), alcaldia (str lowercase), "
+    "estacionamientos_min (int), estacionamiento_independiente (bool, true si pide cajones "
+    "independientes/no tándem), piso_min (int, nivel del depto), mensualidad_max (int MXN/mes), "
+    "enganche_max_pct (int, %), meses_entrega_max (int, si pide entrega en <N meses), "
+    "tipo_credito (str: bancario|infonavit|fovissste|cofinavit|contado), "
+    "descuento_min_pct (int, % de descuento que espera), "
+    "max_unidades_edificio (int, si pide edificio chico/boutique de máximo N deptos). "
+    "Omite keys no mencionadas.\n"
     "2. soft_criteria: list[str] de descriptors textuales cortos (ej. \"escuelas cerca\", "
     "\"zona tranquila\", \"cerca metro\", \"vista\", \"amenidades premium\").\n"
     "3. negative_criteria: list[str] de exclusiones (ej. \"no avenida ruidosa\", "

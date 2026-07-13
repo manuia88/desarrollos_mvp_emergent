@@ -156,18 +156,109 @@ def atomos_de_busqueda(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
     if doc.get("tipo_pedido"):
         dims.append(("intencion.tipo", _norm_txt(doc["tipo_pedido"])))
 
+    # A4 · dimensiones antes perdidas (tándem, meses-a-entrega, crédito, promos, edificio chico)
+    if doc.get("m2_max") is not None:
+        dims.append(("producto.m2_max_banda", banda_m2(doc["m2_max"])))
+    if doc.get("estacionamiento_independiente"):
+        dims.append(("producto.feature", "cajon_independiente"))
+    if doc.get("meses_entrega_max") is not None:
+        dims.append(("intencion.meses_entrega_max", int(doc["meses_entrega_max"])))
+    if doc.get("tipo_credito"):
+        dims.append(("finanzas.tipo_credito", _norm_txt(doc["tipo_credito"])))
+    if doc.get("descuento_min_pct") is not None:
+        dims.append(("finanzas.descuento_esperado_pct", int(doc["descuento_min_pct"])))
+    if doc.get("max_unidades_edificio") is not None:
+        dims.append(("producto.max_unidades_edificio", int(doc["max_unidades_edificio"])))
+
     # features + amenidades → taxonomía (lo no reconocido = radar léxico, también se guarda)
-    feats = normalizar_features((doc.get("features_pedidos") or []) + (doc.get("amenidades_pedidas") or []))
+    textos_feat = (doc.get("features_pedidos") or []) + (doc.get("amenidades_pedidas") or []) \
+        + (doc.get("soft_criteria") or [])   # A5: los criterios suaves del buscador IA dejan de ser texto muerto
+    feats = normalizar_features(textos_feat)
     for slug in feats["reconocidos"]:
         dims.append(("producto.feature", slug))
     for raw in feats["desconocidos"]:
         dims.append(("lexico.termino_emergente", raw[:60]))
+
+    # A5 · minado del TEXTO del picker: "depa con balcón y roof en condesa" → features contables
+    # (antes el picker solo aportaba texto muerto — ahora cada palabra reconocida es un átomo)
+    if doc.get("query"):
+        q = _norm_txt(doc["query"])
+        ya = {v for d, v in dims if d == "producto.feature"}
+        for sin, slug in _SINONIMO_A_SLUG.items():
+            if len(sin) >= 4 and sin in q and slug not in ya:
+                dims.append(("producto.feature", slug))
+                ya.add(slug)
+
+    # Data NEGATIVA: las exclusiones también son demanda ("no avenida", "sin alberca")
+    for neg in doc.get("negative_criteria") or []:
+        s = normalizar_feature(neg)
+        dims.append(("exclusion.feature" if s else "exclusion.texto", s or _norm_txt(neg)[:60]))
 
     out = []
     for col in colonias:
         for dim, val in dims:
             out.append(_atomo(doc_id, col, dim, val, visitor=visitor, fuente=fuente, ts=ts))
     return out
+
+
+def _get(u: Dict[str, Any], *aliases, default=None):
+    for a in aliases:
+        v = u.get(a)
+        if v is not None:
+            return v
+    return default
+
+
+def vector_unidad(unit: Dict[str, Any]) -> Dict[str, str]:
+    """A6 · El vector GENOMA de una unidad del inventario — MISMAS dimensiones que la demanda.
+    Con demanda y oferta en el mismo idioma, el match/escasez/precio-sombra es una resta.
+    Reader fail-open sobre el esquema de unidad (dmx_unit_schema) y alias comunes. Puro."""
+    v: Dict[str, str] = {}
+    rec = _get(unit, "recamaras", "bedrooms")
+    if rec is not None:
+        v["producto.recamaras"] = str(int(rec))
+    ban = _get(unit, "banos_completos", "banos", "bathrooms")
+    if ban is not None:
+        v["producto.banos"] = str(ban)
+    m2 = _get(unit, "m2_construido", "m2", "sqm", "superficie")
+    if m2:
+        v["producto.m2_banda"] = banda_m2(m2)
+    piso = _get(unit, "piso", "nivel", "floor")
+    if piso is not None:
+        v["producto.nivel"] = str(int(piso))
+    est = _get(unit, "estacionamientos", "cajones", "parking")
+    if est is not None:
+        v["producto.estacionamientos"] = str(int(est))
+    precio = _get(unit, "precio_lista", "precio", "price")
+    if precio:
+        v["finanzas.presupuesto_banda_mdp"] = banda_precio_mdp(precio)
+    if _get(unit, "status"):
+        v["oferta.status"] = _norm_txt(unit["status"])
+    ori = _get(unit, "orientacion")
+    if ori:
+        v["producto.orientacion"] = _norm_txt(str(ori))
+    vista = _get(unit, "vista")
+    if vista:
+        v["producto.feature.vista"] = _norm_txt(str(vista))
+
+    # features físicas: m² > 0 = la unidad LA TIENE (mismo slug que la demanda)
+    features = []
+    if (_get(unit, "m2_balcon") or 0) > 0:
+        features.append("balcon")
+    if (_get(unit, "m2_terraza") or 0) > 0:
+        features.append("terraza")
+    if (_get(unit, "m2_roof_garden_privado") or 0) > 0:
+        features.append("roof_garden")
+    if (_get(unit, "m2_jardin_privado") or 0) > 0:
+        features.append("jardin")
+    # amenidades declaradas (lista de textos) → taxonomía
+    feats = normalizar_features(_get(unit, "amenidades", "features", default=[]) or [])
+    for s in feats["reconocidos"]:
+        if s not in features:
+            features.append(s)
+    for s in features:
+        v[f"producto.feature.{s}"] = "si"
+    return v
 
 
 async def explotar_busquedas(db, limite: int = 20000) -> Dict[str, Any]:

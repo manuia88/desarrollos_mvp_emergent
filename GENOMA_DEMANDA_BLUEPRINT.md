@@ -53,15 +53,15 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 
 ## CHECKLIST MAESTRO POR OLAS (dependencias primero; cada ola termina: tests + verificado en app real + procedencia etiquetada + commit)
 
-### OLA A · GENOMA + CAPTURA TOTAL (el cimiento — sin esto nada existe) — EN CURSO
+### OLA A · GENOMA + CAPTURA TOTAL (el cimiento — sin esto nada existe) — ✅ COMPLETA 2026-07-13 (A6 vector listo; espejo vivo = B1)
 - [x] A1. ✅2026-07-13 · Taxonomía canónica de features (texto libre→slug contable: roof_garden, ludoteca, pet_friendly…) `backend/demand_genome.py`
 - [x] A2. ✅2026-07-13 · Átomo de demanda universal (visitor × territorio × dimensión × valor × fuente × ts) → colección demand_atoms
 - [x] A3. ✅2026-07-13 · Explotador: marketplace_searches + buyer_signals existentes → átomos (backfill idempotente + on-write)
-- [ ] A4. Cerrar dimensiones perdidas de captura: tándem/independiente · meses-a-entrega numérico · tipo de crédito · promos/descuento · tamaño edificio · nivel pedido · m² uniforme (parser + persistencia en las 3 superficies)
-- [ ] A5. Normalizar soft_criteria del buscador IA → taxonomía (dejan de ser texto muerto)
-- [ ] A6. Vector genoma por unidad (mismas dims desde dmx_unit_schema/units) — reader, no migración
+- [x] A4. ✅2026-07-13 · Cerrar dimensiones perdidas de captura: tándem/independiente · meses-a-entrega numérico · tipo de crédito · promos/descuento · tamaño edificio · nivel pedido · m² uniforme (parser + persistencia en las 3 superficies)
+- [x] A5. ✅2026-07-13 · Normalizar soft_criteria del buscador IA → taxonomía (dejan de ser texto muerto)
+- [x] A6. ✅2026-07-13 · Vector genoma por unidad (mismas dims desde dmx_unit_schema/units) — reader, no migración
 - [x] A7. ✅2026-07-13 · Endpoint /api/superadmin/genoma/resumen (átomos por dimensión×zona×día = KPI del moat) + tests
-- [ ] A8. m² y features al contraste 4S (hoy solo recámaras+presupuesto)
+- [x] A8. ✅2026-07-13 · m² y features al contraste 4S (hoy solo recámaras+presupuesto)
 
 ### OLA B · ESPEJO + REPORTES (acceso total a la data)
 - [ ] B1. Espejo demanda↔oferta por dimensión×escala (reusa cube_lens/k-anon)

@@ -143,3 +143,65 @@ async def test_resumen_sin_atomos_honesto():
     db = _DB()
     kpi = await resumen_genoma(db)
     assert kpi["es_estimado"] is True and kpi["n_atomos"] == 0
+
+
+# ── A4/A5: dimensiones antes perdidas + minado del texto + data negativa ──────
+def test_a4_dimensiones_antes_perdidas():
+    atomos = atomos_de_busqueda({
+        "id": "x", "colonias": ["Condesa"], "source": "saved_search",
+        "estacionamiento_independiente": True, "meses_entrega_max": 2,
+        "tipo_credito": "bancario", "descuento_min_pct": 20,
+        "max_unidades_edificio": 30, "m2_max": 120,
+    })
+    dims = {(a["dimension"], a["valor"]) for a in atomos}
+    assert ("producto.feature", "cajon_independiente") in dims     # tándem/independiente
+    assert ("intencion.meses_entrega_max", "2") in dims            # entrega <2 meses
+    assert ("finanzas.tipo_credito", "bancario") in dims           # tipo de crédito
+    assert ("finanzas.descuento_esperado_pct", "20") in dims       # jornada notarial 20%
+    assert ("producto.max_unidades_edificio", "30") in dims        # edificio boutique
+    assert ("producto.m2_max_banda", "120-130") in dims
+
+
+def test_a5_picker_texto_muerto_ahora_da_atomos():
+    # el picker solo guarda query+colonias — ahora el TEXTO se mina con la taxonomía
+    atomos = atomos_de_busqueda({"id": "p1", "colonias": ["Roma Norte"],
+                                 "query": "depa con balcón y roof garden pet friendly",
+                                 "source": "marketplace_picker"})
+    feats = {a["valor"] for a in atomos if a["dimension"] == "producto.feature"}
+    assert {"balcon", "roof_garden", "pet_friendly"} <= feats
+
+
+def test_a5_soft_criteria_y_exclusiones():
+    atomos = atomos_de_busqueda({"id": "s1", "colonias": ["Del Valle"],
+                                 "soft_criteria": ["vista panoramica", "amenidades premium"],
+                                 "negative_criteria": ["sin alberca", "no avenida ruidosa"],
+                                 "source": "reverse_search"})
+    dims = {(a["dimension"], a["valor"]) for a in atomos}
+    assert ("producto.feature", "vista") in dims                   # soft → taxonomía
+    assert ("exclusion.feature", "alberca") in dims                # data negativa normalizada
+    assert any(d == "exclusion.texto" and "avenida" in v for d, v in dims)
+
+
+# ── A6: vector genoma por unidad (la oferta habla el mismo idioma) ────────────
+def test_a6_vector_unidad_mismo_idioma():
+    from demand_genome import vector_unidad
+    v = vector_unidad({
+        "recamaras": 2, "banos_completos": 2, "m2_construido": 104, "piso": 4,
+        "estacionamientos": 2, "precio_lista": 12100000, "status": "disponible",
+        "orientacion": "sur", "vista": "exterior",
+        "m2_balcon": 6.5, "m2_roof_garden_privado": 20,
+        "amenidades": ["asadores", "ludoteca", "cava"],
+    })
+    assert v["producto.recamaras"] == "2"
+    assert v["producto.m2_banda"] == "100-110"                     # MISMA banda que la demanda
+    assert v["producto.nivel"] == "4"
+    assert v["finanzas.presupuesto_banda_mdp"] == "12.0-12.2"      # MISMA banda que la demanda
+    assert v["producto.feature.balcon"] == "si"                    # m2_balcon>0 → tiene balcón
+    assert v["producto.feature.roof_garden"] == "si"
+    assert v["producto.feature.asadores"] == "si"                  # amenidades → taxonomía
+    assert v["producto.feature.ludoteca"] == "si"
+    # el match demanda↔oferta ahora es una comparación de llaves: la búsqueda compleja del
+    # founder y esta unidad comparten recamaras/m2_banda/nivel/presupuesto/balcon/roof/asadores/ludoteca
+    busq = {a["dimension"]: a["valor"] for a in atomos_de_busqueda(_busqueda_founder())}
+    assert busq["producto.m2_banda"] == v["producto.m2_banda"]
+    assert busq["finanzas.presupuesto_banda_mdp"] == v["finanzas.presupuesto_banda_mdp"]
