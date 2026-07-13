@@ -66,6 +66,14 @@ async def record_unit_change(
         "extra": extra or {},
     }
     await db.units_history.insert_one(doc)
+    # BITÁCORA UNIFICADA: este historial graba AL MOMENTO (edición, Drive, webhook) y la bitácora
+    # del genoma grababa por reloj — dos universos. Ahora cada cambio registrado aquí dispara el
+    # snapshot del genoma con debounce (ráfaga de N cambios = 1 corrida) y fuente anotada.
+    try:
+        from market_timeline import disparar_snapshot_debounced
+        disparar_snapshot_debounced(db, fuente=source)
+    except Exception as e:  # noqa: BLE001 — el disparo jamás rompe el registro del cambio
+        log.warning(f"[units_history] disparo bitácora fail-open: {e}")
     return entry_id
 
 

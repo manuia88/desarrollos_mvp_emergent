@@ -37,6 +37,12 @@ _OFERTA_TTL = 60.0
 _OFERTA_CACHE: Dict[int, tuple] = {}
 
 
+def invalidar_cache_oferta() -> None:
+    """Bitácora unificada: cuando alguien ESCRIBE un cambio (edición, Drive, ingesta), el disparo
+    inmediato del snapshot necesita leer el estado FRESCO, no el de hace 59 segundos."""
+    _OFERTA_CACHE.clear()
+
+
 async def _oferta_vectores(db, colonias: Optional[Set[str]] = None) -> List[Dict[str, Any]]:
     import time as _t
     key = id(db)
@@ -88,7 +94,7 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
                 # BUG cazado en el gate vivo: estos crudos se leían SIN alias ni parse tolerante
                 # (bedrooms/'10+1') → el espejo daba 'recámaras=2 → 0 satisfacen' con 597 disponibles.
                 # Misma disciplina que el vector: alias + _entero.
-                "piso": _entero(_get(u, "piso", "nivel", "floor")),
+                "piso": _entero(_get(u, "piso", "nivel", "level", "floor")),
                 "recamaras": _entero(_get(u, "recamaras", "bedrooms")),
                 "crudos": crudos,
                 "vector": vector_unidad(u)}
@@ -362,6 +368,37 @@ async def data_negativa(db, dias: int = 30) -> Dict[str, Any]:
     invisibles = [u["unit_id"] for u in unidades
                   if u["disponible"] and u.get("unit_id") and str(u["unit_id"]) not in vistas_unidad]
 
+    # EDAD en bitácora: invisible desde hace 3 días ≠ invisible desde hace 3 meses. El primer
+    # evento de cada unidad en oferta_timeline es su 'alta' — la edad sale de nuestra propia
+    # bitácora, sin depender de que la fuente traiga fecha de publicación.
+    primer_ts: Dict[str, Any] = {}
+    try:
+        async for e in db.oferta_timeline.find({}, {"_id": 0, "unit_id": 1, "ts": 1}):
+            uid = str(e.get("unit_id"))
+            if uid not in primer_ts or str(e.get("ts", "")) < str(primer_ts[uid]):
+                primer_ts[uid] = e.get("ts")
+    except Exception as e:
+        log.warning("[negativa] bitacora fail-open: %s", e)
+
+    def _edad_dias(uid) -> Optional[int]:
+        ts = primer_ts.get(str(uid))
+        if ts is None:
+            return None
+        try:
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            return max(0, (datetime.now(timezone.utc) - ts).days)
+        except Exception:
+            return None
+
+    invisibles_con_edad = sorted(
+        [{"unit_id": u, "dias_invisible": _edad_dias(u)} for u in invisibles],
+        key=lambda x: -(x["dias_invisible"] if x["dias_invisible"] is not None else -1))
+    edades = [x["dias_invisible"] for x in invisibles_con_edad if x["dias_invisible"] is not None]
+    edad_mediana = sorted(edades)[len(edades) // 2] if edades else None
+
     interes_sin_amor = sorted(
         [{"dev_id": d, "vistas": v, "likes": likes_dev.get(d, 0)}
          for d, v in vistas_dev.items() if v >= 5 and likes_dev.get(d, 0) == 0],
@@ -371,7 +408,8 @@ async def data_negativa(db, dias: int = 30) -> Dict[str, Any]:
         "dias": dias,
         "zonas_ciegas": zonas_ciegas[:20],
         "n_zonas_ciegas": len(zonas_ciegas),
-        "unidades_invisibles": {"n": len(invisibles), "muestra": invisibles[:20]},
+        "unidades_invisibles": {"n": len(invisibles), "edad_mediana_dias": edad_mediana,
+                                "muestra": invisibles_con_edad[:20]},
         "interes_sin_amor": interes_sin_amor[:15],
         "es_estimado": not (cols_oferta or vistas_dev),
         "lectura": (f"{len(zonas_ciegas)} colonias tienen inventario y NADIE las busca · "
@@ -404,4 +442,96 @@ async def radar_lexico(db, top: int = 20) -> Dict[str, Any]:
         "lectura": (f"Término emergente #1: '{ranking[0][0]}' ({ranking[0][1]} menciones) — "
                     f"candidato a entrar a la taxonomía.") if ranking else
                    "Sin términos emergentes aún — todo lo pedido ya está en la taxonomía.",
+    }
+
+
+# ── SALUD DEL DATO: la calidad del inventario, visible (no solo en logs) ──────
+# Bug real que motivó esto: un piso '10+1' tiraba el inventario y solo un log lo sabía. Ahora
+# el founder VE qué campos llegan completos, cuáles se RESCATAN (sucios pero salvables) y cuáles
+# se PIERDEN — por campo y por colonia. Universal: mide los campos clave del genoma, y cualquier
+# campo nuevo del esquema entra al conteo de 'crudos' automáticamente.
+_CAMPOS_SALUD = {
+    "precio": ("precio_lista", "precio", "price", "price_mxn"),
+    "m2": ("m2_construido", "m2", "m2_total", "sqm", "superficie"),
+    "recamaras": ("recamaras", "bedrooms"),
+    "piso": ("piso", "nivel", "level", "floor"),
+    "status": ("status",),
+}
+
+
+def _diagnostico_campo(u: Dict[str, Any], alias: tuple) -> str:
+    """'presente' (numérico limpio) · 'rescatado' (sucio pero _entero lo salva) · 'perdido'
+    (presente pero inservible) · 'ausente' (la fuente no lo trae)."""
+    from demand_genome import _get, _entero
+    v = _get(u, *alias)
+    if v is None:
+        return "ausente"
+    if alias == ("status",):
+        return "presente"
+    try:
+        float(v)
+        return "presente"
+    except (TypeError, ValueError):
+        return "rescatado" if _entero(v) is not None else "perdido"
+
+
+async def salud_oferta(db) -> Dict[str, Any]:
+    """Recorre las MISMAS fuentes que el espejo (semilla + ingeridas) midiendo cada unidad."""
+    from market_4s_bridge import norm_colonia
+    por_campo: Dict[str, Dict[str, int]] = {c: {} for c in _CAMPOS_SALUD}
+    ejemplos: Dict[str, List[Dict[str, Any]]] = {}
+    por_colonia: Dict[str, Dict[str, int]] = {}
+    total = 0
+
+    def _medir(col: str, u: Dict[str, Any]):
+        nonlocal total
+        total += 1
+        cc = por_colonia.setdefault(col, {"unidades": 0, "con_problema": 0})
+        cc["unidades"] += 1
+        problema = False
+        for campo, alias in _CAMPOS_SALUD.items():
+            d = _diagnostico_campo(u, alias)
+            por_campo[campo][d] = por_campo[campo].get(d, 0) + 1
+            if d in ("rescatado", "perdido"):
+                problema = True
+                if len(ejemplos.setdefault(campo, [])) < 8:
+                    from demand_genome import _get
+                    ejemplos[campo].append({"unit_id": u.get("id"), "colonia": col,
+                                            "valor_crudo": str(_get(u, *alias))[:40],
+                                            "diagnostico": d})
+        if problema:
+            cc["con_problema"] += 1
+
+    try:
+        from data_developments import DEVELOPMENTS
+        for d in DEVELOPMENTS:
+            col = norm_colonia(str(d.get("colonia") or ""))
+            for u in d.get("units") or []:
+                _medir(col, u)
+    except Exception as e:
+        log.warning("[salud] seed fail-open: %s", e)
+    try:
+        from ingested_reader import units_for_dev
+        async for d in db.developments.find({}, {"_id": 0, "id": 1, "colonia": 1}):
+            col = norm_colonia(str(d.get("colonia") or ""))
+            for u in await units_for_dev(db, d.get("id")):
+                _medir(col, u)
+    except Exception as e:
+        log.warning("[salud] ingeridos fail-open: %s", e)
+
+    rescatados = sum(v.get("rescatado", 0) for v in por_campo.values())
+    perdidos = sum(v.get("perdido", 0) for v in por_campo.values())
+    peores = sorted([{"colonia": c, **v} for c, v in por_colonia.items() if v["con_problema"]],
+                    key=lambda x: -x["con_problema"])[:15]
+    return {
+        "n_unidades": total,
+        "por_campo": por_campo,
+        "ejemplos": ejemplos,
+        "colonias_con_problemas": peores,
+        "es_estimado": not total,
+        "lectura": (f"{total} unidades medidas: {rescatados} valores sucios RESCATADOS "
+                    f"(ej. piso '10+1'→10) y {perdidos} perdidos. "
+                    + (f"Peor colonia: {peores[0]['colonia']} ({peores[0]['con_problema']} unidades con problema)."
+                       if peores else "Inventario limpio.")) if total else
+                   "Sin inventario que medir.",
     }

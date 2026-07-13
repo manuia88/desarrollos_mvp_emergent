@@ -23,24 +23,79 @@ function Valor({ v }) {
   return <>{String(v)}</>;
 }
 
-function TablaGenerica({ rows }) {
+// CSV para el founder (no-dev): todas las filas, columnas escalares, listo para Excel.
+function descargarCSV(nombre, rows) {
+  const cols = Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object' || rows[0][k] == null);
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = '﻿' + [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `${nombre}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Server-driven POR FILA: el bloque declara la acción (endpoint + qué campo de la fila mandar)
+// y cada fila que tenga ese campo gana su botón — universal, sin cablear bloques aquí.
+function BotonFila({ accion, fila }) {
+  const [msg, setMsg] = React.useState('');
+  const valor = fila[accion.param_de_fila];
+  if (valor == null) return null;
+  const correr = async () => {
+    if (accion.confirmacion && !window.confirm(`"${valor}" — ${accion.confirmacion}`)) return;
+    setMsg('…');
+    try {
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const r = await fetch(`${API}${accion.endpoint}?${accion.param_de_fila}=${encodeURIComponent(valor)}`,
+        { method: accion.metodo || 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      const d = await r.json();
+      setMsg(r.ok && d.ok !== false ? '✓' : (d.error || d.detail || '✗'));
+    } catch { setMsg('✗'); }
+  };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <button onClick={correr} className="no-print" title={accion.titulo}
+        style={{ padding: '2px 9px', borderRadius: 7, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10.5, cursor: 'pointer' }}>
+        {accion.titulo}
+      </button>
+      {msg && <span style={{ fontSize: 10.5, color: msg === '✓' ? '#4ADE80' : '#fca5a5' }}>{msg}</span>}
+    </span>
+  );
+}
+
+function TablaGenerica({ rows, nombre, accionesFila }) {
+  const [verTodo, setVerTodo] = React.useState(false);
   const cols = Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object' || rows[0][k] == null).slice(0, 8);
   if (!cols.length) return null;
+  const conBoton = (accionesFila || []).filter((a) => a.param_de_fila && rows[0][a.param_de_fila] !== undefined);
+  const visibles = verTodo ? rows : rows.slice(0, 12);
   const th = { fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.55)', padding: '6px 10px', textAlign: 'left', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.08)' };
   const td = { fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.9)', padding: '6px 10px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  const lk = { fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--theme)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 };
   return (
     <div style={{ overflowX: 'auto', marginBottom: 8 }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr>{cols.map((c) => <th key={c} style={th}>{tc(c)}</th>)}</tr></thead>
+        <thead><tr>{cols.map((c) => <th key={c} style={th}>{tc(c)}</th>)}{conBoton.length > 0 && <th style={th} className="no-print" />}</tr></thead>
         <tbody>
-          {rows.slice(0, 12).map((r, i) => (
+          {visibles.map((r, i) => (
             <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               {cols.map((c) => <td key={c} style={td}><Valor v={r[c]} /></td>)}
+              {conBoton.length > 0 && (
+                <td style={td} className="no-print">{conBoton.map((a) => <BotonFila key={a.id} accion={a} fila={r} />)}</td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
-      {rows.length > 12 && <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)' }}>… {rows.length - 12} filas más (completo por API)</div>}
+      <div className="no-print" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        {rows.length > 12 && (
+          <button onClick={() => setVerTodo(!verTodo)} style={lk} data-testid="tabla-ver-todo">
+            {verTodo ? 'Ver menos' : `Ver todas las ${rows.length} filas`}
+          </button>
+        )}
+        <button onClick={() => descargarCSV(nombre || 'tabla', rows)} style={lk} data-testid="tabla-csv">
+          Descargar CSV ({rows.length})
+        </button>
+      </div>
     </div>
   );
 }
@@ -76,7 +131,7 @@ function BotonAccion({ accion, params }) {
   );
 }
 
-function Seccion({ s, acciones, params }) {
+function Seccion({ s, acciones, accionesFila, params }) {
   const pc = PROC_COLOR[s.procedencia] || '#8b949e';
   return (
     <div style={{ marginBottom: 22, breakInside: 'avoid' }}>
@@ -88,7 +143,7 @@ function Seccion({ s, acciones, params }) {
       {s.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.85)', margin: '0 0 8px' }}>{s.lectura}</p>}
       {Object.entries(s).filter(([k]) => !_OMITIR.has(k)).map(([k, v]) => {
         if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null) {
-          return <div key={k}><div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)', textTransform: 'uppercase', margin: '6px 0 4px' }}>{tc(k)}</div><TablaGenerica rows={v} /></div>;
+          return <div key={k}><div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)', textTransform: 'uppercase', margin: '6px 0 4px' }}>{tc(k)}</div><TablaGenerica rows={v} nombre={`${s.bloque}-${k}`} accionesFila={accionesFila} /></div>;
         }
         // DESGLOSE (hipergranularidad): dict {valor: [serie]} → una sub-tabla por valor
         if (v && typeof v === 'object' && !Array.isArray(v)
@@ -98,7 +153,7 @@ function Seccion({ s, acciones, params }) {
               {Object.entries(v).map(([val, rows]) => (
                 <div key={val}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)', textTransform: 'uppercase', margin: '6px 0 4px' }}>{tc(k)} · {tc(val)}</div>
-                  <TablaGenerica rows={rows} />
+                  <TablaGenerica rows={rows} nombre={`${s.bloque}-${k}-${val}`} accionesFila={accionesFila} />
                 </div>
               ))}
             </div>
@@ -131,6 +186,7 @@ export default function CubeReportesView() {
   const [corteVal, setCorteVal] = useState('');
   const [unitId, setUnitId] = useState('');
   const [reporte, setReporte] = useState(null);
+  const [reporteB, setReporteB] = useState(null);   // comparador: reporte guardado lado a lado
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [guardar, setGuardar] = useState(false);
@@ -154,7 +210,13 @@ export default function CubeReportesView() {
 
   const abrirGuardado = async (id) => {
     if (!id) return;
-    try { setReporte(await getReporteGuardado(id)); } catch (e) { setErr(e?.message || 'No se pudo abrir.'); }
+    try { setReporte(await getReporteGuardado(id)); setReporteB(null); } catch (e) { setErr(e?.message || 'No se pudo abrir.'); }
+  };
+
+  // COMPARADOR: el reporte de hoy vs uno guardado (¿qué cambió en un mes?) — lado a lado.
+  const compararCon = async (id) => {
+    if (!id) { setReporteB(null); return; }
+    try { setReporteB(await getReporteGuardado(id)); } catch (e) { setErr(e?.message || 'No se pudo abrir.'); }
   };
 
   const toggle = (id) => setSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -261,24 +323,40 @@ export default function CubeReportesView() {
               {guardados.map((g) => <option key={g.id} value={g.id}>{g.nombre} · {String(g.generado).slice(0, 10)}</option>)}
             </select>
           )}
+          {reporte && guardados.length > 0 && (
+            <select defaultValue="" onChange={(e) => compararCon(e.target.value)} style={{ padding: '8px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12 }} data-testid="rep-comparar">
+              <option value="">Comparar con… (lado a lado)</option>
+              {guardados.map((g) => <option key={g.id} value={g.id}>{g.nombre} · {String(g.generado).slice(0, 10)}</option>)}
+            </select>
+          )}
           {err && <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5', alignSelf: 'center' }}>{err}</span>}
         </div>
       </div>
 
-      {reporte && (
-        <div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 14 }}>
-            Territorio: <b style={{ color: 'var(--cream)' }}>{Array.isArray(reporte.territorio.colonias) ? reporte.territorio.colonias.map(tc).join(', ') : 'Toda la ciudad'}</b>
-            {reporte.territorio.estudio ? <> · Estudio: <b style={{ color: 'var(--cream)' }}>{tc(reporte.territorio.estudio)}</b></> : null}
-            {' '}· {reporte.n_bloques} bloques · {String(reporte.generado).slice(0, 16).replace('T', ' ')}
+      {reporte && (() => {
+        const pinta = (rep, etiqueta) => (
+          <div>
+            {etiqueta && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme)', marginBottom: 6 }}>{etiqueta}</div>}
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 14 }}>
+              Territorio: <b style={{ color: 'var(--cream)' }}>{Array.isArray(rep.territorio?.colonias) ? rep.territorio.colonias.map(tc).join(', ') : 'Toda la ciudad'}</b>
+              {rep.territorio?.estudio ? <> · Estudio: <b style={{ color: 'var(--cream)' }}>{tc(rep.territorio.estudio)}</b></> : null}
+              {' '}· {rep.n_bloques} bloques · {String(rep.generado).slice(0, 16).replace('T', ' ')}
+            </div>
+            {(rep.secciones || []).map((s) => {
+              const meta = catalogoB.find((b) => b.id === s.bloque) || {};
+              return <Seccion key={s.bloque} s={s} acciones={meta.acciones} accionesFila={meta.acciones_por_fila}
+                params={{ colonias, estudio, unit_id: unitId }} />;
+            })}
           </div>
-          {reporte.secciones.map((s) => {
-            const meta = catalogoB.find((b) => b.id === s.bloque) || {};
-            return <Seccion key={s.bloque} s={s} acciones={meta.acciones}
-              params={{ colonias, estudio, unit_id: unitId }} />;
-          })}
-        </div>
-      )}
+        );
+        // COMPARADOR: dos reportes lado a lado (hoy vs guardado) — misma vara, mismo renderer
+        return reporteB ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }} data-testid="rep-lado-a-lado">
+            {pinta(reporte, `A · ${String(reporte.generado).slice(0, 10)}`)}
+            {pinta(reporteB, `B · ${reporteB.nombre || ''} ${String(reporteB.generado).slice(0, 10)}`)}
+          </div>
+        ) : pinta(reporte, null);
+      })()}
     </div>
   );
 }

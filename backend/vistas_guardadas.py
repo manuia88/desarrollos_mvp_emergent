@@ -150,6 +150,56 @@ async def evaluar_alertas_corte(db) -> Dict[str, Any]:
             "lectura": f"{len(disparadas)} cortes cambiaron de {revisadas} vigilados"}
 
 
+async def revisar_transiciones(db) -> Dict[str, Any]:
+    """ALERTA DE TRANSICIONES (bitácora → campana): cada mañana, si el mercado SE MOVIÓ desde el
+    último aviso (bajas/alzas de precio con %, ventas confirmadas, retiros probables,
+    resurrecciones — las 'altas' no despiertan a nadie), notifica a los superadmins por el mismo
+    canal que los cortes. Idempotente por día."""
+    hoy = dt.datetime.utcnow().strftime("%Y-%m-%d")
+    marca = await db.genoma_checks.find_one({"id": "transiciones"}) or {}
+    if marca.get("fecha") == hoy:
+        return {"ok": True, "ya_corrido": hoy}
+    desde = marca.get("fecha") or (dt.datetime.utcnow() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+
+    from market_timeline import transiciones
+    r = await transiciones(db, desde=desde, limite=1000)
+    ag = r.get("agregados") or {}
+    precio = ag.get("precio") or {}
+    salidas = ag.get("salidas_por_tipo") or {}
+    partes = []
+    if precio.get("bajas"):
+        med = precio.get("descuento_mediano_pct")
+        partes.append(f"{precio['bajas']} bajas de precio" + (f" (mediana {med}%)" if med is not None else ""))
+    if precio.get("alzas"):
+        partes.append(f"{precio['alzas']} alzas de precio")
+    if salidas.get("vendido_confirmado"):
+        partes.append(f"{salidas['vendido_confirmado']} ventas confirmadas")
+    if salidas.get("retirada_probable_venta"):
+        partes.append(f"{salidas['retirada_probable_venta']} retiros (venta probable)")
+    if (ag.get("por_tipo") or {}).get("reaparicion"):
+        partes.append(f"{ag['por_tipo']['reaparicion']} unidades reaparecieron (venta caída)")
+
+    await db.genoma_checks.update_one({"id": "transiciones"},
+                                      {"$set": {"id": "transiciones", "fecha": hoy,
+                                                "movimientos": len(partes)}}, upsert=True)
+    if not partes:
+        return {"ok": True, "movimientos": 0, "lectura": "El mercado no se movió — sin aviso."}
+    cuerpo = " · ".join(partes)
+    try:
+        from notifications_engine import emit_notification
+        async for su in db.users.find({"role": "superadmin"}, {"_id": 0, "user_id": 1, "id": 1}).limit(50):
+            su_id = su.get("user_id") or su.get("id")
+            if su_id:
+                await emit_notification(
+                    db, user_id=su_id, type="bitacora_transiciones", severity="normal",
+                    title="La bitácora detectó movimientos del mercado",
+                    body=cuerpo, payload={"desde": desde, "agregados": ag},
+                    action_url="/superadmin/mercado")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "movimientos": len(partes), "lectura": cuerpo}
+
+
 def register_vistas_corte_cron(scheduler, db) -> None:
     """Cron 07:30 MX — evalúa los cortes guardados antes de que empiece el día del founder."""
     from apscheduler.triggers.cron import CronTrigger
@@ -157,7 +207,12 @@ def register_vistas_corte_cron(scheduler, db) -> None:
     async def _evaluar_todo(db):
         r1 = await evaluar_alertas_corte(db)
         r2 = await evaluar_cortes_asesor(db)
-        return {"superadmin": r1.get("lectura"), "asesores": r2.get("lectura")}
+        try:   # bitácora → campana (fail-open: las transiciones jamás tumban los cortes)
+            r3 = await revisar_transiciones(db)
+        except Exception:  # noqa: BLE001
+            r3 = {"lectura": "fail-open"}
+        return {"superadmin": r1.get("lectura"), "asesores": r2.get("lectura"),
+                "transiciones": r3.get("lectura")}
 
     wrapped = wrap_apscheduler_job(_evaluar_todo, "cube_view_alerts")
     scheduler.add_job(wrapped, CronTrigger(hour=7, minute=30, timezone="America/Mexico_City"),

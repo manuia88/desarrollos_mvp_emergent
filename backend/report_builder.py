@@ -197,6 +197,24 @@ async def _b_transiciones(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "observado", **r}
 
 
+async def _b_absorcion_viva(db, ctx) -> Dict[str, Any]:
+    """La velocidad de venta REAL medida por la bitácora (no encuesta): salidas por periodo,
+    tasa de absorción y meses-de-inventario — hipersegmentada por cualquier corte."""
+    from market_timeline import absorcion_viva
+    corte = ctx.get("cortes") or {}
+    lista = corte if isinstance(corte, list) else ([corte] if corte.get("dimension") else [])
+    r = await absorcion_viva(db, colonias=ctx.get("colonias"), cortes=lista,
+                             granularidad=ctx.get("granularidad") or "mes")
+    return {"procedencia": "observado", **r}
+
+
+async def _b_salud_dato(db, ctx) -> Dict[str, Any]:
+    """La calidad del inventario, visible: qué campos llegan completos, cuáles se rescatan
+    (piso '10+1'→10) y cuáles se pierden — por campo y por colonia."""
+    from demand_mirror import salud_oferta
+    return {"procedencia": "medido", **(await salud_oferta(db))}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -221,7 +239,15 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "data_negativa": {"fn": _b_data_negativa, "titulo": "Data negativa",
                       "desc": "Zonas ciegas, unidades invisibles, interés sin amor."},
     "radar_lexico": {"fn": _b_radar_lexico, "titulo": "Radar léxico",
-                     "desc": "Términos emergentes del deseo antes de que existan en catálogos."},
+                     "desc": "Términos emergentes del deseo antes de que existan en catálogos.",
+                     # acción POR FILA (universal): el front pinta un botón en cada fila que tenga
+                     # el campo `param_de_fila` y lo manda como query param al endpoint.
+                     "acciones_por_fila": [{"id": "promover_termino",
+                                            "titulo": "Promover a feature",
+                                            "metodo": "POST",
+                                            "endpoint": "/api/superadmin/genoma/taxonomia/promover",
+                                            "param_de_fila": "termino",
+                                            "confirmacion": "El término entra a la taxonomía y se vuelve contable desde hoy. ¿Promover?"}]},
     "oferta_absorcion": {"fn": _b_oferta_absorcion, "titulo": "Oferta y absorción",
                          "desc": "Curva de absorción por cohorte + comparables (incluye 4S)."},
     "prior_4s": {"fn": _b_prior_4s, "titulo": "Prior 4S de la colonia",
@@ -270,6 +296,11 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "transiciones": {"fn": _b_transiciones, "titulo": "Transiciones (todo lo que cambió)",
                      "desc": "El 'vendido' universal: cada cambio del mercado tipificado — bajas/alzas de precio con %, ventas confirmadas vs retiros, resurrecciones, features que aparecen. Filtrable por cualquier corte.",
                      "necesita": ["tiempo"]},
+    "absorcion_viva": {"fn": _b_absorcion_viva, "titulo": "Absorción viva (medida, no encuesta)",
+                       "desc": "La velocidad de venta REAL desde la bitácora: salidas por periodo (confirmadas vs retiros), tasa de absorción y meses-de-inventario — por cualquier corte.",
+                       "necesita": ["tiempo"]},
+    "salud_dato": {"fn": _b_salud_dato, "titulo": "Salud del dato",
+                   "desc": "Qué campos llegan completos, cuáles se RESCATAN de datos sucios (piso '10+1'→10) y cuáles se pierden — por campo y por colonia."},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
@@ -281,7 +312,8 @@ def catalogo() -> Dict[str, Any]:
     ACCIONES autorizables ofrece — el front pinta inputs y botones desde aquí, sin cablearse."""
     return {"bloques": [{"id": k, "titulo": v["titulo"], "desc": v["desc"],
                          "necesita": v.get("necesita", []),
-                         "acciones": v.get("acciones", [])} for k, v in BLOQUES.items()]}
+                         "acciones": v.get("acciones", []),
+                         "acciones_por_fila": v.get("acciones_por_fila", [])} for k, v in BLOQUES.items()]}
 
 
 async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: Optional[str] = None,

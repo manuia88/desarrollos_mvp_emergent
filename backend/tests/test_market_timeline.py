@@ -428,3 +428,86 @@ async def test_transiciones_hipersegmentadas_pregunta_founder():
     assert r["transiciones"][0]["unit_id"] == "u_hit"
     assert r["transiciones"][0]["delta_pct"] == -8.0
     assert r["agregados"]["precio"]["descuento_mediano_pct"] == -8.0
+
+
+# ═══ BITÁCORA UNIFICADA: fuente por evento + disparo al instante ═══
+@pytest.mark.asyncio
+async def test_eventos_guardan_fuente(monkeypatch):
+    """Cada evento sabe QUÉ lo disparó (cron/arranque/evento:drive_sheets…) — auditable."""
+    db = _DB()
+    _patch(monkeypatch, [_ph(12000000)])
+    await snapshot_oferta(db, fuente="arranque")
+    ev = list(db.oferta_timeline.docs.values())[0]
+    assert ev["fuente"] == "arranque"
+
+
+@pytest.mark.asyncio
+async def test_disparo_al_instante_con_debounce(monkeypatch):
+    """El cambio escrito dispara la bitácora AL MOMENTO (no espera al cron) y una ráfaga de
+    cambios coalesce en UNA corrida con todas las fuentes anotadas."""
+    import asyncio
+    import market_timeline as mt
+    db = _DB()
+    _patch(monkeypatch, [_ph(12000000)])
+    monkeypatch.setattr(mt, "_DEBOUNCE_SEGUNDOS", 0.01)
+    mt.disparar_snapshot_debounced(db, fuente="manual_edit")
+    mt.disparar_snapshot_debounced(db, fuente="drive_sheets")   # ráfaga → mismo tren
+    await asyncio.sleep(0.15)
+    eventos = list(db.oferta_timeline.docs.values())
+    assert len(eventos) == 1                                     # UNA corrida, no dos
+    assert eventos[0]["fuente"] == "evento:drive_sheets,manual_edit"
+
+
+@pytest.mark.asyncio
+async def test_contexto_diario_por_colonia(monkeypatch):
+    """El clima diario también hipersegmentado: pm2/inventario POR COLONIA, no solo global."""
+    db = _DB()
+    u2 = {**_ph(8000000), "unit_id": "r-1", "colonia": "roma_norte", "m2": 100}
+    _patch(monkeypatch, [_ph(12000000), u2])
+    r = await snapshot_contexto(db)
+    assert r["n_colonias"] == 2
+    doc = list(db.contexto_timeline.docs.values())[0]
+    assert doc["por_colonia"]["roma_norte"]["pm2_mediana"] == 80000
+    assert doc["por_colonia"]["condesa"]["n_disponibles"] == 1
+
+
+# ═══ ABSORCIÓN VIVA: la velocidad de venta MEDIDA ═══
+@pytest.mark.asyncio
+async def test_absorcion_viva_mide_salidas_y_meses_inventario():
+    """3 unidades entran en mayo; en junio una se vende (confirmada) y otra se retira (probable)
+    → junio: 2 salidas, tasa 2/3, meses de inventario 0.5. Medido, no encuestado."""
+    from market_timeline import absorcion_viva
+    db = _DB()
+    for uid in ("a", "b", "c"):
+        await _siembra_vida(db, uid, "condesa", [("2026-05-01T00:00:00+00:00", 5000000, True, {})])
+    await _siembra_vida(db, "a", "condesa", [
+        ("2026-06-10T00:00:00+00:00", 5000000, False, {"status": "vendido"})])
+    await _siembra_vida(db, "b", "condesa", [
+        ("2026-06-15T00:00:00+00:00", 5000000, False,
+         {"status": "retirada_de_lista", "tipo_salida": "retirada_probable_venta"})])
+    r = await absorcion_viva(db, granularidad="mes")
+    jun = next(s for s in r["serie"] if s["periodo"] == "2026-06")
+    assert jun["salidas"] == 2
+    assert jun["ventas_confirmadas"] == 1 and jun["retiros_probables"] == 1
+    assert jun["disponibles_cierre"] == 1
+    assert jun["tasa_absorcion_pct"] == 66.7
+    assert jun["meses_inventario"] == 0.5
+    may = next(s for s in r["serie"] if s["periodo"] == "2026-05")
+    assert may["altas"] == 3 and may["salidas"] == 0
+
+
+@pytest.mark.asyncio
+async def test_absorcion_viva_hipersegmentada_por_corte():
+    """'¿A qué ritmo se venden los de 3 recámaras?' — el corte filtra las vidas enteras."""
+    from market_timeline import absorcion_viva
+    db = _DB()
+    await _siembra_vida(db, "tres", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 9000000, True, {"recamaras": 3}),
+        ("2026-06-01T00:00:00+00:00", 9000000, False, {"recamaras": 3, "status": "vendido"})])
+    await _siembra_vida(db, "dos", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 5000000, True, {"recamaras": 2}),
+        ("2026-06-01T00:00:00+00:00", 5000000, False, {"recamaras": 2, "status": "vendido"})])
+    r = await absorcion_viva(db, cortes=[{"campo": "recamaras", "op": ">=", "valor": 3}])
+    assert r["n_unidades_corte"] == 1
+    jun = next(s for s in r["serie"] if s["periodo"] == "2026-06")
+    assert jun["ventas_confirmadas"] == 1

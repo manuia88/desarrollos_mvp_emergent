@@ -1860,6 +1860,13 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         "updated_at": now,
     }
     await db.developments.insert_one(dict(dev_doc))
+    # BITÁCORA UNIFICADA: la ingesta NO pasa por units_history — disparo directo del snapshot
+    # del genoma (debounced) para que las altas/cambios queden escritos AL MOMENTO, no al cron.
+    try:
+        from market_timeline import disparar_snapshot_debounced
+        disparar_snapshot_debounced(db, fuente="bulk_ingest")
+    except Exception:  # noqa: BLE001
+        pass
 
     # CABLE #2 → COTIZADOR + FILTRO + CUBO: escribir los campos COMPLETOS de unidad en el vocabulario CANÓNICO
     # (el mismo de la semilla y del front) + los nombres legacy (que lee el cubo). status en ESPAÑOL: la semilla y
@@ -2064,6 +2071,12 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             await db.developments.update_one({"id": target_dev_id}, {"$set": _dev_patch})
     except Exception as e:  # noqa: BLE001
         log.warning(f"[bulk_ingest] dev facts refresh: {e}")
+    # BITÁCORA UNIFICADA: re-ingesta = cambios al momento (el debounce agrupa lo que sigue abajo)
+    try:
+        from market_timeline import disparar_snapshot_debounced
+        disparar_snapshot_debounced(db, fuente="bulk_ingest")
+    except Exception:  # noqa: BLE001
+        pass
 
     # REGLA DE DISPONIBILIDAD (founder 07-08): la lista de precios ES el inventario disponible HOY. Un depto
     # nuestro que YA NO aparece en la lista nueva → se VENDIÓ (por eso salió de la lista). Solo con lista

@@ -305,7 +305,7 @@ def vector_unidad(unit: Dict[str, Any]) -> Dict[str, str]:
     m2 = _get(unit, "m2_construido", "m2", "sqm", "superficie")
     if m2:
         v["producto.m2_banda"] = banda_m2(m2)
-    piso = _entero(_get(unit, "piso", "nivel", "floor"))
+    piso = _entero(_get(unit, "piso", "nivel", "level", "floor"))
     if piso is not None:
         v["producto.nivel"] = str(piso)
     est = _entero(_get(unit, "estacionamientos", "cajones", "parking"))

@@ -142,7 +142,7 @@ async def test_data_negativa(monkeypatch):
         await db.buyer_signals.insert_one({"type": "ficha_view", "entity_id": "dev9", "created_at_dt": now})
     r = await data_negativa(db)
     assert {"colonia": "napoles", "unidades": 1} in r["zonas_ciegas"]   # inventario sin UNA búsqueda
-    assert set(r["unidades_invisibles"]["muestra"]) == {"u2", "u4"}     # disponibles sin vistas
+    assert {x["unit_id"] for x in r["unidades_invisibles"]["muestra"]} == {"u2", "u4"}  # sin vistas (ahora con edad)
     assert r["interes_sin_amor"][0]["dev_id"] == "dev9"                 # vistas sí, likes no
 
 
@@ -201,3 +201,50 @@ async def test_espejo_recamaras_con_alias_y_datos_sucios(monkeypatch):
                 if f["dimension"] == "producto.recamaras" and str(f["valor"]) == "2")
     assert fila["oferta_satisface"] == 1        # 3 rec satisface 2+ — ya NO 'inexistente'
     assert fila["estado"] == "espejo"
+
+
+@pytest.mark.asyncio
+async def test_salud_del_dato_visible(monkeypatch):
+    """Los rescates ya no viven solo en logs: el founder VE qué se rescató ('10+1'→10),
+    qué se perdió ('PB') y qué llega limpio — por campo, con ejemplos."""
+    import data_developments
+    from demand_mirror import salud_oferta
+    monkeypatch.setattr(data_developments, "DEVELOPMENTS", [
+        {"id": "d1", "colonia": "Condesa", "units": [
+            {"id": "u1", "precio_lista": 5000000, "m2": 80, "recamaras": 2, "piso": 3,
+             "status": "disponible"},                                    # limpia
+            {"id": "u2", "precio_lista": 6000000, "m2": 90, "bedrooms": "3",
+             "piso": "10+1", "status": "disponible"},                    # piso RESCATADO
+            {"id": "u3", "precio_lista": 7000000, "m2": 100, "recamaras": 2,
+             "piso": "PB", "status": "disponible"},                      # piso PERDIDO
+        ]}])
+    db = _DB()
+    r = await salud_oferta(db)
+    assert r["n_unidades"] == 3
+    assert r["por_campo"]["piso"] == {"presente": 1, "rescatado": 1, "perdido": 1}
+    ej = {e["unit_id"]: e["diagnostico"] for e in r["ejemplos"]["piso"]}
+    assert ej == {"u2": "rescatado", "u3": "perdido"}
+    assert "RESCATADOS" in r["lectura"]
+
+
+@pytest.mark.asyncio
+async def test_data_negativa_con_edad_en_bitacora(monkeypatch):
+    """Invisible desde hace 3 días ≠ invisible desde hace 3 meses: la edad sale del primer
+    evento de la unidad en NUESTRA bitácora (sin depender de fechas de la fuente)."""
+    import demand_mirror
+    from demand_mirror import data_negativa
+    from datetime import timedelta
+    db = _DB()
+    vieja = datetime.now(timezone.utc) - timedelta(days=45)
+    await db.oferta_timeline.insert_one({"unit_id": "u-vieja", "ts": vieja.isoformat(), "hash": "h1"})
+    unidades = [{"colonia": "condesa", "dev_id": "d1", "disponible": True, "unit_id": "u-vieja",
+                 "precio": 5000000.0, "m2": 80.0, "vector": {}, "crudos": {}}]
+    async def _f(db_, colonias=None):
+        return unidades
+    monkeypatch.setattr(demand_mirror, "_oferta_vectores", _f)
+    r = await data_negativa(db)
+    inv = r["unidades_invisibles"]
+    assert inv["n"] == 1
+    assert inv["muestra"][0]["unit_id"] == "u-vieja"
+    assert 44 <= inv["muestra"][0]["dias_invisible"] <= 46
+    assert 44 <= inv["edad_mediana_dias"] <= 46

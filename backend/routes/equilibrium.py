@@ -322,6 +322,30 @@ async def r_transiciones(request: Request):
                               granularidad=g, limite=int(body.get("limite") or 200))
 
 
+@router.post("/api/superadmin/genoma/absorcion-viva")
+async def r_absorcion_viva(request: Request):
+    """La velocidad de venta REAL medida por la bitácora (salidas, tasa, meses-de-inventario) —
+    hipersegmentada. Body: {colonias?, cortes?, desde?, hasta?, granularidad?}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from market_timeline import absorcion_viva, GRANULARIDADES
+    from market_4s_bridge import norm_colonia
+    g = body.get("granularidad") or "mes"
+    if g not in GRANULARIDADES:
+        return {"error": f"granularidad inválida: {g}", "validas": sorted(GRANULARIDADES)}
+    cols = {norm_colonia(c) for c in (body.get("colonias") or []) if c} or None
+    return await absorcion_viva(_db(request), colonias=cols, cortes=body.get("cortes"),
+                                desde=body.get("desde"), hasta=body.get("hasta"), granularidad=g)
+
+
+@router.get("/api/superadmin/genoma/salud-dato")
+async def r_salud_dato(request: Request):
+    """Salud del inventario: campos presentes / rescatados de datos sucios / perdidos, con ejemplos."""
+    await require_superadmin(request)
+    from demand_mirror import salud_oferta
+    return await salud_oferta(_db(request))
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""

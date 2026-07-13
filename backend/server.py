@@ -2766,17 +2766,20 @@ async def startup():
             # BITÁCORA TEMPORAL: event-sourcing del inventario + contexto (tasas) — diario.
             # En 4 años, "¿cuánto costaba ese PH?" se responde porque nada se pisa, todo se escribe.
             from market_timeline import snapshot_oferta, snapshot_contexto
-            _t1 = await snapshot_oferta(db)
+            _t1 = await snapshot_oferta(db, fuente="arranque")
             _t2 = await snapshot_contexto(db)
             logging.info("[startup] bitácora oferta: %s · contexto: %s", _t1, _t2)
 
+            # PRODUCCIÓN EN MASA: cron horario como RED DE SEGURIDAD (el dedup por hash hace
+            # gratis la corrida sin cambios); los cambios reales disparan el snapshot AL
+            # INSTANTE (units_history + ingesta → disparar_snapshot_debounced, con fuente).
             async def _timeline_tick():
                 try:
-                    await snapshot_oferta(db)
+                    await snapshot_oferta(db, fuente="cron")
                     await snapshot_contexto(db)
                 except Exception as _e:  # noqa: BLE001
                     logging.warning("[timeline] tick fail-open: %s", _e)
-            sched.add_job(_timeline_tick, "interval", hours=24, id="timeline_tick", replace_existing=True)
+            sched.add_job(_timeline_tick, "interval", hours=1, id="timeline_tick", replace_existing=True)
         except Exception as e:
             logging.warning("[startup] genoma fail-open: %s", e)
 

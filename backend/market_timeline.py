@@ -70,7 +70,9 @@ def _periodo(ts, granularidad: str) -> Optional[str]:
 
 
 # ── snapshot de OFERTA (event-sourced por cambio) ─────────────────────────────
-async def snapshot_oferta(db) -> Dict[str, Any]:
+async def snapshot_oferta(db, fuente: str = "cron") -> Dict[str, Any]:
+    """`fuente` = PROCEDENCIA de la corrida (cron/arranque/manual/evento:<origen>) — cada evento
+    la guarda: en una auditoría se sabe QUÉ disparó cada registro de la bitácora."""
     from demand_mirror import _oferta_vectores
     unidades = await _oferta_vectores(db)
 
@@ -95,7 +97,7 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
             sin_cambio += 1
             continue
         evento = {"unit_id": uid, "colonia": u["colonia"], "dev_id": u.get("dev_id"),
-                  "ts": ts, "hash": h,
+                  "ts": ts, "hash": h, "fuente": fuente,
                   "precio": u.get("precio"), "m2": u.get("m2"),
                   "recamaras": u.get("recamaras"), "piso": u.get("piso"),
                   "pm2": round(u["precio"] / u["m2"]) if (u.get("precio") and u.get("m2")) else None,
@@ -117,7 +119,7 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
         if uid in vivas or not ev.get("disponible"):
             continue   # sigue viva, o ya estaba fuera — nada que hacer
         sintetico = {**{k: v for k, v in ev.items() if k != "hash"},
-                     "ts": ts, "disponible": False,
+                     "ts": ts, "disponible": False, "fuente": fuente,
                      "status": "retirada_de_lista",
                      "tipo_salida": "retirada_probable_venta",
                      "hash": f"ret_{ev.get('hash')}"}
@@ -127,12 +129,62 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
         except Exception as e:
             log.warning("[timeline] retiro fail-open: %s", e)
 
-    try:
+    try:   # producción en masa: la bitácora se lee por unidad, por colonia y por tiempo
         await db.oferta_timeline.create_index("unit_id")
+        await db.oferta_timeline.create_index([("colonia", 1), ("ts", -1)])
+        await db.oferta_timeline.create_index([("ts", -1)])
     except Exception:
         pass
     return {"unidades": len(unidades), "eventos_nuevos": nuevos, "sin_cambio": sin_cambio,
-            "retiradas_detectadas": retiradas}
+            "retiradas_detectadas": retiradas, "fuente": fuente}
+
+
+# ── DISPARO AL INSTANTE (bitácora unificada) ──────────────────────────────────
+# Antes la bitácora era de RELOJ (cron): un cambio doble intradía se perdía y units_history
+# (que graba al momento) vivía en otro universo. Ahora cualquier escritor de cambios dispara
+# el snapshot EN ESE INSTANTE — con debounce (ráfagas de N cambios = 1 corrida) y con la caché
+# del espejo invalidada para leer el estado fresco. El cron queda como red de seguridad.
+_DEBOUNCE_SEGUNDOS = 5.0
+_pendiente: Dict[int, Any] = {}          # id(db) → task en vuelo
+_fuentes_pendientes: Dict[int, Set[str]] = {}
+
+
+async def disparar_snapshot(db, fuente: str = "evento") -> Dict[str, Any]:
+    """Corre la bitácora AHORA con datos frescos (invalida la caché del espejo primero)."""
+    try:
+        from demand_mirror import invalidar_cache_oferta
+        invalidar_cache_oferta()
+    except Exception:
+        pass
+    r = await snapshot_oferta(db, fuente=fuente)
+    log.info("[timeline] disparo %s → %s", fuente, r)
+    return r
+
+
+def disparar_snapshot_debounced(db, fuente: str = "evento") -> None:
+    """Fire-and-forget con coalescencia: N cambios en ráfaga (un sync de Drive con 200 unidades)
+    = UNA corrida a los pocos segundos, con todas las fuentes anotadas. Nunca bloquea al que escribe."""
+    import asyncio
+    key = id(db)
+    _fuentes_pendientes.setdefault(key, set()).add(fuente)
+    t = _pendiente.get(key)
+    if t is not None and not t.done():
+        return   # ya hay corrida agendada — esta ráfaga se sube a ese tren
+
+    async def _corre():
+        try:
+            await asyncio.sleep(_DEBOUNCE_SEGUNDOS)
+            fuentes = ",".join(sorted(_fuentes_pendientes.pop(key, {fuente}))) or fuente
+            await disparar_snapshot(db, fuente=f"evento:{fuentes}")
+        except Exception as e:  # noqa: BLE001 — el disparo jamás tumba al escritor
+            log.warning("[timeline] disparo fail-open: %s", e)
+        finally:
+            _pendiente.pop(key, None)
+
+    try:
+        _pendiente[key] = asyncio.get_running_loop().create_task(_corre())
+    except RuntimeError:   # sin loop (contexto síncrono raro) — el cron horario cubre
+        _fuentes_pendientes.pop(key, None)
 
 
 # ── snapshot de CONTEXTO (el clima del mercado, diario idempotente) ───────────
@@ -161,13 +213,33 @@ async def snapshot_contexto(db) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # HIPERSEGMENTACIÓN del clima: el contexto diario también POR COLONIA (pm2, inventario,
+    # disponibles) — en 4 años, la serie de $/m² de CUALQUIER colonia sale de aquí sin recomputar.
+    por_colonia: Dict[str, Dict[str, Any]] = {}
+    for u in unidades:
+        c = por_colonia.setdefault(u["colonia"], {"n_unidades": 0, "n_disponibles": 0, "_pm2s": []})
+        c["n_unidades"] += 1
+        if u["disponible"]:
+            c["n_disponibles"] += 1
+        if u.get("precio") and u.get("m2"):
+            c["_pm2s"].append(u["precio"] / u["m2"])
+    for c in por_colonia.values():
+        s = sorted(c.pop("_pm2s"))
+        c["pm2_mediana"] = round(s[len(s) // 2]) if s else None
+
     doc = {"fecha": fecha, "ts": _ahora(), "tasas": tasas,
            "n_unidades": len(unidades),
            "n_disponibles": sum(1 for u in unidades if u["disponible"]),
            "pm2_mediana": round(pm2s[len(pm2s) // 2]) if pm2s else None,
-           "n_atomos": n_atomos}
+           "n_atomos": n_atomos,
+           "por_colonia": por_colonia}
     await db.contexto_timeline.update_one({"fecha": fecha}, {"$set": doc}, upsert=True)
-    return {"ok": True, **{k: v for k, v in doc.items() if k != "ts"}}
+    try:
+        await db.contexto_timeline.create_index("fecha")
+    except Exception:
+        pass
+    return {"ok": True, **{k: v for k, v in doc.items() if k not in ("ts", "por_colonia")},
+            "n_colonias": len(por_colonia)}
 
 
 # ── EVOLUCIÓN v2: hipersegmentada — cortes MÚLTIPLES (Y lógico) + DESGLOSE ────
@@ -250,8 +322,15 @@ async def evolucion(db, *, colonias: Optional[Set[str]] = None,
 
     # OFERTA: eventos por unidad (reconstrucción: último evento ≤ fin del periodo)
     eventos: Dict[str, List[Dict[str, Any]]] = {}
+    # push-down a Mongo (producción en masa): el índice filtra colonia/unidad ANTES de traer docs;
+    # el filtro Python se queda como defensa doble (los fakes de test ignoran filtros-dict).
+    q: Dict[str, Any] = {}
+    if colonias:
+        q["colonia"] = {"$in": sorted(colonias)}
+    if unit_id:
+        q["unit_id"] = str(unit_id)
     try:
-        async for ev in db.oferta_timeline.find({}, {"_id": 0}):
+        async for ev in db.oferta_timeline.find(q, {"_id": 0}):
             if unit_id and str(ev.get("unit_id")) != str(unit_id):
                 continue
             if colonias and ev.get("colonia") not in colonias:
@@ -393,8 +472,9 @@ async def instantanea(db, *, fecha: Optional[str] = None,
     corte_fecha = fecha or "9999-12-31"
 
     eventos: Dict[str, List[Dict[str, Any]]] = {}
+    q: Dict[str, Any] = {"colonia": {"$in": sorted(colonias)}} if colonias else {}
     try:
-        async for ev in db.oferta_timeline.find({}, {"_id": 0}):
+        async for ev in db.oferta_timeline.find(q, {"_id": 0}):
             if colonias and ev.get("colonia") not in colonias:
                 continue
             eventos.setdefault(str(ev["unit_id"]), []).append(ev)
@@ -546,8 +626,9 @@ async def transiciones(db, *, colonias: Optional[Set[str]] = None,
     """El río de cambios del mercado, hipersegmentado: qué cambió, cuánto, cuándo y en qué
     unidades — filtrable por tipo, campo, territorio, tiempo y CUALQUIER corte del genoma."""
     eventos: Dict[str, List[Dict[str, Any]]] = {}
+    q: Dict[str, Any] = {"colonia": {"$in": sorted(colonias)}} if colonias else {}
     try:
-        async for ev in db.oferta_timeline.find({}, {"_id": 0}):
+        async for ev in db.oferta_timeline.find(q, {"_id": 0}):
             if colonias and ev.get("colonia") not in colonias:
                 continue
             eventos.setdefault(str(ev["unit_id"]), []).append(ev)
@@ -609,3 +690,85 @@ async def transiciones(db, *, colonias: Optional[Set[str]] = None,
                         f"— precio, features, ventas, resurrecciones — tipificado y filtrable.")
                        if registros else
                        "Sin transiciones aún — la bitácora acumula con cada corrida del cron."}
+
+
+# ── ABSORCIÓN VIVA: la velocidad de venta REAL, medida por NOSOTROS ───────────
+# 4S estima "venta mensual" con encuestas que cuestan 500k y envejecen. La bitácora la MIDE:
+# salidas (confirmadas + retiros probables) por periodo ÷ inventario expuesto. Hipersegmentada:
+# territorio × granularidad × CUALQUIER corte del genoma ("¿a qué ritmo se venden los 3 rec con
+# balcón en Condesa?"). Devuelve además meses-de-inventario (cuánto tarda en agotarse lo de hoy).
+async def absorcion_viva(db, *, colonias: Optional[Set[str]] = None,
+                         cortes: Optional[List[Dict[str, Any]]] = None,
+                         desde: Optional[str] = None, hasta: Optional[str] = None,
+                         granularidad: str = "mes") -> Dict[str, Any]:
+    eventos: Dict[str, List[Dict[str, Any]]] = {}
+    q: Dict[str, Any] = {"colonia": {"$in": sorted(colonias)}} if colonias else {}
+    try:
+        async for ev in db.oferta_timeline.find(q, {"_id": 0}):
+            if colonias and ev.get("colonia") not in colonias:
+                continue
+            eventos.setdefault(str(ev["unit_id"]), []).append(ev)
+    except Exception as e:
+        log.warning("[absorcion_viva] fail-open: %s", e)
+
+    # por unidad: pasa el corte (estado más reciente) + su línea de vida disponible/no
+    filas: Dict[str, List[tuple]] = {}   # uid → [(periodo, disponible, tipo_salida)]
+    for uid, evs in eventos.items():
+        evs.sort(key=lambda e: str(e.get("ts", "")))
+        if cortes and not all(_aplica_corte(evs[-1], c) for c in cortes):
+            continue
+        vida = []
+        for e in evs:
+            p = _periodo(e.get("ts"), granularidad)
+            if (desde and str(e.get("ts", ""))[:len(desde)] < desde) or \
+               (hasta and str(e.get("ts", ""))[:len(hasta)] > hasta):
+                continue
+            vida.append((p, bool(e.get("disponible")), e.get("tipo_salida"),
+                         str(e.get("status") or "")))
+        if vida:
+            filas[uid] = vida
+
+    periodos: Set[str] = {p for vida in filas.values() for (p, _, _, _) in vida if p}
+    serie = []
+    for p in sorted(periodos):
+        altas = salidas = confirmadas = probables = reapariciones = 0
+        disponibles_fin = 0
+        for vida in filas.values():
+            en_p = [v for v in vida if v[0] == p]
+            antes = [v for v in vida if (v[0] or "") < p]
+            if en_p and not antes:
+                altas += 1
+            prev_disp = antes[-1][1] if antes else False
+            for (_, disp, tipo_salida, status) in en_p:
+                if prev_disp and not disp:
+                    salidas += 1
+                    if tipo_salida == "retirada_probable_venta":
+                        probables += 1
+                    elif status == "vendido" or tipo_salida == "vendido_confirmado":
+                        confirmadas += 1
+                elif not prev_disp and disp and antes:
+                    reapariciones += 1
+                prev_disp = disp
+            # estado al cierre del periodo
+            ult = (en_p or antes)
+            if ult and ult[-1][1]:
+                disponibles_fin += 1
+        expuesto = disponibles_fin + salidas   # lo que estuvo a la venta en el periodo
+        serie.append({"periodo": p, "altas": altas, "salidas": salidas,
+                      "ventas_confirmadas": confirmadas, "retiros_probables": probables,
+                      "reapariciones": reapariciones,
+                      "disponibles_cierre": disponibles_fin,
+                      "tasa_absorcion_pct": round(salidas / expuesto * 100, 1) if expuesto else None,
+                      "meses_inventario": round(disponibles_fin / salidas, 1) if salidas else None})
+
+    tot_salidas = sum(s["salidas"] for s in serie)
+    return {"granularidad": granularidad, "n_periodos": len(serie),
+            "filtro": {"colonias": sorted(colonias) if colonias else None,
+                       "cortes": cortes or [], "desde": desde, "hasta": hasta},
+            "n_unidades_corte": len(filas),
+            "es_estimado": not bool(serie),
+            "serie": serie,
+            "lectura": (f"{tot_salidas} salidas medidas en {len(serie)} periodos ({granularidad}) "
+                        f"sobre {len(filas)} unidades del corte — velocidad REAL, no encuesta.")
+                       if serie else
+                       "Sin historia suficiente aún — la bitácora mide la absorción sola con el tiempo."}
