@@ -161,3 +161,43 @@ async def test_espejo_sin_datos_honesto(monkeypatch):
     db = _DB()
     r = await espejo(db)
     assert r["es_estimado"] is True and r["filas"] == []
+
+
+@pytest.mark.asyncio
+async def test_espejo_recamaras_con_alias_y_datos_sucios(monkeypatch):
+    """Bug cazado EN PANTALLA por el gate vivo: 'recámaras=2 → 0 unidades satisfacen' con cientos
+    de disponibles. Causa: el espejo leía recamaras/piso crudos sin alias (bedrooms) ni parse
+    tolerante ('10+1'), mientras baños sí usaba el vector. Ahora la misma disciplina en crudos."""
+    import demand_mirror
+    from demand_mirror import espejo
+    db = _DB()
+    # búsqueda real: alguien pide 2 recámaras
+    await db.marketplace_searches.insert_one({
+        "id": "s1", "visitor_id": "v1", "colonias": ["Condesa"],
+        "created_at_dt": datetime.now(timezone.utc), "recamaras_min": 2})
+    from demand_genome import explotar_busquedas
+    await explotar_busquedas(db)
+    # oferta estilo INGERIDA: alias bedrooms + piso sucio '10+1' — antes ambas caían a False
+    unidades = [
+        {"colonia": "condesa", "dev_id": "d1", "disponible": True, "unit_id": "u-alias",
+         "precio": 5000000.0, "m2": 80.0, "piso": None, "recamaras": None,
+         "crudos": {}, "vector": {"producto.recamaras": "3"}},
+    ]
+    # simula lo que _fila produce HOY desde {"bedrooms": "3", "nivel": "10+1"}
+    from demand_mirror import _oferta_vectores_raw  # noqa: F401 (validación de import)
+    from demand_genome import _entero, _get
+    crudo = {"id": "u-alias", "bedrooms": "3", "nivel": "10+1", "m2": 80, "precio_lista": 5000000,
+             "status": "disponible"}
+    assert _entero(_get(crudo, "recamaras", "bedrooms")) == 3
+    assert _entero(_get(crudo, "piso", "nivel", "floor")) == 10
+    unidades[0]["recamaras"] = _entero(_get(crudo, "recamaras", "bedrooms"))
+    unidades[0]["piso"] = _entero(_get(crudo, "piso", "nivel", "floor"))
+
+    async def _f(db_, colonias=None):
+        return unidades
+    monkeypatch.setattr(demand_mirror, "_oferta_vectores", _f)
+    r = await espejo(db)
+    fila = next(f for f in r["filas"]
+                if f["dimension"] == "producto.recamaras" and str(f["valor"]) == "2")
+    assert fila["oferta_satisface"] == 1        # 3 rec satisface 2+ — ya NO 'inexistente'
+    assert fila["estado"] == "espejo"

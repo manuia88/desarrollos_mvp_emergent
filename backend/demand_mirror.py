@@ -65,7 +65,7 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
         return not colonias or col in colonias
 
     def _fila(col: str, u: Dict[str, Any], dev_id=None) -> Dict[str, Any]:
-        from demand_genome import _get
+        from demand_genome import _get, _entero
         m2 = _get(u, "m2_construido", "m2", "m2_total", "sqm", "superficie")
         precio = _get(u, "precio_lista", "precio", "price", "price_mxn")
         # GARANTÍA UNIVERSAL lado-oferta: TODO campo numérico de la unidad se conserva como crudo
@@ -85,8 +85,11 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
                 # crudos para scores (C1/C3/C5): $/m², m², piso — el vector trae las bandas
                 "precio": float(precio) if precio else None,
                 "m2": float(m2) if m2 else None,
-                "piso": u.get("piso") if u.get("piso") is not None else u.get("nivel"),
-                "recamaras": u.get("recamaras"),
+                # BUG cazado en el gate vivo: estos crudos se leían SIN alias ni parse tolerante
+                # (bedrooms/'10+1') → el espejo daba 'recámaras=2 → 0 satisfacen' con 597 disponibles.
+                # Misma disciplina que el vector: alias + _entero.
+                "piso": _entero(_get(u, "piso", "nivel", "floor")),
+                "recamaras": _entero(_get(u, "recamaras", "bedrooms")),
                 "crudos": crudos,
                 "vector": vector_unidad(u)}
 
