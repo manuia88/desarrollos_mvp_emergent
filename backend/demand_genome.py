@@ -18,6 +18,7 @@ FAIL-OPEN total. Superadmin-only en superficie; los átomos alimentan motores co
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.demand_genome")
@@ -279,26 +280,37 @@ def _get(u: Dict[str, Any], *aliases, default=None):
     return default
 
 
+def _entero(v) -> Optional[int]:
+    """Parse TOLERANTE de enteros del mundo real: 3, '3', 3.0, '10+1' (nivel 10 + roof) → 10.
+    Un dato sucio pierde SU campo — nunca tira la unidad ni el inventario completo (bug real:
+    un piso '10+1' en una lista ingerida tiraba TODAS las unidades del espejo, fail-open)."""
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        m = re.search(r"-?\d+", str(v))
+        return int(m.group()) if m else None
+
+
 def vector_unidad(unit: Dict[str, Any]) -> Dict[str, str]:
     """A6 · El vector GENOMA de una unidad del inventario — MISMAS dimensiones que la demanda.
     Con demanda y oferta en el mismo idioma, el match/escasez/precio-sombra es una resta.
     Reader fail-open sobre el esquema de unidad (dmx_unit_schema) y alias comunes. Puro."""
     v: Dict[str, str] = {}
-    rec = _get(unit, "recamaras", "bedrooms")
+    rec = _entero(_get(unit, "recamaras", "bedrooms"))
     if rec is not None:
-        v["producto.recamaras"] = str(int(rec))
+        v["producto.recamaras"] = str(rec)
     ban = _get(unit, "banos_completos", "banos", "bathrooms")
     if ban is not None:
         v["producto.banos"] = str(ban)
     m2 = _get(unit, "m2_construido", "m2", "sqm", "superficie")
     if m2:
         v["producto.m2_banda"] = banda_m2(m2)
-    piso = _get(unit, "piso", "nivel", "floor")
+    piso = _entero(_get(unit, "piso", "nivel", "floor"))
     if piso is not None:
-        v["producto.nivel"] = str(int(piso))
-    est = _get(unit, "estacionamientos", "cajones", "parking")
+        v["producto.nivel"] = str(piso)
+    est = _entero(_get(unit, "estacionamientos", "cajones", "parking"))
     if est is not None:
-        v["producto.estacionamientos"] = str(int(est))
+        v["producto.estacionamientos"] = str(est)
     precio = _get(unit, "precio_lista", "precio", "price")
     if precio:
         v["finanzas.presupuesto_banda_mdp"] = banda_precio_mdp(precio)

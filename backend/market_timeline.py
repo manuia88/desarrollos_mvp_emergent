@@ -469,3 +469,143 @@ async def instantanea(db, *, fecha: Optional[str] = None,
                     + ".") if seleccion else
                    "Ninguna unidad de la bitácora cumple ese corte — respuesta honesta, no vacío por error.",
     }
+
+
+# ── TRANSICIONES: el "vendido" GENERALIZADO a TODAS las dimensiones ───────────
+# Pregunta del founder: "esta misma idea del depa vendido, ¿cómo aplica a todas las dimensiones?"
+# Respuesta: "vendido" es UN caso del patrón universal TRANSICIÓN = cualquier campo que cambia
+# entre dos eventos consecutivos de la misma unidad. El motor diffea TODAS las capas del evento
+# (top-level, crudos, features del vector, status) sin lista fija de campos — un campo capturado
+# mañana ya genera transiciones hoy (ningún-cambio-se-pierde). Tipos que emergen del diff:
+#   alta · salida (vendido_confirmado / retirada_probable_venta / salida_de_disponibilidad) ·
+#   reaparicion (venta caída — señal que nadie más tiene) · cambio(campo) con delta y delta_pct ·
+#   feature_agregada / feature_removida.
+# HIPERSEGMENTACIÓN: cortes universales (_aplica_corte: =, >=, <=, rango, tiene) sobre el estado
+# resultante — "¿cuántos depas de 3 rec CON balcón bajaron de precio en junio y cuánto?".
+_META_EVENTO = {"unit_id", "colonia", "dev_id", "ts", "hash", "vector", "crudos",
+                "disponible", "tipo_salida", "pm2"}
+
+
+def _estado_plano(ev: Dict[str, Any]) -> Dict[str, Any]:
+    """Aplana un evento a {campo: valor} através de TODAS sus capas (universal, sin lista fija)."""
+    plano = {k: v for k, v in ev.items()
+             if k not in _META_EVENTO and not isinstance(v, (dict, list))}
+    for k, v in (ev.get("crudos") or {}).items():
+        plano.setdefault(k, v)
+    return plano
+
+
+def _features_de(ev: Dict[str, Any]) -> Set[str]:
+    return {k.rsplit(".", 1)[1] for k in (ev.get("vector") or {})
+            if k.startswith("producto.feature.")}
+
+
+def _tipo_salida_de(ev: Dict[str, Any]) -> str:
+    return (ev.get("tipo_salida") or
+            ("vendido_confirmado" if str(ev.get("status")) == "vendido"
+             else "salida_de_disponibilidad"))
+
+
+def _diff_eventos(a: Dict[str, Any], b: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Todas las transiciones entre dos eventos consecutivos de una unidad."""
+    out: List[Dict[str, Any]] = []
+    # disponibilidad: la transición REINA (venta o resurrección)
+    if bool(a.get("disponible")) and not b.get("disponible"):
+        out.append({"tipo": "salida", "campo": "disponible",
+                    "tipo_salida": _tipo_salida_de(b)})
+    elif not a.get("disponible") and bool(b.get("disponible")):
+        out.append({"tipo": "reaparicion", "campo": "disponible"})
+    # CUALQUIER campo escalar de cualquier capa (universal — sin lista fija)
+    pa, pb = _estado_plano(a), _estado_plano(b)
+    for campo in sorted(set(pa) | set(pb)):
+        va, vb = pa.get(campo), pb.get(campo)
+        if va == vb:
+            continue
+        t: Dict[str, Any] = {"tipo": "cambio", "campo": campo, "antes": va, "despues": vb}
+        try:
+            fa, fb = float(va), float(vb)
+            t["delta"] = round(fb - fa, 6)
+            if fa:
+                t["delta_pct"] = round((fb - fa) / abs(fa) * 100, 2)
+            t["direccion"] = "baja" if fb < fa else "alza"
+        except (TypeError, ValueError):
+            pass
+        out.append(t)
+    # features: aparecen o desaparecen del genoma de la unidad
+    fa, fb = _features_de(a), _features_de(b)
+    out += [{"tipo": "feature_agregada", "campo": f} for f in sorted(fb - fa)]
+    out += [{"tipo": "feature_removida", "campo": f} for f in sorted(fa - fb)]
+    return out
+
+
+async def transiciones(db, *, colonias: Optional[Set[str]] = None,
+                       tipo: Optional[str] = None, campo: Optional[str] = None,
+                       cortes: Optional[List[Dict[str, Any]]] = None,
+                       desde: Optional[str] = None, hasta: Optional[str] = None,
+                       granularidad: str = "mes", limite: int = 200) -> Dict[str, Any]:
+    """El río de cambios del mercado, hipersegmentado: qué cambió, cuánto, cuándo y en qué
+    unidades — filtrable por tipo, campo, territorio, tiempo y CUALQUIER corte del genoma."""
+    eventos: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        async for ev in db.oferta_timeline.find({}, {"_id": 0}):
+            if colonias and ev.get("colonia") not in colonias:
+                continue
+            eventos.setdefault(str(ev["unit_id"]), []).append(ev)
+    except Exception as e:
+        log.warning("[transiciones] fail-open: %s", e)
+
+    registros: List[Dict[str, Any]] = []
+    for uid, evs in sorted(eventos.items()):
+        evs.sort(key=lambda e: str(e.get("ts", "")))
+        pares = [(None, evs[0])] + list(zip(evs, evs[1:]))
+        for a, b in pares:
+            ts = str(b.get("ts", ""))
+            p = _periodo(b.get("ts"), granularidad)
+            if (desde and ts[:len(desde)] < desde) or (hasta and ts[:len(hasta)] > hasta):
+                continue
+            # hipersegmentación: el ESTADO resultante debe cumplir todos los cortes
+            if not all(_aplica_corte(b, c) for c in (cortes or [])):
+                continue
+            base = {"unit_id": uid, "colonia": b.get("colonia"), "dev_id": b.get("dev_id"),
+                    "ts": ts, "periodo": p}
+            trans = ([{"tipo": "alta", "campo": "unidad"}] if a is None else _diff_eventos(a, b))
+            for t in trans:
+                if tipo and t["tipo"] != tipo:
+                    continue
+                if campo and t.get("campo") != campo:
+                    continue
+                registros.append({**base, **t})
+
+    # VALORES MÚLTIPLES: agregados que responden "¿cuánto se movió el mercado?"
+    def _med(vals):
+        s = sorted(v for v in vals if v is not None)
+        return s[len(s) // 2] if s else None
+    por_tipo: Dict[str, int] = {}
+    por_campo: Dict[str, int] = {}
+    por_periodo: Dict[str, Dict[str, int]] = {}
+    salidas: Dict[str, int] = {}
+    for r in registros:
+        por_tipo[r["tipo"]] = por_tipo.get(r["tipo"], 0) + 1
+        if r["tipo"] == "cambio":
+            por_campo[r["campo"]] = por_campo.get(r["campo"], 0) + 1
+        if r["tipo"] == "salida":
+            salidas[r.get("tipo_salida", "?")] = salidas.get(r.get("tipo_salida", "?"), 0) + 1
+        pp = por_periodo.setdefault(r.get("periodo") or "?", {})
+        pp[r["tipo"]] = pp.get(r["tipo"], 0) + 1
+    bajas = [r for r in registros if r.get("campo") == "precio" and r.get("direccion") == "baja"]
+    alzas = [r for r in registros if r.get("campo") == "precio" and r.get("direccion") == "alza"]
+
+    return {"granularidad": granularidad, "n_transiciones": len(registros),
+            "filtro": {"colonias": sorted(colonias) if colonias else None, "tipo": tipo,
+                       "campo": campo, "cortes": cortes or [], "desde": desde, "hasta": hasta},
+            "es_estimado": not bool(registros),
+            "transiciones": registros[:limite],
+            "agregados": {"por_tipo": por_tipo, "por_campo_cambiado": por_campo,
+                          "por_periodo": por_periodo, "salidas_por_tipo": salidas,
+                          "precio": {"bajas": len(bajas), "alzas": len(alzas),
+                                     "descuento_mediano_pct": _med([r.get("delta_pct") for r in bajas]),
+                                     "alza_mediana_pct": _med([r.get("delta_pct") for r in alzas])}},
+            "lectura": (f"{len(registros)} transiciones ({granularidad}). Cada cambio del mercado "
+                        f"— precio, features, ventas, resurrecciones — tipificado y filtrable.")
+                       if registros else
+                       "Sin transiciones aún — la bitácora acumula con cada corrida del cron."}

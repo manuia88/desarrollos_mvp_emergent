@@ -98,7 +98,10 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
             if not col or not _quiere(col):
                 continue
             for u in d.get("units") or []:
-                out.append(_fila(col, u, d.get("id")))
+                try:   # aislamiento: UNA unidad sucia pierde su fila, no tira el inventario
+                    out.append(_fila(col, u, d.get("id")))
+                except Exception as e:
+                    log.warning("[mirror] unidad %s fail-open: %s", u.get("id"), e)
                 if len(out) >= _MAX_UNITS:
                     return out
     except Exception as e:
@@ -112,7 +115,10 @@ async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
             if not col or not _quiere(col):
                 continue
             for u in await units_for_dev(db, d.get("id")):
-                out.append(_fila(col, u, d.get("id")))
+                try:   # aislamiento: UNA unidad sucia pierde su fila, no tira el inventario
+                    out.append(_fila(col, u, d.get("id")))
+                except Exception as e:
+                    log.warning("[mirror] unidad %s fail-open: %s", u.get("id"), e)
                 if len(out) >= _MAX_UNITS:
                     return out
     except Exception as e:

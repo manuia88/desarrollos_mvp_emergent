@@ -328,3 +328,103 @@ async def test_contexto_diario_idempotente(monkeypatch):
     docs = [d for d in db.contexto_timeline.docs.values()]
     assert len(docs) == 1
     assert docs[0]["n_unidades"] == 1 and docs[0]["pm2_mediana"] == 100000
+
+
+# ═══ TRANSICIONES: el "vendido" generalizado a TODAS las dimensiones ═══
+async def _siembra_vida(db, uid, colonia, pasos):
+    """Inserta la vida de una unidad en la bitácora: lista de (ts, precio, disponible, extras)."""
+    for ts, precio, disp, extras in pasos:
+        vec = {"producto.recamaras": str(extras.get("recamaras", 2))}
+        for f in extras.get("features", []):
+            vec[f"producto.feature.{f}"] = "si"
+        await db.oferta_timeline.insert_one({
+            "unit_id": uid, "colonia": colonia, "dev_id": extras.get("dev_id", "d1"),
+            "ts": ts, "hash": f"h{uid}{ts}", "precio": precio,
+            "m2": extras.get("m2", 80), "recamaras": extras.get("recamaras", 2),
+            "disponible": disp, "status": extras.get("status"),
+            "tipo_salida": extras.get("tipo_salida"),
+            "crudos": extras.get("crudos", {}), "vector": vec})
+
+
+@pytest.mark.asyncio
+async def test_transiciones_universales_todas_las_capas():
+    """El diff detecta cambios en CUALQUIER capa sin lista fija: precio (top-level), un crudo
+    arbitrario capturado mañana (m2_terraza), una feature que aparece — universalidad."""
+    from market_timeline import transiciones
+    db = _DB()
+    await _siembra_vida(db, "u1", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 5000000, True, {"crudos": {"m2_terraza": 8}}),
+        ("2026-06-01T00:00:00+00:00", 4500000, True,
+         {"crudos": {"m2_terraza": 12}, "features": ["roof_garden"]}),
+    ])
+    r = await transiciones(db)
+    tipos = {(t["tipo"], t.get("campo")) for t in r["transiciones"]}
+    assert ("alta", "unidad") in tipos                       # nace en la bitácora
+    assert ("cambio", "precio") in tipos                     # top-level
+    assert ("cambio", "m2_terraza") in tipos                 # crudo ARBITRARIO → detectado igual
+    assert ("feature_agregada", "roof_garden") in tipos      # el genoma de la unidad creció
+    baja = next(t for t in r["transiciones"] if t.get("campo") == "precio")
+    assert baja["direccion"] == "baja" and baja["delta_pct"] == -10.0
+    assert r["agregados"]["precio"]["bajas"] == 1
+    assert r["agregados"]["precio"]["descuento_mediano_pct"] == -10.0
+
+
+@pytest.mark.asyncio
+async def test_transiciones_salida_confirmada_vs_retiro_vs_resurreccion():
+    """Las 3 semánticas de la pregunta del founder, ahora como transiciones tipificadas —
+    incluida la REAPARICIÓN (venta caída), señal que nadie más tiene."""
+    from market_timeline import transiciones
+    db = _DB()
+    # u_conf: el dev la marca 'vendido' explícito
+    await _siembra_vida(db, "u_conf", "roma_norte", [
+        ("2026-05-01T00:00:00+00:00", 4000000, True, {}),
+        ("2026-06-01T00:00:00+00:00", 4000000, False, {"status": "vendido"}),
+    ])
+    # u_ret: desaparece de la lista (evento sintético del cron)
+    await _siembra_vida(db, "u_ret", "roma_norte", [
+        ("2026-05-01T00:00:00+00:00", 3000000, True, {}),
+        ("2026-06-01T00:00:00+00:00", 3000000, False,
+         {"status": "retirada_de_lista", "tipo_salida": "retirada_probable_venta"}),
+    ])
+    # u_res: sale y REGRESA (venta que se cayó)
+    await _siembra_vida(db, "u_res", "roma_norte", [
+        ("2026-05-01T00:00:00+00:00", 2000000, True, {}),
+        ("2026-06-01T00:00:00+00:00", 2000000, False, {"status": "vendido"}),
+        ("2026-07-01T00:00:00+00:00", 2100000, True, {}),
+    ])
+    r = await transiciones(db, tipo="salida")
+    assert r["agregados"]["salidas_por_tipo"] == {"vendido_confirmado": 2,
+                                                  "retirada_probable_venta": 1}
+    r2 = await transiciones(db, tipo="reaparicion")
+    assert r2["n_transiciones"] == 1 and r2["transiciones"][0]["unit_id"] == "u_res"
+
+
+@pytest.mark.asyncio
+async def test_transiciones_hipersegmentadas_pregunta_founder():
+    """'¿Cuántos depas de 3 REC CON BALCÓN bajaron de precio en junio, y cuánto?' —
+    corte del genoma × tipo × campo × ventana de tiempo, todo a la vez."""
+    from market_timeline import transiciones
+    db = _DB()
+    # objetivo: 3 rec con balcón, baja 8% en junio
+    await _siembra_vida(db, "u_hit", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 10000000, True, {"recamaras": 3, "features": ["balcon"]}),
+        ("2026-06-15T00:00:00+00:00", 9200000, True, {"recamaras": 3, "features": ["balcon"]}),
+    ])
+    # ruido 1: baja en junio pero SIN balcón → el corte lo excluye
+    await _siembra_vida(db, "u_no_balcon", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 8000000, True, {"recamaras": 3}),
+        ("2026-06-15T00:00:00+00:00", 7000000, True, {"recamaras": 3}),
+    ])
+    # ruido 2: con balcón pero baja en JULIO → la ventana lo excluye
+    await _siembra_vida(db, "u_julio", "condesa", [
+        ("2026-05-01T00:00:00+00:00", 6000000, True, {"recamaras": 3, "features": ["balcon"]}),
+        ("2026-07-10T00:00:00+00:00", 5000000, True, {"recamaras": 3, "features": ["balcon"]}),
+    ])
+    r = await transiciones(db, tipo="cambio", campo="precio",
+                           cortes=[{"campo": "recamaras", "op": ">=", "valor": 3},
+                                   {"campo": "balcon", "op": "tiene", "valor": "balcon"}],
+                           desde="2026-06", hasta="2026-06")
+    assert r["n_transiciones"] == 1
+    assert r["transiciones"][0]["unit_id"] == "u_hit"
+    assert r["transiciones"][0]["delta_pct"] == -8.0
+    assert r["agregados"]["precio"]["descuento_mediano_pct"] == -8.0

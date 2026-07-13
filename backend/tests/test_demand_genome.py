@@ -222,3 +222,18 @@ def test_a6_vector_unidad_mismo_idioma():
     busq = {a["dimension"]: a["valor"] for a in atomos_de_busqueda(_busqueda_founder())}
     assert busq["producto.m2_banda"] == v["producto.m2_banda"]
     assert busq["finanzas.presupuesto_banda_mdp"] == v["finanzas.presupuesto_banda_mdp"]
+
+
+def test_vector_unidad_datos_sucios_del_mundo_real():
+    """Bug REAL de producción: una lista de precios ingerida traía piso '10+1' y el int() tiraba
+    TODAS las unidades del espejo (fail-open del dataset). El parse tolerante rescata el número
+    ('10+1' → nivel 10) y un valor sin número ('PB') pierde SU campo, nunca la unidad."""
+    from demand_genome import vector_unidad
+    v = vector_unidad({"id": "u1", "recamaras": "3", "piso": "10+1", "m2": 80,
+                       "precio_lista": 4000000, "estacionamientos": "2 techados"})
+    assert v["producto.nivel"] == "10"          # rescatado, no crasheado
+    assert v["producto.recamaras"] == "3"
+    assert v["producto.estacionamientos"] == "2"
+    v2 = vector_unidad({"id": "u2", "piso": "PB", "recamaras": 2})
+    assert "producto.nivel" not in v2           # sin número → campo fuera, unidad viva
+    assert v2["producto.recamaras"] == "2"

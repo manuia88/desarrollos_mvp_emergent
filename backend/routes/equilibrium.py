@@ -302,6 +302,26 @@ async def r_instantanea(request: Request):
                              limite=int(body.get("limite") or 100))
 
 
+@router.post("/api/superadmin/genoma/transiciones")
+async def r_transiciones(request: Request):
+    """El 'vendido' GENERALIZADO: toda transición del mercado (alta, salida confirmada/probable,
+    reaparición, cambio de cualquier campo con delta%, features que aparecen/desaparecen) —
+    hipersegmentada por territorio, tiempo, tipo, campo y cualquier corte del genoma.
+    Body: {colonias?, tipo?, campo?, cortes?[{campo,op,valor,valor2}], desde?, hasta?, granularidad?, limite?}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from market_timeline import transiciones, GRANULARIDADES
+    from market_4s_bridge import norm_colonia
+    g = body.get("granularidad") or "mes"
+    if g not in GRANULARIDADES:
+        return {"error": f"granularidad inválida: {g}", "validas": sorted(GRANULARIDADES)}
+    cols = {norm_colonia(c) for c in (body.get("colonias") or []) if c} or None
+    return await transiciones(_db(request), colonias=cols, tipo=body.get("tipo"),
+                              campo=body.get("campo"), cortes=body.get("cortes"),
+                              desde=body.get("desde"), hasta=body.get("hasta"),
+                              granularidad=g, limite=int(body.get("limite") or 200))
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""

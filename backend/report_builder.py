@@ -185,6 +185,18 @@ async def _b_instantanea(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "observado", **r}
 
 
+async def _b_transiciones(db, ctx) -> Dict[str, Any]:
+    """El 'vendido' generalizado: TODO cambio del mercado (precio, features, salidas,
+    resurrecciones) tipificado — filtrable por territorio, tiempo y cualquier corte."""
+    from market_timeline import transiciones
+    corte = ctx.get("cortes") or {}
+    lista = corte if isinstance(corte, list) else ([corte] if corte.get("dimension") else [])
+    r = await transiciones(db, colonias=ctx.get("colonias"), cortes=lista,
+                           desde=ctx.get("vendidas_desde"), hasta=ctx.get("vendidas_hasta"),
+                           granularidad=ctx.get("granularidad") or "mes")
+    return {"procedencia": "observado", **r}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -255,6 +267,9 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "instantanea": {"fn": _b_instantanea, "titulo": "Instantánea (el mercado como era)",
                     "desc": "Cualquier fecha del pasado + cualquier mezcla de cortes → los depas exactos con su estado de ese momento (unitarios) + agregados. Incluye 'vendidos en' un rango.",
                     "necesita": ["fecha"]},
+    "transiciones": {"fn": _b_transiciones, "titulo": "Transiciones (todo lo que cambió)",
+                     "desc": "El 'vendido' universal: cada cambio del mercado tipificado — bajas/alzas de precio con %, ventas confirmadas vs retiros, resurrecciones, features que aparecen. Filtrable por cualquier corte.",
+                     "necesita": ["tiempo"]},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
