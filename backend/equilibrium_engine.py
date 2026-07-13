@@ -159,6 +159,61 @@ async def gap_por_rango(db, *, estudio: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
+async def gap_radar(db) -> Dict[str, Any]:
+    """GPS del desarrollador: rankea TODAS las zonas×segmentos por 'índice de oportunidad'
+    = hueco de mercado (gap) combinado con velocidad de la demanda (venta mensual). El mapa de
+    'dónde construir'. Dato EPRAV real 4S. FAIL-OPEN — sin dato devuelve lista vacía, no inventa."""
+    try:
+        segs = [s async for s in db.demanda_4s.find({}, {"_id": 0})]
+    except Exception as e:
+        log.warning("[equilibrium] gap_radar fail-open: %s", e)
+        segs = []
+
+    max_gap = max((s.get("gap_vertical_3anos") or 0 for s in segs), default=0) or 1
+    max_venta = max((s.get("venta_mensual") or 0 for s in segs), default=0) or 1
+
+    filas = []
+    for s in segs:
+        gap = s.get("gap_vertical_3anos") or 0
+        venta = s.get("venta_mensual") or 0
+        # oportunidad = 70% hueco (demanda insatisfecha) + 30% velocidad (qué tan rápido absorbe)
+        score = round(100 * (0.7 * gap / max_gap + 0.3 * venta / max_venta))
+        # meses para agotar el hueco al ritmo actual (señal de urgencia/escasez)
+        meses_agotar = round(gap / venta, 1) if venta > 0 else None
+        filas.append({
+            "estudio": s.get("estudio"), "zona": s.get("zona_influencia") or s.get("zona"),
+            "nse": s.get("nse"), "segmento": s.get("segmento"),
+            "precio_min": s.get("valor_min"), "precio_max": s.get("valor_max"),
+            "gap_vertical_3anos": gap, "venta_mensual": venta,
+            "meses_para_agotar_hueco": meses_agotar,
+            "indice_oportunidad": score,
+        })
+    filas.sort(key=lambda f: -f["indice_oportunidad"])
+    for i, f in enumerate(filas):
+        f["rank"] = i + 1
+
+    return {
+        "n_oportunidades": len(filas),
+        "fuente": "real" if filas else "sin_dato",
+        "es_estimado": not bool(filas),
+        "fuente_4s": FUENTE,
+        "top": filas,
+        "recomendacion": (f"Mayor oportunidad: {filas[0]['segmento']} en {_zona_label(filas[0])} — "
+                          f"{filas[0]['gap_vertical_3anos']} unidades de hueco a 3 años "
+                          f"(índice {filas[0]['indice_oportunidad']}/100).") if filas else
+                         "Carga estudios de demanda 4S para activar el radar de oportunidad.",
+    }
+
+
+def _zona_label(fila: Dict[str, Any]) -> str:
+    """Etiqueta humana de zona: junta la lista de colonias, o usa el estudio como respaldo."""
+    z = fila.get("zona")
+    if isinstance(z, (list, tuple)):
+        z = ", ".join(str(x) for x in z if x)
+    return (z or fila.get("estudio") or "la zona").strip() if isinstance(z, str) or z is None \
+        else str(z)
+
+
 async def market_intelligence(db, *, zona: Optional[str] = None, estudio: Optional[str] = None,
                               clasificacion: Optional[str] = None, meses_objetivo: int = 12) -> Dict[str, Any]:
     """Vista fusionada: precio de equilibrio + gap + confianza de dato. El input del Gap Radar."""

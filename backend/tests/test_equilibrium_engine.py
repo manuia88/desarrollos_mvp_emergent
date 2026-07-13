@@ -2,7 +2,7 @@
 import pytest
 
 from market_4s_loader import load_market_4s
-from equilibrium_engine import precio_equilibrio, gap_por_rango, market_intelligence, _ols
+from equilibrium_engine import precio_equilibrio, gap_por_rango, gap_radar, market_intelligence, _ols
 
 
 class _Cursor:
@@ -83,6 +83,25 @@ async def test_gap_por_rango():
     assert g["fuente"] == "real"
     assert g["gap_total_3anos"] == 327 + 722            # Premium + Residencial Plus
     assert g["rangos"][0]["gap_vertical_3anos"] == 722  # ordenado por gap desc (RP primero)
+
+
+@pytest.mark.asyncio
+async def test_gap_radar_rankea_oportunidades():
+    db = _DB()
+    await load_market_4s(db)
+    r = await gap_radar(db)
+    assert r["fuente"] == "real"
+    assert r["n_oportunidades"] == 9          # 9 segmentos de los 4 estudios
+    # ranking válido: 1..N, ordenado desc por índice de oportunidad
+    assert r["top"][0]["rank"] == 1
+    scores = [f["indice_oportunidad"] for f in r["top"]]
+    assert scores == sorted(scores, reverse=True)
+    # el segmento con mayor gap (Residencial, gap 3105, venta 86) manda el índice
+    assert r["top"][0]["gap_vertical_3anos"] == 3105
+    assert r["top"][0]["indice_oportunidad"] == 100
+    assert r["top"][0]["zona"] is not None    # zona_influencia mapeada (no None)
+    # urgencia: meses para agotar el hueco al ritmo actual (3105/86 ≈ 36.1)
+    assert r["top"][0]["meses_para_agotar_hueco"] == round(3105 / 86, 1)
 
 
 @pytest.mark.asyncio

@@ -53,6 +53,14 @@ async def r_gap_mercado(request: Request, estudio: Optional[str] = Query(None)):
     return await gap_por_rango(_db(request), estudio=estudio)
 
 
+@router.get("/api/dev/gap-radar")
+async def r_gap_radar(request: Request):
+    """GPS del desarrollador: todas las zonas×segmentos rankeadas por índice de oportunidad."""
+    await _auth(request)
+    from equilibrium_engine import gap_radar
+    return await gap_radar(_db(request))
+
+
 @router.get("/api/dev/market-intelligence")
 async def r_market_intelligence(
     request: Request,
