@@ -346,6 +346,26 @@ async def r_salud_dato(request: Request):
     return await salud_oferta(_db(request))
 
 
+# ═══ OLA D · tiempo + finanzas: UNA ruta genérica sobre el REGISTRO de motores ═══
+# (universalidad: un motor nuevo = una entrada aquí, no una ruta copiada)
+_MOTORES_OLA_D = {"indice-adelantado": "indice_adelantado", "reloj-ciclo": "reloj_ciclo",
+                  "accesibilidad": "accesibilidad", "termometro-leads": "termometro_leads",
+                  "cap-rate-renta": "cap_rate_renta", "cronobiologia": "cronobiologia",
+                  "elasticidad-impuestos": "elasticidad_impuestos", "curva-obra": "curva_obra"}
+
+
+@router.get("/api/superadmin/genoma/ola-d/{motor}")
+async def r_ola_d(request: Request, motor: str, colonias: Optional[str] = Query(None)):
+    """Motores de la Ola D (tiempo+finanzas) por nombre — ver _MOTORES_OLA_D."""
+    await require_superadmin(request)
+    fn_name = _MOTORES_OLA_D.get(motor)
+    if not fn_name:
+        return {"error": f"motor desconocido: {motor}", "validos": sorted(_MOTORES_OLA_D)}
+    import ola_d_engines
+    fn = getattr(ola_d_engines, fn_name)
+    return await fn(_db(request), colonias=_cols_param(colonias))
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""

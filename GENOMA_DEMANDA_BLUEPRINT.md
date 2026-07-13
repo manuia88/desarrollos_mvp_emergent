@@ -152,3 +152,16 @@ Orden founder: "nada de backlog, se crea, se resuelve en este momento". Todo shi
 6. **GATES ADELANTADOS (producción en masa)**: índices oferta_timeline (unit_id · colonia+ts · ts) + contexto_timeline(fecha) · push-down de filtro colonia a Mongo en evolucion/instantanea/transiciones (fakes de test ignoran filtros-dict → defensa doble) · contexto diario POR COLONIA (pm2/inventario/disponibles — la serie de cualquier colonia sin recomputar).
 7. Data negativa con EDAD: unidades invisibles ahora dicen hace cuántos días nacieron en la bitácora (edad_mediana + por unidad).
 Suites: backend 1,510+ · front 181. Gate vivo: 25 bloques en menú, absorción/salud respondiendo con datos reales, botones por fila visibles.
+
+## OLA D — TIEMPO + FINANZAS — ✅ COMPLETA 2026-07-13
+8 motores en `ola_d_engines.py` sobre la bitácora unificada + genoma, TODOS con bloque en el menú (33 total) + ruta genérica GET /genoma/ola-d/{motor} (registro _MOTORES_OLA_D — motor nuevo = 1 entrada):
+- **D1 Índice adelantado de plusvalía** ✅ — registro de 4 componentes 0-100 (momentum demanda ventana 30v30 · tensión visitantes/disponibles · absorción salidas/stock · presión alzas-vs-bajas) → índice por colonia; '_sin_colonia' fuera del ranking; es_estimado por colonia con <3 visitantes.
+- **D2 Reloj de ciclo + burbuja** ✅ — cuadrante (precio↑↓ × inventario↑↓) → 4 fases (registro _FASES) + burbuja 0-100 (sube-sin-demanda + inventario creciendo + >12 meses stock); confianza honesta: las ALTAS de día-1 no cuentan como señal de ciclo.
+- **D3 Accesibilidad × BANXICO** ✅ — tasa CF303 (banxico_rates, no duplicada) × precio mediano → mensualidad + ingreso requerido (30%) por colonia + sensibilidad ±200pb; precios <$100k (basura) fuera.
+- **D4 Termómetro de leads** ✅ — registro de 5 factores (recencia .30, profundidad .25 vía PESO_SENAL, frecuencia .20, especificidad .15, finanzas .10) → temperatura 0-100 + bandas frío/tibio/caliente/hirviendo + distribución. Cierra el pendiente LEAD_SCORING_OPPORTUNITY.
+- **D5 Cap rate + comprar-vs-rentar** ✅ — REUSA rentability_from_pm2 (canónico cubo): cap rate, renta est., mensualidad/renta, price-to-rent por colonia; procedencia 'estimado' honesta (se vuelve medida cuando ingestemos rentas).
+- **D6 Cronobiología del deseo** ✅ — señales por hora × día-semana × mes + pico ("martes 21h") para timing de campañas.
+- **D7 Elasticidad + post-impuestos** ✅ — elasticidad OBSERVADA (baja de precio → Δunit_views ±14d, despertar mediano); neto vendedor REUSA _isr_art126_core (art. 126, single source) con supuestos declarados.
+- **D8 Curva de obra** ✅ — pm2 mediano por etapa DESCUBIERTA del dato + prima vs preventa; lectura maneja prima negativa (mezcla de colonias) y los tiempos entre etapas se medirán solos de la bitácora.
+Gate vivo: los 8 respondieron con datos reales (D4: 4 visitantes medidos, 1 hirviendo 81.8 · D3: mensualidad $46,700 mediana ciudad, sensibilidad monótona · D7: neto ISR 34 colonias). Test universal: db vacía → 8 motores responden honesto, nada truena (anti-dependencia Lomas). Tests 9 (suite 1,519). Afinaciones cazadas por el gate: colonia fantasma, precio basura, confianza día-1, redacción prima negativa.
+SIGUE: Ola E (psicográfica) · F (simulación) · G (productos).

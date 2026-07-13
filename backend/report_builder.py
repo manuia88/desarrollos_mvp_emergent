@@ -215,6 +215,47 @@ async def _b_salud_dato(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "medido", **(await salud_oferta(db))}
 
 
+# ═══ OLA D · tiempo + finanzas (8 motores de ola_d_engines) ═══
+async def _b_indice_adelantado(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import indice_adelantado
+    return {"procedencia": "medido", **(await indice_adelantado(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_reloj_ciclo(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import reloj_ciclo
+    return {"procedencia": "medido", **(await reloj_ciclo(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_accesibilidad(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import accesibilidad
+    return {"procedencia": "medido", **(await accesibilidad(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_termometro(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import termometro_leads
+    return {"procedencia": "medido", **(await termometro_leads(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_cap_rate(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import cap_rate_renta
+    return {"procedencia": "estimado", **(await cap_rate_renta(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_cronobiologia(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import cronobiologia
+    return {"procedencia": "medido", **(await cronobiologia(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_elasticidad(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import elasticidad_impuestos
+    return {"procedencia": "medido+observado", **(await elasticidad_impuestos(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_curva_obra(db, ctx) -> Dict[str, Any]:
+    from ola_d_engines import curva_obra
+    return {"procedencia": "medido", **(await curva_obra(db, colonias=ctx.get("colonias")))}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -301,6 +342,23 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                        "necesita": ["tiempo"]},
     "salud_dato": {"fn": _b_salud_dato, "titulo": "Salud del dato",
                    "desc": "Qué campos llegan completos, cuáles se RESCATAN de datos sucios (piso '10+1'→10) y cuáles se pierden — por campo y por colonia."},
+    # ═══ OLA D · tiempo + finanzas ═══
+    "indice_adelantado": {"fn": _b_indice_adelantado, "titulo": "Índice adelantado de plusvalía",
+                          "desc": "Las señales que PRECEDEN al precio: momentum de demanda + tensión + absorción + presión de precio → 0-100 por colonia. Lo que 4S no puede medir."},
+    "reloj_ciclo": {"fn": _b_reloj_ciclo, "titulo": "Reloj de ciclo + burbuja",
+                    "desc": "En qué fase está el mercado (recuperación/expansión/sobreoferta/contracción) por dos ejes MEDIDOS + score de burbuja honesto."},
+    "accesibilidad": {"fn": _b_accesibilidad, "titulo": "Accesibilidad × BANXICO",
+                      "desc": "Tasa hipotecaria viva × precio mediano → mensualidad e ingreso requerido por colonia + qué pasa si la tasa se mueve ±200pb."},
+    "termometro_leads": {"fn": _b_termometro, "titulo": "Termómetro de leads",
+                         "desc": "Temperatura 0-100 por visitante (recencia × frecuencia × profundidad × especificidad × finanzas) — quién está a punto de comprar."},
+    "cap_rate_renta": {"fn": _b_cap_rate, "titulo": "Cap rate + comprar-vs-rentar",
+                       "desc": "Rendimiento de renta estimado por colonia + cuánto cuesta la hipoteca vs rentar (price-to-rent)."},
+    "cronobiologia": {"fn": _b_cronobiologia, "titulo": "Cronobiología del deseo",
+                      "desc": "CUÁNDO busca el mercado: hora × día × mes de las señales — el timing de campañas y respuestas."},
+    "elasticidad_impuestos": {"fn": _b_elasticidad, "titulo": "Elasticidad + post-impuestos",
+                              "desc": "¿Un descuento despierta interés? (medido en la bitácora) + el neto REAL del vendedor tras ISR (art. 126, motor canónico)."},
+    "curva_obra": {"fn": _b_curva_obra, "titulo": "Curva de obra (prima por etapa)",
+                   "desc": "Cuánto más cuesta el m² por etapa de obra — el diferencial preventa→entrega ES el retorno del comprador temprano."},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
