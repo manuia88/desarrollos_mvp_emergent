@@ -252,3 +252,10 @@ export async function getCubo4sDimensiones() {
 export async function loadCubo4s() {
   return _j(await fetch(`${API}/api/superadmin/cubo-4s/load`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// Brief de producto auto-generado desde los átomos + despacho al buzón del dev (cubo→brief).
+export async function getCubo4sBrief(estudio) {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/brief?estudio=${encodeURIComponent(estudio)}`, { headers: h(), credentials: 'include' }));
+}
+export async function despacharCubo4sBrief(estudio) {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/brief/despachar?estudio=${encodeURIComponent(estudio)}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}

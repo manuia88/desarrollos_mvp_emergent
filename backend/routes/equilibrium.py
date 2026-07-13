@@ -138,6 +138,23 @@ async def r_cubo4s_prior(request: Request, estudio: str = Query(...)):
     return await prior_zona(_db(request), estudio)
 
 
+@router.get("/api/superadmin/cubo-4s/brief")
+async def r_cubo4s_brief(request: Request, estudio: str = Query(...)):
+    """Brief de producto auto-generado desde los átomos (modelo ganador + hueco + pago + riesgos)."""
+    await require_superadmin(request)
+    from brief_4s_engine import generar_brief
+    return await generar_brief(_db(request), estudio)
+
+
+@router.post("/api/superadmin/cubo-4s/brief/despachar")
+async def r_cubo4s_brief_despachar(request: Request, estudio: str = Query(...)):
+    """Genera el brief y lo despacha al buzón del dev (cube_actions · patrón cubo→brief)."""
+    u = await require_superadmin(request)
+    from brief_4s_engine import despachar_brief
+    actor = getattr(u, "email", None) or "superadmin"
+    return await despachar_brief(_db(request), estudio, actor=actor)
+
+
 @router.get("/api/superadmin/cubo-4s/prior-colonia")
 async def r_cubo4s_prior_colonia(request: Request, colonia: str = Query(...),
                                  precio_m2: Optional[float] = Query(None)):

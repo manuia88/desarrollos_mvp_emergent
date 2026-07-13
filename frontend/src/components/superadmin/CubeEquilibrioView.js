@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, RefreshCw, AlertCircle, CheckCircle2, Building2, Wallet, Leaf, Scale, Boxes } from 'lucide-react';
-import { getMarket4sOverview, loadMarket4s, getMarket4sConsumidor, getCubo4sCatalogo, getCubo4sComparar, getCubo4sNano, getCubo4sDimensiones } from '../../api/superadminMetricsCube';
+import { getMarket4sOverview, loadMarket4s, getMarket4sConsumidor, getCubo4sCatalogo, getCubo4sComparar, getCubo4sNano, getCubo4sDimensiones, getCubo4sBrief, despacharCubo4sBrief } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -391,6 +391,8 @@ function SeccionCubo4s() {
         )}
       </Sec>
 
+      <SecBrief estudios={estudios} />
+
       <Sec title="Lente NANO · todo lo que el estudio sabe de una etapa de vida">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
           <select value={nanoEstudio} onChange={(e) => setNanoEstudio(e.target.value)} style={selStyle} data-testid="cubo4s-nano-estudio">
@@ -421,6 +423,78 @@ function SeccionCubo4s() {
         )}
       </Sec>
     </>
+  );
+}
+
+// ── Brief de producto: los átomos convertidos en orden de trabajo (cubo→brief→dev) ──
+function SecBrief({ estudios }) {
+  const [estudio, setEstudio] = useState('puente_alvarado');
+  const [brief, setBrief] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    if (!estudio) return undefined;
+    let alive = true;
+    setBrief(null); setMsg('');
+    getCubo4sBrief(estudio).then((d) => alive && setBrief(d)).catch(() => setBrief(null));
+    return () => { alive = false; };
+  }, [estudio]);
+
+  const despachar = async () => {
+    setBusy(true); setMsg('');
+    try {
+      const r = await despacharCubo4sBrief(estudio);
+      setMsg(r.ok ? '✓ Enviado al buzón del desarrollador' : (r.error || 'No se pudo despachar'));
+    } catch (e) { setMsg(e?.message || 'No se pudo despachar'); } finally { setBusy(false); }
+  };
+
+  const dom = (d) => (d && d.opcion != null ? `${tc(String(d.opcion).replace(/_/g, ' '))} (${d.pct}%)` : '—');
+  const chip = (label, val) => (
+    <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, padding: '5px 11px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.85)' }}>
+      {label}: <b style={{ color: 'var(--cream)' }}>{val}</b>
+    </span>
+  );
+  const selStyle = { padding: '8px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 };
+
+  return (
+    <Sec title="Brief de producto · los átomos convertidos en orden de trabajo">
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+        <select value={estudio} onChange={(e) => setEstudio(e.target.value)} style={selStyle} data-testid="brief4s-estudio">
+          {estudios.map((e) => <option key={e} value={e}>{tc(e)}</option>)}
+        </select>
+        <button onClick={despachar} disabled={busy || !brief || brief.es_estimado} data-testid="brief4s-despachar"
+          style={{ padding: '8px 16px', borderRadius: 9, background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Enviando…' : 'Despachar al desarrollador'}
+        </button>
+        {msg && <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: msg.startsWith('✓') ? '#4ADE80' : '#f87171' }}>{msg}</span>}
+      </div>
+      {!brief && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.6)' }}>Generando brief…</div>}
+      {brief && !brief.es_estimado && (
+        <>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', margin: '0 0 10px', fontWeight: 600 }}>{brief.lectura}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {(brief.producto?.modelos_ganadores || []).map((m) => chip('Modelo', `${tc(m.opcion.replace(/_/g, ' '))} · ${m.pct}%`))}
+            {chip('Recámaras', dom(brief.producto?.dormitorios))}
+            {chip('Cocina', dom(brief.producto?.cocina))}
+            {brief.hueco_precio?.[0]?.bins_top?.[0] && chip('Hueco top', `${brief.hueco_precio[0].bins_top[0].rango_mdp} mdp · ${nf.format(brief.hueco_precio[0].bins_top[0].hueco_unidades)} u`)}
+            {chip('Enganche', dom(brief.pago?.enganche))}
+            {chip('Cuota', dom(brief.pago?.cuota_mantenimiento))}
+            {chip('Descuento', dom(brief.pago?.descuento_que_convierte))}
+            {brief.precio_equilibrio && chip('Equilibrio', `$${nf.format(brief.precio_equilibrio.precio_m2_12m)}/m²`)}
+            {chip('Fachada', dom(brief.arquitectura?.fachada))}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {(brief.amenidades_top || []).map((a) => (
+              <span key={a.opcion} style={{ fontFamily: 'DM Sans', fontSize: 11, padding: '3px 9px', borderRadius: 9999, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#bbf7d0' }}>{tc(a.opcion)} {a.pct}%</span>
+            ))}
+            {(brief.riesgos?.desventajas_zona || []).map((r) => (
+              <span key={r.opcion} style={{ fontFamily: 'DM Sans', fontSize: 11, padding: '3px 9px', borderRadius: 9999, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', color: '#fecaca' }}>⚠ {tc(r.opcion)} {r.pct}%</span>
+            ))}
+          </div>
+        </>
+      )}
+    </Sec>
   );
 }
 
