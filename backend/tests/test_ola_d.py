@@ -129,7 +129,7 @@ async def test_d6_cronobiologia_detecta_pico():
                                       "dimension": "producto.banos", "valor": "1", "peso": 1.0,
                                       "ts": (martes - timedelta(days=1)).replace(hour=9).isoformat()})
     r = await cronobiologia(db)
-    assert r["pico"]["hora"] == "21:00" and r["pico"]["dia"] == "martes"
+    assert r["pico"]["hora"] == "15:00" and r["pico"]["dia"] == "martes"   # 21 UTC = 15 CDMX
     assert r["n_senales"] == 6
 
 

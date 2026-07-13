@@ -364,6 +364,8 @@ _DIAS_SEMANA = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "
 
 
 async def cronobiologia(db, colonias: Optional[Set[str]] = None, dias: int = 90) -> Dict[str, Any]:
+    from zoneinfo import ZoneInfo
+    tz_mx = ZoneInfo("America/Mexico_City")   # el founder lee horas de CDMX, no UTC
     corte = _ahora() - timedelta(days=dias)
     por_hora: Dict[int, int] = {}
     por_dia: Dict[str, int] = {}
@@ -376,6 +378,7 @@ async def cronobiologia(db, colonias: Optional[Set[str]] = None, dias: int = 90)
             dt = _ts_dt(a.get("ts"))
             if dt is None or dt < corte:
                 continue
+            dt = dt.astimezone(tz_mx)
             n += 1
             por_hora[dt.hour] = por_hora.get(dt.hour, 0) + 1
             por_dia[_DIAS_SEMANA[dt.weekday()]] = por_dia.get(_DIAS_SEMANA[dt.weekday()], 0) + 1
@@ -391,7 +394,7 @@ async def cronobiologia(db, colonias: Optional[Set[str]] = None, dias: int = 90)
             "por_mes": [{"mes": m, "senales": por_mes[m]} for m in sorted(por_mes)],
             "pico": {"hora": f"{pico_h:02d}:00" if pico_h is not None else None, "dia": pico_d},
             "es_estimado": n < 20,
-            "lectura": (f"El deseo despierta los {pico_d} a las {pico_h:02d}:00 (UTC) — "
+            "lectura": (f"El deseo despierta los {pico_d} a las {pico_h:02d}:00 (hora CDMX) — "
                         f"ahí valen más las campañas y las respuestas rápidas.") if n else
                        "Sin señales en la ventana."}
 

@@ -62,7 +62,8 @@ async def estudio_dmx(db, colonias: Optional[List[str]] = None,
     for s in reporte.get("secciones", []):
         s["seccion_estudio"] = titulos.get(s.get("bloque"), s.get("titulo"))
         secciones.append(s)
-        if s.get("lectura") and not s.get("error") and not s.get("es_estimado"):
+        vacia = str(s.get("lectura", "")).startswith(("0 ", "Sin ", "Ninguna", "Aún ", "Se necesitan"))
+        if s.get("lectura") and not s.get("error") and not s.get("es_estimado") and not vacia:
             lecturas.append(f"{s['seccion_estudio'].split('·', 1)[-1].strip()}: {s['lectura']}")
 
     folio = f"DMX-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
