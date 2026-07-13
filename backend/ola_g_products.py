@@ -47,7 +47,10 @@ _SECCIONES_ESTUDIO: List[Dict[str, str]] = [
     {"bloque": "precio_sombra", "seccion": "11 · Cuánto vale cada feature"},
     {"bloque": "prima_marca", "seccion": "12 · Marcas que dominan la zona"},
     {"bloque": "prior_4s", "seccion": "13 · Contraste con estudios 4S (si aplica)"},
-    {"bloque": "salud_dato", "seccion": "14 · Transparencia: calidad del dato"},
+    # v1.1 · lo que NINGÚN estudio tradicional puede: compradores vivos + simulación
+    {"bloque": "gemelo_v2", "seccion": "14 · ¿Y si construyes aquí? (compradores vivos)"},
+    {"bloque": "simulador", "seccion": "15 · Simulación de absorción (agentes reales)"},
+    {"bloque": "salud_dato", "seccion": "16 · Transparencia: calidad del dato"},
 ]
 
 
@@ -127,17 +130,23 @@ async def dmx30(db) -> Dict[str, Any]:
         series[c].sort()
 
     fechas = sorted({f for s in series.values() for f, _ in s})
+    # ÍNDICE ENCADENADO (estándar de índices publicables): el retorno del día = promedio de los
+    # retornos de las colonias CON DATO EN AMBOS días — la composición cambiante ya no salta el nivel.
+    mapas = {c: dict(v) for c, v in series.items()}
     indice_serie = []
-    base = None
+    nivel = 100.0
+    prev_fecha = None
     for f in fechas:
-        vals = [dict(series[c]).get(f) for c in constituyentes if dict(series.get(c, [])).get(f)]
-        if not vals:
-            continue
-        nivel = sum(vals) / len(vals)
-        if base is None:
-            base = nivel
-        indice_serie.append({"fecha": f, "dmx30": round(nivel / base * 100, 2),
-                             "colonias_con_dato": len(vals)})
+        con_dato = [c for c in constituyentes if mapas.get(c, {}).get(f)]
+        if prev_fecha is not None:
+            pares = [(mapas[c][prev_fecha], mapas[c][f]) for c in con_dato
+                     if mapas.get(c, {}).get(prev_fecha)]
+            if pares:
+                nivel *= 1 + sum(b / a - 1 for a, b in pares) / len(pares)
+        if con_dato:
+            indice_serie.append({"fecha": f, "dmx30": round(nivel, 2),
+                                 "colonias_con_dato": len(con_dato)})
+            prev_fecha = f
 
     def _retornos(pares: List[tuple]) -> List[float]:
         return [(b / a - 1) for (_, a), (_, b) in zip(pares, pares[1:]) if a]
@@ -163,7 +172,7 @@ async def dmx30(db) -> Dict[str, Any]:
                       "dias_de_serie": len(s), "beta": beta, "sharpe": sharpe})
     madura = len(indice_serie) >= 20
     return {"constituyentes": filas, "n_constituyentes": len(constituyentes),
-            "indice_serie": indice_serie[-90:],
+            "indice_serie": indice_serie[-90:], "metodo": "encadenado (retorno de colonias con dato en ambos días)",
             "es_estimado": not madura,
             "nota": None if madura else ("El DMX-30 ya está CONSTITUIDO y acumulando su serie "
                                          "diaria — beta y Sharpe se llenan solos con ~20 días de bitácora."),

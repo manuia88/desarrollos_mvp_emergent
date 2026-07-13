@@ -190,3 +190,33 @@ async def test_ola_d_honesta_sin_datos(monkeypatch):
                od.cap_rate_renta, od.cronobiologia, od.elasticidad_impuestos, od.curva_obra):
         r = await fn(db)
         assert isinstance(r, dict) and "lectura" in r
+
+
+@pytest.mark.asyncio
+async def test_campana_termometro_transicion_sin_spam(monkeypatch):
+    """El visitante que PASA a hirviendo dispara UNA campana; la segunda corrida del mismo día
+    no duplica; el tibio no molesta a nadie."""
+    import notifications_engine
+    from ola_d_engines import revisar_termometro
+    db = _DB()
+    # hirviendo: reciente + profundo + finanzas + muchas dimensiones
+    for i in range(7):
+        await _atomo(db, "hot", "condesa", f"producto.dim{i}", "x", dias=0)
+    await _atomo(db, "hot", "condesa", "finanzas.presupuesto_banda_mdp", "5.0-5.2", dias=0)
+    await _atomo(db, "tibio", "condesa", "producto.recamaras", "2", dias=30, peso=0.3)
+    await db.users.insert_one({"role": "superadmin", "user_id": "founder"})
+
+    campanas = []
+    async def _fake_emit(db_, **kw):
+        campanas.append(kw)
+    monkeypatch.setattr(notifications_engine, "emit_notification", _fake_emit)
+
+    r1 = await revisar_termometro(db)
+    assert r1["nuevos_hirviendo"] == 1
+    assert len(campanas) == 1 and campanas[0]["type"] == "lead_hirviendo"
+    assert "hot" in str(campanas[0]["payload"]["visitantes"])
+    r2 = await revisar_termometro(db)          # ya estaba hirviendo → sin spam
+    assert r2["nuevos_hirviendo"] == 0 and len(campanas) == 1
+    # la temperatura quedó PERSISTIDA (hipersegmentable después)
+    guardados = [d for d in db.lead_temperaturas.docs.values()]
+    assert {d["visitor_id"] for d in guardados} == {"hot", "tibio"}

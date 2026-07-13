@@ -12,6 +12,10 @@ class _Cursor:
     def __init__(self, docs):
         self._docs = list(docs)
 
+    def limit(self, n):
+        self._docs = self._docs[:n]
+        return self
+
     def __aiter__(self):
         self._it = iter(self._docs)
         return self
@@ -35,6 +39,14 @@ class _Col:
     async def insert_one(self, doc):
         self._auto += 1
         self.docs[("_auto", self._auto)] = dict(doc)
+
+    async def find_one(self, q=None):
+        q = q or {}
+        simple = {k: v for k, v in q.items() if not isinstance(v, dict)}
+        for d in self.docs.values():
+            if all(d.get(kk) == vv for kk, vv in simple.items()):
+                return dict(d)
+        return None
 
     async def create_index(self, *a, **k):
         return None

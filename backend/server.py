@@ -2759,6 +2759,10 @@ async def startup():
                     await explotar_busquedas(db)
                     await explotar_senales(db)
                     await snapshot_kpi(db)
+                    # D4.2 · la campana del termómetro: un lead que pasa a HIRVIENDO no espera
+                    # al reporte — notificación en la hora (transiciones, no spam).
+                    from ola_d_engines import revisar_termometro
+                    await revisar_termometro(db)
                 except Exception as _e:  # noqa: BLE001
                     logging.warning("[genoma] tick fail-open: %s", _e)
             sched.add_job(_genoma_tick, "interval", hours=1, id="genoma_tick", replace_existing=True)

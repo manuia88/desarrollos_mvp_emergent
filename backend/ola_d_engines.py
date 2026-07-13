@@ -60,7 +60,7 @@ async def _atomos_ventanas(db, colonias: Optional[Set[str]], dias: int = 30):
     recientes: Dict[str, Set[str]] = {}
     previos: Dict[str, Set[str]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "colonia": 1, "visitor_id": 1, "ts": 1}):
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "colonia": 1, "visitor_id": 1, "ts": 1}):
             col = a.get("colonia")
             if not col or col.startswith("_") or (colonias and col not in colonias):
                 continue   # '_sin_colonia' es demanda real pero NO una colonia rankeable
@@ -262,7 +262,7 @@ async def termometro_leads(db, colonias: Optional[Set[str]] = None, dias: int = 
 
     vis: Dict[str, Dict[str, Any]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0}):
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0}):
             if colonias and a.get("colonia") not in colonias:
                 continue
             v = a.get("visitor_id")
@@ -372,7 +372,7 @@ async def cronobiologia(db, colonias: Optional[Set[str]] = None, dias: int = 90)
     por_mes: Dict[str, int] = {}
     n = 0
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "colonia": 1, "ts": 1}):
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "colonia": 1, "ts": 1}):
             if colonias and a.get("colonia") not in colonias:
                 continue
             dt = _ts_dt(a.get("ts"))
@@ -518,3 +518,54 @@ async def curva_obra(db, colonias: Optional[Set[str]] = None) -> Dict[str, Any]:
                          + " — ese diferencial es la lectura del comprador temprano.")
                         (filas[-1]['prima_vs_preventa_pct'], filas[-1]['etapa'])) if len(filas) > 1 else
                        "Se necesitan ≥2 etapas con inventario para dibujar la curva."}
+
+
+# ── D4.2 · LA CAMPANA DEL TERMÓMETRO (upgrade: el lead caliente no espera al reporte) ──
+async def revisar_termometro(db) -> Dict[str, Any]:
+    """Corre con el tick horario del genoma: guarda la temperatura de cada visitante
+    (db.lead_temperaturas — hipersegmentable después) y NOTIFICA solo las TRANSICIONES a
+    'hirviendo' (una vez por visitante por día — un lead que hierve se enfría en horas)."""
+    r = await termometro_leads(db)
+    hoy = _ahora().isoformat()[:10]
+    transiciones = []
+    for f in r.get("leads", []):
+        v = f["visitor_id"]
+        previo = None
+        try:
+            previo = await db.lead_temperaturas.find_one({"visitor_id": v})
+        except Exception:
+            pass
+        try:
+            await db.lead_temperaturas.update_one(
+                {"visitor_id": v},
+                {"$set": {"visitor_id": v, "temperatura": f["temperatura"], "banda": f["banda"],
+                          "senales": f["senales"], "colonias": f.get("colonias", []),
+                          "fecha": hoy}}, upsert=True)
+        except Exception as e:
+            log.warning("[termometro] persistir fail-open: %s", e)
+        ya_avisado = (previo or {}).get("avisado_fecha") == hoy
+        if f["banda"] == "hirviendo" and (previo or {}).get("banda") != "hirviendo" and not ya_avisado:
+            transiciones.append(f)
+            try:
+                await db.lead_temperaturas.update_one({"visitor_id": v},
+                                                      {"$set": {"avisado_fecha": hoy}})
+            except Exception:
+                pass
+    if transiciones:
+        try:
+            from notifications_engine import emit_notification
+            cuerpo = " · ".join(f"{t['visitor_id'][:14]}… {t['temperatura']}/100 "
+                                f"({', '.join(t.get('colonias', [])[:2]) or 'sin colonia'})"
+                                for t in transiciones[:5])
+            async for su in db.users.find({"role": "superadmin"}, {"_id": 0, "user_id": 1, "id": 1}).limit(50):
+                su_id = su.get("user_id") or su.get("id")
+                if su_id:
+                    await emit_notification(
+                        db, user_id=su_id, type="lead_hirviendo", severity="high",
+                        title=f"{len(transiciones)} lead(s) pasaron a HIRVIENDO",
+                        body=cuerpo, payload={"visitantes": [t["visitor_id"] for t in transiciones]},
+                        action_url="/superadmin/mercado")
+        except Exception as e:  # noqa: BLE001
+            log.warning("[termometro] campana fail-open: %s", e)
+    return {"ok": True, "medidos": r.get("n_visitantes", 0),
+            "nuevos_hirviendo": len(transiciones)}

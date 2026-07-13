@@ -122,15 +122,40 @@ async def _priors_ciclo_vida(db) -> Dict[str, float]:
     return {et: v / total for et, v in prior.items()}
 
 
-def _posterior(prior: Dict[str, float], senales: List[Tuple[str, str]]) -> Dict[str, float]:
+def _posterior(prior: Dict[str, float], senales: List[Tuple[str, str]],
+               verosimilitudes: Optional[List] = None) -> Dict[str, float]:
     post = dict(prior)
     for dim, val in senales:
-        for pred, mults in _VEROSIMILITUDES:
+        for pred, mults in (verosimilitudes or _VEROSIMILITUDES):
             if pred(dim, str(val)):
                 for et in post:
                     post[et] *= mults.get(et, 1.0)   # etapa no nombrada = neutra (universal)
     total = sum(post.values()) or 1.0
     return {et: v / total for et, v in post.items()}
+
+
+async def _verosimilitudes_calibradas(db) -> List[Tuple[Callable[[str, str], bool], Dict[str, float]]]:
+    """GATE ADELANTADO: las verosimilitudes base son criterio experto v1; cuando existan
+    conversiones con etapa CONOCIDA, se calibran de datos y se escriben en db.genoma_calibracion
+    ({regla, etapa, multiplicador}) — este loader las FUSIONA en runtime sin tocar código.
+    El circuito completo existe HOY; solo espera datos etiquetados."""
+    extra: Dict[str, Dict[str, float]] = {}
+    try:
+        async for c in db.genoma_calibracion.find({}, {"_id": 0}):
+            if c.get("regla") and c.get("etapa") and c.get("multiplicador") is not None:
+                extra.setdefault(str(c["regla"]), {})[str(c["etapa"])] = float(c["multiplicador"])
+    except Exception as e:
+        log.warning("[etapa_vida] calibracion fail-open: %s", e)
+    if not extra:
+        return _VEROSIMILITUDES
+    nombres = {"rec_1": _es_rec(1), "rec_2": _es_rec(2), "rec_3mas": _rec_3mas,
+               "m2_chico": _m2_chico, "m2_grande": _m2_grande}
+    out = list(_VEROSIMILITUDES)
+    for regla, mults in extra.items():
+        pred = nombres.get(regla)
+        if pred:
+            out.append((pred, mults))   # lo calibrado se aplica ENCIMA del criterio experto
+    return out
 
 
 async def etapa_de_vida(db, colonias: Optional[Set[str]] = None) -> Dict[str, Any]:
@@ -141,7 +166,7 @@ async def etapa_de_vida(db, colonias: Optional[Set[str]] = None) -> Dict[str, An
 
     por_visitante: Dict[str, List[Tuple[str, str]]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "visitor_id": 1, "colonia": 1,
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
                                                  "dimension": 1, "valor": 1}):
             if colonias and a.get("colonia") not in colonias:
                 continue
@@ -151,10 +176,11 @@ async def etapa_de_vida(db, colonias: Optional[Set[str]] = None) -> Dict[str, An
     except Exception as e:
         log.warning("[etapa_vida] atoms fail-open: %s", e)
 
+    verosimilitudes = await _verosimilitudes_calibradas(db)
     filas = []
     demanda_dist: Dict[str, float] = {et: 0.0 for et in prior}
     for v, senales in por_visitante.items():
-        post = _posterior(prior, senales)
+        post = _posterior(prior, senales, verosimilitudes)
         top = max(post, key=post.get)
         filas.append({"visitor_id": v, "etapa": top, "confianza_pct": round(post[top] * 100, 1),
                       "n_senales": len(senales), "es_estimado": len(senales) < 3,
@@ -173,6 +199,9 @@ async def etapa_de_vida(db, colonias: Optional[Set[str]] = None) -> Dict[str, An
                    for et in sorted(prior, key=lambda e: -demanda_dist[e])]
     top_dem = comparativa[0] if comparativa else None
     return {"n_visitantes": len(filas), "etapas_descubiertas": sorted(prior),
+            "calibracion": {"fuente": "criterio_experto_v1" if verosimilitudes is _VEROSIMILITUDES
+                                      else "criterio_experto_v1 + calibración runtime",
+                            "nota": "con conversiones etiquetadas, db.genoma_calibracion ajusta los multiplicadores sin tocar código"},
             "visitantes": filas[:20], "comparativa_demanda_vs_demografia": comparativa,
             "es_estimado": len(filas) < 5,
             "lectura": (f"{len(filas)} visitantes inferidos. La demanda viva la lidera "
@@ -255,7 +284,7 @@ async def cohortes_gemelas(db, visitor_id: Optional[str] = None,
                            min_similitud: float = 0.2) -> Dict[str, Any]:
     llaves: Dict[str, Set[str]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "visitor_id": 1, "colonia": 1,
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
                                                  "dimension": 1, "valor": 1}):
             if colonias and a.get("colonia") not in colonias:
                 continue

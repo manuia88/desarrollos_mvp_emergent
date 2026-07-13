@@ -171,7 +171,7 @@ async def _demanda_conteos(db, colonias: Optional[Set[str]] = None,
     senales: Dict[tuple, float] = {}
     n = 0
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0}):
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0}):
             if colonias and a.get("colonia") not in colonias:
                 continue
             if not _ts_ok(a.get("ts"), cutoff):

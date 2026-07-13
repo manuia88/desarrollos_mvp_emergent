@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { FileText, Printer, Play } from 'lucide-react';
-import { getReporteBloques, generarReporte, getReportesGuardados, getReporteGuardado, getCubo4sCatalogo } from '../../api/superadminMetricsCube';
+import { getReporteBloques, generarReporte, getReportesGuardados, getReporteGuardado, getCubo4sCatalogo, generarEstudioDmx } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 });
 const tc = (s) => String(s ?? '—').replace(/[_.-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -219,6 +219,22 @@ export default function CubeReportesView() {
     try { setReporteB(await getReporteGuardado(id)); } catch (e) { setErr(e?.message || 'No se pudo abrir.'); }
   };
 
+  // G1 · EL PRODUCTO: genera el Estudio DMX de la zona (16 secciones + folio), lo guarda en la
+  // memoria de reportes y lo abre en pantalla — un clic, cero API a mano.
+  const [folioEstudio, setFolioEstudio] = useState('');
+  const generarEstudio = async () => {
+    setBusy(true); setErr(''); setFolioEstudio('');
+    try {
+      const cols = colonias.split(',').map((c) => c.trim()).filter(Boolean);
+      const r = await generarEstudioDmx(cols);
+      setFolioEstudio(r.folio || '');
+      setReporte({ territorio: r.territorio, n_bloques: r.n_secciones, generado: r.generado,
+                   secciones: r.secciones, folio: r.folio, resumen_ejecutivo: r.resumen_ejecutivo });
+      setReporteB(null);
+      getReportesGuardados().then((d) => setGuardados(d.reportes || [])).catch(() => {});
+    } catch (e) { setErr(e?.message || 'No se pudo generar el estudio.'); } finally { setBusy(false); }
+  };
+
   const toggle = (id) => setSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const generar = async () => {
@@ -309,6 +325,12 @@ export default function CubeReportesView() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
             <Play size={14} /> {busy ? 'Generando…' : `Generar reporte (${sel.size} bloques)`}
           </button>
+          <button onClick={generarEstudio} disabled={busy} data-testid="rep-estudio-dmx"
+            title="El estudio de zona completo (16 secciones + folio) — se guarda solo en la memoria de reportes"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+            <FileText size={14} /> {busy ? 'Generando…' : 'Generar Estudio DMX'}
+          </button>
+          {folioEstudio && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--theme)', alignSelf: 'center' }}>✓ {folioEstudio} guardado</span>}
           {reporte && (
             <button onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
               <Printer size={14} /> Imprimir / PDF
@@ -337,6 +359,18 @@ export default function CubeReportesView() {
         const pinta = (rep, etiqueta) => (
           <div>
             {etiqueta && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme)', marginBottom: 6 }}>{etiqueta}</div>}
+            {rep.folio && (
+              <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.25)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>Estudio DMX de Zona · <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--theme)' }}>{rep.folio}</span></div>
+                {(rep.resumen_ejecutivo || []).length > 0 && (
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                    {rep.resumen_ejecutivo.map((l, i) => (
+                      <li key={i} style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.85)', marginBottom: 3 }}>{l}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', marginBottom: 14 }}>
               Territorio: <b style={{ color: 'var(--cream)' }}>{Array.isArray(rep.territorio?.colonias) ? rep.territorio.colonias.map(tc).join(', ') : 'Toda la ciudad'}</b>
               {rep.territorio?.estudio ? <> · Estudio: <b style={{ color: 'var(--cream)' }}>{tc(rep.territorio.estudio)}</b></> : null}

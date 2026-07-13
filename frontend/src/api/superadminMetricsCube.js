@@ -274,3 +274,10 @@ export async function getCubo4sBrief(estudio) {
 export async function despacharCubo4sBrief(estudio) {
   return _j(await fetch(`${API}/api/superadmin/cubo-4s/brief/despachar?estudio=${encodeURIComponent(estudio)}`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// OLA G · G1: el Estudio DMX auto-generado (el producto que sustituye al 4S de 500k).
+export async function generarEstudioDmx(colonias) {
+  return _j(await fetch(`${API}/api/superadmin/genoma/estudio-dmx`, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ colonias: colonias || [] }),
+  }));
+}

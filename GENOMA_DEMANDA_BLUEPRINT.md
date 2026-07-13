@@ -165,3 +165,12 @@ Suites: backend 1,510+ · front 181. Gate vivo: 25 bloques en menú, absorción/
 - **D8 Curva de obra** ✅ — pm2 mediano por etapa DESCUBIERTA del dato + prima vs preventa; lectura maneja prima negativa (mezcla de colonias) y los tiempos entre etapas se medirán solos de la bitácora.
 Gate vivo: los 8 respondieron con datos reales (D4: 4 visitantes medidos, 1 hirviendo 81.8 · D3: mensualidad $46,700 mediana ciudad, sensibilidad monótona · D7: neto ISR 34 colonias). Test universal: db vacía → 8 motores responden honesto, nada truena (anti-dependencia Lomas). Tests 9 (suite 1,519). Afinaciones cazadas por el gate: colonia fantasma, precio basura, confianza día-1, redacción prima negativa.
 SIGUE: Ola E (psicográfica) · F (simulación) · G (productos).
+
+## UPGRADES POST-AUDITORÍA D-G + GATES ADELANTADOS — ✅ 2026-07-13
+Criterios founder: universalidad · end-to-end · cero deuda · hipersegmentación · front+back conectados y visibles.
+1. **Botón "Generar Estudio DMX" en la UI** ✅ — un clic en Reportes: genera (colonias del input o ciudad), guarda con folio y ABRE en pantalla con encabezado de producto + resumen ejecutivo en viñetas. Verificado en vivo: DMX-20260713-13DEF7 (Condesa).
+2. **Termómetro → campana** ✅ — revisar_termometro() en el tick HORARIO: persiste temperatura por visitante (db.lead_temperaturas) y notifica solo TRANSICIONES a hirviendo (1×/día, sin spam) por notifications_engine. El lead caliente ya no espera al reporte.
+3. **DMX-30 ENCADENADO** ✅ — retorno diario = promedio de colonias con dato en AMBOS días → la composición cambiante ya no salta el nivel (rigor de índice publicable; campo "metodo" declarado).
+4. **Estudio DMX v1.1** ✅ — secciones 14 "¿Y si construyes aquí?" (gemelo v2: compradores vivos + objeción dominante) y 15 "Simulación de absorción" — puro REGISTRO (2 líneas), ningún estudio tradicional puede ofrecerlas. 16 secciones.
+5. **Báscula UNIVERSAL** ✅ — registro _PREDICTORES multi-motor (índice adelantado por colonia · reloj de ciclo ciudad · simulador ventas) + evaluadores por tipo (direccion_pm2 · conteo_salidas ±50%) → precisión POR MOTOR + global; retro-compatible con predicciones viejas.
+GATES: **calibración E1 runtime** ✅ (db.genoma_calibracion fusiona multiplicadores calibrados ENCIMA del criterio experto v1 — circuito completo hoy, espera conversiones etiquetadas; fuente declarada en el output) · **push-down colonia en demand_atoms** ✅ (7 lectores de olas D/E/F/G+espejo mandan {'colonia': $in} a Mongo; filtro Python de defensa doble) · fakes de test con find_one/limit.

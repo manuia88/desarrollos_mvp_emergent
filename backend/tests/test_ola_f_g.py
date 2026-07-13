@@ -87,15 +87,19 @@ async def test_f4_bascula_registra_y_evalua(monkeypatch):
         await _atomo(db, f"v{i}", "producto.recamaras", "2")
     _patch(monkeypatch, [_unidad("u1", precio=8000000.0, m2=100.0)])   # pm2 hoy = 80k
     r = await registrar_predicciones(db)
-    assert r["predicciones_registradas"] == 1
+    # BÁSCULA UNIVERSAL: índice (por colonia) + reloj (ciudad) + simulador (ciudad) = 3
+    assert r["predicciones_registradas"] == 3
+    motores = {d.get("motor") for d in db.genoma_predicciones.docs.values()}
+    assert motores == {"indice_adelantado", "reloj_ciclo", "simulador"}
     # siembra una predicción MADURA (35 días): predijo 'sube' desde pm2 70k → hoy 80k = acierto
     vieja = (datetime.now(timezone.utc) - timedelta(days=35)).isoformat()[:10]
     await db.genoma_predicciones.insert_one({"colonia": "condesa", "fecha": vieja,
                                              "indice": 70.0, "pm2_al_predecir": 70000,
                                              "prediccion": "sube"})
     ev = await evaluar_drift(db, dias_madurez=30)
-    assert ev["n_evaluadas"] == 1 and ev["precision_pct"] == 100.0
+    assert ev["n_evaluadas"] == 1 and ev["precision_global_pct"] == 100.0
     assert ev["evaluadas"][0]["real"] == "sube"
+    assert ev["precision_por_motor"] == [{"motor": "indice_adelantado", "n": 1, "precision_pct": 100.0}]
 
 
 # ═══ F5 · Valor de la información ═══

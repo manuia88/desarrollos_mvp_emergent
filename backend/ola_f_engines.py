@@ -75,7 +75,7 @@ async def bayes_formal(db, estudio: Optional[str] = None,
     # OBSERVADO: visitantes únicos por dimensión × valor
     obs: Dict[str, Dict[str, Set[str]]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "visitor_id": 1, "colonia": 1,
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
                                                  "dimension": 1, "valor": 1}):
             if colonias and a.get("colonia") not in colonias:
                 continue
@@ -134,7 +134,7 @@ async def gemelo_demanda_v2(db, colonias: Optional[Set[str]] = None,
     # el vector de cada visitante (sus peticiones) contra el proyecto
     vis: Dict[str, Dict[str, Any]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0}):
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0}):
             if colonias and a.get("colonia") not in colonias:
                 continue
             v = a.get("visitor_id")
@@ -226,7 +226,7 @@ async def simulador_mercado(db, colonias: Optional[Set[str]] = None,
                 if u.get("disponible") and (u.get("precio") or 0) >= 100000]
     agentes: Dict[str, List[Tuple[str, str]]] = {}
     try:
-        async for a in db.demand_atoms.find({}, {"_id": 0, "visitor_id": 1, "colonia": 1,
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
                                                  "dimension": 1, "valor": 1}):
             if colonias and a.get("colonia") not in colonias:
                 continue
@@ -275,70 +275,139 @@ async def simulador_mercado(db, colonias: Optional[Set[str]] = None,
                         f"(p5 {ventas_por_ronda[max(0, n // 20)]} · p95 {ventas_por_ronda[min(n - 1, n * 19 // 20)]}).")}
 
 
-# ═══ F4 · PREDICCIONES + DRIFT (la báscula del Cerebro — registro pasivo) ══════
-async def registrar_predicciones(db) -> Dict[str, Any]:
-    """Cada corrida deja escrita la PREDICCIÓN del índice adelantado (colonia, índice, pm2 de
-    hoy) — upsert por (colonia, fecha), idempotente. CEREBRO_ENABLED sigue OFF: esto solo MIDE."""
-    from ola_d_engines import indice_adelantado
+# ═══ F4 · LA BÁSCULA UNIVERSAL (predicciones multi-motor + drift) ═════════════
+# REGISTRO de predictores: cada motor que AFIRMA algo verificable deja su predicción escrita.
+# Un motor nuevo que predice = una entrada aquí + su evaluador. CEREBRO_ENABLED sigue OFF.
+_HORIZONTE_DIAS = 30
+
+
+async def _pm2_por_colonia(db) -> Dict[str, float]:
     from demand_mirror import _oferta_vectores
-    fecha = datetime.now(timezone.utc).isoformat()[:10]
-    idx = await indice_adelantado(db)
-    pm2_col: Dict[str, List[float]] = {}
+    acc: Dict[str, List[float]] = {}
     for u in await _oferta_vectores(db):
         if (u.get("precio") or 0) >= 100000 and u.get("m2"):
-            pm2_col.setdefault(u["colonia"], []).append(u["precio"] / u["m2"])
-    n = 0
+            acc.setdefault(u["colonia"], []).append(u["precio"] / u["m2"])
+    return {c: _med(v) for c, v in acc.items() if v}
+
+
+async def _pred_indice(db) -> List[Dict[str, Any]]:
+    from ola_d_engines import indice_adelantado
+    idx = await indice_adelantado(db)
+    pm2 = await _pm2_por_colonia(db)
+    out = []
     for f in idx.get("filas", []):
-        pm2 = _med(pm2_col.get(f["colonia"], []))
-        if pm2 is None:
+        base = pm2.get(f["colonia"])
+        if base is None:
             continue
-        await db.genoma_predicciones.update_one(
-            {"colonia": f["colonia"], "fecha": fecha},
-            {"$set": {"colonia": f["colonia"], "fecha": fecha, "indice": f["indice"],
-                      "pm2_al_predecir": round(pm2),
-                      "prediccion": "sube" if f["indice"] > 55 else ("baja" if f["indice"] < 45 else "lateral")}},
-            upsert=True)
-        n += 1
+        out.append({"motor": "indice_adelantado", "objeto": f["colonia"],
+                    "prediccion": "sube" if f["indice"] > 55 else ("baja" if f["indice"] < 45 else "lateral"),
+                    "valor_base": round(base), "evaluador": "direccion_pm2"})
+    return out
+
+
+async def _pred_reloj(db) -> List[Dict[str, Any]]:
+    from ola_d_engines import reloj_ciclo
+    r = await reloj_ciclo(db)
+    pm2 = await _pm2_por_colonia(db)
+    base = _med(list(pm2.values()))
+    if base is None:
+        return []
+    direccion = {"expansion": "sube", "sobreoferta_en_formacion": "lateral",
+                 "contraccion": "baja", "recuperacion": "lateral"}.get(r.get("fase"), "lateral")
+    return [{"motor": "reloj_ciclo", "objeto": "ciudad", "prediccion": direccion,
+             "valor_base": round(base), "evaluador": "direccion_pm2"}]
+
+
+async def _pred_simulador(db) -> List[Dict[str, Any]]:
+    r = await simulador_mercado(db)
+    ventas = (r.get("ventas_simuladas") or {}).get("mediana")
+    if ventas is None:
+        return []
+    return [{"motor": "simulador", "objeto": "ciudad", "prediccion": f"{ventas} salidas",
+             "valor_base": ventas, "evaluador": "conteo_salidas"}]
+
+
+_PREDICTORES = [_pred_indice, _pred_reloj, _pred_simulador]
+
+
+async def registrar_predicciones(db) -> Dict[str, Any]:
+    """Cada corrida deja escrita la predicción de CADA motor del registro (upsert por
+    motor+objeto+día, idempotente). La báscula es de toda la casa, no de un índice."""
+    fecha = datetime.now(timezone.utc).isoformat()[:10]
+    n = 0
+    for predictor in _PREDICTORES:
+        try:
+            for p in await predictor(db):
+                await db.genoma_predicciones.update_one(
+                    {"motor": p["motor"], "objeto": p["objeto"], "fecha": fecha},
+                    {"$set": {**p, "fecha": fecha, "horizonte_dias": _HORIZONTE_DIAS}},
+                    upsert=True)
+                n += 1
+        except Exception as e:  # noqa: BLE001 — un predictor caído no tira la báscula
+            log.warning("[bascula] predictor fail-open: %s", e)
     return {"ok": True, "fecha": fecha, "predicciones_registradas": n}
 
 
-async def evaluar_drift(db, dias_madurez: int = 30) -> Dict[str, Any]:
-    """La báscula: predicciones con ≥N días de edad vs el pm2 REAL de hoy → aciertos por colonia.
-    Sin maquillaje: si el índice no le pega, aquí se ve."""
-    from demand_mirror import _oferta_vectores
-    pm2_hoy: Dict[str, List[float]] = {}
-    for u in await _oferta_vectores(db):
-        if (u.get("precio") or 0) >= 100000 and u.get("m2"):
-            pm2_hoy.setdefault(u["colonia"], []).append(u["precio"] / u["m2"])
+async def _salidas_desde(db, desde: str) -> int:
+    from market_timeline import transiciones
+    tr = await transiciones(db, tipo="salida", desde=desde, limite=100000)
+    return tr.get("n_transiciones", 0)
+
+
+async def evaluar_drift(db, dias_madurez: int = _HORIZONTE_DIAS) -> Dict[str, Any]:
+    """La báscula: predicciones maduras vs realidad, POR MOTOR. Evaluadores en registro:
+    'direccion_pm2' (¿el pm2 fue hacia donde dijo?) · 'conteo_salidas' (±50% o ±2).
+    Compatibilidad: predicciones viejas sin motor = indice_adelantado. Sin maquillaje."""
+    pm2_hoy = await _pm2_por_colonia(db)
+    pm2_ciudad = _med(list(pm2_hoy.values()))
     corte = datetime.now(timezone.utc).isoformat()[:10]
-    evaluadas, aciertos, pendientes = [], 0, 0
+    evaluadas, pendientes = [], 0
+    aciertos_por_motor: Dict[str, List[bool]] = {}
     try:
         async for p in db.genoma_predicciones.find({}, {"_id": 0}):
             edad = (datetime.fromisoformat(corte) - datetime.fromisoformat(p["fecha"])).days
             if edad < dias_madurez:
                 pendientes += 1
                 continue
-            pm2 = _med(pm2_hoy.get(p["colonia"], []))
-            if pm2 is None or not p.get("pm2_al_predecir"):
+            motor = p.get("motor") or "indice_adelantado"
+            evaluador = p.get("evaluador") or "direccion_pm2"
+            base = p.get("valor_base") or p.get("pm2_al_predecir")
+            acierto = real = None
+            if evaluador == "direccion_pm2" and base:
+                objetivo = p.get("objeto") or p.get("colonia")   # docs viejos traen 'colonia'
+                actual = pm2_ciudad if objetivo in (None, "ciudad") else pm2_hoy.get(objetivo)
+                if actual is None:
+                    continue
+                delta = (actual - base) / base * 100
+                real = "sube" if delta > 1 else ("baja" if delta < -1 else "lateral")
+                acierto = real == p.get("prediccion")
+            elif evaluador == "conteo_salidas" and base is not None:
+                reales = await _salidas_desde(db, p["fecha"])
+                real = f"{reales} salidas"
+                acierto = abs(reales - base) <= max(2, 0.5 * base)
+            if acierto is None:
                 continue
-            delta = (pm2 - p["pm2_al_predecir"]) / p["pm2_al_predecir"] * 100
-            real = "sube" if delta > 1 else ("baja" if delta < -1 else "lateral")
-            ok = real == p.get("prediccion")
-            aciertos += 1 if ok else 0
-            evaluadas.append({"colonia": p["colonia"], "fecha": p["fecha"],
-                              "prediccion": p.get("prediccion"), "real": real,
-                              "delta_pm2_pct": round(delta, 1), "acierto": ok})
+            aciertos_por_motor.setdefault(motor, []).append(acierto)
+            evaluadas.append({"motor": motor, "objeto": p.get("objeto") or p.get("colonia"),
+                              "fecha": p["fecha"], "prediccion": p.get("prediccion"),
+                              "real": real, "acierto": acierto})
     except Exception as e:
         log.warning("[drift] fail-open: %s", e)
+    por_motor = [{"motor": m, "n": len(v),
+                  "precision_pct": round(sum(v) / len(v) * 100, 1)}
+                 for m, v in sorted(aciertos_por_motor.items())]
+    total = [a for v in aciertos_por_motor.values() for a in v]
     return {"dias_madurez": dias_madurez, "n_evaluadas": len(evaluadas),
             "n_pendientes_de_madurar": pendientes,
-            "precision_pct": round(aciertos / len(evaluadas) * 100, 1) if evaluadas else None,
+            "precision_global_pct": round(sum(total) / len(total) * 100, 1) if total else None,
+            "precision_por_motor": por_motor,
             "evaluadas": sorted(evaluadas, key=lambda x: x["fecha"])[:25],
             "es_estimado": not evaluadas,
-            "lectura": (f"Precisión del índice adelantado: {round(aciertos / len(evaluadas) * 100, 1)}% "
-                        f"sobre {len(evaluadas)} predicciones maduras.") if evaluadas else
-                       (f"{pendientes} predicciones registradas madurando (se evalúan a los "
-                        f"{dias_madurez} días) — la báscula del Cerebro ya está puesta.")}
+            "lectura": (f"Precisión global {round(sum(total)/len(total)*100,1)}% sobre "
+                        f"{len(evaluadas)} predicciones maduras de {len(por_motor)} motores.")
+                       if evaluadas else
+                       (f"{pendientes} predicciones de {len(_PREDICTORES)} motores madurando "
+                        f"(se evalúan a los {dias_madurez} días) — la báscula pesa a toda la casa.")}
 
 
 # ═══ F5 · VALOR DE LA INFORMACIÓN (qué capturar siguiente) ═════════════════════
