@@ -138,6 +138,15 @@ async def r_cubo4s_prior(request: Request, estudio: str = Query(...)):
     return await prior_zona(_db(request), estudio)
 
 
+@router.get("/api/superadmin/cubo-4s/prior-colonia")
+async def r_cubo4s_prior_colonia(request: Request, colonia: str = Query(...),
+                                 precio_m2: Optional[float] = Query(None)):
+    """Prior aplicable a CUALQUIER colonia: real (zona 4S) → transferido (perfil similar) → sin_prior."""
+    await require_superadmin(request)
+    from market_4s_transfer import prior_para_colonia
+    return await prior_para_colonia(_db(request), colonia, precio_m2=precio_m2)
+
+
 @router.get("/api/superadmin/cubo-4s/contraste")
 async def r_cubo4s_contraste(request: Request, dias: int = Query(90, ge=7, le=365)):
     """Prior 4S (foto may/jun-2026) vs comprador OBSERVADO en el marketplace → confirma o DRIFT."""
