@@ -215,11 +215,12 @@ async def compute_zone_indices(db, zone_id: str, tier_label: str) -> Dict[str, A
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
-    abs4s = await _abs4s_map(db)             # dato REAL 4S → IAB real donde el estudio cubre la colonia
     dem_map = await _demanda_score_map(db)   # demanda REAL → IDS real donde haya señal
+    # NOTA: el índice PÚBLICO/dev NO usa el dato 4S (decisión founder: 4S exclusivo de superadmin).
+    # El enriquecimiento 4S del IAB vive solo en /api/superadmin/indices (god-view).
     # Distribución de percentiles del UNIVERSO COMPLETO (1,812) → bandas reales, no "estimado".
-    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map, abs4s))
-    ctx = _ctx_for(colonia, abs_map, dem_map, abs4s)
+    ix.ensure_index_distributions(await _all_colonias(db), ctx_fn=lambda c: _ctx_for(c, abs_map, dem_map))
+    ctx = _ctx_for(colonia, abs_map, dem_map)
     try:
         from live_pulse_engine import compute_pulse
         pulse = await compute_pulse(db, colonia.get("id") or zone_id)

@@ -1,18 +1,25 @@
 """
 Rutas del motor de Precio de Equilibrio + Gap de mercado (dato real 4S).
 
-Endpoints:
-  GET  /api/dev/precio-equilibrio     ?estudio=&zona=&clasificacion=&meses=   (logueado)
-  GET  /api/dev/gap-mercado           ?estudio=                               (logueado)
-  GET  /api/dev/market-intelligence   ?estudio=&zona=&meses=                  (logueado)  ← input del Gap Radar
-  POST /api/superadmin/market-4s/load                                          (superadmin) ← carga/refresca el dato 4S
+DECISIÓN DEL FOUNDER (2026-07-12): el dato 4S es un activo estratégico y queda EXCLUSIVAMENTE
+en superadmin — NO se expone en marketplace público ni en el portal del desarrollador. Todos
+los endpoints van bajo /api/superadmin/equilibrio/* con require_superadmin. Al dev se le
+despacha guía curada por el superadmin (patrón cube→brief), no acceso al dato crudo.
+
+Endpoints (todos superadmin):
+  GET  /api/superadmin/equilibrio/precio        ?estudio=&zona=&clasificacion=&meses=
+  GET  /api/superadmin/equilibrio/gap           ?estudio=
+  GET  /api/superadmin/equilibrio/gap-radar
+  GET  /api/superadmin/equilibrio/market-intel  ?estudio=&zona=&meses=
+  GET  /api/superadmin/market-4s/overview                     ← god-view (competidores + cobertura)
+  POST /api/superadmin/market-4s/load                         ← carga/refresca el dato 4S
 """
 from __future__ import annotations
 
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, Request, Query
 
 from permissions import require_superadmin
 
@@ -24,15 +31,7 @@ def _db(request: Request):
     return request.app.state.db
 
 
-async def _auth(request: Request):
-    from server import get_current_user
-    u = await get_current_user(request)
-    if not u:
-        raise HTTPException(401, "No autenticado")
-    return u
-
-
-@router.get("/api/dev/precio-equilibrio")
+@router.get("/api/superadmin/equilibrio/precio")
 async def r_precio_equilibrio(
     request: Request,
     estudio: Optional[str] = Query(None),
@@ -40,35 +39,35 @@ async def r_precio_equilibrio(
     clasificacion: Optional[str] = Query(None),
     meses: int = Query(12, ge=1, le=120),
 ):
-    await _auth(request)
+    await require_superadmin(request)
     from equilibrium_engine import precio_equilibrio
     return await precio_equilibrio(_db(request), zona=zona, estudio=estudio,
                                    clasificacion=clasificacion, meses_objetivo=meses)
 
 
-@router.get("/api/dev/gap-mercado")
+@router.get("/api/superadmin/equilibrio/gap")
 async def r_gap_mercado(request: Request, estudio: Optional[str] = Query(None)):
-    await _auth(request)
+    await require_superadmin(request)
     from equilibrium_engine import gap_por_rango
     return await gap_por_rango(_db(request), estudio=estudio)
 
 
-@router.get("/api/dev/gap-radar")
+@router.get("/api/superadmin/equilibrio/gap-radar")
 async def r_gap_radar(request: Request):
-    """GPS del desarrollador: todas las zonas×segmentos rankeadas por índice de oportunidad."""
-    await _auth(request)
+    """Radar de oportunidad: todas las zonas×segmentos rankeadas por índice de oportunidad."""
+    await require_superadmin(request)
     from equilibrium_engine import gap_radar
     return await gap_radar(_db(request))
 
 
-@router.get("/api/dev/market-intelligence")
+@router.get("/api/superadmin/equilibrio/market-intel")
 async def r_market_intelligence(
     request: Request,
     estudio: Optional[str] = Query(None),
     zona: Optional[str] = Query(None),
     meses: int = Query(12, ge=1, le=120),
 ):
-    await _auth(request)
+    await require_superadmin(request)
     from equilibrium_engine import market_intelligence
     return await market_intelligence(_db(request), zona=zona, estudio=estudio, meses_objetivo=meses)
 
