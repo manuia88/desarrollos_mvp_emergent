@@ -5,8 +5,8 @@
  * exacta (aquí SÍ, porque es la lente superadmin; fuera de aquí se agrega/anonimiza vía cube_lens).
  */
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, RefreshCw, AlertCircle, CheckCircle2, Building2 } from 'lucide-react';
-import { getMarket4sOverview, loadMarket4s } from '../../api/superadminMetricsCube';
+import { TrendingUp, RefreshCw, AlertCircle, CheckCircle2, Building2, Wallet, Leaf, Scale } from 'lucide-react';
+import { getMarket4sOverview, loadMarket4s, getMarket4sConsumidor } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -14,17 +14,31 @@ const int = (v) => (v == null ? '—' : nf.format(v));
 const pct = (v) => (v == null ? '—' : `${v}%`);
 const money = (v) => (v == null ? '—' : `$${nf.format(v)}`);
 
+const SECCIONES = [
+  ['mercado', 'Mercado', TrendingUp],
+  ['consumidor', 'Consumidor', Wallet],
+  ['plusvalia', 'Plusvalía', Scale],
+];
+
 export default function CubeEquilibrioView() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
   const [estudioAbierto, setEstudioAbierto] = useState(null);
+  const [seccion, setSeccion] = useState('mercado');
+  const [consumidor, setConsumidor] = useState(null);   // WTP + producto + verde + plusvalía (lazy)
 
   const cargar = () => {
     setErr(null);
     return getMarket4sOverview().then(setData).catch((e) => setErr(e?.message || 'No se pudo cargar.'));
   };
   useEffect(() => { let alive = true; getMarket4sOverview().then((d) => alive && setData(d)).catch((e) => alive && setErr(e?.message || 'No se pudo cargar.')); return () => { alive = false; }; }, []);
+  useEffect(() => {
+    if (seccion === 'mercado' || consumidor) return undefined;
+    let alive = true;
+    getMarket4sConsumidor().then((d) => alive && setConsumidor(d)).catch(() => alive && setConsumidor(null));
+    return () => { alive = false; };
+  }, [seccion, consumidor]);
 
   const recargar4s = async () => {
     setBusy(true);
@@ -61,12 +75,26 @@ export default function CubeEquilibrioView() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
         <Kpi label="Colonias con absorción REAL" value={cob.n_colonias} icon={<CheckCircle2 size={14} color="#4ADE80" />} hint="antes 'estimado'" />
         <Kpi label="Oportunidades detectadas" value={radar.n_oportunidades} hint="zonas × segmento" />
         <Kpi label="Proyectos comparables" value={data.n_proyectos} hint="dato de mercado" />
       </div>
 
+      {/* Sub-secciones: Mercado (oferta/gap) · Consumidor (WTP/producto/verde) · Plusvalía */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+        {SECCIONES.map(([k, label, Icon]) => (
+          <button key={k} data-testid={`eq4s-sec-${k}`} onClick={() => setSeccion(k)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, background: seccion === k ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)', border: `1px solid ${seccion === k ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.08)'}`, color: seccion === k ? 'var(--theme)' : 'rgba(240,235,224,0.6)' }}>
+            <Icon size={13} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {seccion === 'consumidor' && <SeccionConsumidor c={consumidor} />}
+      {seccion === 'plusvalia' && <SeccionPlusvalia c={consumidor} />}
+
+      {seccion === 'mercado' && <>
       {/* 1) Radar de Oportunidad */}
       <Sec title="Radar de Oportunidad · ¿dónde falta producto?">
         <div style={{ overflowX: 'auto' }}>
@@ -155,7 +183,131 @@ export default function CubeEquilibrioView() {
           );
         })}
       </Sec>
+      </>}
     </div>
+  );
+}
+
+// ── Consumidor: WTP (cuánto paga) + Producto ideal (qué quiere) + Score verde ──
+function SeccionConsumidor({ c }) {
+  if (!c) return <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Cargando inteligencia del consumidor…</div>;
+  const w = c.wtp || {};
+  const p = c.producto_ideal || {};
+  const v = c.score_verde || {};
+  const th = { fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.55)', padding: '8px 12px', textAlign: 'left', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.08)' };
+  const td = { fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.9)', padding: '8px 12px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  const rango = (r, pre = '$') => (r ? `${pre}${nf.format(r.min)}–${pre === '$' ? '' : ''}${nf.format(r.max)}` : '—');
+  const chip = (label, val) => (
+    <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, padding: '5px 11px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.85)' }}>
+      {label}: <b style={{ color: 'var(--cream)' }}>{val}</b>
+    </span>
+  );
+  const specLabel = (s) => (s && s.opcion != null ? `${String(s.opcion).replace(/_/g, ' ')} (${s.pct ? `${s.pct.min}–${s.pct.max}%` : ''})` : '—');
+  return (
+    <>
+      <Sec title="Cuánto paga la gente (WTP · por zona)">
+        {w.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)', margin: '0 0 10px' }}>{w.lectura}</p>}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={th}>Zona</th>
+              <th style={{ ...th, textAlign: 'right' }}>Tope mantenimiento</th>
+              <th style={{ ...th, textAlign: 'right' }}>$/m² que tolera</th>
+              <th style={{ ...th, textAlign: 'right' }}>vs benchmark DMX</th>
+              <th style={{ ...th, textAlign: 'right' }}>Elevautos decide</th>
+              <th style={{ ...th, textAlign: 'right' }}>Acepta +8% precio</th>
+            </tr></thead>
+            <tbody>
+              {(w.zonas || []).map((z) => (
+                <tr key={z.zona} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <td style={{ ...td, fontWeight: 600 }}>{tc(z.zona)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{rango(z.mantenimiento_tope_mxn)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{z.tarifa_tope_m2 != null ? `$${z.tarifa_tope_m2}` : '—'}</td>
+                  <td style={{ ...td, textAlign: 'right', color: (z.vs_benchmark_dmx || 0) >= 0 ? '#4ADE80' : '#f87171' }}>{z.vs_benchmark_dmx != null ? `${z.vs_benchmark_dmx > 0 ? '+' : ''}${z.vs_benchmark_dmx}` : '—'}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{pct(z.elevautos_decisivo_pct)}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{pct(z.tolerancia_precio_mas_8pct_si_pct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {chip('Enganche típico', pct(w.enganche_mas_comun_pct))}
+          {chip('Descuento que convierte', pct(w.descuento_mas_atractivo_pct))}
+          {w.bodega_compra_mxn && chip('Bodega (compra)', rango(w.bodega_compra_mxn))}
+          {w.cajon_extra_precio_alternativo_mxn && chip('Cajón extra', rango(w.cajon_extra_precio_alternativo_mxn))}
+        </div>
+      </Sec>
+
+      <Sec title="Producto ideal (qué pide el mercado)">
+        {p.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)', margin: '0 0 10px' }}>{p.lectura}</p>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {chip('Recámaras', specLabel((p.spec || {}).recamaras))}
+          {chip('Baños', specLabel((p.spec || {}).banos))}
+          {chip('Cocina', specLabel((p.spec || {}).cocina))}
+          {chip('Maximizar', specLabel((p.spec || {}).area_a_maximizar))}
+          {chip('Espacio extra', specLabel((p.spec || {}).espacio_adicional))}
+          {p.intencion_habitar_pct && chip('Para habitar', `${p.intencion_habitar_pct.min}–${p.intencion_habitar_pct.max}%`)}
+          {p.intencion_inversion_pct && chip('Inversión', `${p.intencion_inversion_pct.min}–${p.intencion_inversion_pct.max}%`)}
+        </div>
+      </Sec>
+
+      <Sec title="Score verde (sustentabilidad que decide la compra)">
+        {v.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)', margin: '0 0 10px' }}>{v.lectura}</p>}
+        {(v.ranking || []).map((r) => (
+          <div key={r.factor} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+            <Leaf size={12} color={r.pct_mid >= 60 ? '#4ADE80' : 'rgba(240,235,224,0.4)'} />
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', minWidth: 210 }}>{tc(r.factor)}</span>
+            <div style={{ flex: 1, height: 6, borderRadius: 4, background: 'rgba(255,255,255,0.08)' }}>
+              <div style={{ width: `${Math.min(100, r.pct_mid)}%`, height: '100%', borderRadius: 4, background: r.pct_mid >= 60 ? '#4ADE80' : '#8b949e' }} />
+            </div>
+            <b style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: r.pct_mid >= 60 ? '#4ADE80' : 'rgba(240,235,224,0.7)', minWidth: 44, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.pct_mid}%</b>
+          </div>
+        ))}
+      </Sec>
+    </>
+  );
+}
+
+// ── Plusvalía validada: avalúo vs reventa vs obra nueva ──
+function SeccionPlusvalia({ c }) {
+  if (!c) return <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Cargando plusvalía validada…</div>;
+  const pl = c.plusvalia || {};
+  const th = { fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.55)', padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.08)' };
+  const td = { fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.9)', padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  return (
+    <Sec title="Plusvalía validada · avalúo vs reventa vs obra nueva (dato real)">
+      {pl.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)', margin: '0 0 10px' }}>{pl.lectura}</p>}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: 'left' }}>Estudio</th>
+            <th style={th}>Avalúo $/m²</th>
+            <th style={th}>Reventa $/m²</th>
+            <th style={th}>Obra nueva $/m²</th>
+            <th style={th}>Prima s/ avalúo</th>
+            <th style={th}>Premium nuevo</th>
+            <th style={{ ...th, textAlign: 'left' }}>Veredicto</th>
+          </tr></thead>
+          <tbody>
+            {(pl.estudios || []).map((e) => (
+              <tr key={e.estudio} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ ...td, textAlign: 'left', fontWeight: 600 }}>{tc(e.estudio)}</td>
+                <td style={td}>{money(e.avaluo_m2)}</td>
+                <td style={td}>{money(e.reventa_m2)}</td>
+                <td style={td}>{money(e.obra_nueva_m2)}</td>
+                <td style={{ ...td, fontWeight: 700, color: (e.prima_mercado_vs_avaluo_pct || 0) >= 20 ? '#4ADE80' : 'var(--cream)' }}>{pct(e.prima_mercado_vs_avaluo_pct)}</td>
+                <td style={td}>{pct(e.premium_obra_nueva_pct)}</td>
+                <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal', maxWidth: 280, color: 'rgba(240,235,224,0.75)' }}>{e.veredicto}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)', marginTop: 10 }}>
+        Prima s/ avalúo = cuánto paga el mercado real por encima del avalúo bancario. Premium nuevo = cuánto más vale obra nueva vs reventa. Muestra: n reventas/avalúos por estudio 4S.
+      </p>
+    </Sec>
   );
 }
 

@@ -232,3 +232,7 @@ export async function getMarket4sOverview() {
 export async function loadMarket4s() {
   return _j(await fetch(`${API}/api/superadmin/market-4s/load`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// Inteligencia del consumidor 4S: WTP + producto ideal + score verde + plusvalía validada (god-view).
+export async function getMarket4sConsumidor() {
+  return _j(await fetch(`${API}/api/superadmin/market-4s/consumidor`, { headers: h(), credentials: 'include' }));
+}

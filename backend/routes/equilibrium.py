@@ -79,6 +79,15 @@ async def r_load_market_4s(request: Request):
     return await load_market_4s(_db(request))
 
 
+@router.get("/api/superadmin/market-4s/consumidor")
+async def r_market_4s_consumidor(request: Request):
+    """Inteligencia del CONSUMIDOR 4S (god-view): WTP (cuánto paga) + producto ideal (qué quiere)
+    + score verde (sustentabilidad que vende) + plusvalía validada (avalúo vs reventa vs nuevo)."""
+    await require_superadmin(request)
+    from consumer_4s_engine import inteligencia_consumidor
+    return await inteligencia_consumidor(_db(request))
+
+
 @router.get("/api/superadmin/market-4s/overview")
 async def r_market_4s_overview(request: Request):
     """God-view del dato 4S: proyectos competidores por estudio (nombres + absorción exacta),
