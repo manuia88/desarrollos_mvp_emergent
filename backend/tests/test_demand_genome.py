@@ -237,3 +237,32 @@ def test_vector_unidad_datos_sucios_del_mundo_real():
     v2 = vector_unidad({"id": "u2", "piso": "PB", "recamaras": 2})
     assert "producto.nivel" not in v2           # sin número → campo fuera, unidad viva
     assert v2["producto.recamaras"] == "2"
+
+
+@pytest.mark.asyncio
+async def test_cable_asesor_a_genoma():
+    """AUDITORÍA FULL-STACK: la búsqueda que el asesor guarda de su cliente se vuelve átomos con
+    el MISMO explotador (universal), visitante sintético por contacto, peso calificado 1.3 y
+    fuente auditable. Deals ganada/perdida NO son demanda viva."""
+    from demand_genome import explotar_busquedas_asesor, PESO_SENAL
+    db = _DB()
+    await db.asesor_busquedas.insert_one({
+        "id": "b1", "contacto_id": "cli_77", "stage": "activa",
+        "colonias": ["Condesa"], "precio_max": 7000000, "recamaras_min": 2,
+        "m2_min": 80, "amenidades": ["roof garden"], "features": ["balcon"]})
+    await db.asesor_busquedas.insert_one({
+        "id": "b2", "contacto_id": "cli_99", "stage": "ganada",     # terminal → fuera
+        "colonias": ["Roma Norte"], "precio_max": 5000000})
+    r = await explotar_busquedas_asesor(db)
+    assert r["busquedas_asesor"] == 1 and r["atomos"] > 0
+    atomos = [d for d in db.demand_atoms.docs.values()]
+    assert all(a["visitor_id"] == "asesor:cli_77" for a in atomos)
+    assert all(a["peso"] == PESO_SENAL["asesor_busqueda"] for a in atomos)
+    assert all(a["fuente"] == "asesor_busqueda" for a in atomos)
+    dims = {(a["dimension"], a["valor"]) for a in atomos}
+    assert ("producto.recamaras", "2") in dims
+    assert ("producto.feature", "balcon") in dims and ("producto.feature", "roof_garden") in dims
+    # idempotente: re-correr no duplica
+    n = len(atomos)
+    await explotar_busquedas_asesor(db)
+    assert len(db.demand_atoms.docs) == n

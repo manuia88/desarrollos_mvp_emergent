@@ -2757,6 +2757,8 @@ async def startup():
             async def _genoma_tick():
                 try:
                     await explotar_busquedas(db)
+                    from demand_genome import explotar_busquedas_asesor
+                    await explotar_busquedas_asesor(db)   # cable portal asesor → genoma
                     await explotar_senales(db)
                     await snapshot_kpi(db)
                     # D4.2 · la campana del termómetro: un lead que pasa a HIRVIENDO no espera
@@ -2775,6 +2777,16 @@ async def startup():
             _t1 = await snapshot_oferta(db, fuente="arranque")
             _t2 = await snapshot_contexto(db)
             logging.info("[startup] bitácora oferta: %s · contexto: %s", _t1, _t2)
+            try:   # la báscula y la campana no esperan al primer tick horario (auditoría D-G)
+                from ola_f_engines import registrar_predicciones
+                from ola_d_engines import revisar_termometro
+                from demand_genome import explotar_busquedas_asesor
+                await explotar_busquedas_asesor(db)
+                _b1 = await registrar_predicciones(db)
+                _b2 = await revisar_termometro(db)
+                logging.info("[startup] báscula: %s · termómetro: %s", _b1, _b2)
+            except Exception as _e:  # noqa: BLE001
+                logging.warning("[startup] báscula/termómetro fail-open: %s", _e)
 
             # PRODUCCIÓN EN MASA: cron horario como RED DE SEGURIDAD (el dedup por hash hace
             # gratis la corrida sin cambios); los cambios reales disparan el snapshot AL

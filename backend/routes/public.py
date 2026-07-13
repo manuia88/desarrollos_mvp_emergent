@@ -2558,6 +2558,8 @@ AI_SEARCH_SYSTEM = (
 
 class AISearchIn(BaseModel):
     query: str
+    visitor_id: Optional[str] = None   # AUDITORÍA E2E: sin esto, el termómetro/cohortes/etapa
+                                       # no pueden atribuir la búsqueda de Atlax a una persona
 
 
 _AI_RATE: Dict[str, list] = {}
@@ -3479,6 +3481,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _miss = _parse_misses(q, filters)   # bucle de fallas de lectura
         await db.marketplace_searches.insert_one({
             "source": "ai_search",
+            "visitor_id": (payload.visitor_id or "")[:64] or None,
             "colonias": _cols,
             "colonia_id": (_cols[0] if _cols else None),
             "parse_miss": _miss,

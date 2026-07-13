@@ -161,7 +161,9 @@ _CAMPOS_CURADOS = {
 # La tensión usa VISITANTES ÚNICOS; el peso mide intensidad agregada de la señal.
 PESO_SENAL = {"search": 1.0, "intent": 0.8, "like": 0.6, "save": 0.6, "unit_save": 0.6,
               "compare": 0.5, "ficha_view": 0.3, "unit_view": 0.3,
-              "photo_dwell": 0.2, "photo_zoom": 0.2}
+              "photo_dwell": 0.2, "photo_zoom": 0.2,
+              # cliente REAL sentado con un asesor > búsqueda anónima (cable portal asesor→genoma)
+              "asesor_busqueda": 1.3}
 
 
 def _atomo(doc_id: str, colonia: str, dimension: str, valor: Any, *,
@@ -500,3 +502,42 @@ async def ensure_indexes_genoma(db) -> None:
             await col.create_index(campos, **kw)
         except Exception as e:  # noqa: BLE001
             log.warning("[genoma] index fail-open: %s", e)
+
+
+async def explotar_busquedas_asesor(db, limite: int = 20000) -> Dict[str, Any]:
+    """CABLE PORTAL ASESOR → GENOMA (auditoría full-stack: la señal más calificada se perdía).
+    Las búsquedas que el asesor guarda de sus CLIENTES usan el mismo vocabulario que las del
+    marketplace (colonias, precio_max, recamaras_min, m2_min, amenidades…) → se explotan con el
+    MISMO atomos_de_busqueda (universal, cero duplicación), con:
+      · visitor sintético estable por contacto ('asesor:<contacto_id>') — cuenta como persona
+        en termómetro/cohortes/etapa sin mezclar con visitantes web
+      · peso PESO_SENAL['asesor_busqueda'] (cliente real con asesor > búsqueda anónima)
+      · fuente 'asesor_busqueda' — la procedencia siempre auditable
+    Idempotente (misma clave natural). Deals terminales fuera (ganada/perdida no es demanda viva)."""
+    peso = PESO_SENAL.get("asesor_busqueda", 1.3)
+    extra = await cargar_taxonomia_extra(db)
+    n_docs, n_atomos = 0, 0
+    try:
+        async for b in db.asesor_busquedas.find({}, {"_id": 0}):
+            if b.get("stage") in ("ganada", "perdida"):
+                continue
+            n_docs += 1
+            pseudo = {**b,
+                      "id": f"ase_{b.get('id') or n_docs}",
+                      "visitor_id": f"asesor:{b.get('contacto_id') or b.get('id') or n_docs}",
+                      "created_at_dt": b.get("updated_at") or b.get("created_at"),
+                      # el vocabulario extra del asesor que el genoma ya entiende como features
+                      "features_pedidos": list(b.get("features") or []) + list(b.get("amenidades") or []),
+                      "source": "asesor"}
+            for a in atomos_de_busqueda(pseudo, taxonomia_extra=extra):
+                a["peso"] = peso
+                a["fuente"] = "asesor_busqueda"
+                key = {"search_id": a["search_id"], "colonia": a["colonia"],
+                       "dimension": a["dimension"], "valor": a["valor"]}
+                await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
+                n_atomos += 1
+                if n_atomos >= limite:
+                    break
+    except Exception as e:
+        log.warning("[genoma] asesor fail-open: %s", e)
+    return {"ok": True, "busquedas_asesor": n_docs, "atomos": n_atomos}

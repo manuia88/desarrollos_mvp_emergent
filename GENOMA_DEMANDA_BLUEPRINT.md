@@ -174,3 +174,12 @@ Criterios founder: universalidad · end-to-end · cero deuda · hipersegmentaci�
 4. **Estudio DMX v1.1** ✅ — secciones 14 "¿Y si construyes aquí?" (gemelo v2: compradores vivos + objeción dominante) y 15 "Simulación de absorción" — puro REGISTRO (2 líneas), ningún estudio tradicional puede ofrecerlas. 16 secciones.
 5. **Báscula UNIVERSAL** ✅ — registro _PREDICTORES multi-motor (índice adelantado por colonia · reloj de ciclo ciudad · simulador ventas) + evaluadores por tipo (direccion_pm2 · conteo_salidas ±50%) → precisión POR MOTOR + global; retro-compatible con predicciones viejas.
 GATES: **calibración E1 runtime** ✅ (db.genoma_calibracion fusiona multiplicadores calibrados ENCIMA del criterio experto v1 — circuito completo hoy, espera conversiones etiquetadas; fuente declarada en el output) · **push-down colonia en demand_atoms** ✅ (7 lectores de olas D/E/F/G+espejo mandan {'colonia': $in} a Mongo; filtro Python de defensa doble) · fakes de test con find_one/limit.
+
+## CORRECCIONES + UPGRADES POST-AUDITORÍA AMPLIADA — ✅ 2026-07-13
+1. **CABLE ASESOR→GENOMA** ✅ — explotar_busquedas_asesor(): las búsquedas de clientes del asesor (mismo vocabulario) pasan por el MISMO explotador universal, con visitante sintético estable por contacto ('asesor:<id>'), peso propio en registro (asesor_busqueda=1.3 — cliente real con asesor > búsqueda anónima), fuente auditable, deals terminales fuera, idempotente. En arranque + tick horario.
+2. **visitor_id EN ATLAX** ✅ — el parser (search-ai) no recibía ni persistía el visitante: front lo manda (localStorage) y back lo guarda → termómetro/cohortes/etapa ya ven las búsquedas de Atlax. Verificado E2E en navegador (v_0d32… quedó en la búsqueda).
+3. **Báscula + termómetro + cable asesor AL ARRANQUE** ✅ (no esperan el primer tick tras reinicio).
+4. **ADMIN_PASSWORD ROTADA** ✅ sin exposición (generada→.env 600→hash bcrypt en db.users→login nuevo 200, viejo 401). La anterior había pasado por logs de sesión.
+5. **Respaldo Mongo** ✅ — mongodump 2.0GB → ~/dmx-backups/ (el contenedor ya no es el único dueño de los datos).
+6. Limpieza: capturas de verificación fuera de la raíz del repo.
+DECISIONES DOCUMENTADAS (no defectos): espejo×3 y gemelo×2 coexisten por diseño (canónicos declarados en memoria); skips AUD-011 = tests era-emergent que piden backend:8001. ACCIONES FOUNDER: restringir token Mapbox por dominio (dashboard) · 444 precios con devs · foto-tipo en metadata.

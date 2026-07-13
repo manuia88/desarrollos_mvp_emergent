@@ -102,10 +102,13 @@ export async function fetchDevBriefing(id) {
 }
 
 export async function aiSearchParse(query) {
+  // AUDITORÍA E2E: la búsqueda de Atlax viaja CON el visitante — sin esto, los motores
+  // por-persona (termómetro, cohortes, etapa de vida) quedaban ciegos a Atlax.
+  let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch (_) { /* noop */ }
   const r = await fetch(`${API}/api/properties/search-ai`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, visitor_id: vid || undefined }),
   });
   if (!r.ok) return { filters: {}, query };
   return r.json();
