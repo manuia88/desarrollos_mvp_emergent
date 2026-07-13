@@ -78,3 +78,45 @@ async def r_load_market_4s(request: Request):
     await require_superadmin(request)
     from market_4s_loader import load_market_4s
     return await load_market_4s(_db(request))
+
+
+@router.get("/api/superadmin/market-4s/overview")
+async def r_market_4s_overview(request: Request):
+    """God-view del dato 4S: proyectos competidores por estudio (nombres + absorción exacta),
+    radar de oportunidad y la COBERTURA ganada (colonias cuyo IAB pasó de estimado→real)."""
+    await require_superadmin(request)
+    db = _db(request)
+    from equilibrium_engine import gap_radar
+    from market_4s_bridge import absorcion_4s_by_colonia
+
+    estudios: dict = {}
+    try:
+        async for c in db.market_comps_4s.find({}, {"_id": 0}):
+            estudios.setdefault(c.get("estudio") or "—", []).append(c)
+    except Exception as e:
+        log.warning("[market-4s/overview] comps fail-open: %s", e)
+
+    radar = await gap_radar(db)
+    cobertura = await absorcion_4s_by_colonia(db)
+
+    def _abs(comps):
+        tot = sum(int(x.get("unidades_totales") or 0) for x in comps)
+        sold = sum(int(x.get("unidades_vendidas") or 0) for x in comps)
+        return round(100 * sold / tot, 1) if tot else None
+
+    return {
+        "n_proyectos": sum(len(v) for v in estudios.values()),
+        "n_estudios": len(estudios),
+        "estudios": [{
+            "estudio": k, "n_proyectos": len(v),
+            "absorcion_pct": _abs(v),
+            "comps": sorted(v, key=lambda x: -(x.get("absorcion_pct") or 0)),
+        } for k, v in sorted(estudios.items())],
+        "gap_radar": radar,
+        "cobertura_iab_real": {
+            "n_colonias": len(cobertura),
+            "colonias": sorted(cobertura.keys()),
+            "detalle": [{"colonia": k, **v} for k, v in sorted(cobertura.items())],
+        },
+        "fuente": "4s_2026-05",
+    }

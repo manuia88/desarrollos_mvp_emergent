@@ -224,3 +224,11 @@ export async function createCubeProductBrief(colonia, { terrenoM2 = 1000, tipolo
     body: JSON.stringify({ colonia, terreno_m2: terrenoM2, tipologia }),
   }));
 }
+
+// Equilibrio 4S — god-view del dato real de estudios (competidores por estudio + gap radar + cobertura IAB).
+export async function getMarket4sOverview() {
+  return _j(await fetch(`${API}/api/superadmin/market-4s/overview`, { headers: h(), credentials: 'include' }));
+}
+export async function loadMarket4s() {
+  return _j(await fetch(`${API}/api/superadmin/market-4s/load`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
