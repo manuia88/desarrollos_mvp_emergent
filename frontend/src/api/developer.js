@@ -37,6 +37,13 @@ export const getDemandFeatures = (dias = 90) => j(`/api/dev/market/demand-featur
 export const getTensionCortes = () => j('/api/dev/market/tension-cortes');
 export const getUnitEventos = (unitId, devId) => j(`/api/desarrollador/inventario/${unitId}/eventos?dev_id=${encodeURIComponent(devId)}`);
 export const simularEnganche = (projectId, pct) => post('/api/dev/market/simulador-enganche', { project_id: projectId, enganche_pct: pct });
+// Precio de Equilibrio + Gap Radar (dato REAL de estudios 4S · equilibrium_engine) — ¿a qué precio vendo y dónde construyo?
+export const getGapRadar = () => j('/api/dev/gap-radar');
+export const getMarketIntelligence = (estudio, meses = 12) =>
+  j(`/api/dev/market-intelligence?estudio=${encodeURIComponent(estudio || '')}&meses=${meses}`);
+export const getPrecioEquilibrio = (params = {}) =>
+  j(`/api/dev/precio-equilibrio?${new URLSearchParams(params).toString()}`);
+export const getGapMercado = (estudio) => j(`/api/dev/gap-mercado?estudio=${encodeURIComponent(estudio || '')}`);
 // BUZÓN DEL CUBO — lo que el superadmin (el cubo) te mandó construir/ajustar (cierra el flywheel agéntico). Relevantes (tus colonias) primero.
 export const getCubeActions = () => j('/api/desarrollador/cube-actions');
 export const setCubeActionEstado = (id, estado) => post(`/api/desarrollador/cube-actions/${id}/estado`, { estado });
