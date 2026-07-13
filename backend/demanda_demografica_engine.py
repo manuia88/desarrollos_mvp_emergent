@@ -86,6 +86,22 @@ async def estimar_demanda(db, colonia_id: Optional[str], categoria: str = "media
     if not pop:
         lectura = f"Aún sin demografía de {name}: se llena al conectar INEGI. Modelo listo."
 
+    # DATO REAL 4S: si un estudio de demanda vertical cubre esta colonia, la demanda deja de ser
+    # solo un modelo — se muestra el número real (agregado de zona, anonimizado). El breakdown EPRAV
+    # se mantiene como contexto. Doctrina: 'estimado' solo mientras no haya dato real.
+    demanda_real_4s = None
+    try:
+        from market_4s_bridge import demanda_4s_by_colonia, norm_colonia
+        _m4s = await demanda_4s_by_colonia(db)
+        demanda_real_4s = _m4s.get(norm_colonia(name))
+    except Exception as e:
+        log.warning(f"[demanda_demografica] 4s fail-open: {e}")
+
+    if demanda_real_4s:
+        d3 = demanda_real_4s["demanda_3anos"]
+        lectura = (f"Estudio de mercado real: demanda de {d3} unidades a 3 años en {name} "
+                   f"(~{round(d3 / 3)}/año) · hueco vertical {demanda_real_4s['gap_vertical_3anos']}.")
+
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": cat,
         "poblacion": pop,
@@ -96,12 +112,21 @@ async def estimar_demanda(db, colonia_id: Optional[str], categoria: str = "media
         "inventario_vertical": inv_vertical,
         "gap_vertical": gap,
         "captura_objetivo": captura,               # unidades que un proyecto podría colocar/año
+        # dato REAL de estudio 4S (si cubre la colonia) — 3 años, agregado de zona
+        "demanda_4s_real": ({
+            "demanda_3anos": demanda_real_4s["demanda_3anos"],
+            "demanda_anual": round(demanda_real_4s["demanda_3anos"] / 3),
+            "venta_mensual": demanda_real_4s["venta_mensual"],
+            "gap_vertical_3anos": demanda_real_4s["gap_vertical_3anos"],
+            "inventario_formal": demanda_real_4s["inventario_formal"],
+        } if demanda_real_4s else None),
         "supuestos": {
             "tamano_hogar": TAMANO_HOGAR, "tasa_crec_hogares": TASA_CREC_HOGARES,
             "indice_verticalizacion": INDICE_VERTICALIZACION, "market_share": MARKET_SHARE,
             "eprav_split": EPRAV_SPLIT,
         },
-        "es_estimado": True,
+        "es_estimado": demanda_real_4s is None,
         "lectura": lectura,
-        "fuente": "Modelo EPRAV (estudio 4S) · demografía determinista · se calibra con INEGI real",
+        "fuente": ("Estudio de demanda vertical 4S (real) + contexto EPRAV" if demanda_real_4s
+                   else "Modelo EPRAV (metodología 4S) · demografía determinista · se calibra con INEGI/estudio real"),
     }

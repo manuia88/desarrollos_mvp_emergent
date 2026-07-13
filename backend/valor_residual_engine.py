@@ -109,6 +109,18 @@ async def _precio_venta_pm2(db, colonia: Optional[Dict[str, Any]], categoria: st
         return {"pm2": float(colonia["precio_pm2"]), "origen": "dato",
                 "fuente": "Ventas reales de la zona",
                 "leyenda": "Precio de venta observado en la colonia."}
+    # 1.5) Precio REAL de mercado de estudios 4S (mediana de comparables · precio de lista público).
+    if colonia and colonia.get("name"):
+        try:
+            from market_4s_bridge import precio_m2_4s_by_colonia, norm_colonia
+            _m4s = await precio_m2_4s_by_colonia(db)
+            p4s = _m4s.get(norm_colonia(colonia["name"]))
+            if p4s and p4s.get("precio_m2"):
+                return {"pm2": float(p4s["precio_m2"]), "origen": "dato",
+                        "fuente": f"Estudio de mercado 4S · {p4s['n_proyectos']} proyectos comparables",
+                        "leyenda": "Precio de lista mediano de proyectos comparables en la zona (dato real de mercado)."}
+        except Exception as e:
+            log.warning(f"[residual] precio 4s fail-open: {e}")
     # 2) Estimación del modelo suelo→comercial (flywheel · solo si es fiable).
     if colonia:
         try:

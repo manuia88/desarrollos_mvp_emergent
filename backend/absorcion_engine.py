@@ -42,10 +42,25 @@ def _dev_units(d: dict):
     return int(total or 0), int(sold or 0), int(avail or 0)
 
 
+def _cohorte_por_meses(meses: float) -> str:
+    """Cohorte de un comparable 4S por su tiempo REAL en mercado (no proxy de etapa)."""
+    if meses < 12:
+        return "Preventa (Nuevo)"
+    if meses < 30:
+        return "En Construcción (2-3 años)"
+    return "Entrega / Maduro"
+
+
 async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
                           col_names: Optional[Set[str]] = None,
-                          col_ids: Optional[Set[str]] = None) -> Dict[str, Any]:
-    """Curva de absorción por cohorte + comparables de una colonia o set (radio). FAIL-OPEN."""
+                          col_ids: Optional[Set[str]] = None,
+                          incluir_4s: bool = True,
+                          nombres_4s: bool = False) -> Dict[str, Any]:
+    """Curva de absorción por cohorte + comparables de una colonia o set (radio). FAIL-OPEN.
+
+    incluir_4s: enriquece el censo con proyectos competidores REALES de estudios 4S usando su
+      VELOCIDAD real (tiempo real en mercado, no el proxy _MESES_STAGE) — agregado anonimizado.
+    nombres_4s: solo superadmin ve el nombre del competidor 4S; para dev/público van sin nombre."""
     names = set(col_names or set())
     ids = set(col_ids or set())
     if colonia_id:
@@ -122,6 +137,37 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
     except Exception as e:
         log.warning(f"[absorcion] ingeridos fail-open: {e}")
 
+    # DATO REAL 4S: proyectos competidores de estudios de mercado con VELOCIDAD real (tiempo real en
+    # mercado). Enriquece el censo como AGREGADO anonimizado; el nombre solo viaja a superadmin.
+    n_4s = 0
+    if incluir_4s:
+        try:
+            from market_4s_bridge import comps_4s_para_colonia
+            comps4s = await comps_4s_para_colonia(db, names)
+            for c in comps4s:
+                total = int(c.get("unidades_totales") or 0)
+                sold = int(c.get("unidades_vendidas") or 0)
+                avail = int(c.get("unidades_inventario") or max(0, total - sold))
+                meses = float(c.get("tiempo_en_mercado_meses") or 0)
+                if total <= 0 or meses <= 0:
+                    continue
+                coh = _cohorte_por_meses(meses)
+                b = cohortes[coh]
+                b["n"] += 1; b["total"] += total; b["sold"] += sold; b["avail"] += avail
+                b["meses_acc"] += meses * total   # meses REALES (no proxy)
+                n_4s += 1
+                comparables.append({
+                    "nombre": (c.get("proyecto") if nombres_4s else "Competidor de mercado (4S)"),
+                    "stage": "mercado", "cohorte": coh,
+                    "unidades": total, "vendidas": sold, "disponibles": avail,
+                    "absorcion_pct": c.get("absorcion_pct") or (round(100 * sold / total) if total else 0),
+                    "velocidad_mensual": c.get("velocidad_mensual_real") or (round(sold / meses, 1) if meses else 0),
+                    "precio_desde": c.get("precio_promedio"),
+                    "fuente": "4s",
+                })
+        except Exception as e:
+            log.warning(f"[absorcion] 4s fail-open: {e}")
+
     curva = []
     for coh in _ORDEN:
         b = cohortes.get(coh)
@@ -151,13 +197,17 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
         lectura = f"Curva de absorción con {n_proy} proyectos comparables (ventas reales)."
     else:
         lectura = f"Curva de absorción del catálogo de ejemplo ({n_proy} proyectos · DEMO, aún sin ventas reales)."
+    real_o_4s = real or n_4s > 0   # comparables 4S SON ventas reales de mercado
+    if n_4s > 0 and not es_estimado:
+        lectura = f"Curva de absorción con {n_proy} proyectos comparables ({n_4s} de estudios de mercado reales)."
     return {
         "curva": curva,
         "comparables": comparables[:12],
         "n_proyectos": n_proy,
+        "n_proyectos_4s": n_4s,
         "es_estimado": es_estimado,
-        "data_basis": "real" if real else "demo",
+        "data_basis": "real" if real_o_4s else "demo",
         "lectura": lectura,
-        "fuente": ("Absorción por cohorte DMX · oferta real (vs reporte trimestral estático)" if real
+        "fuente": ("Absorción por cohorte DMX · oferta real + estudios de mercado" if real_o_4s
                    else "Absorción por cohorte DMX · catálogo de ejemplo (DEMO · aún sin ventas reales)"),
     }
