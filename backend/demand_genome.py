@@ -477,3 +477,26 @@ async def historia_kpi(db, semanas: int = 26) -> List[Dict[str, Any]]:
         log.warning("[genoma] historia fail-open: %s", e)
     out.sort(key=lambda x: x.get("semana", ""))
     return out[-semanas:]
+
+
+async def ensure_indexes_genoma(db) -> None:
+    """PRODUCCIÓN EN MASA (auditoría full-stack): las colecciones del genoma con sus índices —
+    la llave de upsert de los átomos (idempotencia barata a escala), lecturas por visitante y
+    por tiempo, y unicidad donde el upsert la asume. FAIL-OPEN por índice."""
+    planes = [
+        (db.demand_atoms, [("search_id", 1), ("colonia", 1), ("dimension", 1), ("valor", 1)],
+         {"name": "atomo_upsert_key"}),
+        (db.demand_atoms, [("visitor_id", 1)], {}),
+        (db.demand_atoms, [("ts", -1)], {}),
+        (db.lead_temperaturas, [("visitor_id", 1)], {"unique": True, "name": "lead_temp_visitor"}),
+        (db.genoma_predicciones, [("motor", 1), ("objeto", 1), ("fecha", 1)],
+         {"unique": True, "name": "prediccion_upsert_key"}),
+        (db.reportes_guardados, [("id", 1)], {"unique": True, "name": "reporte_id"}),
+        (db.taxonomia_extra, [("sinonimo", 1)], {"unique": True, "name": "taxonomia_sinonimo"}),
+        (db.genoma_checks, [("id", 1)], {"unique": True, "name": "check_id"}),
+    ]
+    for col, campos, kw in planes:
+        try:
+            await col.create_index(campos, **kw)
+        except Exception as e:  # noqa: BLE001
+            log.warning("[genoma] index fail-open: %s", e)

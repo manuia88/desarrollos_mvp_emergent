@@ -37,6 +37,10 @@ export async function searchAtlax(query) {
   } catch (_) { /* fail-soft: sin filtros */ }
 
   let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch (_) { /* noop */ }
+  // BUG cazado en auditoría E2E: el parse de IA a veces devuelve colonia como TEXTO ("del valle")
+  // y no como lista → .map tronaba y la búsqueda del comprador (y su captura) se perdía.
+  // Normalizar SIEMPRE a lista — tolerancia al dato del mundo real, no supuestos.
+  if (filters.colonia && !Array.isArray(filters.colonia)) filters = { ...filters, colonia: [filters.colonia] };
   const colonias = (filters.colonia || []).map((c) => String(c).toLowerCase());
   const hasColonia = colonias.length > 0;
 

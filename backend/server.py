@@ -2769,6 +2769,8 @@ async def startup():
 
             # BITÁCORA TEMPORAL: event-sourcing del inventario + contexto (tasas) — diario.
             # En 4 años, "¿cuánto costaba ese PH?" se responde porque nada se pisa, todo se escribe.
+            from demand_genome import ensure_indexes_genoma
+            await ensure_indexes_genoma(db)
             from market_timeline import snapshot_oferta, snapshot_contexto
             _t1 = await snapshot_oferta(db, fuente="arranque")
             _t2 = await snapshot_contexto(db)
