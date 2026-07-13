@@ -2777,6 +2777,10 @@ async def startup():
                 try:
                     await snapshot_oferta(db, fuente="cron")
                     await snapshot_contexto(db)
+                    # F4 · la báscula: cada corrida deja la PREDICCIÓN del índice adelantado
+                    # escrita (upsert por colonia+día). Cerebro sigue OFF: esto solo mide.
+                    from ola_f_engines import registrar_predicciones
+                    await registrar_predicciones(db)
                 except Exception as _e:  # noqa: BLE001
                     logging.warning("[timeline] tick fail-open: %s", _e)
             sched.add_job(_timeline_tick, "interval", hours=1, id="timeline_tick", replace_existing=True)

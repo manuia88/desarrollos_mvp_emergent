@@ -97,17 +97,17 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 - [x] E3. Cohortes gemelas ✅ 2026-07-13 — gemelos por Jaccard del genoma (llaves dim=val) × destinos ponderados (lead 3.0 > intent 2.0 > save 1.5 > like 1.0, pesados por similitud) → 'compradores como tú terminaron en X' con drill por visitor_id (?visitor_id=).
 - [x] E4. Prima de marca ✅ 2026-07-13 — registro de 3 componentes (absorción .40 × demanda/unidad .30 × prima de precio sostenida .30 — cobrar más Y vender = marca) → score 0-100 por dev con nombre.
 
-### OLA F · SIMULACIÓN + CEREBRO (la capa que aprende)
-- [ ] F1. Bayes formal: prior 4S + observado → posterior por zona×dimensión
-- [ ] F2. Gemelo de Demanda v2 (matcheo de buscadores actuales vs proyecto hipotético)
-- [ ] F3. Simulador del mercado (agentes muestreados de vectores reales × inventario)
-- [ ] F4. Cerebro: cada índice nuevo registra predicción + drift (motor existe, flag OFF — decisión founder)
-- [ ] F5. Valor de la Información (auto-priorización de captura)
+### OLA F · SIMULACIÓN + CEREBRO — ✅ COMPLETA 2026-07-13 (ola_f_engines.py · 5 bloques · gate vivo 5/5)
+- [x] F1. Bayes formal ✅ 2026-07-13 — registro de pares 4S↔genoma (presupuesto/dormitorios/baños; bandas que se tocan) · posterior = pseudo-conteos prior (K=20) + visitantes observados · credibilidad explícita · GET /genoma/bayes-formal. El estudio de 500k se actualiza solo.
+- [x] F2. Gemelo v2 ✅ 2026-07-13 — proyecto hipotético {colonia,precio,rec,m2,features} → compatibilidad por buscador VIVO + compradores probables (≥75%) + OBJECIÓN dominante (el brief de ajuste) · POST /genoma/gemelo-v2 · bloque corre con la mediana del mercado.
+- [x] F3. Simulador ✅ 2026-07-13 — Monte-Carlo reproducible (semilla): agentes = vectores REALES, compran lo más barato que los satisface (prob. por afinidad) → ventas p5/mediana/p95 + delta_precio_pct ('¿y si bajo 5%?') · POST /genoma/simulador.
+- [x] F4. La báscula ✅ 2026-07-13 — registrar_predicciones() en el cron horario (upsert colonia+día: índice, pm2, predicción sube/baja/lateral) + evaluar_drift() al madurar (30d) → precisión sin maquillaje · GET /genoma/drift · CEREBRO_ENABLED sigue OFF (esto solo MIDE).
+- [x] F5. Valor de la información ✅ 2026-07-13 — ausencia (salud del dato) × demanda que lo pide × motores dependientes (registro declarado) → ranking de captura · GET /genoma/valor-informacion. YA PAGÓ: 444 unidades sin precio = oportunidad #1.
 
-### OLA G · PRODUCTOS (monetización del moat)
-- [ ] G1. Estudio DMX auto-generado por zona (licenciable, sustituye 4S)
-- [ ] G2. DMX-30 + Beta + Sharpe por colonia (publicable trimestral)
-- [ ] G3. CARFAX del depa (informe B2C por unidad)
+### OLA G · PRODUCTOS — ✅ COMPLETA 2026-07-13 (ola_g_products.py · 2 bloques + producto estudio-dmx · gate vivo 3/3 · menú 44 bloques)
+- [x] G1. Estudio DMX ✅ 2026-07-13 — 14 secciones curadas (REGISTRO sobre los bloques del menú) + resumen ejecutivo + metodología con procedencia + FOLIO · se GUARDA en memoria de reportes (abrible/comparable en UI) · POST /genoma/estudio-dmx. En vivo: DMX-20260713-A4E292 (Roma Norte).
+- [x] G2. DMX-30 ✅ 2026-07-13 — constituido (30 colonias por unidades×demanda; polanco/condesa/nápoles top) · índice base-100 desde clima diario por colonia + beta y Sharpe (llenan solos con ~20 días de serie) · GET /genoma/dmx30 + bloque.
+- [x] G3. CARFAX ✅ 2026-07-13 — dossier por unidad: identidad+features, historia de precios (bitácora con fuente), días en mercado, cambios tipificados, señales, liquidez, rival real y veredicto de precio (REUSA screener/liquidez/set_competitivo) · GET /genoma/carfax/{unit_id} + bloque necesita unit_id.
 - [ ] G4. Originación inversa (cohortes pre-calificadas → bancos/devs)
 - [ ] G5. Alertas dev ("240 buscan lo que tienes" / timing de publicación)
 - [ ] G6. API v1: catálogo de índices tier-gated (infra existe)

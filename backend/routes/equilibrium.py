@@ -388,6 +388,80 @@ async def r_ola_e(request: Request, motor: str, colonias: Optional[str] = Query(
     return await fn(_db(request), **kwargs)
 
 
+# ═══ OLA F + G: rutas ═══
+@router.post("/api/superadmin/genoma/gemelo-v2")
+async def r_gemelo_v2(request: Request):
+    """Proyecto HIPOTÉTICO completo → compradores vivos que lo comprarían.
+    Body: {colonias?, proyecto?: {colonia?, precio_mdp?, recamaras?, m2?, features?[]}}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from ola_f_engines import gemelo_demanda_v2
+    from market_4s_bridge import norm_colonia
+    cols = {norm_colonia(c) for c in (body.get("colonias") or []) if c} or None
+    return await gemelo_demanda_v2(_db(request), colonias=cols, proyecto=body.get("proyecto"))
+
+
+@router.post("/api/superadmin/genoma/simulador")
+async def r_simulador(request: Request):
+    """Simulador de mercado. Body: {colonias?, delta_precio_pct?, rondas?, semilla?}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from ola_f_engines import simulador_mercado
+    from market_4s_bridge import norm_colonia
+    cols = {norm_colonia(c) for c in (body.get("colonias") or []) if c} or None
+    return await simulador_mercado(_db(request), colonias=cols,
+                                   delta_precio_pct=float(body.get("delta_precio_pct") or 0),
+                                   rondas=min(1000, int(body.get("rondas") or 200)),
+                                   semilla=int(body.get("semilla") or 42))
+
+
+@router.get("/api/superadmin/genoma/bayes-formal")
+async def r_bayes_formal(request: Request, estudio: Optional[str] = Query(None),
+                         colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from ola_f_engines import bayes_formal
+    return await bayes_formal(_db(request), estudio=estudio, colonias=_cols_param(colonias))
+
+
+@router.get("/api/superadmin/genoma/drift")
+async def r_drift(request: Request, dias_madurez: int = Query(30)):
+    await require_superadmin(request)
+    from ola_f_engines import evaluar_drift
+    return await evaluar_drift(_db(request), dias_madurez=dias_madurez)
+
+
+@router.get("/api/superadmin/genoma/valor-informacion")
+async def r_valor_info(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from ola_f_engines import valor_informacion
+    return await valor_informacion(_db(request), colonias=_cols_param(colonias))
+
+
+@router.post("/api/superadmin/genoma/estudio-dmx")
+async def r_estudio_dmx(request: Request):
+    """G1 · EL PRODUCTO: estudio de zona auto-generado + guardado en memoria de reportes.
+    Body: {colonias?: [..], guardar?: bool}"""
+    await require_superadmin(request)
+    body = await request.json()
+    from ola_g_products import estudio_dmx
+    return await estudio_dmx(_db(request), colonias=body.get("colonias"),
+                             guardar=bool(body.get("guardar", True)))
+
+
+@router.get("/api/superadmin/genoma/dmx30")
+async def r_dmx30(request: Request):
+    await require_superadmin(request)
+    from ola_g_products import dmx30
+    return await dmx30(_db(request))
+
+
+@router.get("/api/superadmin/genoma/carfax/{unit_id}")
+async def r_carfax(request: Request, unit_id: str):
+    await require_superadmin(request)
+    from ola_g_products import carfax
+    return await carfax(_db(request), unit_id=unit_id)
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""

@@ -277,6 +277,46 @@ async def _b_prima_marca(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "medido", **(await prima_marca(db, colonias=ctx.get("colonias")))}
 
 
+# ═══ OLA F · simulación + la capa que aprende ═══
+async def _b_bayes_formal(db, ctx) -> Dict[str, Any]:
+    from ola_f_engines import bayes_formal
+    return {"procedencia": "medido+observado", **(await bayes_formal(
+        db, estudio=ctx.get("estudio"), colonias=ctx.get("colonias")))}
+
+
+async def _b_gemelo_v2(db, ctx) -> Dict[str, Any]:
+    from ola_f_engines import gemelo_demanda_v2
+    return {"procedencia": "observado", **(await gemelo_demanda_v2(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_simulador(db, ctx) -> Dict[str, Any]:
+    from ola_f_engines import simulador_mercado
+    return {"procedencia": "estimado", **(await simulador_mercado(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_cerebro_drift(db, ctx) -> Dict[str, Any]:
+    from ola_f_engines import evaluar_drift
+    return {"procedencia": "medido", **(await evaluar_drift(db))}
+
+
+async def _b_valor_informacion(db, ctx) -> Dict[str, Any]:
+    from ola_f_engines import valor_informacion
+    return {"procedencia": "medido", **(await valor_informacion(db, colonias=ctx.get("colonias")))}
+
+
+# ═══ OLA G · productos ═══
+async def _b_dmx30(db, ctx) -> Dict[str, Any]:
+    from ola_g_products import dmx30
+    return {"procedencia": "medido", **(await dmx30(db))}
+
+
+async def _b_carfax(db, ctx) -> Dict[str, Any]:
+    from ola_g_products import carfax
+    if not ctx.get("unit_id"):
+        return {"procedencia": "sin_dato", "lectura": "Este bloque necesita una unidad (unit_id)."}
+    return {"procedencia": "medido", **(await carfax(db, unit_id=ctx["unit_id"]))}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -389,6 +429,23 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                          "desc": "'Compradores como tú terminaron en X': gemelos por similitud de genoma + los destinos (lead/save/like) de esos gemelos."},
     "prima_marca": {"fn": _b_prima_marca, "titulo": "Prima de marca del desarrollador",
                     "desc": "La marca MEDIDA: absorción × demanda por unidad × prima de precio sostenida → score 0-100 por dev. Cobrar más Y vender = marca."},
+    # ═══ OLA F · simulación + la capa que aprende ═══
+    "bayes_formal": {"fn": _b_bayes_formal, "titulo": "Bayes formal (4S que se actualiza solo)",
+                     "desc": "Prior 4S medido + buscadores reales → POSTERIOR por estudio × dimensión con credibilidad. Donde el posterior se mueve del prior, el mercado cambió desde que 4S midió."},
+    "gemelo_v2": {"fn": _b_gemelo_v2, "titulo": "Gemelo de demanda v2 (proyecto hipotético)",
+                  "desc": "¿Cuántos buscadores VIVOS comprarían un proyecto que aún no existe? Compatibilidad por buscador + la objeción dominante (el brief de ajuste). Spec completo por API."},
+    "simulador": {"fn": _b_simulador, "titulo": "Simulador del mercado (agentes reales)",
+                  "desc": "Monte-Carlo con compradores-agente muestreados de vectores REALES × inventario → ventas simuladas (p5/mediana/p95). Con delta de precio por API: ¿y si bajo 5%?"},
+    "cerebro_drift": {"fn": _b_cerebro_drift, "titulo": "La báscula (predicciones vs realidad)",
+                      "desc": "Cada corrida del índice adelantado deja su predicción ESCRITA; aquí se compara contra el pm2 real al madurar — precisión sin maquillaje. (Cerebro sigue apagado: esto solo mide.)"},
+    "valor_informacion": {"fn": _b_valor_informacion, "titulo": "Valor de la información",
+                          "desc": "Qué dato capturar SIGUIENTE: ausencia × demanda que lo pide × motores que lo usan → el retorno de capturar, rankeado."},
+    # ═══ OLA G · productos ═══
+    "dmx30": {"fn": _b_dmx30, "titulo": "DMX-30 (el índice de la vivienda CDMX)",
+              "desc": "Las 30 colonias con más mercado → índice base-100 desde el clima diario + beta y Sharpe por colonia. Publicable trimestral."},
+    "carfax": {"fn": _b_carfax, "titulo": "CARFAX del depa",
+               "desc": "El dossier de UNA unidad: historia de precios (bitácora), días en mercado, demanda sobre sus llaves, rival real y veredicto de precio.",
+               "necesita": ["unit_id"]},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
