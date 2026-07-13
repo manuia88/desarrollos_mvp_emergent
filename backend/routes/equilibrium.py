@@ -366,6 +366,28 @@ async def r_ola_d(request: Request, motor: str, colonias: Optional[str] = Query(
     return await fn(_db(request), colonias=_cols_param(colonias))
 
 
+# ═══ OLA E · psicográfica: mismo patrón de registro ═══
+_MOTORES_OLA_E = {"etapa-vida": "etapa_de_vida", "saliencia-visual": "saliencia_visual",
+                  "cohortes-gemelas": "cohortes_gemelas", "prima-marca": "prima_marca"}
+
+
+@router.get("/api/superadmin/genoma/ola-e/{motor}")
+async def r_ola_e(request: Request, motor: str, colonias: Optional[str] = Query(None),
+                  visitor_id: Optional[str] = Query(None)):
+    """Motores de la Ola E (psicográfica+personas). cohortes-gemelas acepta visitor_id
+    para el drill 'compradores como tú'."""
+    await require_superadmin(request)
+    fn_name = _MOTORES_OLA_E.get(motor)
+    if not fn_name:
+        return {"error": f"motor desconocido: {motor}", "validos": sorted(_MOTORES_OLA_E)}
+    import ola_e_engines
+    fn = getattr(ola_e_engines, fn_name)
+    kwargs = {"colonias": _cols_param(colonias)}
+    if motor == "cohortes-gemelas" and visitor_id:
+        kwargs["visitor_id"] = visitor_id
+    return await fn(_db(request), **kwargs)
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""

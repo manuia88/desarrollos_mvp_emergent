@@ -256,6 +256,27 @@ async def _b_curva_obra(db, ctx) -> Dict[str, Any]:
     return {"procedencia": "medido", **(await curva_obra(db, colonias=ctx.get("colonias")))}
 
 
+# ═══ OLA E · psicográfica + personas (4 motores de ola_e_engines) ═══
+async def _b_etapa_vida(db, ctx) -> Dict[str, Any]:
+    from ola_e_engines import etapa_de_vida
+    return {"procedencia": "medido+estimado", **(await etapa_de_vida(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_saliencia(db, ctx) -> Dict[str, Any]:
+    from ola_e_engines import saliencia_visual
+    return {"procedencia": "observado", **(await saliencia_visual(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_gemelas(db, ctx) -> Dict[str, Any]:
+    from ola_e_engines import cohortes_gemelas
+    return {"procedencia": "observado", **(await cohortes_gemelas(db, colonias=ctx.get("colonias")))}
+
+
+async def _b_prima_marca(db, ctx) -> Dict[str, Any]:
+    from ola_e_engines import prima_marca
+    return {"procedencia": "medido", **(await prima_marca(db, colonias=ctx.get("colonias")))}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -359,6 +380,15 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                               "desc": "¿Un descuento despierta interés? (medido en la bitácora) + el neto REAL del vendedor tras ISR (art. 126, motor canónico)."},
     "curva_obra": {"fn": _b_curva_obra, "titulo": "Curva de obra (prima por etapa)",
                    "desc": "Cuánto más cuesta el m² por etapa de obra — el diferencial preventa→entrega ES el retorno del comprador temprano."},
+    # ═══ OLA E · psicográfica + personas ═══
+    "etapa_vida": {"fn": _b_etapa_vida, "titulo": "Etapa de vida (Bayes 4S × señales)",
+                   "desc": "QUIÉN busca: prior demográfico 4S × lo que cada visitante pide (recámaras/m²/features) → etapa de vida por visitante + qué etapa busca MÁS de lo que la demografía sugiere."},
+    "saliencia_visual": {"fn": _b_saliencia, "titulo": "Saliencia visual (qué fotos retienen)",
+                         "desc": "Dwell y zoom por foto y por posición de galería, cruzado con la etapa de vida inferida — qué imagen vende a quién."},
+    "cohortes_gemelas": {"fn": _b_gemelas, "titulo": "Cohortes gemelas",
+                         "desc": "'Compradores como tú terminaron en X': gemelos por similitud de genoma + los destinos (lead/save/like) de esos gemelos."},
+    "prima_marca": {"fn": _b_prima_marca, "titulo": "Prima de marca del desarrollador",
+                    "desc": "La marca MEDIDA: absorción × demanda por unidad × prima de precio sostenida → score 0-100 por dev. Cobrar más Y vender = marca."},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)

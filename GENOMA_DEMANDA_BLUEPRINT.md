@@ -91,11 +91,11 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 - [ ] D7. Elasticidad promocional + precio post-impuestos (tax engine como dimensión)
 - [ ] D8. Curva de confianza por avance de obra + prima de puntualidad del dev
 
-### OLA E · PSICOGRÁFICA + PERSONAS
-- [ ] E1. Inferencia de etapa de vida (Bayes: crosstabs 4S + vector observado)
-- [ ] E2. Saliencia visual (dwell/zoom por tipo de foto × perfil) — requiere foto-tipo en metadata
-- [ ] E3. Cohortes gemelas ("compradores como tú terminaron en X") — extiende casamentera
-- [ ] E4. Prima de marca del desarrollador (track record × absorción × demanda)
+### OLA E · PSICOGRÁFICA + PERSONAS — ✅ COMPLETA 2026-07-13 (ola_e_engines.py · 4 bloques SDUI, 37 total · GET /genoma/ola-e/{motor} registro · gate vivo 4/4 con datos reales · test universal db-vacía)
+- [x] E1. Inferencia de etapa de vida ✅ 2026-07-13 — Bayes real: prior ciclo_vida_pct 4S (facts, etapas DESCUBIERTAS del dato — 10 en vivo) × registro de verosimilitudes (rec/m²/features) → posterior por visitante + comparativa demanda-vs-demografía (sobre-representación). En vivo: pareja_joven_sin_hijos busca 2.53× su peso demográfico.
+- [x] E2. Saliencia visual ✅ 2026-07-13 — photo_dwell/photo_zoom (YA capturados, 47 señales) → top fotos que retienen + curva de atención por posición + cruce con etapa de vida (E1). Nota: cuando la metadata traiga TIPO de foto, se segmenta sola.
+- [x] E3. Cohortes gemelas ✅ 2026-07-13 — gemelos por Jaccard del genoma (llaves dim=val) × destinos ponderados (lead 3.0 > intent 2.0 > save 1.5 > like 1.0, pesados por similitud) → 'compradores como tú terminaron en X' con drill por visitor_id (?visitor_id=).
+- [x] E4. Prima de marca ✅ 2026-07-13 — registro de 3 componentes (absorción .40 × demanda/unidad .30 × prima de precio sostenida .30 — cobrar más Y vender = marca) → score 0-100 por dev con nombre.
 
 ### OLA F · SIMULACIÓN + CEREBRO (la capa que aprende)
 - [ ] F1. Bayes formal: prior 4S + observado → posterior por zona×dimensión
