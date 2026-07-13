@@ -79,6 +79,59 @@ async def r_load_market_4s(request: Request):
     return await load_market_4s(_db(request))
 
 
+# ── GENERADOR DE REPORTES por menú (Ola B3 · territorio + bloques + cortes) ──
+@router.get("/api/superadmin/reportes/bloques")
+async def r_reportes_bloques(request: Request):
+    """El MENÚ: bloques disponibles para armar el reporte."""
+    await require_superadmin(request)
+    from report_builder import catalogo
+    return catalogo()
+
+
+@router.post("/api/superadmin/reportes/generar")
+async def r_reportes_generar(request: Request):
+    """Genera el reporte a la medida: {colonias?, estudio?, bloques?, cortes?}."""
+    await require_superadmin(request)
+    body = await request.json()
+    from report_builder import generar_reporte
+    return await generar_reporte(_db(request),
+                                 colonias=body.get("colonias"), estudio=body.get("estudio"),
+                                 bloques=body.get("bloques"), cortes=body.get("cortes"))
+
+
+# ── ESPEJO del genoma + data negativa + radar léxico (Ola B1/B2/B5/B6) ──
+@router.get("/api/superadmin/genoma/espejo")
+async def r_genoma_espejo(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from demand_mirror import espejo
+    from market_4s_bridge import norm_colonia
+    cols = {norm_colonia(c) for c in colonias.split(",") if c.strip()} if colonias else None
+    return await espejo(_db(request), cols)
+
+
+@router.get("/api/superadmin/genoma/escasez")
+async def r_genoma_escasez(request: Request, colonias: Optional[str] = Query(None)):
+    await require_superadmin(request)
+    from demand_mirror import escasez
+    from market_4s_bridge import norm_colonia
+    cols = {norm_colonia(c) for c in colonias.split(",") if c.strip()} if colonias else None
+    return await escasez(_db(request), cols)
+
+
+@router.get("/api/superadmin/genoma/data-negativa")
+async def r_genoma_negativa(request: Request, dias: int = Query(30, ge=7, le=365)):
+    await require_superadmin(request)
+    from demand_mirror import data_negativa
+    return await data_negativa(_db(request), dias=dias)
+
+
+@router.get("/api/superadmin/genoma/radar-lexico")
+async def r_genoma_lexico(request: Request):
+    await require_superadmin(request)
+    from demand_mirror import radar_lexico
+    return await radar_lexico(_db(request))
+
+
 # ── GENOMA DE DEMANDA · átomos de la señal VIVA (Ola A · GENOMA_DEMANDA_BLUEPRINT.md) ──
 @router.post("/api/superadmin/genoma/explotar")
 async def r_genoma_explotar(request: Request):

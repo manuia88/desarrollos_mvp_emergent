@@ -252,6 +252,15 @@ export async function getCubo4sDimensiones() {
 export async function loadCubo4s() {
   return _j(await fetch(`${API}/api/superadmin/cubo-4s/load`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// Generador de Reportes por menú (Ola B3): territorio + bloques + cortes → reporte a la medida.
+export async function getReporteBloques() {
+  return _j(await fetch(`${API}/api/superadmin/reportes/bloques`, { headers: h(), credentials: 'include' }));
+}
+export async function generarReporte(payload) {
+  return _j(await fetch(`${API}/api/superadmin/reportes/generar`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(payload || {}),
+  }));
+}
 // Brief de producto auto-generado desde los átomos + despacho al buzón del dev (cubo→brief).
 export async function getCubo4sBrief(estudio) {
   return _j(await fetch(`${API}/api/superadmin/cubo-4s/brief?estudio=${encodeURIComponent(estudio)}`, { headers: h(), credentials: 'include' }));

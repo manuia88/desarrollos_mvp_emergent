@@ -63,13 +63,13 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 - [x] A7. ✅2026-07-13 · Endpoint /api/superadmin/genoma/resumen (átomos por dimensión×zona×día = KPI del moat) + tests
 - [x] A8. ✅2026-07-13 · m² y features al contraste 4S (hoy solo recámaras+presupuesto)
 
-### OLA B · ESPEJO + REPORTES (acceso total a la data)
-- [ ] B1. Espejo demanda↔oferta por dimensión×escala (reusa cube_lens/k-anon)
-- [ ] B2. Índice de Escasez + Tensión por feature×zona (12 escalas, mismo índice por peldaño)
-- [ ] B3. Generador de Reportes por menú: endpoint componible (territorio+bloques+cortes) — bloques: demografía/NSE · oferta · demanda viva · finanzas · 4S real/transferido · índices · catastro/DENUE · riesgos · estilo de vida
-- [ ] B4. UI superadmin del generador (menú → reporte en pantalla + imprimible, reusa patrón PDF estudio)
-- [ ] B5. Data negativa v1: inventario invisible (0 vistas/30d) + fichas sin like + zonas nunca buscadas → alertas
-- [ ] B6. Radar léxico (corpus de queries → términos emergentes por trimestre)
+### OLA B · ESPEJO + REPORTES (acceso total a la data) — ✅ COMPLETA 2026-07-13
+- [x] B1. ✅2026-07-13 · Espejo demanda↔oferta por dimensión×escala (reusa cube_lens/k-anon)
+- [x] B2. ✅2026-07-13 · Índice de Escasez + Tensión por feature×zona (12 escalas, mismo índice por peldaño)
+- [x] B3. ✅2026-07-13 · Generador de Reportes por menú: endpoint componible (territorio+bloques+cortes) — bloques: demografía/NSE · oferta · demanda viva · finanzas · 4S real/transferido · índices · catastro/DENUE · riesgos · estilo de vida
+- [x] B4. ✅2026-07-13 · UI superadmin del generador (menú → reporte en pantalla + imprimible, reusa patrón PDF estudio)
+- [x] B5. ✅2026-07-13 · Data negativa v1: inventario invisible (0 vistas/30d) + fichas sin like + zonas nunca buscadas → alertas
+- [x] B6. ✅2026-07-13 · Radar léxico (corpus de queries → términos emergentes por trimestre)
 
 ### OLA C · SCORES DEL MERCADO (la inteligencia encima del espejo)
 - [ ] C1. Precio Sombra por feature×zona (hedonic_regression_engine + pesos de demanda)

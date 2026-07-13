@@ -17,7 +17,8 @@ import CubeLicensableView from '../../components/superadmin/CubeLicensableView';
 import CubeHistoriaView from '../../components/superadmin/CubeHistoriaView';
 import CubeExploradorView from '../../components/superadmin/CubeExploradorView';
 import CubeEquilibrioView from '../../components/superadmin/CubeEquilibrioView';
-import { Database, LayoutGrid, Send, Layers, TrendingUp, Box, ShieldCheck, History, SlidersHorizontal } from 'lucide-react';
+import CubeReportesView from '../../components/superadmin/CubeReportesView';
+import { Database, LayoutGrid, Send, Layers, TrendingUp, Box, ShieldCheck, History, SlidersHorizontal, FileText } from 'lucide-react';
 import { Z } from '../../styles/zIndex';
 
 const PERIODS = [['current', 'Actual'], ['7d', '7d'], ['30d', '30d'], ['90d', '90d']];
@@ -25,6 +26,7 @@ const PERIODS = [['current', 'Actual'], ['7d', '7d'], ['30d', '30d'], ['90d', '9
 const TABS = [
   ['explorador', 'Explorador', SlidersHorizontal],
   ['equilibrio', 'Equilibrio 4S', TrendingUp],
+  ['reportes', 'Reportes', FileText],
   ['catalogo', 'Catálogo', Database],
   ['crosscut', 'Corte cruzado', LayoutGrid],
   ['historia', 'Historia', History],
@@ -96,6 +98,7 @@ export default function SuperadminHubMercado({ user, onLogout }) {
         {tab === 'crosscut' && <CubeCrossCutView period={period} />}
         {tab === 'explorador' && <CubeExploradorView onDrillUnit={(uid) => { setDrillUnit(uid); setTab('atomo'); }} />}
         {tab === 'equilibrio' && <CubeEquilibrioView />}
+        {tab === 'reportes' && <CubeReportesView />}
         {tab === 'historia' && <CubeHistoriaView />}
         {tab === 'atomo' && <CubeAtomView initialUnitId={drillUnit} />}
         {tab === 'actuar' && <CubeActuarView onToast={setToast} />}
