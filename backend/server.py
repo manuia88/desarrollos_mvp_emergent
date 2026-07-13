@@ -2737,6 +2737,14 @@ async def startup():
         except Exception as e:
             logging.warning("[startup] market_4s load fail-open: %s", e)
 
+        # Átomos 4S (macro→nano · 2,200+ hechos de los 4 estudios) → facts_4s. Idempotente, cero API.
+        try:
+            from market_4s_facts import load_facts_4s
+            _f4 = await load_facts_4s(db)
+            logging.info("[startup] facts_4s cargado: %s", _f4)
+        except Exception as e:
+            logging.warning("[startup] facts_4s load fail-open: %s", e)
+
         # W6.MOV.2 — Gov Data MX: indexes + 2 crons (weekly dom 04:00 + monthly día 1 05:00 UTC)
         # HONESTIDAD DE DATOS (auditoría 2026-07-12): el cron actual solo guardaba el HTML de la landing
         # (~3.9KB), NUNCA los datasets (INEGI/IMSS/ENVIPE/SEP) → daba FALSA frescura (ingested_at avanzaba,

@@ -1,0 +1,681 @@
+{
+  "_meta": {
+    "fuente": "4S Real Estate · Estudios de Demanda Vertical · Quiero Casa",
+    "periodo": "2026-05/2026-06",
+    "n_muestra_por_estudio": 100,
+    "nota": "Fuente granular: cada hoja alimenta el compilador de átomos (market_4s_facts). Claves con '_' son metadata. Valores [lo,hi] = rango. Página = PDF origen.",
+    "estudios": ["coyoacan", "insurgentes_antonio_caso", "periferico", "puente_alvarado"]
+  },
+  "coyoacan": {
+    "_zona": "Av. Universidad y Cto. Interior Río Churubusco (Benito Juárez/Coyoacán)",
+    "_alcaldia": "Benito Juárez",
+    "campana": {"_pagina": 4, "proyecto_ancla": "Névora Tower", "alcance": 19538, "impresiones": 27208, "leads": 55, "dias": 20},
+    "demografia": {"_pagina": 8, "poblacion_alcaldia": 434153, "hogares_alcaldia": 176053, "personas_por_hogar": 2.5, "crec_hogares_2010_2020_pct": 32.8, "migracion_participacion_pct": 19.47, "crec_migracion_pct": 8.74},
+    "nse_3km": {"_pagina": 13, "_total_hogares": 124241, "residencial_plus": 55, "residencial": 43, "medio": 2},
+    "nse_inmediata": {"_pagina": 14, "_total_hogares": 19780, "residencial_plus": 99, "residencial": 1},
+    "zona_influencia": {"_pagina": 15, "poblacion": 48415, "hogares": 19544, "personas_por_hogar": 2.48, "tenencia": {"propia": 60.2, "renta": 28.4, "otra": 11.4}, "etapas_top": {"F1": 21, "AI": 19, "ANKS": 13, "F2": 11}},
+    "embudo": {"_pagina": 16, "contactados": 932, "califican": 100, "tasa_calificacion_pct": 11, "incidencias": {"no_busca": 48, "busca_casa": 4, "no_cumple_perfil": 37, "menor_25": 5, "presupuesto_bajo": 15, "ingreso_bajo": 17}, "_filtros": "presupuesto ≥$4.3mdp · ingreso ≥$130k · edad ≥25"},
+    "perfil": {
+      "edad_pct": {"_pagina": 16, "25_30": 33, "31_35": 27, "36_40": 19, "41_45": 4, "46_50": 7, "51_55": 6, "56_60": 4},
+      "ingreso_mensual_pct": {"_pagina": 16, "130_140k": 26, "140_150k": 23, "150_160k": 17, "160_170k": 12, "170_180k": 2, "180_190k": 7, "190_200k": 3, "200_210k": 8, "210_220k": 2},
+      "presupuesto_pct": {"_pagina": 16, "4.3_4.5": 6, "4.5_4.7": 9, "4.7_4.9": 12, "4.9_5.1": 9, "5.1_5.3": 11, "5.3_5.5": 9, "5.5_5.7": 6, "5.7_5.9": 14, "5.9_6.1": 9, "6.1_6.3": 5, "6.3_6.5": 2, "6.5_6.7": 2, "6.7_6.9": 2, "6.9_7.1": 2, "7.1_7.3": 2},
+      "segmento_pct": {"residencial_plus": 76, "premium": 24},
+      "intencion_pct": {"habitar": 80, "inversion": 20},
+      "con_hijos_pct": {"con_hijos": 33, "sin_hijos": 67},
+      "ciclo_vida_pct": {"_pagina": 19, "soltero_joven": 16, "soltero_adulto": 11, "adulto_independiente": 5, "pareja_joven_sin_hijos": 14, "pareja_adulta_sin_hijos": 9, "pareja_adulta_sin_hijos_en_casa": 12, "pareja_joven_hijos_0_10": 17, "pareja_adulta_hijos_11_20": 6, "pareja_adulta_hijos_21mas": 5, "padre_madre_soltero": 5},
+      "estado_civil_pct": {"casado": 58, "soltero": 24, "divorciado": 8, "union_libre": 6},
+      "vivienda_actual_pct": {"_pagina": 19, "rentada": 46, "propia_pagada": 26, "con_padres": 18, "de_familiar": 6, "propia_pagando": 4},
+      "tipo_vivienda_actual_pct": {"casa_independiente": 64, "edificio_deptos": 32, "casas_juntas": 4},
+      "auto_pct": {"_pagina": 17, "auto_propio": 94, "1_auto": 45, "2_autos": 50, "3_autos": 5, "electrico": 11},
+      "fuente_ingresos_pct": {"empleado_privado": 42, "negocio_propio": 22, "empleado_gobierno": 16, "autoempleado": 8, "ama_de_casa": 4, "emprendedor": 4, "freelancer": 4},
+      "giro_pct": {"comercio_ventas": 37, "salud": 14, "corporativos": 12, "educativos": 7, "profesionales": 7, "tecnologia": 7, "manufactura": 5, "alimentos": 5, "financieros": 2, "gobierno": 2, "entretenimiento": 2}
+    },
+    "busqueda": {
+      "_pagina": 18,
+      "compra_habitar_es": {"primer_inmueble": 83, "segundo": 12, "tercero": 5},
+      "inversion_es": {"1a_inversion": 38, "2a_inversion": 38, "frecuente": 24},
+      "llave_en_mano_decide_invertir_pct": {"si": 88, "no": 12},
+      "entrega_pct": {"amueblar_a_gusto": 62, "llave_en_mano": 38},
+      "renta_formato_pct": {"tradicional_largo_plazo": 62, "airbnb": 38},
+      "objetivo_inversion_pct": {"rente_y_pague": 38, "estabilidad_br": 25, "plusvalia_vender": 25, "patrimonio_hijos": 12}
+    },
+    "posicionamiento": {
+      "_pagina": 21,
+      "proyectos_atractivos_pct": {"be_grand_del_valle": 24, "impar": 14, "agatha_del_valle": 10, "altezza_central": 10, "colinas_arboledas": 9, "archandel": 9, "the_park": 9, "cuenca_39": 5, "torre_one": 5, "tintoreto_74": 5},
+      "que_atrae_pct": {"comercio": 20, "centrico": 20, "entretenimiento": 10, "amenidades": 10, "infraestructura": 10, "domotica": 10, "unidades_educativas": 10, "buena_ubicacion": 10},
+      "que_no_gusto_pct": {"trafico": 17, "mantenimiento_caro": 13, "espacios_mal_utilizados": 13, "sin_estetica": 13, "areas_verdes_chicas": 8, "zona_ruidosa": 8, "pocas_amenidades": 8, "deptos_pequenos": 8, "estacionamiento_limitado": 4, "precio_elevado": 4, "demora_entrega": 4},
+      "_nota": "El mercado voltea a reventa informal por retrasos de entrega e incrementos de precio"
+    },
+    "oferta_subzonas": {
+      "_pagina": 24,
+      "del_valle": {"proyectos": 6, "absorcion_prom": 3.05, "precio_prom": 5918791, "m2_prom": 84, "precio_m2_prom": 72897, "unidades": 1431, "vendidas": 948, "inventario": 483},
+      "portales": {"proyectos": 5, "absorcion_prom": 1.84, "precio_prom": 6189854, "m2_prom": 94, "precio_m2_prom": 68623, "unidades": 460, "vendidas": 274, "inventario": 186}
+    },
+    "inventario_concentracion": {"_pagina": 26, "rango_top": "5.8-6.0 mdp"},
+    "reventa_por_segmento": {
+      "_pagina": 27,
+      "premium": {"anuncios": 500, "precio_prom": 8095650, "precio_m2": 67416, "m2_prom": 133},
+      "residencial_plus": {"anuncios": 696, "precio_prom": 5086638, "precio_m2": 57772, "m2_prom": 94},
+      "residencial": {"anuncios": 265, "precio_prom": 3236480, "precio_m2": 38835, "m2_prom": 90},
+      "total": {"anuncios": 1461, "precio_prom": 5780830, "precio_m2": 57638, "m2_prom": 107}
+    },
+    "avaluos_por_segmento": {
+      "_pagina": 27,
+      "premium": {"avaluos": 97, "precio_prom": 8050351, "precio_m2": 59017, "m2_prom": 145},
+      "residencial_plus": {"avaluos": 198, "precio_prom": 4956152, "precio_m2": 53391, "m2_prom": 97},
+      "residencial": {"avaluos": 112, "precio_prom": 3273688, "precio_m2": 45445, "m2_prom": 74},
+      "total": {"avaluos": 407, "precio_prom": 5230602, "precio_m2": 52545, "m2_prom": 102}
+    },
+    "factores_decision_pct": {"_pagina": 29, "amenidades_basicas": 10, "vigilancia_seguridad": 8, "areas_verdes": 7, "zona_segura": 7, "nse_prestigio": 6, "plusvalia": 6, "amplitud_cocina": 4, "amplitud_dormitorios": 4, "espacios_deportivos": 4, "acabados": 4, "dormitorios_necesarios": 4, "cerca_comercios": 4, "concepto_proyecto": 4, "cerca_colegios": 3, "terraza": 3, "mas_m2": 3},
+    "producto": {
+      "dormitorios_pct": {"_pagina": 31, "1": 14, "2": 47, "3": 35, "4": 4},
+      "dormitorios_por_intencion": {"habitar": {"1": 12, "2": 34, "3": 30, "4": 4}, "inversion": {"1": 2, "2": 13, "3": 5}},
+      "banos_pct": {"1": 11, "1.5": 19, "2": 44, "3": 21, "4": 5},
+      "compartir_con_pct": {"pareja": 37, "hijos": 19, "solo": 15, "no_usara": 15, "padres": 6, "roommate": 4},
+      "area_mayor_metraje_pct": {"dormitorios": 44, "social": 30, "banos": 16, "cocina": 10},
+      "espacio_adicional_pct": {"cuarto_tv": 39, "dormitorio_adicional": 32, "home_office": 29},
+      "cocina_pct": {"_pagina": 33, "abierta_con_barra": 54, "cerrada": 24, "abierta_americana": 22},
+      "barra_decisiva_pct": {"si": 92, "no": 8},
+      "conexiones_pct_conectadas": {"cocina_comedor": 80, "cocina_sala": 60, "sala_comedor": 26, "dormitorios_bano": 28, "visitas_bano": 24},
+      "closets_decisivos_pct": {"si": 54, "no": 46},
+      "canceles_decisivos_pct": {"si": 56, "no": 44},
+      "cuarto_lavado_pct": {"si": 71, "no": 29},
+      "balcon_pct": {"si": 70, "no": 30},
+      "balcon_ubicacion_pct": {"area_social": 49, "dormitorio_principal": 37, "indiferente": 14},
+      "piso_pct": {"ceramico_madera": 52, "ceramico_piedra": 48},
+      "materiales_valor_pct": {"_pagina": 35, "madera_calida": 60, "concreto_aparente": 18, "metal_paneles": 10, "cristaleria": 6, "muros_verdes": 4, "cancel_acustico": 2},
+      "acabado_griferia_pct": {"cromado": 25, "modernos_neutros": 24, "negro_mate": 20, "dorados_premium": 17, "sin_preferencia": 14},
+      "acabados_pagaria_mas_pct": {"madera_ingenieria": 35, "porcelanato": 26, "piso_laminado": 26, "no_pagaria_mas": 13}
+    },
+    "estacionamiento": {
+      "_pagina": 36,
+      "cajones_pct": {"1": 20, "2": 45, "mas_de_2": 30, "no_necesita": 5},
+      "cajon_extra_400k_pct": {"comprarlo": 35, "no_a_ese_precio": 40, "no_necesita": 20, "igual_compraria": 5},
+      "cajon_extra_precio_alternativo": [200000, 300000],
+      "un_cajon_no_compra_pct": {"si_factor_no_compra": 15, "igual_compraria": 85},
+      "elevautos_400k_decisivo_pct": {"si": 65, "no": 35},
+      "elevautos_compartido_no_compra_pct": {"si": 35, "no": 65},
+      "dos_cajones_uno_elevautos_no_compra_pct": {"si": 30, "no": 70},
+      "cargadores_electricos_decisivo_pct": {"si": 55, "no": 45},
+      "bodega_interes_pct": {"comprarla": 45, "rentarla": 30, "no": 25},
+      "bodega_renta_mensual_pct": {"1001_1250": 62, "1251_1500": 34, "1751_2000": 4},
+      "bodega_compra_pct": {"80_90k": 29, "90_100k": 41, "100_110k": 20, "110_120k": 11},
+      "preferencia_pct": {"normal_sin_bodega": 67, "tandem_con_bodega": 33}
+    },
+    "amenidades": {
+      "abiertas_pct": {"_pagina": 38, "gimnasio": 16, "areas_verdes": 14, "alberca": 13, "mascotas": 10, "area_juegos": 8, "usos_multiples": 7, "roof_garden": 5, "terraza_panoramica": 5, "asadores": 4, "vitapista": 4, "yoga": 4, "canchas": 3, "padel": 3, "coworking": 2, "ludoteca": 2},
+      "servicios_pct": {"vigilancia": 24, "seguridad_247": 13, "reciclaje_aguas": 13, "cctv": 9, "paneles_solares": 9, "acceso_controlado": 7, "lobby": 7, "iluminacion": 4, "limpieza": 4},
+      "listado_top_pct": {"_pagina": 39, "areas_verdes": 15, "mascotas": 12, "alberca": 12, "gimnasio": 11, "asadores": 9, "roof_garden": 8, "terraza_panoramica": 8, "usos_multiples": 6, "salon_juegos": 4, "yoga": 3, "lectura": 3, "cowork": 3},
+      "cuota_dispuesta_pct": {"3000_3100": 18, "3101_3200": 26, "3201_3300": 12, "3301_3400": 2, "3401_3500": 16, "3501_3600": 18, "3601_3700": 8}
+    },
+    "arquitectura": {
+      "_pagina": 40,
+      "fachada_pct": {"industrial_moderno": 32, "minimalista": 28, "tradicional_calido": 22, "sofisticado": 18},
+      "protagonismo_pct": {"moderada_elegante": 42, "funcional_simple": 24, "muy_iconica": 22, "sin_preferencia": 12},
+      "confianza_pct": {"sin_preferencia": 40, "mayor_altura": 40, "menor_altura": 20},
+      "materiales_confianza_pct": {"madera_calida": 39, "cristaleria": 26, "metal_paneles": 20, "concreto": 14, "muros_verdes": 12},
+      "estilo_pct": {"urbano_contemporaneo": 35, "aspiracional_iconico": 30, "balance": 24}
+    },
+    "percepcion": {
+      "_pagina": 41,
+      "buena_opcion_deptos_pct": 100,
+      "ventajas_pct": {"plusvalia": 19, "avenidas": 15, "comercios": 15, "zona_segura": 15, "ubicacion": 8, "centrica": 8, "metro": 6, "zocalo": 4, "servicios": 4, "transporte": 4, "educativas": 3},
+      "desventajas_pct": {"congestion_vial": 36, "contaminacion_ambiental": 17, "contaminacion_auditiva": 17, "aglomeracion": 10, "insegura": 8, "transporte_publico": 4, "precios_elevados": 4, "sin_estacionamiento": 4}
+    },
+    "denue": {"_pagina": 42, "total_unidades": 152, "cambio_5a_pct": -15, "top": {"restaurantes": 71, "consultorios": 18, "minisupers": 17, "escuelas_publicas": 13, "escuelas_privadas": 11}},
+    "hipotesis_qc": {
+      "_pagina": 44,
+      "disposicion_compra_pct": {"si": 84, "no": 16},
+      "metraje_pct": {"60_70": 30, "71_80": 40, "81_90": 21, "91_100": 5, "101_110": 4},
+      "tolerancia_mas_8pct_pct": {"si": 84, "no": 16},
+      "modelos_preferencia_pct": {
+        "60m2_1rec_4218000": 11, "64m2_2rec_4540000": 26, "64m2_2rec_terraza_4980000": 17,
+        "76m2_3rec_5320000": 29, "69m2_2rec_terraza21_5760000": 9, "80m2_3rec_terraza23_6380000": 5, "ninguno": 3
+      },
+      "modelo_x_intencion": {"_pagina": 45, "60m2_4218000": {"habitar": 8, "inversion": 3}, "64m2_4540000": {"habitar": 18, "inversion": 8}, "64m2_4980000": {"habitar": 15, "inversion": 2}, "76m2_5320000": {"habitar": 23, "inversion": 6}, "69m2_5760000": {"habitar": 8, "inversion": 1}, "80m2_6380000": {"habitar": 5, "inversion": 0}},
+      "metraje_x_intencion": {"60_70": {"habitar": 22, "inversion": 8}, "71_80": {"habitar": 34, "inversion": 6}, "81_90": {"habitar": 15, "inversion": 6}, "91_100": {"habitar": 5, "inversion": 0}, "101_110": {"habitar": 4, "inversion": 0}},
+      "modelo_x_etapa_vida": {
+        "_pagina": 45,
+        "60m2_4218000": {"soltero_joven": 5, "pareja_joven_sin_hijos": 2, "pareja_adulta_sin_hijos_en_casa": 2, "pareja_joven_hijos_0_10": 2},
+        "64m2_4540000": {"soltero_joven": 5, "soltero_adulto": 2, "pareja_joven_sin_hijos": 5, "pareja_adulta_sin_hijos": 5, "pareja_adulta_sin_hijos_en_casa": 3, "pareja_joven_hijos_0_10": 2, "padre_madre_soltero": 2, "adulto_independiente": 2},
+        "64m2_4980000": {"soltero_joven": 1, "soltero_adulto": 4, "pareja_joven_sin_hijos": 4, "pareja_joven_hijos_0_10": 3, "pareja_adulta_hijos_11_20": 2, "padre_madre_soltero": 3},
+        "76m2_5320000": {"soltero_joven": 3, "soltero_adulto": 1, "adulto_independiente": 1, "pareja_joven_sin_hijos": 1, "pareja_adulta_sin_hijos_en_casa": 8, "pareja_joven_hijos_0_10": 8, "pareja_adulta_hijos_11_20": 1, "pareja_adulta_hijos_21mas": 1, "padre_madre_soltero": 5},
+        "69m2_5760000": {"soltero_adulto": 2, "pareja_adulta_sin_hijos": 2, "pareja_joven_hijos_0_10": 3, "pareja_adulta_hijos_21mas": 2},
+        "80m2_6380000": {"pareja_adulta_sin_hijos": 3, "pareja_adulta_hijos_21mas": 2}
+      }
+    },
+    "esquema_pago": {
+      "_pagina": 49,
+      "tiempo_compra_pct": {"0_6m": 26, "7_12m": 36, "indefinido": 18, "mas_1_ano": 20},
+      "enganche_pct": {"10": 10, "15": 10, "20": 50, "25": 14, "30": 8, "contado": 8},
+      "credito_pct": {"hipotecario_conyugal": 40, "hipotecario_personal": 32, "financiamiento_no_bancario": 14, "contado": 12},
+      "tipo_compra_pct": {"preventa": 36, "construccion": 32, "terminado": 32},
+      "descuento_atractivo_pct": {"10": 20, "12": 2, "15": 20, "20": 33, "25": 3, "30": 18, "35": 4}
+    },
+    "sustentabilidad_si_pct": {"_pagina": 50, "reciclaje_aguas_pluviales": 98, "paneles_solares": 96, "espacios_libres_areas_verdes": 94, "punto_limpio_reciclaje": 88, "electrodomesticos_eco": 84, "materiales_sustentables": 82, "certificacion_leed": 76, "certificacion_edge": 74},
+    "movilidad": {
+      "_pagina": 51,
+      "destinos_pct": {"benito_juarez": 18, "del_valle": 16, "centro_coyoacan": 10, "miguel_hidalgo": 8, "santa_fe": 6, "gam": 4, "narvarte": 4, "roma_norte": 4},
+      "actividad_pct": {"oficina": 42, "home_office": 28, "campo": 12, "familiares": 10, "escuela": 6},
+      "tiempo_actual_pct": {"menos_15": 6, "15_30": 34, "31_45": 42, "46_60": 18},
+      "tiempo_max_aceptable_pct": {"menos_15": 2, "15_30": 74, "31_45": 24},
+      "transporte_pct": {"coche_propio": 94, "app": 4, "publico": 2},
+      "importancia_traslado_pct": {"importante": 62, "muy_importante": 32, "poco": 6}
+    },
+    "estilo_vida": {
+      "_pagina": 52,
+      "centro_gravitacional_pct": {"sala_tecnofilos": 50, "dormitorio_sensualistas": 35, "cocina_chefs": 15},
+      "comunidades_pct": {"comida_gastronomia": 20, "viajes": 17, "fitness": 13, "cinefilo": 12, "arte_diseno": 10, "gamers": 9, "emprendimiento": 8, "yoga_mindfulness": 7, "deportes_espectador": 3},
+      "intereses_pct": {"comida_cocinar": 17, "mascotas": 16, "fotografia_arte": 10, "deportes": 8, "videojuegos": 8, "musica": 7, "politica": 7, "viajes": 5, "moda": 4},
+      "hobbies_pct": {"hacer_deporte": 20, "ejercicio": 20, "viajar": 13, "musica": 12, "fotos": 9, "peliculas": 8, "escribir": 6, "coleccionar": 5, "leer": 5, "cocinar": 2}
+    },
+    "eprav_disposicion_split": {"_pagina": 48, "residencial_plus": 76, "premium": 24}
+  },
+  "insurgentes_antonio_caso": {
+    "_zona": "Tabacalera, San Rafael, Santa María y Juárez (Cuauhtémoc) · Zona1=Insurgentes Zona2=Antonio Caso",
+    "_alcaldia": "Cuauhtémoc",
+    "_subzonas_encuesta": ["insurgentes", "antonio_caso"],
+    "campana": {"_pagina": 4, "proyecto_ancla": "Milani Living", "alcance": 44924, "impresiones": 79283, "leads": 48},
+    "demografia": {"_pagina": 8, "poblacion_alcaldia": 545884, "hogares_alcaldia": 196466, "personas_por_hogar": 2.8, "crec_hogares_2010_2020_pct": 16.8, "migracion_participacion_pct": 12.35, "crec_migracion_pct": -1.63},
+    "nse_3km": {"_pagina": 13, "_total_hogares": 153034, "residencial_plus": 24, "residencial": 20, "medio": 40, "economico": 16},
+    "nse_inmediata": {"_pagina": 14, "_total_hogares": 14427, "residencial_plus": 17, "residencial": 58, "medio": 25},
+    "zonas_influencia_detalle": {
+      "_pagina": 15,
+      "santa_maria": {"poblacion": 42355, "hogares": 15364, "tenencia": {"propia": 61.1, "renta": 14.4, "otra": 24.5}},
+      "san_rafael": {"poblacion": 22567, "hogares": 8924, "tenencia": {"propia": 33.2, "renta": 55.1, "otra": 11.6}},
+      "tabacalera": {"poblacion": 4670, "hogares": 1913, "tenencia": {"propia": 66.7, "renta": 16.7, "otra": 16.7}}
+    },
+    "embudo": {"_pagina": 16, "contactados": 1132, "califican": 100, "tasa_calificacion_pct": 9, "incidencias": {"no_busca_o_casa": 23, "no_cumple_perfil": 69, "menor_25": 2, "presupuesto_bajo": 43, "ingreso_bajo": 24}, "_filtros": "presupuesto ≥$3.5mdp · ingreso ≥$100k · edad ≥25"},
+    "perfil": {
+      "edad_pct": {"_por_subzona": true, "insurgentes": {"25_30": 24, "31_35": 21, "36_40": 34, "41_45": 11, "56_60": 8, "mas_60": 3}, "antonio_caso": {"25_30": 9, "31_35": 29, "36_40": 27, "41_45": 8, "46_50": 10, "51_55": 11, "56_60": 6, "mas_60": 8}},
+      "ingreso_mensual_pct": {"_por_subzona": true, "insurgentes": {"100_110k": 24, "110_120k": 16, "120_130k": 32, "130_140k": 8, "160_170k": 5, "170_180k": 8, "180_190k": 3, "190_200k": 2}, "antonio_caso": {"110_120k": 21, "120_130k": 11, "130_140k": 13, "140_150k": 18, "150_160k": 19, "160_170k": 6, "170_180k": 6, "180_190k": 3}},
+      "presupuesto_pct": {"_por_subzona": true, "insurgentes": {"3.5_3.7": 26, "3.7_3.9": 16, "3.9_4.1": 8, "4.1_4.3": 11, "4.3_4.5": 5, "4.5_4.7": 8, "4.7_4.9": 3, "4.9_5.1": 5, "5.1_5.3": 3, "5.3_5.5": 3, "5.5_5.7": 3, "5.7_5.9": 3, "5.9_6.1": 5, "6.1_6.3": 3}, "antonio_caso": {"4.1_4.3": 3, "4.3_4.5": 13, "4.5_4.7": 6, "4.7_4.9": 5, "4.9_5.1": 3, "5.1_5.3": 15, "5.3_5.5": 11, "5.5_5.7": 5, "5.7_5.9": 10, "5.9_6.1": 8, "6.1_6.3": 5, "6.3_6.5": 3, "6.5_6.7": 2, "6.7_6.9": 2, "6.9_7.1": 3, "7.1_7.3": 3, "7.3_7.5": 2, "7.5_7.7": 2}},
+      "intencion_pct": {"habitar": 86, "inversion": 14},
+      "intencion_por_subzona": {"insurgentes": {"habitar": 95, "inversion": 5}, "antonio_caso": {"habitar": 81, "inversion": 19}},
+      "preferencia_subzona_pct": {"insurgentes": 38, "antonio_caso": 62},
+      "con_hijos_pct": {"con_hijos": 45, "sin_hijos": 55},
+      "ciclo_vida_pct": {"_pagina": 19, "soltero_joven": 11, "soltero_adulto": 11, "adulto_independiente": 3, "pareja_joven_sin_hijos": 7, "pareja_adulta_sin_hijos": 8, "pareja_adulta_sin_hijos_en_casa": 5, "pareja_joven_hijos_0_10": 12, "pareja_adulta_hijos_11_20": 34, "pareja_adulta_hijos_21mas": 6, "padre_madre_soltero": 3},
+      "estado_civil_pct": {"casado": 65, "soltero": 26, "divorciado": 9},
+      "vivienda_actual_pct": {"rentada": 47, "con_padres": 28, "de_familiar": 13, "propia_pagada": 11, "propia_pagando": 1},
+      "tipo_vivienda_actual_pct": {"casa_independiente": 79, "multifamiliar": 13, "edificio_deptos": 4, "casas_juntas": 4},
+      "auto_pct": {"auto_propio": 100, "electrico": 0},
+      "fuente_ingresos_pct": {"empleado_privado": 45, "empleado_gobierno": 37, "freelancer": 8, "autoempleado": 5, "emprendedor": 3, "jubilado": 2},
+      "giro_pct": {"comercio": 18, "administrativos": 15, "medicos": 15, "comercio_menor": 12, "educativos": 10, "contables": 6, "alimentos": 4, "legales": 4}
+    },
+    "busqueda": {
+      "_pagina": 18,
+      "entrega_pct": {"amueblar_a_gusto": 71, "llave_en_mano": 27},
+      "entrega_por_subzona": {"insurgentes": {"amueblar": 61, "llave_en_mano": 39}, "antonio_caso": {"amueblar": 77, "llave_en_mano": 19}},
+      "renta_formato_pct": {"airbnb": 63, "tradicional_largo_plazo": 37},
+      "objetivo_inversion_pct": {"rente_y_pague": 73, "estabilidad_br": 14, "airbnb_corto": 13},
+      "llave_en_mano_decide_invertir_pct": {"si": 88, "no": 12}
+    },
+    "posicionamiento": {
+      "_pagina": 21,
+      "proyectos_atractivos_pct": {"be_grand_reforma": 11, "monumento_31": 11, "edison_park": 11, "quiero_casa_insurgentes": 10, "via_insurgentes": 9, "alameda_park": 8, "liv_reforma": 8, "jai_reforma": 8, "university_tower": 7, "jmi_59": 5, "vertice": 4, "lirio_reforma": 3, "all_vista": 2, "sky_town": 1},
+      "que_atrae_pct": {"amenidades": 44, "buena_ubicacion": 26, "cantidad_dormitorios": 10, "lujo_prestigio": 10, "precio": 5, "vista": 5},
+      "que_no_gusto_pct": {"precio_elevado": 32, "sin_alberca": 26, "falta_estacionamiento": 16, "pocas_areas_verdes": 11, "deptos_pequenos": 5, "muchos_deptos": 5, "pocas_amenidades": 5}
+    },
+    "oferta_subzonas": {
+      "_pagina": 24,
+      "tabacalera": {"proyectos": 7, "absorcion_prom": 3.33, "precio_prom": 7736000, "m2_prom": 74, "precio_m2_prom": 107901, "unidades": 1798, "vendidas": 1498, "inventario": 300},
+      "san_rafael": {"proyectos": 8, "absorcion_prom": 1.25, "precio_prom": 4005515, "m2_prom": 60, "precio_m2_prom": 76015, "unidades": 729, "vendidas": 340, "inventario": 389}
+    },
+    "ventas_concentracion": {"_pagina": 25, "rango_top": "2.3-4.8 mdp"},
+    "inventario_concentracion": {"_pagina": 26, "rango_top": "3.4-3.6 mdp (133u) y 4.8-5.0 (109u)", "subzona_mayor_inventario": "san_rafael"},
+    "reventa_por_segmento": {
+      "_pagina": 27,
+      "premium": {"anuncios": 204, "precio_prom": 8591198, "precio_m2": 85087, "m2_prom": 107},
+      "residencial_plus": {"anuncios": 283, "precio_prom": 4883973, "precio_m2": 66897, "m2_prom": 79},
+      "residencial": {"anuncios": 461, "precio_prom": 3150842, "precio_m2": 65174, "m2_prom": 53},
+      "total": {"anuncios": 948, "precio_prom": 4838932, "precio_m2": 69974, "m2_prom": 73}
+    },
+    "avaluos_por_segmento": {
+      "premium": {"avaluos": 17, "precio_prom": 7754588, "precio_m2": 79364, "m2_prom": 105},
+      "residencial_plus": {"avaluos": 42, "precio_prom": 4592143, "precio_m2": 59335, "m2_prom": 82},
+      "residencial": {"avaluos": 141, "precio_prom": 2909078, "precio_m2": 50002, "m2_prom": 63},
+      "total": {"avaluos": 200, "precio_prom": 3674390, "precio_m2": 54458, "m2_prom": 70}
+    },
+    "factores_decision_pct": {"_pagina": 29, "amenidades_basicas": 20, "precio_m2_barato": 12, "zona_segura": 8, "terraza": 8, "amplitud_dormitorios": 7, "dormitorios_necesarios": 6, "vigilancia_seguridad": 5, "areas_verdes": 5, "nse_prestigio": 4, "distribucion": 3, "plusvalia": 3, "centrico": 3},
+    "producto": {
+      "dormitorios_pct": {"_pagina": 31, "1": 20, "2": 52, "3": 28},
+      "banos_pct": {"1": 20, "1.5": 17, "2": 28, "2.5": 23, "3": 12},
+      "compartir_con_pct": {"pareja": 45, "hijos": 27, "solo": 14, "padres": 8, "suegros": 3, "hermanos": 1, "sobrinos": 1, "companero": 1},
+      "num_hijos_pct": {"1": 30, "2": 64, "3": 6},
+      "area_mayor_metraje_pct": {"social": 45, "dormitorios": 30, "cocina": 15, "banos": 10},
+      "espacio_adicional_pct": {"home_office": 45, "dormitorio_adicional": 38, "cuarto_tv": 17},
+      "cocina_pct": {"abierta_con_barra": 41, "cerrada": 36, "abierta_americana": 23},
+      "barra_decisiva_pct": {"si": 91, "no": 9},
+      "conexiones_pct_conectadas": {"cocina_comedor": 34, "cocina_sala": 35, "sala_comedor": 51, "dormitorios_bano": 51, "visitas_bano": 50},
+      "closets_decisivos_pct": {"si": 56, "no": 44},
+      "canceles_decisivos_pct": {"si": 61, "no": 39},
+      "cuarto_lavado_pct": {"si": 92, "no": 8},
+      "balcon_pct": {"si": 86, "no": 14},
+      "balcon_ubicacion_pct": {"area_social": 49, "dormitorio_principal": 29, "indiferente": 22},
+      "piso_pct": {"ceramico_piedra": 59, "ceramico_madera": 41},
+      "materiales_valor_pct": {"muros_verdes": 26, "madera_calida": 20, "metal_paneles": 19, "concreto_aparente": 18, "cristaleria": 9, "cancel_acustico": 8},
+      "acabado_griferia_pct": {"modernos_neutros": 63, "dorados_premium": 21, "negro_mate": 16},
+      "acabados_pagaria_mas_pct": {"porcelanato": 53, "madera_ingenieria": 29, "piso_laminado": 14, "no_pagaria_mas": 4}
+    },
+    "estacionamiento": {
+      "_pagina": 35,
+      "cajones_pct": {"1": 45, "2": 55},
+      "cajon_extra_400k_pct": {"comprarlo": 29, "no_a_ese_precio": 27, "no_necesita_o_igual": 44},
+      "cajon_extra_precio_alternativo_pct": {"150k": 5, "200k": 19, "250k": 29, "275k": 5, "280k": 10, "300k": 32},
+      "un_cajon_no_compra_pct": {"si_factor_no_compra": 39, "igual_compraria": 61},
+      "elevautos_400k_decisivo_pct": {"si": 62, "no": 38},
+      "elevautos_compartido_no_compra_pct": {"si": 35, "no": 65},
+      "dos_cajones_uno_elevautos_no_compra_pct": {"si": 35, "no": 65},
+      "cargadores_electricos_decisivo_pct": {"si": 60, "no": 40},
+      "bodega_interes_pct": {"comprarla": 65, "rentarla": 25, "no": 10},
+      "bodega_renta_mensual_pct": {"500_750": 13, "751_1000": 46, "1001_1250": 13, "1251_1500": 25, "1751_2000": 3},
+      "bodega_compra_pct": {"70_80k": 24, "80_90k": 22, "90_100k": 31, "100_110k": 15, "110_120k": 8},
+      "preferencia_pct": {"normal_sin_bodega": 60, "tandem_con_bodega": 40}
+    },
+    "amenidades": {
+      "abiertas_pct": {"_pagina": 37, "gimnasio": 17, "canchas_deportivas": 15, "areas_verdes": 15, "alberca": 14, "mascotas": 9, "terraza": 7, "area_infantil": 5, "asadores": 3, "salon_juegos": 3, "yoga": 3, "casa_club": 2, "salon_eventos": 2},
+      "servicios_pct": {"vigilancia": 19, "cisterna": 10, "barda_perimetral": 9, "elevadores": 9, "mantenimiento": 9, "acceso_controlado": 8, "paneles_solares": 8, "porton_electrico": 6, "recepcion": 5, "salidas_emergencia": 4},
+      "listado_top_pct": {"_pagina": 38, "alberca": 17, "mascotas": 14, "padel": 13, "gimnasio": 9, "areas_verdes": 9, "terraza_panoramica": 8, "asadores": 7, "carril_nado": 4, "roof_garden": 3, "yoga": 3, "usos_multiples": 3, "cowork": 3},
+      "cuota_dispuesta_pct": {"2500_2600": 18, "2601_2700": 34, "2701_2800": 20, "2801_2900": 18, "2901_3000": 11}
+    },
+    "arquitectura": {
+      "_pagina": 39,
+      "fachada_pct": {"minimalista": 38, "sofisticado": 23, "industrial_moderno": 22, "tradicional_calido": 14, "indiferente": 3},
+      "protagonismo_pct": {"moderada_elegante": 31, "funcional_simple": 29, "muy_iconica": 24, "sin_preferencia": 16},
+      "confianza_pct": {"sin_preferencia": 49, "mayor_altura": 40, "menor_altura": 11},
+      "estilo_pct": {"urbano_contemporaneo": 49, "balance": 33, "aspiracional_iconico": 18}
+    },
+    "percepcion": {
+      "_pagina": 40,
+      "buena_opcion_por_subzona_pct": {"insurgentes": 83, "antonio_caso": 85},
+      "ventajas_insurgentes_pct": {"accesibilidad": 15, "comercio": 14, "conexiones_viales": 10, "areas_verdes": 8, "seguridad": 7, "servicios": 6, "transporte": 6, "turisticas": 6, "plusvalia": 5},
+      "ventajas_antonio_caso_pct": {"conexiones_viales": 14, "comercio": 12, "accesibilidad": 8, "areas_verdes": 8, "seguridad": 8, "servicios": 8, "transporte": 7, "plusvalia": 6, "restaurantes": 6, "centrica": 6},
+      "desventajas_insurgentes_pct": {"inseguridad": 21, "poca_iluminacion": 13, "poca_vigilancia": 13, "trafico": 11, "situacion_calle": 7, "afluencia": 5, "ruido": 5},
+      "desventajas_antonio_caso_pct": {"inseguridad": 33, "trafico": 18, "poca_iluminacion": 11, "poca_vigilancia": 8, "marchas": 8, "estacionamiento": 6}
+    },
+    "denue": {"_pagina": 41, "total_unidades": 210, "cambio_5a_pct": -2, "top": {"restaurantes": 84, "hoteles": 27, "minisupers": 25, "dark_kitchen": 16, "escuelas_privadas": 13, "escuelas_publicas": 13}},
+    "hipotesis_qc": {
+      "_pagina": 43,
+      "zona_preferida_pct": {"insurgentes_zona1": 38, "antonio_caso_zona2": 62},
+      "metraje_pct": {"general": {"40_50": 38, "51_60": 21, "61_70": 23, "71_80": 15, "81_90": 3}, "insurgentes": {"40_50": 37, "51_60": 26, "61_70": 21, "71_80": 13, "81_90": 3}, "antonio_caso": {"40_50": 39, "51_60": 18, "61_70": 24, "71_80": 16, "81_90": 3}},
+      "tolerancia_mas_8pct_pct": {"insurgentes": 83, "antonio_caso": 92},
+      "lock_off_dispuesto_pct": {"si": 90, "no": 10},
+      "modelos_preferencia_pct": {
+        "_pagina": 45,
+        "45m2_1rec_3500000": 17, "57m2_2rec1bano_4331000": 18, "58m2_2rec2banos_4294000": 26,
+        "70m2_3rec_4970000": 26, "lockoff_74m2_5120000": 10, "ninguno": 3
+      },
+      "descuento_atractivo_por_subzona_pct": {"insurgentes": {"5": 14, "8": 6, "10": 38, "12": 21, "15": 21}, "antonio_caso": {"5": 24, "8": 12, "10": 49, "12": 3, "15": 12}}
+    },
+    "esquema_pago": {
+      "_pagina": 52,
+      "tiempo_compra_pct": {"0_6m": 44, "7_12m": 46, "indefinido": 10},
+      "enganche_pct": {"10": 16, "15": 24, "20": 43, "25": 11, "30": 1, "contado": 5},
+      "credito_pct": {"hipotecario_conyugal": 41, "hipotecario_personal": 25, "cofinavit": 23, "financiamiento_no_bancario": 6, "contado": 5},
+      "tipo_compra_pct": {"construccion": 49, "terminado": 32, "preventa": 19}
+    },
+    "sustentabilidad_si_pct": {"_pagina": 53, "paneles_solares": 96, "punto_limpio_reciclaje": 94, "reciclaje_aguas_pluviales": 92, "materiales_sustentables": 91, "espacios_libres_areas_verdes": 85, "certificacion_edge": 80, "certificacion_leed": 76, "electrodomesticos_eco": 75},
+    "movilidad": {
+      "_pagina": 54,
+      "destinos_pct": {"centro_historico": 37, "coyoacan": 8, "cuauhtemoc": 8, "tlalpan": 5, "benito_juarez": 4, "polanco": 4, "miguel_hidalgo": 4},
+      "actividad_pct": {"oficina": 80, "campo": 11, "familiares": 4, "home_office": 4, "escuela": 1},
+      "tiempo_actual_pct": {"15_30": 31, "31_45": 58, "46_60": 6, "61_75": 4, "menos_15": 1},
+      "tiempo_max_aceptable_pct": {"15_30": 50, "31_45": 42, "46_60": 8},
+      "transporte_pct": {"coche_propio": 74, "publico": 16, "caminando": 7, "app": 3},
+      "importancia_traslado_pct": {"muy_importante": 56, "importante": 38, "poco": 5, "nada": 1}
+    },
+    "estilo_vida": {
+      "_pagina": 55,
+      "centro_gravitacional_pct": {"dormitorio_sensualistas": 41, "sala_tecnofilos": 35, "cocina_chefs": 24},
+      "comunidades_pct": {"comida_gastronomia": 25, "deportes_espectador": 23, "viajes": 15, "cinefilo": 10, "yoga_mindfulness": 6, "fitness": 7, "arte_diseno": 5, "gamers": 4},
+      "intereses_pct": {"mascotas": 24, "peliculas": 10, "comics_anime": 9, "comida_cocinar": 8, "deportes": 7, "musica": 6, "diseno_grafico": 5, "tatuajes": 5},
+      "hobbies_pct": {"viajar": 15, "peliculas": 14, "ejercicio": 13, "hacer_deporte": 12, "pintar_dibujar": 11, "musica": 7, "leer": 7, "fotos": 6}
+    },
+    "eprav_disposicion_split": {"insurgentes": {"residencial": 91, "residencial_plus": 9}, "antonio_caso": {"residencial": 87, "residencial_plus": 13}}
+  },
+  "periferico": {
+    "_zona": "Periférico Sur y Av. Del Imán (Coyoacán alcaldía)",
+    "_alcaldia": "Coyoacán",
+    "campana": {"_pagina": 4, "proyecto_ancla": "Vértice", "alcance": 21521, "impresiones": 54732, "leads": 75},
+    "demografia": {"_pagina": 8, "poblacion_alcaldia": 612130, "hogares_alcaldia": 184264, "personas_por_hogar": 3.32, "crec_hogares_2010_2020_pct": 1.1, "poblacion_decrece_pct": -1.2, "migracion_participacion_pct": 8.14, "crec_migracion_pct": -21.01},
+    "nse_3km": {"_pagina": 13, "_total_hogares": 84023, "economico": 32, "residencial": 28, "medio": 23, "residencial_plus": 7, "premium": 4, "social": 7},
+    "nse_inmediata": {"_pagina": 14, "_total_hogares": 14150, "residencial": 35, "residencial_plus": 30, "premium": 18, "medio": 15, "economico": 1},
+    "zona_influencia": {"_pagina": 15, "poblacion": 45838, "hogares": 15656, "personas_por_hogar": 2.93, "tenencia": {"propia": 50.0, "renta": 33.3, "otra": 16.7}, "etapas_top": {"AI": 25, "P/M_S": 23, "F1": 17, "SJ": 14}},
+    "embudo": {"_pagina": 16, "contactados": 707, "califican": 100, "tasa_calificacion_pct": 14, "incidencias": {"no_busca": 58, "busca_casa": 5, "no_cumple_perfil": 22, "menor_25": 3, "presupuesto_bajo": 10, "ingreso_bajo": 10}, "_filtros": "presupuesto ≥$4.2mdp · ingreso ≥$120k · edad ≥25"},
+    "perfil": {
+      "edad_pct": {"25_30": 31, "31_35": 26, "36_40": 17, "41_45": 2, "46_50": 11, "51_55": 8, "56_60": 5},
+      "ingreso_mensual_pct": {"120_130k": 28, "130_140k": 18, "140_150k": 11, "150_160k": 13, "160_170k": 11, "170_180k": 5, "180_190k": 9, "190_200k": 5},
+      "presupuesto_pct": {"4.5_4.7": 3, "4.7_4.9": 8, "4.9_5.1": 14, "5.1_5.3": 11, "5.3_5.5": 9, "5.5_5.7": 16, "5.7_5.9": 11, "5.9_6.1": 8, "6.1_6.3": 6, "6.3_6.5": 7, "6.5_6.7": 3, "6.7_6.9": 2, "6.9_7.1": 2},
+      "segmento_pct": {"residencial_plus": 80, "premium": 20},
+      "intencion_pct": {"habitar": 88, "inversion": 12},
+      "con_hijos_pct": {"con_hijos": 47, "sin_hijos": 53},
+      "ciclo_vida_pct": {"_pagina": 19, "soltero_joven": 20, "soltero_adulto": 12, "pareja_joven_sin_hijos": 14, "pareja_adulta_sin_hijos_en_casa": 2, "adulto_independiente": 5, "pareja_joven_hijos_0_10": 29, "pareja_adulta_hijos_11_20": 15, "pareja_adulta_hijos_21mas": 3},
+      "estado_civil_pct": {"casado": 46, "soltero": 30, "union_libre": 26},
+      "vivienda_actual_pct": {"rentada": 37, "de_familiar": 35, "propia_pagando": 17, "con_padres": 6, "propia_pagada": 5},
+      "tipo_vivienda_actual_pct": {"edificio_deptos": 48, "casa_independiente": 32, "multifamiliar": 14, "casas_juntas": 6},
+      "auto_pct": {"auto_propio": 92, "electrico": 43, "_nota_electrico": "57% NO posee eléctrico"},
+      "fuente_ingresos_pct": {"empleado_privado": 26, "emprendedor": 22, "negocio_propio": 15, "freelancer": 11, "empleado_gobierno": 9, "ama_de_casa": 6, "autoempleado": 6, "jubilado": 3, "invierte_br": 2},
+      "giro_pct": {"profesionales": 25, "salud": 15, "comercio": 15, "educativos": 12, "logistica": 7, "manufactura": 6, "financieros": 5, "alimentos": 5}
+    },
+    "busqueda": {
+      "_pagina": 18,
+      "entrega_pct": {"amueblar_a_gusto": 74, "llave_en_mano": 26},
+      "renta_formato_pct": {"tradicional_largo_plazo": 70, "airbnb": 30},
+      "objetivo_inversion_pct": {"rente_y_pague": 100},
+      "llave_en_mano_decide_invertir_pct": {"si": 88, "no": 12}
+    },
+    "posicionamiento": {
+      "_pagina": 21,
+      "proyectos_atractivos_pct": {"joy": 26, "distrito_coyoacan": 22, "geyser_8": 8, "agara": 8, "unico": 8, "axos": 7, "cefiro": 3, "cobalto": 3, "high_park_sur": 3, "living_pedregal": 3, "once_once": 3, "privanza": 3, "square": 3},
+      "que_atrae_pct": {"amenidades_completas": 32, "concepto_proyecto": 25, "areas_verdes": 19, "perfecto_invertir": 6, "ubicacion": 6, "num_recamaras": 6, "tamano_depto": 6},
+      "que_no_gusto_pct": {"trafico": 25, "precios_elevados": 15, "deptos_pequenos": 12, "atrasos_obra": 9, "poca_oportunidad_inversion": 6, "poca_facilidad_pago": 6, "inseguridad": 6, "areas_pequenas": 6, "poca_plusvalia": 3, "sin_preventa": 3, "saturacion": 3, "sin_estacionamiento": 3}
+    },
+    "oferta_subzonas": {
+      "_pagina": 24,
+      "pedregal_san_nicolas": {"proyectos": 4, "absorcion_prom": 0.93, "precio_prom": 15567428, "m2_prom": 183, "precio_m2_prom": 86440, "unidades": 340, "vendidas": 271, "inventario": 69},
+      "jardines_pedregal": {"proyectos": 3, "absorcion_prom": 1.17, "precio_prom": 7999280, "m2_prom": 142, "precio_m2_prom": 58033, "unidades": 139, "vendidas": 119, "inventario": 20},
+      "san_angel": {"proyectos": 4, "absorcion_prom": 1.05, "precio_prom": 6557561, "m2_prom": 113, "precio_m2_prom": 67240, "unidades": 492, "vendidas": 332, "inventario": 160},
+      "villa_coapa": {"proyectos": 2, "absorcion_prom": 2.55, "precio_prom": 4633588, "m2_prom": 74, "precio_m2_prom": 70861, "unidades": 229, "vendidas": 97, "inventario": 132}
+    },
+    "inventario_concentracion": {"_pagina": 26, "rango_top": "5.4-5.8 mdp"},
+    "reventa_por_segmento": {
+      "_pagina": 27,
+      "premium": {"anuncios": 216, "precio_prom": 11022346, "precio_m2": 63501, "m2_prom": 185},
+      "residencial_plus": {"anuncios": 152, "precio_prom": 5113879, "precio_m2": 48632, "m2_prom": 116},
+      "residencial": {"anuncios": 90, "precio_prom": 3004971, "precio_m2": 38531, "m2_prom": 81},
+      "total": {"anuncios": 458, "precio_prom": 7485991, "precio_m2": 53660, "m2_prom": 142}
+    },
+    "avaluos_por_segmento": {
+      "premium": {"avaluos": 27, "precio_prom": 9867919, "precio_m2": 58265, "m2_prom": 183},
+      "residencial_plus": {"avaluos": 52, "precio_prom": 4858923, "precio_m2": 49038, "m2_prom": 103},
+      "residencial": {"avaluos": 126, "precio_prom": 2821627, "precio_m2": 39139, "m2_prom": 73},
+      "total": {"avaluos": 205, "precio_prom": 4266453, "precio_m2": 44169, "m2_prom": 95}
+    },
+    "factores_decision_pct": {"_pagina": 29, "amenidades_basicas": 8, "cerca_comercios": 8, "plusvalia": 7, "vigilancia_seguridad": 6, "amplitud_dormitorios": 5, "dormitorios_necesarios": 5, "arquitecto_reconocido": 5, "areas_verdes": 5, "centrico": 5, "nse_prestigio": 5, "concepto_proyecto": 4, "cajones": 4, "zona_segura": 4},
+    "producto": {
+      "dormitorios_pct": {"_pagina": 31, "1": 13, "2": 56, "3": 31},
+      "banos_pct": {"1": 24, "2": 54, "2.5": 14, "3": 8},
+      "compartir_con_pct": {"pareja": 42, "hijos": 26, "solo": 24, "roommate": 4, "hermanos": 2, "padres": 2},
+      "num_hijos_pct": {"1": 56, "2": 36, "3": 8},
+      "area_mayor_metraje_pct": {"social": 43, "dormitorios": 37, "cocina": 20},
+      "espacio_adicional_pct": {"dormitorio_adicional": 43, "home_office": 28, "cuarto_tv": 20},
+      "cocina_pct": {"cerrada": 51, "abierta_con_barra": 26, "abierta_americana": 23},
+      "barra_decisiva_pct": {"si": 77, "no": 23},
+      "conexiones_pct_conectadas": {"cocina_comedor": 54, "cocina_sala": 12, "sala_comedor": 29, "dormitorios_bano": 80, "visitas_bano": 32},
+      "closets_decisivos_pct": {"si": 66, "no": 34},
+      "canceles_decisivos_pct": {"si": 68, "no": 32},
+      "cuarto_lavado_pct": {"si": 98, "no": 2},
+      "balcon_pct": {"si": 82, "no": 18},
+      "piso_pct": {"ceramico_madera": 65, "ceramico_piedra": 35},
+      "materiales_valor_pct": {"madera_calida": 37, "muros_verdes": 18, "cristaleria": 17, "cancel_acustico": 14, "metal_paneles": 11, "concreto_aparente": 3},
+      "acabado_griferia_pct": {"cromado": 45, "negro_mate": 23, "modernos_neutros": 22, "dorados_premium": 6, "sin_preferencia": 4},
+      "acabados_pagaria_mas_pct": {"porcelanato": 38, "madera_ingenieria": 26, "piso_laminado": 26, "no_pagaria_mas": 10}
+    },
+    "estacionamiento": {
+      "_pagina": 36,
+      "cajones_pct": {"1": 25, "2": 51, "3": 24},
+      "cajon_extra_400k_pct": {"comprarlo": 28, "no_a_ese_precio": 14, "no_necesita": 6, "no_compraria_sin_cajones": 37, "igual_compraria": 15},
+      "un_cajon_no_compra_pct": {"si_factor_no_compra": 46, "igual_compraria": 54},
+      "elevautos_400k_decisivo_pct": {"si": 39, "no": 61},
+      "elevautos_compartido_no_compra_pct": {"si": 45, "no": 55},
+      "dos_cajones_uno_elevautos_no_compra_pct": {"si": 20, "no": 80},
+      "cargadores_electricos_decisivo_pct": {"si": 68, "no": 32},
+      "bodega_interes_pct": {"comprarla": 65, "rentarla": 14, "no": 18},
+      "bodega_compra_rango": [80000, 200000],
+      "bodega_renta_rango": [9000, 15000],
+      "preferencia_pct": {"normal_sin_bodega": 77, "tandem_con_bodega": 23}
+    },
+    "amenidades": {
+      "abiertas_pct": {"_pagina": 38, "alberca": 17, "areas_verdes": 13, "gimnasio": 12, "usos_multiples": 10, "ludoteca": 8, "terraza": 8, "roof_garden": 7, "area_juegos": 6, "lectura": 5, "canchas_futbol": 4, "spa": 2, "meditacion": 2, "mascotas": 2},
+      "servicios_pct": {"seguridad_247": 23, "limpieza": 11, "mantenimiento_verdes": 11, "vigilancia": 8, "cafeteria": 7, "estacionamiento": 6, "circuito_cerrado": 6, "caseta": 5, "camaras": 5, "wifi": 4, "lavanderia": 3, "elevadores": 3},
+      "listado_top_pct": {"_pagina": 39, "gimnasio": 12, "alberca": 11, "areas_verdes": 10, "roof_garden": 10, "usos_multiples": 8, "cowork": 8, "asadores": 7, "salon_juegos": 7, "terraza_panoramica": 6, "meditacion": 5, "mascotas": 4, "lectura": 4},
+      "cuota_dispuesta_pct": {"menos_3000": 5, "3000_3100": 25, "3101_3200": 16, "3201_3300": 19, "3301_3400": 13, "3401_3500": 11, "3501_3600": 9, "3701_3800": 2}
+    },
+    "arquitectura": {
+      "_pagina": 40,
+      "fachada_top": "industrial_moderno",
+      "protagonismo_top": "moderada_elegante",
+      "confianza_top": "mayor_altura",
+      "materiales_valor_pct": {"madera_calida": 43, "cristaleria": 28, "metal_paneles": 12, "concreto": 5},
+      "estilo_pct": {"aspiracional_iconico": 37, "urbano_contemporaneo": 43, "balance": 20}
+    },
+    "percepcion": {
+      "_pagina": 41,
+      "buena_opcion_deptos_pct": 89,
+      "buena_opcion_oficinas_pct": 92,
+      "ventajas_pct": {"cerca_comercios": 21, "unidades_educativas": 16, "conectividad_vial": 15, "hospitales": 7, "zona_invertir": 6, "crecimiento_poblacional": 5, "alto_nse": 5, "centrica": 4, "exclusiva": 4, "segura": 4, "alta_plusvalia": 3},
+      "desventajas_pct": {"trafico": 39, "ruido": 25, "inseguridad": 14, "contaminacion": 5, "gentrificacion": 5, "poca_plusvalia": 3}
+    },
+    "denue": {"_pagina": 42, "total_unidades": 137, "cambio_5a_pct": 28, "top": {"restaurantes": 61, "universidad_publica": 30, "escuelas_privadas": 14, "escuelas_publicas": 10, "consultorios": 6}},
+    "hipotesis_qc": {
+      "_pagina": 44,
+      "disposicion_compra_pct": {"si": 88, "no": 12},
+      "metraje_pct": {"50_60": 11, "61_70": 31, "71_80": 22, "81_90": 31, "91_100": 5},
+      "tolerancia_mas_8pct_pct": {"si": 62, "no": 38},
+      "modelos_preferencia_pct": {"61m2_1rec_4200000": 15, "68m2_2rec_4624000": 53, "80m2_3rec_5280000": 18, "100m2_3rec_6400000": 14},
+      "modelo_x_etapa_vida": {
+        "_pagina": 45,
+        "61m2_4200000": {"soltero_joven": 6, "soltero_adulto": 3, "pareja_joven_hijos_0_10": 3, "pareja_adulta_hijos_11_20": 3},
+        "68m2_4624000": {"soltero_joven": 12, "soltero_adulto": 3, "pareja_joven_sin_hijos": 8, "pareja_adulta_sin_hijos_en_casa": 2, "pareja_joven_hijos_0_10": 20, "pareja_adulta_hijos_11_20": 5, "pareja_adulta_hijos_21mas": 3},
+        "80m2_5280000": {"soltero_adulto": 4, "pareja_joven_sin_hijos": 6, "adulto_independiente": 2, "pareja_joven_hijos_0_10": 4, "pareja_adulta_hijos_11_20": 2},
+        "100m2_6400000": {"soltero_joven": 2, "soltero_adulto": 2, "adulto_independiente": 3, "pareja_joven_hijos_0_10": 2, "pareja_adulta_hijos_11_20": 5}
+      }
+    },
+    "micro_oficinas": {
+      "_pagina": 49,
+      "interes_pct": {"si": 72, "no": 28},
+      "modelo_preferido_pct": {"15m2_750000": 52, "20m2_980000": 32, "25m2_1200000": 6, "ninguno": 10}
+    },
+    "esquema_pago": {
+      "_pagina": 48,
+      "tiempo_compra_pct": {"0_6m": 25, "7_12m": 25, "indefinido": 20, "mas_1_ano": 30},
+      "enganche_pct": {"5": 2, "10": 17, "15": 2, "20": 25, "25": 9, "30": 18, "35": 5, "40": 8, "45": 2, "50": 6, "contado": 6},
+      "credito_pct": {"hipotecario_personal": 38, "financiamiento_no_bancario": 26, "hipotecario_conyugal": 17, "cofinavit": 8, "contado": 8, "infonavit": 3},
+      "tipo_compra_pct": {"construccion": 43, "preventa": 32, "terminado": 25},
+      "descuento_atractivo_pct": {"5": 14, "8": 6, "10": 30, "12": 2, "13": 2, "15": 17, "18": 2, "20": 16, "25": 2, "30": 9}
+    },
+    "sustentabilidad_si_pct": {"_pagina": 50, "materiales_sustentables": 94, "espacios_libres_areas_verdes": 94, "punto_limpio_reciclaje": 88, "electrodomesticos_eco": 88, "paneles_solares": 83, "reciclaje_aguas_pluviales": 77, "certificacion_leed": 72, "certificacion_edge": 72},
+    "movilidad": {
+      "_pagina": 51,
+      "destinos_pct": {"condesa": 14, "benito_juarez": 12, "centro_cdmx": 12, "del_valle": 12, "coyoacan": 11, "tlalpan": 8, "roma_norte": 5},
+      "actividad_pct": {"oficina": 52, "campo": 29, "escuela": 6, "home_office": 5, "otro": 8},
+      "tiempo_actual_pct": {"15_30": 22, "31_45": 69, "46_60": 5, "mas_60": 3},
+      "tiempo_max_aceptable_pct": {"15_30": 25, "31_45": 52, "46_60": 11, "menos_15": 6},
+      "transporte_pct": {"coche_propio": 88, "app": 9, "publico": 3},
+      "importancia_traslado_pct": {"importante": 61, "muy_importante": 25, "poco": 14}
+    },
+    "estilo_vida": {
+      "_pagina": 52,
+      "centro_gravitacional_pct": {"sala_tecnofilos": 57, "dormitorio_sensualistas": 40, "cocina_chefs": 3},
+      "comunidades_pct": {"emprendimiento": 19, "viajes": 15, "yoga_mindfulness": 13, "deportes_espectador": 11, "gamers": 10, "arte_diseno": 9, "comida_gastronomia": 9, "estudiantil": 7, "fitness": 6},
+      "intereses_pct": {"deportes": 19, "fitness_yoga": 14, "comics_anime": 14, "peliculas": 10, "moda": 7, "diseno_grafico": 5, "comida_cocinar": 5, "tatuajes": 4},
+      "hobbies_pct": {"ejercicio": 24, "pintar_dibujar": 11, "coleccionar": 6, "videojuegos": 6, "viajar": 5, "bailar_cantar": 5}
+    },
+    "eprav_disposicion_split": {"residencial_plus": 80, "premium": 20}
+  },
+  "puente_alvarado": {
+    "_zona": "Av. México-Tenochtitlán cerca de Monumento a la Revolución (Tabacalera + Guerrero)",
+    "_alcaldia": "Cuauhtémoc",
+    "_periodo": "2026-06",
+    "conclusiones_4s": {
+      "_pagina": 2,
+      "inversionistas_pct": 22,
+      "inversionistas_historico_2025_pct": 35,
+      "nota_inversion": "El % inversionista más alto de los estudios QC en CDMX",
+      "recomendaciones": ["Mercado sin hijos + inversionistas como foco comercial", "Incorporar lock-off a la mezcla", "Modelos de menor metraje/ticket: 3.0-4.0 mdp, 25-40 m², 1 rec + espacio flexible", "Evitar elevautos compartido (factor de no compra)", "Amenidades: cantidad y concepto sobre m² · cocina gourmet (perfil chef + inversionista)", "Oportunidad principal de precio: 4.1-4.4 y 4.7-5.1 mdp"]
+    },
+    "campana": {"_pagina": 5, "proyecto_ancla": "L-UUM Tower", "alcance": 16923, "impresiones": 25723, "leads": 60, "dias": 20},
+    "demografia": {"_pagina": 9, "poblacion_alcaldia": 545884, "hogares_alcaldia": 196466, "personas_por_hogar": 2.8, "crec_hogares_2010_2020_pct": 16.8, "_nota": "renovación; mayor crecimiento al norte hacia Guerrero"},
+    "nse_3km": {"_pagina": 14, "_total_hogares": 164154, "medio": 45, "economico": 24, "residencial": 18, "residencial_plus": 12, "social": 1},
+    "zona_influencia": {"_pagina": 15, "poblacion": 67841, "hogares": 24026, "personas_por_hogar": 2.82, "tenencia": {"propia": 50.7, "renta": 35.9, "otra": 13.4}, "etapas_top": {"P/M_S": 36, "SA": 20, "F1": 12, "AI": 11}},
+    "embudo": {"_pagina": 16, "contactados": 672, "califican": 100, "tasa_calificacion_pct": 15, "incidencias": {"no_busca": 32, "busca_casa": 4, "no_cumple_perfil": 48, "menor_25": 4, "presupuesto_bajo": 34, "ingreso_bajo": 11}, "_filtros": "presupuesto ≥$4.0mdp · ingreso ≥$120k · edad ≥25", "_nota": "Mayor alineación de hipótesis QC a mercado abierto (15%)"},
+    "perfil": {
+      "edad_pct": {"25_30": 18, "31_35": 24, "36_40": 26, "41_45": 12, "46_50": 8, "51_55": 8, "56_60": 4},
+      "ingreso_mensual_pct": {"120_130k": 20, "130_140k": 28, "140_150k": 22, "150_160k": 16, "160_170k": 12, "170_180k": 2},
+      "presupuesto_pct": {"4.0_4.1": 6, "4.1_4.2": 6, "4.2_4.3": 6, "4.3_4.4": 9, "4.4_4.5": 6, "4.5_4.6": 12, "4.6_4.7": 5, "4.7_4.8": 6, "4.8_4.9": 12, "4.9_5.0": 12, "5.0_5.1": 6, "5.1_5.2": 9, "5.2_5.3": 2, "5.3_5.4": 3},
+      "intencion_pct": {"habitar": 78, "inversion": 22},
+      "con_hijos_pct": {"con_hijos": 52, "sin_hijos": 48},
+      "ciclo_vida_pct": {"_pagina": 19, "soltero_joven": 11, "soltero_adulto": 5, "adulto_independiente": 3, "pareja_joven_sin_hijos": 12, "pareja_adulta_sin_hijos": 11, "pareja_adulta_sin_hijos_en_casa": 6, "pareja_joven_hijos_0_10": 31, "pareja_adulta_hijos_11_20": 11, "pareja_adulta_hijos_21mas": 8, "padre_madre_soltero": 2},
+      "estado_civil_pct": {"casado": 79, "soltero": 16, "divorciado": 5},
+      "vivienda_actual_pct": {"rentada": 62, "propia_pagada": 22, "con_padres": 10, "de_familiar": 4, "propia_pagando": 2},
+      "tipo_vivienda_actual_pct": {"casa_independiente": 82, "edificio_deptos": 14, "multifamiliar": 4},
+      "auto_pct": {"auto_propio": 100, "1_auto": 52, "2_autos": 48, "electrico": 8},
+      "fuente_ingresos_pct": {"empleado_privado": 56, "empleado_gobierno": 30, "freelancer": 6, "emprendedor": 4, "negocio_propio": 2, "jubilado": 2},
+      "giro_pct": {"contaduria_admin": 23, "servicios": 20, "salud": 15, "bancario": 8, "educativo": 8, "alimenticio": 5, "industria_plastica": 5, "publicidad": 5, "legal": 3}
+    },
+    "busqueda": {
+      "_pagina": 18,
+      "entrega_pct": {"amueblar_a_gusto": 57, "llave_en_mano": 43},
+      "renta_formato_pct": {"airbnb": 67, "tradicional_largo_plazo": 33},
+      "objetivo_inversion_pct": {"patrimonio_hijos": 46, "rente_y_pague": 30, "estabilidad_br": 13},
+      "inversion_es": {"2a_inversion": 100},
+      "llave_en_mano_decide_invertir_pct": {"si": 89, "no": 11}
+    },
+    "posicionamiento": {
+      "_pagina": 21,
+      "proyectos_atractivos_pct": {"lirio_reforma": 14, "edison_park": 13, "skytown_insurgentes": 12, "qc_insurgentes_centro": 11, "monti_vita": 9, "reforma_159": 9, "be_grand_reforma": 9, "edison_58": 8, "casa_colon": 6, "via_insurgentes": 6, "jai_reforma": 3},
+      "que_atrae_pct": {"amenidades": 28, "cantidad_dormitorios": 21, "vista": 11, "servicios_hotel": 11, "ubicacion_atractiva": 11, "turisticas": 6, "terraza_balcon": 6, "centrica": 6},
+      "que_no_gusto_pct": {"falta_estacionamiento": 29, "pocas_areas_verdes": 20, "mantenimiento_caro": 9, "precio_elevado": 9, "sin_alberca": 9, "en_construccion": 6, "modelos_pequenos": 6, "muchos_vecinos": 6, "dormitorios_pequenos": 3, "pocas_amenidades": 3}
+    },
+    "ventas_2025_1q2026": {"_pagina": 22, "_nota": "Las ventas decaen arriba de 4.0 mdp; oportunidad de metraje menor a 53m²; 34% descartados por presupuesto <4.0mdp"},
+    "oferta_subzonas": {
+      "_pagina": 25,
+      "juarez": {"proyectos": 2, "absorcion_prom": 15.2, "precio_prom": 4984936, "m2_prom": 40, "precio_m2_prom": 107885, "unidades": 874, "vendidas": 694, "inventario": 180},
+      "tabacalera": {"proyectos": 6, "absorcion_prom": 3.17, "precio_prom": 4816700, "m2_prom": 49, "precio_m2_prom": 87449, "unidades": 1096, "vendidas": 863, "inventario": 233},
+      "guerrero": {"proyectos": 3, "absorcion_prom": 4.07, "precio_prom": 3192954, "m2_prom": 50, "precio_m2_prom": 66279, "unidades": 547, "vendidas": 464, "inventario": 83},
+      "santa_maria": {"proyectos": 2, "absorcion_prom": 1.95, "precio_prom": 3530921, "m2_prom": 65, "precio_m2_prom": 53801, "unidades": 76, "vendidas": 38, "inventario": 38},
+      "san_rafael": {"proyectos": 1, "absorcion_prom": 1.7, "precio_prom": 5400000, "m2_prom": 66, "precio_m2_prom": 65879, "unidades": 59, "vendidas": 57, "inventario": 2}
+    },
+    "inventario_concentracion": {"_pagina": 27, "rango_top": "4.4-4.8 mdp (119u), luego 2.8-3.0 (78u)", "subzonas_mayor_inventario": ["tabacalera", "juarez"]},
+    "reventa_por_segmento": {
+      "_pagina": 28,
+      "premium": {"anuncios": 142, "precio_prom": 7852184, "precio_m2": 73192, "m2_prom": 114},
+      "residencial_plus": {"anuncios": 198, "precio_prom": 4977000, "precio_m2": 70245, "m2_prom": 78},
+      "residencial": {"anuncios": 321, "precio_prom": 3015495, "precio_m2": 59196, "m2_prom": 56},
+      "total": {"anuncios": 661, "precio_prom": 4642103, "precio_m2": 65513, "m2_prom": 75}
+    },
+    "avaluos_por_segmento": {
+      "residencial_plus": {"avaluos": 14, "precio_prom": 4412571, "precio_m2": 59197, "m2_prom": 76},
+      "residencial": {"avaluos": 56, "precio_prom": 2827786, "precio_m2": 41461, "m2_prom": 70},
+      "total": {"avaluos": 70, "precio_prom": 3144743, "precio_m2": 45008, "m2_prom": 71}
+    },
+    "factores_decision_pct": {"_pagina": 30, "amenidades_basicas": 17, "areas_verdes": 11, "vigilancia_seguridad": 8, "nse_prestigio": 7, "terraza": 7, "zona_segura": 7, "amplitud_dormitorios": 6, "amplitud_cocina": 6, "cerca_colegios": 6, "precio_m2_barato": 5, "plusvalia": 3, "cajones": 3, "cerca_comercios": 3},
+    "producto": {
+      "dormitorios_pct": {"_pagina": 32, "1": 8, "2": 74, "3": 18},
+      "banos_pct": {"1.5": 16, "2": 50, "2.5": 26, "3": 6, "3.5": 2},
+      "compartir_con_pct": {"pareja": 45, "hijos": 32, "padres": 13, "solo": 6, "suegros": 3, "companero": 1},
+      "num_hijos_pct": {"1": 36, "2": 61, "3": 3},
+      "area_mayor_metraje_pct": {"dormitorios": 34, "social": 24, "banos": 22, "cocina": 20},
+      "espacio_adicional_pct": {"dormitorio_adicional": 44, "cuarto_tv": 34, "home_office": 22},
+      "cocina_pct": {"abierta_con_barra": 44, "abierta_americana": 28, "cerrada": 28},
+      "barra_decisiva_pct": {"si": 92, "no": 8},
+      "conexiones_pct_conectadas": {"cocina_comedor": 62, "cocina_sala": 40, "sala_comedor": 12, "dormitorios_bano": 8, "visitas_bano": 8},
+      "closets_decisivos_pct": {"si": 66, "no": 34},
+      "canceles_decisivos_pct": {"si": 54, "no": 46},
+      "cuarto_lavado_pct": {"si": 89, "no": 11},
+      "balcon_pct": {"si": 100},
+      "balcon_ubicacion_pct": {"area_social": 70, "dormitorio_principal": 30},
+      "piso_pct": {"ceramico_madera": 62, "ceramico_piedra": 38},
+      "materiales_valor_pct": {"madera_calida": 25, "concreto_aparente": 23, "cristaleria": 15, "cancel_acustico": 14, "metal_paneles": 12, "muros_verdes": 11},
+      "acabado_griferia_pct": {"cromado": 25, "negro_mate": 24, "modernos_neutros": 22, "dorados_premium": 18, "sin_preferencia": 11},
+      "acabados_pagaria_mas_pct": {"porcelanato": 45, "madera_ingenieria": 30, "piso_laminado": 20, "no_pagaria_mas": 5}
+    },
+    "estacionamiento": {
+      "_pagina": 37,
+      "cajones_pct": {"1": 60, "2": 40},
+      "cajon_extra_400k_pct": {"comprarlo": 36, "no_a_ese_precio": 28, "no_necesita": 36},
+      "cajon_extra_precio_alternativo_pct": {"200k": 14, "250k": 29, "280k": 7, "300k": 29, "350k": 21},
+      "un_cajon_no_compra_pct": {"si_factor_no_compra": 35, "igual_compraria": 65},
+      "elevautos_400k_decisivo_pct": {"si": 36, "no": 64},
+      "elevautos_compartido_no_compra_pct": {"si": 25, "no": 75},
+      "dos_cajones_uno_elevautos_no_compra_pct": {"si": 18, "no": 82},
+      "cargadores_electricos_decisivo_pct": {"si": 56, "no": 44},
+      "bodega_interes_pct": {"comprarla": 44, "rentarla": 36, "no": 20},
+      "bodega_renta_mensual_pct": {"400_500": 11, "501_600": 33, "701_800": 44, "901_1000": 6, "1101_1200": 6},
+      "bodega_compra_pct": {"60_70k": 24, "70_80k": 35, "80_90k": 24, "90_100k": 17},
+      "preferencia_pct": {"normal_sin_bodega": 62, "tandem_con_bodega": 38}
+    },
+    "amenidades": {
+      "abiertas_pct": {"_pagina": 39, "areas_verdes": 17, "canchas_deportivas": 16, "alberca": 15, "gimnasio": 13, "mascotas": 7, "area_infantil": 7, "terraza": 6, "salon_eventos": 4, "asadores": 3, "vitapista": 2, "salon_juegos": 2, "yoga": 2},
+      "servicios_pct": {"vigilancia": 27, "cisterna": 11, "elevadores": 10, "lobby": 8, "barda_perimetral": 8, "mantenimiento": 7, "acceso_controlado": 7, "paneles_solares": 5, "camaras": 3},
+      "menciones_ranking": {"_pagina": 43, "mencion_1": {"alberca": 50, "gimnasio": 30, "mascotas": 10}, "mencion_2": {"gimnasio": 38, "spinning": 20, "carril_nado": 12, "asadores": 12, "mascotas": 4}, "mencion_3": {"mascotas": 34, "asadores": 30, "roof_garden": 10, "carril_nado": 8}, "mencion_4": {"mascotas": 24, "usos_multiples": 20, "areas_verdes": 20, "roof_garden": 16, "cowork": 12}, "mencion_5": {"areas_verdes": 42, "skybar": 20, "cowork": 14, "usos_multiples": 12}},
+      "listado_top_pct": {"_pagina": 42, "mascotas": 16, "gimnasio": 14, "areas_verdes": 12, "asadores": 11, "usos_multiples": 10, "alberca": 10, "cowork": 7, "spinning": 6, "roof_garden": 6, "carril_nado": 4, "skybar": 4},
+      "cuota_dispuesta_pct": {"menos_3000": 2, "3000_3100": 26, "3101_3200": 26, "3201_3300": 12, "3301_3400": 10, "3401_3500": 12, "3501_3600": 12}
+    },
+    "arquitectura": {
+      "_pagina": 44,
+      "fachada_top": "minimalista",
+      "protagonismo_top": "moderada_elegante",
+      "confianza_top": "mayor_altura",
+      "estilo_pct": {"urbano_contemporaneo": 42, "balance": 38, "aspiracional_iconico": 20}
+    },
+    "percepcion": {
+      "_pagina": 45,
+      "buena_opcion_deptos_pct": 100,
+      "ventajas_pct": {"areas_verdes": 14, "conexiones_viales": 14, "comercio": 11, "alta_plusvalia": 6, "colegios": 6, "museos": 6, "restaurantes": 6, "reforma": 5, "metro": 5, "seguridad": 5, "centrica": 5, "accesibilidad": 4},
+      "desventajas_pct": {"comercio_informal": 19, "marchas_bloqueos": 19, "trafico": 16, "inseguridad": 13, "contaminacion": 9, "situacion_calle": 6, "poca_vigilancia": 6, "precios": 6, "poca_iluminacion": 3, "ruido": 3}
+    },
+    "denue": {"_pagina": 46, "total_unidades": 156, "cambio_5a_pct": -11, "top": {"restaurantes": 65, "hoteles": 25, "minisupers": 20, "escuelas_publicas": 11, "dark_kitchen": 7}},
+    "hipotesis_qc": {
+      "_pagina": 48,
+      "disposicion_compra_pct": {"si": 100},
+      "lock_off_dispuesto_pct": {"si": 64, "no": 36},
+      "metraje_pct": {"51_60": 20, "61_70": 26, "71_80": 30, "81_90": 22, "91_100": 2},
+      "tolerancia_mas_8pct_pct": {"si": 76, "no": 24},
+      "modelos_preferencia_pct": {"53m2_2rec1bano_4000000": 15, "56m2_2rec2banos_4210000": 24, "59m2_2rec2banos_4380000": 15, "69m2_3rec_4850000": 19, "lockoff_68m2_4964000": 24, "ninguno": 3},
+      "modelo_x_etapa_vida": {
+        "_pagina": 50,
+        "53m2_4000000": {"soltero_joven": 6, "soltero_adulto": 3, "pareja_joven_sin_hijos": 3, "pareja_adulta_sin_hijos": 3},
+        "56m2_4210000": {"soltero_joven": 3, "adulto_independiente": 1, "pareja_joven_sin_hijos": 5, "pareja_adulta_sin_hijos": 2, "pareja_adulta_sin_hijos_en_casa": 5, "pareja_joven_hijos_0_10": 4, "pareja_adulta_hijos_11_20": 1, "pareja_adulta_hijos_21mas": 3},
+        "59m2_4380000": {"adulto_independiente": 2, "pareja_joven_sin_hijos": 1, "pareja_adulta_sin_hijos": 2, "pareja_joven_hijos_0_10": 7, "pareja_adulta_hijos_21mas": 3},
+        "69m2_4850000": {"soltero_joven": 2, "soltero_adulto": 2, "pareja_adulta_sin_hijos": 1, "pareja_joven_hijos_0_10": 6, "pareja_adulta_hijos_11_20": 6, "pareja_adulta_hijos_21mas": 2},
+        "lockoff_68m2_4964000": {"pareja_joven_sin_hijos": 3, "pareja_adulta_sin_hijos": 3, "pareja_joven_hijos_0_10": 14, "pareja_adulta_hijos_11_20": 2, "padre_madre_soltero": 2}
+      },
+      "metraje_x_etapa_vida": {
+        "_pagina": 51,
+        "51_60": {"soltero_joven": 7, "soltero_adulto": 4, "pareja_joven_sin_hijos": 2, "pareja_joven_hijos_0_10": 7},
+        "61_70": {"soltero_adulto": 1, "adulto_independiente": 1, "pareja_joven_sin_hijos": 7, "pareja_adulta_sin_hijos": 2, "pareja_adulta_sin_hijos_en_casa": 2, "pareja_joven_hijos_0_10": 13},
+        "71_80": {"soltero_joven": 4, "pareja_joven_sin_hijos": 3, "pareja_adulta_sin_hijos": 5, "pareja_joven_hijos_0_10": 6, "pareja_adulta_hijos_11_20": 4, "pareja_adulta_hijos_21mas": 8},
+        "81_90": {"adulto_independiente": 2, "pareja_adulta_sin_hijos": 4, "pareja_adulta_sin_hijos_en_casa": 4, "pareja_joven_hijos_0_10": 5, "pareja_adulta_hijos_11_20": 5, "padre_madre_soltero": 2},
+        "91_100": {"pareja_adulta_hijos_11_20": 2}
+      },
+      "metraje_x_presupuesto": {"_pagina": 49, "_nota": "crosstab completo en PDF p49; capturado el patrón: 71-80m² concentra 4.7-4.9mdp (12%) y 81-90m² concentra 4.9-5.1mdp (12%)"}
+    },
+    "esquema_pago": {
+      "_pagina": 52,
+      "tiempo_compra_pct": {"0_6m": 48, "7_12m": 42, "indefinido": 10},
+      "enganche_pct": {"10": 6, "15": 22, "20": 54, "25": 12, "contado": 6},
+      "credito_pct": {"hipotecario_personal": 48, "hipotecario_conyugal": 36, "financiamiento_no_bancario": 8, "cofinavit": 6, "contado": 2},
+      "tipo_compra_pct": {"preventa": 58, "construccion": 34, "terminado": 8},
+      "descuento_atractivo_pct": {"5": 2, "10": 54, "15": 32, "20": 12}
+    },
+    "sustentabilidad_si_pct": {"_pagina": 53, "paneles_solares": 100, "punto_limpio_reciclaje": 100, "reciclaje_aguas_pluviales": 98, "materiales_sustentables": 98, "certificacion_leed": 96, "certificacion_edge": 94, "espacios_libres_areas_verdes": 90, "electrodomesticos_eco": 84},
+    "eprav": {
+      "_pagina": 54,
+      "_subzonas": ["Tabacalera", "Guerrero"],
+      "segmentos": [
+        {"nse": "A", "segmento": "Premium", "valor_min": 6000000, "valor_max": 18000000, "demanda_3anos": 361, "demanda_vertical": 307, "inventario_formal": 159, "gap_vertical_3anos": 148, "venta_anual": 49, "venta_mensual": 4},
+        {"nse": "B", "segmento": "Residencial Plus", "valor_min": 4000000, "valor_max": 6000000, "demanda_3anos": 669, "demanda_vertical": 569, "inventario_formal": 110, "gap_vertical_3anos": 459, "venta_anual": 153, "venta_mensual": 13},
+        {"nse": "C+", "segmento": "Residencial", "valor_min": 2000000, "valor_max": 4000000, "demanda_3anos": 1554, "demanda_vertical": 1321, "inventario_formal": 154, "gap_vertical_3anos": 1167, "venta_anual": 389, "venta_mensual": 32}
+      ],
+      "venta_estimada_rango_qc": {"_pagina": 55, "rango": "4.0-5.2 mdp", "venta_3_anos": 329, "venta_1_ano": 110},
+      "disposicion_split": {"residencial": 92, "residencial_plus": 8}
+    },
+    "movilidad": {
+      "_pagina": 56,
+      "destinos_pct": {"coyoacan": 18, "alvaro_obregon": 14, "tlalpan": 12, "benito_juarez": 10, "cuauhtemoc": 8, "gam": 8, "miguel_hidalgo": 8, "venustiano_carranza": 8, "neza": 4},
+      "actividad_pct": {"oficina": 55, "familiares": 36, "campo": 6, "escuela": 2},
+      "tiempo_actual_pct": {"15_30": 44, "31_45": 54, "46_60": 2},
+      "tiempo_max_aceptable_pct": {"menos_15": 20, "15_30": 50, "31_45": 20, "46_60": 8, "mas_60": 2},
+      "transporte_pct": {"coche_propio": 74, "app": 16, "publico": 5, "caminando": 3},
+      "importancia_traslado_pct": {"muy_importante": 42, "importante": 38, "poco": 18}
+    },
+    "estilo_vida": {
+      "_pagina": 57,
+      "centro_gravitacional_pct": {"cocina_chefs": 40, "sala_tecnofilos": 38, "dormitorio_sensualistas": 22},
+      "comunidades_pct": {"comida_gastronomia": 23, "deportes_espectador": 17, "cinefilo": 16, "yoga_mindfulness": 13, "viajes": 10, "fitness": 9, "arte_diseno": 5, "emprendimiento": 4, "gamers": 3},
+      "intereses_pct": {"comida_cocinar": 21, "mascotas": 18, "tatuajes": 8, "fotografia_arte": 7, "deportes": 7, "diseno_grafico": 6, "moda": 6},
+      "hobbies_pct": {"viajar": 17, "ejercicio": 11, "peliculas": 11, "hacer_deporte": 11, "pintar_dibujar": 11, "leer": 7, "musica": 6, "fotos": 6}
+    }
+  }
+}

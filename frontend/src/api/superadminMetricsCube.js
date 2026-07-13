@@ -236,3 +236,19 @@ export async function loadMarket4s() {
 export async function getMarket4sConsumidor() {
   return _j(await fetch(`${API}/api/superadmin/market-4s/consumidor`, { headers: h(), credentials: 'include' }));
 }
+// Cubo 4S · átomos macro→nano (2,200+ hechos de los 4 estudios).
+export async function getCubo4sCatalogo() {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/catalogo`, { headers: h(), credentials: 'include' }));
+}
+export async function getCubo4sComparar(tema, pregunta) {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/comparar?tema=${encodeURIComponent(tema)}&pregunta=${encodeURIComponent(pregunta)}`, { headers: h(), credentials: 'include' }));
+}
+export async function getCubo4sNano(estudio, corteValor, corteDim = 'etapa_vida') {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/nano?estudio=${encodeURIComponent(estudio)}&corte_dim=${encodeURIComponent(corteDim)}&corte_valor=${encodeURIComponent(corteValor)}`, { headers: h(), credentials: 'include' }));
+}
+export async function getCubo4sDimensiones() {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/dimensiones`, { headers: h(), credentials: 'include' }));
+}
+export async function loadCubo4s() {
+  return _j(await fetch(`${API}/api/superadmin/cubo-4s/load`, { method: 'POST', headers: h(), credentials: 'include' }));
+}

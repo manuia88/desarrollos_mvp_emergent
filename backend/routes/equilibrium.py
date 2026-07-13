@@ -79,6 +79,57 @@ async def r_load_market_4s(request: Request):
     return await load_market_4s(_db(request))
 
 
+# ── CUBO 4S · átomos macro→nano (2,200+ hechos de los 4 estudios · superadmin-only) ──
+@router.post("/api/superadmin/cubo-4s/load")
+async def r_cubo4s_load(request: Request):
+    await require_superadmin(request)
+    from market_4s_facts import load_facts_4s
+    return await load_facts_4s(_db(request))
+
+
+@router.get("/api/superadmin/cubo-4s/catalogo")
+async def r_cubo4s_catalogo(request: Request):
+    await require_superadmin(request)
+    from cube_4s_engine import catalogo
+    return await catalogo(_db(request))
+
+
+@router.get("/api/superadmin/cubo-4s/corte")
+async def r_cubo4s_corte(
+    request: Request,
+    estudio: Optional[str] = Query(None), tema: Optional[str] = Query(None),
+    pregunta: Optional[str] = Query(None), opcion: Optional[str] = Query(None),
+    subzona: Optional[str] = Query(None),
+    corte_dim: Optional[str] = Query(None), corte_valor: Optional[str] = Query(None),
+):
+    await require_superadmin(request)
+    from cube_4s_engine import corte
+    return await corte(_db(request), estudio=estudio, tema=tema, pregunta=pregunta,
+                       opcion=opcion, subzona=subzona, corte_dim=corte_dim, corte_valor=corte_valor)
+
+
+@router.get("/api/superadmin/cubo-4s/comparar")
+async def r_cubo4s_comparar(request: Request, tema: str = Query(...), pregunta: str = Query(...)):
+    await require_superadmin(request)
+    from cube_4s_engine import comparar
+    return await comparar(_db(request), tema=tema, pregunta=pregunta)
+
+
+@router.get("/api/superadmin/cubo-4s/nano")
+async def r_cubo4s_nano(request: Request, estudio: str = Query(...),
+                        corte_dim: str = Query("etapa_vida"), corte_valor: str = Query(...)):
+    await require_superadmin(request)
+    from cube_4s_engine import nano
+    return await nano(_db(request), estudio=estudio, corte_dim=corte_dim, corte_valor=corte_valor)
+
+
+@router.get("/api/superadmin/cubo-4s/dimensiones")
+async def r_cubo4s_dims(request: Request):
+    await require_superadmin(request)
+    from cube_4s_engine import dimensiones_nano
+    return await dimensiones_nano(_db(request))
+
+
 @router.get("/api/superadmin/market-4s/consumidor")
 async def r_market_4s_consumidor(request: Request):
     """Inteligencia del CONSUMIDOR 4S (god-view): WTP (cuánto paga) + producto ideal (qué quiere)

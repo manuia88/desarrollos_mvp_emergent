@@ -5,8 +5,8 @@
  * exacta (aquí SÍ, porque es la lente superadmin; fuera de aquí se agrega/anonimiza vía cube_lens).
  */
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, RefreshCw, AlertCircle, CheckCircle2, Building2, Wallet, Leaf, Scale } from 'lucide-react';
-import { getMarket4sOverview, loadMarket4s, getMarket4sConsumidor } from '../../api/superadminMetricsCube';
+import { TrendingUp, RefreshCw, AlertCircle, CheckCircle2, Building2, Wallet, Leaf, Scale, Boxes } from 'lucide-react';
+import { getMarket4sOverview, loadMarket4s, getMarket4sConsumidor, getCubo4sCatalogo, getCubo4sComparar, getCubo4sNano, getCubo4sDimensiones } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 const tc = (s) => String(s ?? '—').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -18,6 +18,7 @@ const SECCIONES = [
   ['mercado', 'Mercado', TrendingUp],
   ['consumidor', 'Consumidor', Wallet],
   ['plusvalia', 'Plusvalía', Scale],
+  ['cubo', 'Cubo 4S', Boxes],
 ];
 
 export default function CubeEquilibrioView() {
@@ -93,6 +94,7 @@ export default function CubeEquilibrioView() {
 
       {seccion === 'consumidor' && <SeccionConsumidor c={consumidor} />}
       {seccion === 'plusvalia' && <SeccionPlusvalia c={consumidor} />}
+      {seccion === 'cubo' && <SeccionCubo4s />}
 
       {seccion === 'mercado' && <>
       {/* 1) Radar de Oportunidad */}
@@ -308,6 +310,117 @@ function SeccionPlusvalia({ c }) {
         Prima s/ avalúo = cuánto paga el mercado real por encima del avalúo bancario. Premium nuevo = cuánto más vale obra nueva vs reventa. Muestra: n reventas/avalúos por estudio 4S.
       </p>
     </Sec>
+  );
+}
+
+// ── Cubo 4S: explorador de átomos macro→nano (2,200+ hechos de los 4 estudios) ──
+function SeccionCubo4s() {
+  const [cat, setCat] = useState(null);
+  const [dims, setDims] = useState(null);
+  const [sel, setSel] = useState('producto.cocina_pct');   // pregunta seleccionada (macro)
+  const [cmp, setCmp] = useState(null);
+  const [nanoEstudio, setNanoEstudio] = useState('puente_alvarado');
+  const [nanoEtapa, setNanoEtapa] = useState('pareja_joven_hijos_0_10');
+  const [nanoData, setNanoData] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    getCubo4sCatalogo().then((d) => alive && setCat(d)).catch(() => setCat(null));
+    getCubo4sDimensiones().then((d) => alive && setDims(d)).catch(() => setDims(null));
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => {
+    if (!sel) return undefined;
+    let alive = true;
+    const [tema, ...rest] = sel.split('.');
+    getCubo4sComparar(tema, rest.join('.')).then((d) => alive && setCmp(d)).catch(() => setCmp(null));
+    return () => { alive = false; };
+  }, [sel]);
+  useEffect(() => {
+    if (!nanoEstudio || !nanoEtapa) return undefined;
+    let alive = true;
+    getCubo4sNano(nanoEstudio, nanoEtapa).then((d) => alive && setNanoData(d)).catch(() => setNanoData(null));
+    return () => { alive = false; };
+  }, [nanoEstudio, nanoEtapa]);
+
+  if (!cat) return <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Cargando átomos 4S…</div>;
+  if (!cat.n_atomos) return <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Aún sin átomos cargados — usa "Recargar 4S" o reinicia el backend (se cargan solos al arranque).</div>;
+
+  // menú de preguntas (tema.pregunta únicos entre estudios)
+  const preguntas = [...new Set((cat.estudios || []).flatMap((e) => e.temas.flatMap((t) => t.preguntas.map((p) => `${t.tema}.${p.pregunta}`))))].sort();
+  const estudios = (cat.estudios || []).map((e) => e.estudio);
+  const etapas = (dims && dims.etapa_vida) || [];
+  const selStyle = { padding: '8px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, maxWidth: 320 };
+  const th = { fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(240,235,224,0.55)', padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.08)' };
+  const td = { fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.9)', padding: '7px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  const fmtV = (v) => (v == null ? '—' : (Array.isArray(v) ? `${nf.format(v[0])}–${nf.format(v[1])}` : nf.format(v)));
+
+  return (
+    <>
+      <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.7)', margin: '0 0 14px' }}>
+        <b style={{ color: 'var(--cream)' }}>{nf.format(cat.n_atomos)} átomos</b> de los 4 estudios — cada número con zona, tema, pregunta, opción, corte y página fuente. Macro: compara zonas. Nano: baja hasta una etapa de vida.
+      </p>
+
+      <Sec title="Lente MACRO · la misma pregunta en las 4 zonas">
+        <select value={sel} onChange={(e) => setSel(e.target.value)} style={selStyle} data-testid="cubo4s-pregunta">
+          {preguntas.map((p) => <option key={p} value={p}>{tc(p.replace('.', ' · ').replace(/_pct$/, ''))}</option>)}
+        </select>
+        {cmp && cmp.filas && (
+          <>
+            {cmp.lectura && <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: cmp.zonas_difieren ? '#fbbf24' : 'rgba(240,235,224,0.7)', margin: '10px 0' }}>{cmp.lectura}</p>}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  <th style={{ ...th, textAlign: 'left' }}>Opción</th>
+                  {cmp.estudios.map((e) => <th key={e} style={th}>{tc(e)}</th>)}
+                </tr></thead>
+                <tbody>
+                  {cmp.filas.map((f) => (
+                    <tr key={f.opcion} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ ...td, textAlign: 'left', fontWeight: 600 }}>{tc(f.opcion)}</td>
+                      {cmp.estudios.map((e) => {
+                        const esTop = cmp.top_por_estudio[e] && cmp.top_por_estudio[e].opcion === f.opcion;
+                        return <td key={e} style={{ ...td, color: esTop ? '#4ADE80' : td.color, fontWeight: esTop ? 700 : 400 }}>{fmtV(f[e])}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Sec>
+
+      <Sec title="Lente NANO · todo lo que el estudio sabe de una etapa de vida">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <select value={nanoEstudio} onChange={(e) => setNanoEstudio(e.target.value)} style={selStyle} data-testid="cubo4s-nano-estudio">
+            {estudios.map((e) => <option key={e} value={e}>{tc(e)}</option>)}
+          </select>
+          <select value={nanoEtapa} onChange={(e) => setNanoEtapa(e.target.value)} style={selStyle} data-testid="cubo4s-nano-etapa">
+            {etapas.map((e) => <option key={e} value={e}>{tc(e)}</option>)}
+          </select>
+        </div>
+        {nanoData && (
+          <>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.75)', margin: '0 0 10px' }}>
+              {nanoData.n_atomos} átomos · {nanoData.lectura}
+            </p>
+            {Object.entries(nanoData.por_pregunta || {}).map(([preg, items]) => (
+              <div key={preg} style={{ marginBottom: 10 }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', marginBottom: 4 }}>{tc(preg.replace('.', ' · '))}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {items.map((it, i) => (
+                    <span key={i} title={`pág. ${it.pagina || '—'}`} style={{ fontFamily: 'DM Sans', fontSize: 11.5, padding: '4px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.85)' }}>
+                      {tc(it.opcion)}: <b style={{ color: 'var(--cream)' }}>{fmtV(it.valor ?? it.rango)}{it.unidad === 'pct' ? '%' : ''}</b>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </Sec>
+    </>
   );
 }
 
