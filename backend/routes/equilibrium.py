@@ -97,7 +97,8 @@ async def r_reportes_generar(request: Request):
     r = await generar_reporte(_db(request),
                               colonias=body.get("colonias"), estudio=body.get("estudio"),
                               bloques=body.get("bloques"), cortes=body.get("cortes"),
-                              unit_id=body.get("unit_id"), granularidad=body.get("granularidad"))
+                              unit_id=body.get("unit_id"), granularidad=body.get("granularidad"),
+                              desglosar_por=body.get("desglosar_por"))
     if body.get("guardar"):   # memoria: comparar hoy vs hace un mes
         g = await guardar_reporte(_db(request), r, nombre=body.get("nombre"))
         r["guardado"] = g
@@ -266,15 +267,19 @@ async def r_snapshot_oferta(request: Request):
 async def r_evolucion(request: Request,
                       colonias: Optional[str] = Query(None),
                       dimension: Optional[str] = Query(None), valor: Optional[str] = Query(None),
+                      desglosar_por: Optional[str] = Query(None),
                       unit_id: Optional[str] = Query(None),
                       desde: Optional[str] = Query(None), hasta: Optional[str] = Query(None),
                       granularidad: str = Query("mes")):
-    """La serie temporal universal: el PH exacto, una feature, una colonia — por día/mes/año."""
+    """La serie temporal HIPERSEGMENTADA: cualquier corte × hora/día/semana/mes/trimestre/año,
+    cualquier horizonte, con desglose (una serie por valor de la dimensión elegida)."""
     await require_superadmin(request)
-    from market_timeline import evolucion
+    from market_timeline import evolucion, GRANULARIDADES
+    if granularidad not in GRANULARIDADES:
+        return {"error": f"granularidad inválida: {granularidad}", "validas": sorted(GRANULARIDADES)}
     return await evolucion(_db(request), colonias=_cols_param(colonias),
-                           dimension=dimension, valor=valor, unit_id=unit_id,
-                           desde=desde, hasta=hasta, granularidad=granularidad)
+                           dimension=dimension, valor=valor, desglosar_por=desglosar_por,
+                           unit_id=unit_id, desde=desde, hasta=hasta, granularidad=granularidad)
 
 
 @router.get("/api/superadmin/genoma/resumen")

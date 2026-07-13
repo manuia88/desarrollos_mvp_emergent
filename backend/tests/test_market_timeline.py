@@ -139,6 +139,72 @@ async def test_evolucion_universal_por_corte_y_granularidad(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_v2_todas_las_granularidades(monkeypatch):
+    """Cualquier temporalidad: hora → día → semana → mes → trimestre → año."""
+    from market_timeline import GRANULARIDADES
+    assert {"hora", "dia", "semana", "mes", "trimestre", "ano"} <= set(GRANULARIDADES)
+    db = _DB()
+    _patch(monkeypatch, [])
+    await db.marketplace_searches.insert_one({"id": "g1", "visitor_id": "v1", "colonias": ["Roma"],
+                                              "created_at_dt": datetime(2026, 7, 13, 15, 30, tzinfo=timezone.utc),
+                                              "recamaras_min": 2})
+    await explotar_busquedas(db)
+    esperados = {"hora": "2026-07-13T15", "dia": "2026-07-13", "semana": "2026-W29",
+                 "mes": "2026-07", "trimestre": "2026-Q3", "ano": "2026"}
+    for gran, periodo in esperados.items():
+        r = await evolucion(db, granularidad=gran)
+        assert r["series"][0]["periodo"] == periodo, f"{gran} → {r['series'][0]['periodo']}"
+
+
+@pytest.mark.asyncio
+async def test_v2_cortes_multiples_y_logico(monkeypatch):
+    """Hipersegmentación: '2 rec Y roof' — el visitante cuenta solo si pidió AMBOS."""
+    db = _DB()
+    _patch(monkeypatch, [_ph(12000000)])
+    now = datetime(2026, 7, 10, tzinfo=timezone.utc)
+    # v-ambos pide 2rec+roof · v-solo-rec pide solo 2rec
+    await db.marketplace_searches.insert_one({"id": "a1", "visitor_id": "v-ambos", "colonias": ["Condesa"],
+                                              "created_at_dt": now, "recamaras_min": 2,
+                                              "features_pedidos": ["roof garden"]})
+    await db.marketplace_searches.insert_one({"id": "a2", "visitor_id": "v-solo-rec", "colonias": ["Condesa"],
+                                              "created_at_dt": now, "recamaras_min": 2})
+    await explotar_busquedas(db)
+    await snapshot_oferta(db)   # el PH (3 rec + roof) satisface AMBOS cortes
+
+    r = await evolucion(db, colonias={"condesa"}, granularidad="mes",
+                        cortes=[{"dimension": "producto.recamaras", "valor": "2"},
+                                {"dimension": "producto.feature", "valor": "roof_garden"}])
+    s = r["series"][0]
+    assert s["demanda_visitantes"] == 1        # solo v-ambos pidió TODO (∩, no suma)
+    assert s["oferta_disponible"] == 1         # el PH satisface 2+ rec Y tiene roof
+    assert s["tension"] == 1.0                 # tensión calculada por periodo
+    assert len(r["filtro"]["cortes"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_v2_desglose_una_serie_por_valor(monkeypatch):
+    """Hipergranularidad: desglosar_por=recamaras → una serie por cada valor (1, 2, 3...)."""
+    db = _DB()
+    _patch(monkeypatch, [])
+    now = datetime(2026, 7, 10, tzinfo=timezone.utc)
+    for i in range(4):
+        await db.marketplace_searches.insert_one({"id": f"d2{i}", "visitor_id": f"x{i}",
+                                                  "colonias": ["Condesa"], "created_at_dt": now,
+                                                  "recamaras_min": 2})
+    for i in range(2):
+        await db.marketplace_searches.insert_one({"id": f"d3{i}", "visitor_id": f"y{i}",
+                                                  "colonias": ["Condesa"], "created_at_dt": now,
+                                                  "recamaras_min": 3})
+    await explotar_busquedas(db)
+    r = await evolucion(db, colonias={"condesa"}, granularidad="mes",
+                        desglosar_por="producto.recamaras")
+    assert r["desglose"] == "producto.recamaras"
+    assert set(r["valores"]) == {"2", "3"}
+    assert r["series_por_valor"]["2"][0]["demanda_visitantes"] == 4
+    assert r["series_por_valor"]["3"][0]["demanda_visitantes"] == 2
+
+
+@pytest.mark.asyncio
 async def test_contexto_diario_idempotente(monkeypatch):
     db = _DB()
     _patch(monkeypatch, [_ph(12000000)])

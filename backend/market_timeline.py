@@ -40,16 +40,32 @@ def _hash_estado(u: Dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(base, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
+# REGISTRO de granularidades (universalidad: una nueva = una entrada). El founder pide CUALQUIER
+# temporalidad: hora → día → semana → mes → trimestre → año, sin límite de horizonte.
+def _g_hora(dt): return dt.isoformat()[:13]
+def _g_dia(dt): return dt.isoformat()[:10]
+def _g_semana(dt): iso = dt.isocalendar(); return f"{iso[0]}-W{iso[1]:02d}"
+def _g_mes(dt): return dt.isoformat()[:7]
+def _g_trimestre(dt): return f"{dt.year}-Q{(dt.month - 1) // 3 + 1}"
+def _g_ano(dt): return str(dt.year)
+
+
+GRANULARIDADES = {"hora": _g_hora, "dia": _g_dia, "semana": _g_semana,
+                  "mes": _g_mes, "trimestre": _g_trimestre, "ano": _g_ano, "año": _g_ano}
+
+
 def _periodo(ts, granularidad: str) -> Optional[str]:
     if ts is None:
         return None
     try:
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        s = ts.isoformat()
+        fn = GRANULARIDADES.get(granularidad, _g_mes)
+        return fn(ts)
     except Exception:
         s = str(ts)
-    return {"dia": s[:10], "mes": s[:7], "ano": s[:4], "año": s[:4]}.get(granularidad, s[:7])
+        return {"hora": s[:13], "dia": s[:10], "semana": s[:7], "mes": s[:7],
+                "trimestre": s[:7], "ano": s[:4], "año": s[:4]}.get(granularidad, s[:7])
 
 
 # ── snapshot de OFERTA (event-sourced por cambio) ─────────────────────────────
@@ -80,6 +96,7 @@ async def snapshot_oferta(db) -> Dict[str, Any]:
         evento = {"unit_id": uid, "colonia": u["colonia"], "dev_id": u.get("dev_id"),
                   "ts": ts, "hash": h,
                   "precio": u.get("precio"), "m2": u.get("m2"),
+                  "recamaras": u.get("recamaras"), "piso": u.get("piso"),
                   "pm2": round(u["precio"] / u["m2"]) if (u.get("precio") and u.get("m2")) else None,
                   "disponible": u["disponible"], "vector": u["vector"]}
         try:
@@ -129,38 +146,85 @@ async def snapshot_contexto(db) -> Dict[str, Any]:
     return {"ok": True, **{k: v for k, v in doc.items() if k != "ts"}}
 
 
-# ── EVOLUCIÓN: la serie temporal universal ────────────────────────────────────
+# ── EVOLUCIÓN v2: hipersegmentada — cortes MÚLTIPLES (Y lógico) + DESGLOSE ────
+def _normaliza_cortes(dimension, valor, cortes) -> List[Dict[str, str]]:
+    """Acepta 1 corte (dimension/valor) o N cortes [{dimension, valor}] — retrocompatible."""
+    out = [c for c in (cortes or []) if c.get("dimension")]
+    if dimension:
+        out.append({"dimension": dimension, "valor": valor})
+    return out
+
+
+def _unidad_pasa(ev: Dict[str, Any], cortes: List[Dict[str, str]]) -> Optional[bool]:
+    """¿El estado de la unidad satisface TODOS los cortes? (semántica del espejo, universal).
+    None si algún corte es de una dimensión sin lado-oferta (se reporta, no se finge)."""
+    from demand_mirror import _satisface
+    vec = ev.get("vector") or {}
+    # crudos del evento con FALLBACK al vector (eventos viejos o insertados a mano siguen vivos)
+    fila = {"vector": vec,
+            "recamaras": ev.get("recamaras") if ev.get("recamaras") is not None else vec.get("producto.recamaras"),
+            "m2": ev.get("m2"), "precio": ev.get("precio"),
+            "piso": ev.get("piso") if ev.get("piso") is not None else vec.get("producto.nivel")}
+    for c in cortes:
+        s = _satisface(fila, c["dimension"], str(c.get("valor")))
+        if s is None:
+            return None
+        if not s:
+            return False
+    return True
+
+
 async def evolucion(db, *, colonias: Optional[Set[str]] = None,
                     dimension: Optional[str] = None, valor: Optional[str] = None,
+                    cortes: Optional[List[Dict[str, str]]] = None,
+                    desglosar_por: Optional[str] = None,
                     unit_id: Optional[str] = None,
                     desde: Optional[str] = None, hasta: Optional[str] = None,
                     granularidad: str = "mes") -> Dict[str, Any]:
-    """Cualquier corte del genoma × tiempo. unit_id → la vida de UNA unidad (el PH exacto)."""
-    from demand_mirror import _satisface
+    """La serie temporal HIPERSEGMENTADA:
+    · cortes múltiples con Y lógico ('2 rec Y roof Y ≤5mdp') — el visitante cuenta solo si pidió TODO
+    · desglosar_por: una serie por CADA valor de esa dimensión (hipergranularidad)
+    · granularidad: hora/día/semana/mes/trimestre/año — cualquier horizonte
+    · tensión (demanda/oferta) calculada por periodo · unit_id: la vida de UNA unidad."""
+    lista_cortes = _normaliza_cortes(dimension, valor, cortes)
 
     def _en_rango(p: Optional[str]) -> bool:
         if not p:
             return False
         return (not desde or p >= desde[:len(p)]) and (not hasta or p <= hasta[:len(p)])
 
-    # DEMANDA por periodo (visitantes únicos del corte)
-    dem: Dict[str, Set[str]] = {}
+    # DEMANDA: visitantes por (periodo × dimensión × valor) + pesos — una pasada, todo en memoria
+    vis: Dict[tuple, Set[str]] = {}      # (periodo, dim, val) → visitantes
+    pesos: Dict[tuple, float] = {}
+    todos_vis: Dict[str, Set[str]] = {}  # periodo → todos los visitantes (sin corte)
     try:
         async for a in db.demand_atoms.find({}, {"_id": 0}):
             if colonias and a.get("colonia") not in colonias:
                 continue
-            if dimension and a["dimension"] != dimension:
-                continue
-            if valor and a["valor"] != str(valor):
-                continue
             p = _periodo(a.get("ts"), granularidad)
             if not _en_rango(p):
                 continue
-            dem.setdefault(p, set()).add(a.get("visitor_id") or a.get("search_id") or "?")
+            v = a.get("visitor_id") or a.get("search_id") or "?"
+            k = (p, a["dimension"], a["valor"])
+            vis.setdefault(k, set()).add(v)
+            pesos[k] = pesos.get(k, 0.0) + float(a.get("peso", 1.0))
+            todos_vis.setdefault(p, set()).add(v)
     except Exception as e:
         log.warning("[evolucion] demanda fail-open: %s", e)
 
-    # OFERTA por periodo: por unidad, su ÚLTIMO evento ≤ fin del periodo (reconstrucción honesta)
+    def _demanda_periodo(p: str, extra_corte: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        """Visitantes que pidieron TODOS los cortes (∩) en el periodo — el Y lógico."""
+        activos = lista_cortes + ([extra_corte] if extra_corte else [])
+        if not activos:
+            conjunto = todos_vis.get(p, set())
+            peso = sum(w for (pp, _, _), w in pesos.items() if pp == p)
+            return {"visitantes": len(conjunto), "senales": round(peso, 1)}
+        conjuntos = [vis.get((p, c["dimension"], str(c.get("valor"))), set()) for c in activos]
+        inter = set.intersection(*conjuntos) if conjuntos else set()
+        peso = sum(pesos.get((p, c["dimension"], str(c.get("valor"))), 0.0) for c in activos)
+        return {"visitantes": len(inter), "senales": round(peso, 1)}
+
+    # OFERTA: eventos por unidad (reconstrucción: último evento ≤ fin del periodo)
     eventos: Dict[str, List[Dict[str, Any]]] = {}
     try:
         async for ev in db.oferta_timeline.find({}, {"_id": 0}):
@@ -172,36 +236,56 @@ async def evolucion(db, *, colonias: Optional[Set[str]] = None,
     except Exception as e:
         log.warning("[evolucion] oferta fail-open: %s", e)
 
-    periodos: Set[str] = set(dem)
+    periodos: Set[str] = set(todos_vis)
     for evs in eventos.values():
         for ev in evs:
             p = _periodo(ev.get("ts"), granularidad)
             if _en_rango(p):
                 periodos.add(p)
 
-    series = []
-    for p in sorted(periodos):
-        estado_por_unidad: Dict[str, Dict[str, Any]] = {}
+    def _fila_periodo(p: str, extra_corte: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        estado: Dict[str, Dict[str, Any]] = {}
         for uid, evs in eventos.items():
-            candidatos = [e for e in evs if (_periodo(e.get("ts"), granularidad) or "") <= p]
-            if candidatos:
-                estado_por_unidad[uid] = max(candidatos, key=lambda e: str(e.get("ts", "")))
-        # filtro universal por dimensión (misma semántica del espejo — min/max/feature)
-        def _pasa(ev: Dict[str, Any]) -> bool:
-            if not dimension:
-                return True
-            fila = {"vector": ev.get("vector") or {}, "recamaras": None,
-                    "m2": ev.get("m2"), "precio": ev.get("precio"), "piso": None}
-            s = _satisface(fila, dimension, str(valor)) if valor else None
-            return bool(s) if s is not None else False
-        vivos = [e for e in estado_por_unidad.values() if e.get("disponible") and _pasa(e)]
+            cand = [e for e in evs if (_periodo(e.get("ts"), granularidad) or "") <= p]
+            if cand:
+                estado[uid] = max(cand, key=lambda e: str(e.get("ts", "")))
+        activos = lista_cortes + ([extra_corte] if extra_corte else [])
+        sin_espejo = False
+        vivos = []
+        for e in estado.values():
+            if not e.get("disponible"):
+                continue
+            pasa = _unidad_pasa(e, activos) if activos else True
+            if pasa is None:
+                sin_espejo = True
+            elif pasa:
+                vivos.append(e)
+        dem = _demanda_periodo(p, extra_corte)
         pm2s = sorted(e["pm2"] for e in vivos if e.get("pm2"))
-        series.append({"periodo": p,
-                       "demanda_visitantes": len(dem.get(p, set())),
-                       "oferta_disponible": len(vivos),
-                       "pm2_mediana": pm2s[len(pm2s) // 2] if pm2s else None,
-                       "precio_unidad": (list(estado_por_unidad.values())[0].get("precio")
-                                         if unit_id and estado_por_unidad else None)})
+        oferta = None if sin_espejo else len(vivos)
+        return {"periodo": p, "demanda_visitantes": dem["visitantes"], "senales": dem["senales"],
+                "oferta_disponible": oferta,
+                "tension": (round(dem["visitantes"] / oferta, 2) if oferta else None),
+                "pm2_mediana": pm2s[len(pm2s) // 2] if pm2s else None,
+                "precio_unidad": (list(estado.values())[0].get("precio")
+                                  if unit_id and estado else None)}
+
+    # HIPERGRANULARIDAD: desglose → una serie por cada valor observado de esa dimensión
+    if desglosar_por:
+        valores = sorted({val for (_, d, val) in vis if d == desglosar_por})
+        series_por_valor = {val: [_fila_periodo(p, {"dimension": desglosar_por, "valor": val})
+                                  for p in sorted(periodos)] for val in valores}
+        return {"granularidad": granularidad, "desglose": desglosar_por,
+                "valores": valores, "n_periodos": len(periodos),
+                "filtro": {"colonias": sorted(colonias) if colonias else None,
+                           "cortes": lista_cortes, "unit_id": unit_id, "desde": desde, "hasta": hasta},
+                "es_estimado": not bool(valores),
+                "series_por_valor": series_por_valor,
+                "lectura": (f"Desglose por {desglosar_por}: {len(valores)} series × "
+                            f"{len(periodos)} periodos ({granularidad}).") if valores else
+                           f"Sin señal para desglosar por {desglosar_por}."}
+
+    series = [_fila_periodo(p) for p in sorted(periodos)]
 
     # contexto (tasas) por periodo
     try:
@@ -219,7 +303,7 @@ async def evolucion(db, *, colonias: Optional[Set[str]] = None,
 
     return {"granularidad": granularidad, "n_periodos": len(series),
             "filtro": {"colonias": sorted(colonias) if colonias else None,
-                       "dimension": dimension, "valor": valor, "unit_id": unit_id,
+                       "cortes": lista_cortes, "unit_id": unit_id,
                        "desde": desde, "hasta": hasta},
             "es_estimado": not bool(series), "series": series,
             "lectura": (f"{len(series)} periodos ({granularidad}). La bitácora acumula desde hoy — "

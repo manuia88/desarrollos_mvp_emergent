@@ -90,6 +90,20 @@ function Seccion({ s, acciones, params }) {
         if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null) {
           return <div key={k}><div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)', textTransform: 'uppercase', margin: '6px 0 4px' }}>{tc(k)}</div><TablaGenerica rows={v} /></div>;
         }
+        // DESGLOSE (hipergranularidad): dict {valor: [serie]} → una sub-tabla por valor
+        if (v && typeof v === 'object' && !Array.isArray(v)
+            && Object.values(v).every((x) => Array.isArray(x) && x.length && typeof x[0] === 'object')) {
+          return (
+            <div key={k}>
+              {Object.entries(v).map(([val, rows]) => (
+                <div key={val}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)', textTransform: 'uppercase', margin: '6px 0 4px' }}>{tc(k)} · {tc(val)}</div>
+                  <TablaGenerica rows={rows} />
+                </div>
+              ))}
+            </div>
+          );
+        }
         return null;
       })}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -123,6 +137,7 @@ export default function CubeReportesView() {
   const [guardados, setGuardados] = useState([]);
   const [estudios, setEstudios] = useState(['']);
   const [granularidad, setGranularidad] = useState('mes');
+  const [desglose, setDesglose] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -151,6 +166,7 @@ export default function CubeReportesView() {
         cortes: corteDim ? { dimension: corteDim, valor: corteVal || null } : null,
         unit_id: unitId || null,
         granularidad,
+        desglosar_por: desglose || null,
         guardar,
       };
       const r = await generarReporte(payload);
@@ -186,11 +202,18 @@ export default function CubeReportesView() {
             <input value={unitId} onChange={(e) => setUnitId(e.target.value)} placeholder="Unidad (unit_id)" style={{ ...inp, minWidth: 160 }} data-testid="rep-unit" />
           )}
           {catalogoB.some((b) => sel.has(b.id) && (b.necesita || []).includes('tiempo')) && (
-            <select value={granularidad} onChange={(e) => setGranularidad(e.target.value)} style={inp} data-testid="rep-granularidad">
-              <option value="dia">Por día</option>
-              <option value="mes">Por mes</option>
-              <option value="ano">Por año</option>
-            </select>
+            <>
+              <select value={granularidad} onChange={(e) => setGranularidad(e.target.value)} style={inp} data-testid="rep-granularidad">
+                <option value="hora">Por hora</option>
+                <option value="dia">Por día</option>
+                <option value="semana">Por semana</option>
+                <option value="mes">Por mes</option>
+                <option value="trimestre">Por trimestre</option>
+                <option value="ano">Por año</option>
+              </select>
+              <input value={desglose} onChange={(e) => setDesglose(e.target.value)}
+                placeholder="Desglosar por dimensión (producto.recamaras)" style={{ ...inp, minWidth: 240 }} data-testid="rep-desglose" />
+            </>
           )}
         </div>
 

@@ -158,11 +158,15 @@ async def _b_corredores(db, ctx) -> Dict[str, Any]:
 
 
 async def _b_evolucion(db, ctx) -> Dict[str, Any]:
-    """La 4ª dimensión: cualquier corte del genoma × tiempo (día/mes/año)."""
+    """La 4ª dimensión HIPERSEGMENTADA: cortes múltiples (Y lógico) × hora/día/semana/mes/
+    trimestre/año × desglose (una serie por valor de la dimensión elegida)."""
     from market_timeline import evolucion
     corte = ctx.get("cortes") or {}
+    # acepta 1 corte (dict del front) o N cortes (lista, para llamadas por API)
+    lista = corte if isinstance(corte, list) else ([corte] if corte.get("dimension") else [])
     r = await evolucion(db, colonias=ctx.get("colonias"),
-                        dimension=corte.get("dimension"), valor=corte.get("valor"),
+                        cortes=lista,
+                        desglosar_por=ctx.get("desglosar_por"),
                         unit_id=ctx.get("unit_id"),
                         granularidad=ctx.get("granularidad") or "mes")
     return {"procedencia": "observado", **r}
@@ -253,12 +257,13 @@ async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: 
                           bloques: Optional[List[str]] = None,
                           cortes: Optional[Dict[str, str]] = None,
                           unit_id: Optional[str] = None,
-                          granularidad: Optional[str] = None) -> Dict[str, Any]:
+                          granularidad: Optional[str] = None,
+                          desglosar_por: Optional[str] = None) -> Dict[str, Any]:
     """El reporte a la medida: cada bloque corre AISLADO (uno truena → los demás viven)."""
     from market_4s_bridge import norm_colonia
     cols: Optional[Set[str]] = {norm_colonia(c) for c in colonias if c} if colonias else None
     ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}, "unit_id": unit_id,
-           "granularidad": granularidad}
+           "granularidad": granularidad, "desglosar_por": desglosar_por}
     pedidos = [b for b in (bloques or list(BLOQUES))]
 
     secciones = []
