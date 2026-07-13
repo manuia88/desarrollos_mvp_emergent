@@ -93,11 +93,30 @@ async def r_reportes_generar(request: Request):
     """Genera el reporte a la medida: {colonias?, estudio?, bloques?, cortes?}."""
     await require_superadmin(request)
     body = await request.json()
-    from report_builder import generar_reporte
-    return await generar_reporte(_db(request),
-                                 colonias=body.get("colonias"), estudio=body.get("estudio"),
-                                 bloques=body.get("bloques"), cortes=body.get("cortes"),
-                                 unit_id=body.get("unit_id"))
+    from report_builder import generar_reporte, guardar_reporte
+    r = await generar_reporte(_db(request),
+                              colonias=body.get("colonias"), estudio=body.get("estudio"),
+                              bloques=body.get("bloques"), cortes=body.get("cortes"),
+                              unit_id=body.get("unit_id"))
+    if body.get("guardar"):   # memoria: comparar hoy vs hace un mes
+        g = await guardar_reporte(_db(request), r, nombre=body.get("nombre"))
+        r["guardado"] = g
+    return r
+
+
+@router.get("/api/superadmin/reportes/guardados")
+async def r_reportes_guardados(request: Request):
+    await require_superadmin(request)
+    from report_builder import listar_reportes
+    return await listar_reportes(_db(request))
+
+
+@router.get("/api/superadmin/reportes/guardado")
+async def r_reporte_guardado(request: Request, id: str = Query(...)):
+    await require_superadmin(request)
+    from report_builder import obtener_reporte
+    r = await obtener_reporte(_db(request), id)
+    return r or {"error": "no encontrado"}
 
 
 # ── ESPEJO del genoma + data negativa + radar léxico (Ola B1/B2/B5/B6) ──
@@ -205,6 +224,31 @@ async def r_genoma_explotar(request: Request):
     await require_superadmin(request)
     from demand_genome import explotar_busquedas
     return await explotar_busquedas(_db(request))
+
+
+@router.post("/api/superadmin/genoma/explotar-senales")
+async def r_genoma_senales(request: Request):
+    """buyer_signals (ver/like/dwell) → átomos con PESO (deseo más débil que buscar)."""
+    await require_superadmin(request)
+    from demand_genome import explotar_senales
+    return await explotar_senales(_db(request))
+
+
+@router.post("/api/superadmin/genoma/kpi-snapshot")
+async def r_genoma_snapshot(request: Request):
+    """Foto semanal del KPI del moat (idempotente) — construye la curva 'crece solo'."""
+    await require_superadmin(request)
+    from demand_genome import snapshot_kpi
+    return await snapshot_kpi(_db(request))
+
+
+@router.post("/api/superadmin/genoma/taxonomia/promover")
+async def r_genoma_promover(request: Request, termino: str = Query(...),
+                            slug: Optional[str] = Query(None)):
+    """Cierra el ciclo del radar léxico: término emergente → feature contable (runtime)."""
+    await require_superadmin(request)
+    from demand_genome import promover_termino
+    return await promover_termino(_db(request), termino, slug)
 
 
 @router.get("/api/superadmin/genoma/resumen")

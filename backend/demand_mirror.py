@@ -30,12 +30,36 @@ _MAX_ATOMS = 50000
 
 
 # ── lado OFERTA: vectores de todas las unidades (semilla + ingeridas) ─────────
+# HARDENING perf: caché TTL en proceso (60s) del inventario COMPLETO por db; el filtro por
+# colonias se aplica en memoria. Los motores (espejo/escasez/scores/señales) dejan de re-iterar
+# la colección en cada llamada del mismo minuto.
+_OFERTA_TTL = 60.0
+_OFERTA_CACHE: Dict[int, tuple] = {}
+
+
 async def _oferta_vectores(db, colonias: Optional[Set[str]] = None) -> List[Dict[str, Any]]:
+    import time as _t
+    key = id(db)
+    hit = _OFERTA_CACHE.get(key)
+    if hit and (_t.time() - hit[0]) < _OFERTA_TTL:
+        full = hit[1]
+    else:
+        full = await _oferta_vectores_raw(db)
+        _OFERTA_CACHE[key] = (_t.time(), full)
+        if len(_OFERTA_CACHE) > 8:   # no crecer sin límite (tests crean muchos db fakes)
+            _OFERTA_CACHE.pop(next(iter(_OFERTA_CACHE)))
+    if not colonias:
+        return full
+    return [u for u in full if u["colonia"] in colonias]
+
+
+async def _oferta_vectores_raw(db) -> List[Dict[str, Any]]:
     """[{colonia, disponible, vector}] de todo el inventario. Reusa el patrón de absorcion_engine
     (semilla DEVELOPMENTS + db.developments/units vía ingested_reader). FAIL-OPEN por fuente."""
     from demand_genome import vector_unidad
     from market_4s_bridge import norm_colonia
     out: List[Dict[str, Any]] = []
+    colonias = None   # el raw siempre trae TODO; el filtro vive en el wrapper cacheado
 
     def _quiere(col: str) -> bool:
         return not colonias or col in colonias
@@ -96,71 +120,171 @@ def _llaves_oferta(vector: Dict[str, str]) -> Set[tuple]:
     return llaves
 
 
-async def _demanda_conteos(db, colonias: Optional[Set[str]] = None) -> Dict[tuple, int]:
-    """{(dimension, valor): n_señales} de demand_atoms — TODAS las dimensiones, sin lista fija."""
-    conteos: Dict[tuple, int] = {}
+def _ts_ok(ts, cutoff) -> bool:
+    """¿El átomo cae dentro de la ventana? Fail-open True (mejor contar de más que perder)."""
+    if ts is None or cutoff is None:
+        return True
+    try:
+        if isinstance(ts, str):
+            from datetime import datetime
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return ts >= cutoff
+    except Exception:
+        return True
+
+
+async def _demanda_conteos(db, colonias: Optional[Set[str]] = None,
+                           dias: Optional[int] = 90) -> Dict[tuple, Dict[str, Any]]:
+    """{(dimension, valor): {visitantes, senales}} — HARDENING: visitantes ÚNICOS (un obsesivo
+    buscando 10 veces = 1) + ventana temporal (default 90d) + señales ponderadas por peso."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=dias)) if dias else None
+    visitantes: Dict[tuple, Set[str]] = {}
+    senales: Dict[tuple, float] = {}
     n = 0
     try:
         async for a in db.demand_atoms.find({}, {"_id": 0}):
             if colonias and a.get("colonia") not in colonias:
                 continue
+            if not _ts_ok(a.get("ts"), cutoff):
+                continue
             k = (a["dimension"], a["valor"])
-            conteos[k] = conteos.get(k, 0) + 1
+            v = a.get("visitor_id") or f"anon:{a.get('search_id')}"
+            visitantes.setdefault(k, set()).add(v)
+            senales[k] = senales.get(k, 0.0) + float(a.get("peso", 1.0))
             n += 1
             if n >= _MAX_ATOMS:
                 break
     except Exception as e:
         log.warning("[mirror] demanda fail-open: %s", e)
-    return conteos
+    return {k: {"visitantes": len(vs), "senales": round(senales.get(k, 0), 1)}
+            for k, vs in visitantes.items()}
 
 
-# ── B1 · el espejo ────────────────────────────────────────────────────────────
-async def espejo(db, colonias: Optional[Set[str]] = None) -> Dict[str, Any]:
-    """Por dimensión×valor: demanda (señales) vs oferta disponible (unidades que la tienen)."""
-    dem = await _demanda_conteos(db, colonias)
+# ── B1 · el espejo (HARDENING: semántica de SATISFACCIÓN, no llave exacta) ────
+# "2 recámaras" en la demanda significa 2 O MÁS; "presupuesto 4.4-4.6" significa que una unidad
+# MÁS BARATA también satisface. Registro de semántica por dimensión (universalidad: 1 línea = 1 dim).
+_SEMANTICA = {
+    "producto.recamaras": ("min", "recamaras"),
+    "producto.banos": ("min", "vector:producto.banos"),
+    "producto.estacionamientos": ("min", "vector:producto.estacionamientos"),
+    "producto.nivel_min": ("min", "piso"),
+    "producto.m2_banda": ("min_banda", "m2"),
+    "producto.m2_max_banda": ("max_banda", "m2"),
+    "finanzas.presupuesto_banda_mdp": ("max_banda", "precio"),
+    "finanzas.presupuesto_min_banda_mdp": ("min_banda", "precio"),
+    "producto.feature": ("feature", None),
+}
+
+
+def _valor_unidad(u: Dict[str, Any], campo: str) -> Optional[float]:
+    try:
+        if campo.startswith("vector:"):
+            v = u["vector"].get(campo.split(":", 1)[1])
+        else:
+            v = u.get(campo)
+        return float(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _rango_de_banda(banda: str) -> Optional[tuple]:
+    import re
+    nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", str(banda))]
+    return (nums[0], nums[1]) if len(nums) >= 2 else None
+
+
+def _satisface(u: Dict[str, Any], dim: str, val: str) -> Optional[bool]:
+    """¿Esta unidad satisface la demanda (dim, val)? None = dimensión sin espejo de oferta."""
+    sem = _SEMANTICA.get(dim)
+    if not sem:
+        return None
+    op, campo = sem
+    if op == "feature":
+        return f"producto.feature.{val}" in u["vector"]
+    uv = _valor_unidad(u, campo)
+    if uv is None:
+        return False
+    if op == "min":
+        try:
+            return uv >= float(val)
+        except (TypeError, ValueError):
+            return False
+    r = _rango_de_banda(val)
+    if not r:
+        return False
+    lo, hi = r
+    escala = 1_000_000 if "mdp" in dim else 1   # bandas de precio vienen en mdp; la unidad en pesos
+    return uv >= lo * escala if op == "min_banda" else uv <= hi * escala
+
+
+async def espejo(db, colonias: Optional[Set[str]] = None, dias: Optional[int] = 90) -> Dict[str, Any]:
+    """Por demanda (dim×valor): VISITANTES únicos que lo piden vs unidades disponibles que lo
+    SATISFACEN (semántica min/max, no llave exacta). + inventario ciego en features."""
+    dem = await _demanda_conteos(db, colonias, dias=dias)
     unidades = await _oferta_vectores(db, colonias)
-    ofe: Dict[tuple, int] = {}
-    for u in unidades:
-        if not u["disponible"]:
-            continue
-        for k in _llaves_oferta(u["vector"]):
-            ofe[k] = ofe.get(k, 0) + 1
+    disponibles = [u for u in unidades if u["disponible"]]
 
     filas = []
-    for k in set(dem) | set(ofe):
-        dim, val = k
+    features_demandadas: Set[str] = set()
+    for (dim, val), cnt in dem.items():
         if dim.startswith(("lexico.", "exclusion.", "busqueda.")):
-            continue   # léxico/negativa tienen su propia lente; busqueda.* aún sin espejo de oferta
-        d, o = dem.get(k, 0), ofe.get(k, 0)
-        filas.append({"dimension": dim, "valor": val, "demanda": d, "oferta_disponible": o,
-                      "tension": round(d / o, 2) if o else None,
-                      "estado": ("inexistente" if d > 0 and o == 0 else
-                                 "ciego" if o > 0 and d == 0 else "espejo")})
-    filas.sort(key=lambda f: (-(f["demanda"]), f["dimension"]))
+            continue
+        if dim == "producto.feature":
+            features_demandadas.add(val)
+        sats = [_satisface(u, dim, val) for u in disponibles]
+        if all(s is None for s in sats) and disponibles:
+            estado, oferta = "sin_espejo", None      # dimensión aún sin lado-oferta (honesto)
+        else:
+            oferta = sum(1 for s in sats if s)
+            estado = "inexistente" if oferta == 0 else "espejo"
+        filas.append({"dimension": dim, "valor": val,
+                      "demanda": cnt["visitantes"], "senales": cnt["senales"],
+                      "oferta_satisface": oferta,
+                      "tension": round(cnt["visitantes"] / oferta, 2) if oferta else None,
+                      "estado": estado})
+
+    # inventario CIEGO (features que la oferta tiene y NADIE pide — semántica exacta aplica)
+    ofe_feats: Dict[str, int] = {}
+    for u in disponibles:
+        for k in u["vector"]:
+            if k.startswith("producto.feature."):
+                f = k.rsplit(".", 1)[1]
+                ofe_feats[f] = ofe_feats.get(f, 0) + 1
+    for f, n in ofe_feats.items():
+        if f not in features_demandadas:
+            filas.append({"dimension": "producto.feature", "valor": f, "demanda": 0, "senales": 0,
+                          "oferta_satisface": n, "tension": None, "estado": "ciego"})
+
+    filas.sort(key=lambda x: (-(x["demanda"]), x["dimension"]))
     return {"n_unidades_oferta": len(unidades), "n_llaves": len(filas),
+            "dias_ventana": dias,
             "es_estimado": not bool(filas), "filas": filas,
             "colonias": sorted(colonias) if colonias else "todas"}
 
 
 # ── B2 · escasez / lo inexistente / inventario ciego ─────────────────────────
-async def escasez(db, colonias: Optional[Set[str]] = None, top: int = 15) -> Dict[str, Any]:
-    esp = await espejo(db, colonias)
+async def escasez(db, colonias: Optional[Set[str]] = None, top: int = 15,
+                  dias: Optional[int] = 90) -> Dict[str, Any]:
+    esp = await espejo(db, colonias, dias=dias)
     filas = esp["filas"]
     con_tension = [f for f in filas if f["tension"] is not None and f["demanda"] > 0]
     con_tension.sort(key=lambda f: -f["tension"])
     inexistente = [f for f in filas if f["estado"] == "inexistente"]
     inexistente.sort(key=lambda f: -f["demanda"])
     ciego = [f for f in filas if f["estado"] == "ciego"]
-    ciego.sort(key=lambda f: -f["oferta_disponible"])
+    ciego.sort(key=lambda f: -f["oferta_satisface"])
     top_t = con_tension[0] if con_tension else None
     return {
-        "es_estimado": esp["es_estimado"],
+        "es_estimado": esp["es_estimado"], "dias_ventana": dias,
         "tension_top": con_tension[:top],
         "lo_inexistente": inexistente[:top],   # → auto-brief (Ola C4)
         "inventario_ciego": ciego[:top],
         "lectura": (f"Mayor tensión: {top_t['dimension']}={top_t['valor']} "
-                    f"({top_t['demanda']} piden / {top_t['oferta_disponible']} disponibles = "
-                    f"{top_t['tension']}x). {len(inexistente)} llaves con demanda y CERO oferta.")
+                    f"({top_t['demanda']} visitantes únicos / {top_t['oferta_satisface']} unidades que "
+                    f"lo satisfacen = {top_t['tension']}x en {dias}d). "
+                    f"{len(inexistente)} llaves con demanda y CERO oferta.")
                    if top_t else "Sin señal suficiente para medir escasez.",
     }
 

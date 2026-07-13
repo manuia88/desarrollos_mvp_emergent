@@ -117,3 +117,9 @@ Ningún chunk se construye limitado a los ejemplos: **(1) GARANTÍA "ningún cam
 
 ## GATES DE CALIDAD (cada chunk, sin excepción)
 tests verdes · verificado logueado en app real · procedencia en cada número (medido/observado/transferido/estimado) · k-anon fuera de superadmin · sin features huérfanas (todo con ruta+UI) · commit descriptivo · este doc actualizado con ✅+fecha.
+
+## HARDENING A-C — ✅ 2026-07-13 (auditoría post-construcción del founder)
+🔴 Correctness: espejo con SEMÁNTICA de satisfacción (2 rec = 2+; presupuesto = techo) vía registro `_SEMANTICA` · tensión por VISITANTES ÚNICOS (el obsesivo cuenta 1) · ventana temporal 90d en demanda · precio sombra por ESTRATOS (colonia+m²+rec) · curva vertical INTRA-edificio (dev_id) · screener solo comparables DISPONIBLES + estrato fino con fallback reportado.
+🟡 Valor: señales buyer_signals→átomos con PESO (ver=0.3 vs buscar=1.0) · taxonomía promovible en RUNTIME (radar léxico→promover→re-explotar, endpoint /genoma/taxonomia/promover) · KPI del moat con HISTORIA semanal (snapshot idempotente + bloque genoma_kpi en el menú) · land bank por PERCENTILES (50% demanda·30% brecha·20% normativo) · reportes con MEMORIA (guardar/abrir) · backfill+señales+snapshot al arranque + cron horario (la curva crece sola).
+⚪ Gates: caché TTL 60s del inventario (perf) · GATE APP REAL: parcial ✅ (app importa, 1,844 rutas, 33 nuevas registradas) — runtime vivo BLOQUEADO por entorno (sin mongod ni docker daemon en esta máquina). Para cerrarlo: `open -a Docker` → `docker run -d --name dmx-mongo -p 27017:27017 mongo:7` → levantar backend/front y navegar Hub Mercado logueado.
+Pendientes menores anotados: botón por-término en radar léxico (endpoint listo) · edad de publicación en unidades invisibles · land bank v2 a predio.

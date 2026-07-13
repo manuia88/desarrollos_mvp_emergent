@@ -73,31 +73,60 @@ def _norm_txt(s: str) -> str:
     return s.strip().lower()
 
 
-def normalizar_feature(texto: str) -> Optional[str]:
-    """Texto libre → slug canónico (o None si no está en la taxonomía — se reporta, no se pierde)."""
+def normalizar_feature(texto: str, extra: Optional[Dict[str, str]] = None) -> Optional[str]:
+    """Texto libre → slug canónico (o None si no está en la taxonomía — se reporta, no se pierde).
+    `extra` = taxonomía promovida en runtime (db.taxonomia_extra): el radar léxico cierra su ciclo
+    sin tocar código — universalidad."""
     t = _norm_txt(texto)
     if not t:
         return None
+    if extra and t in extra:
+        return extra[t]
     if t in _SINONIMO_A_SLUG:
         return _SINONIMO_A_SLUG[t]
-    # contención: "depa con roof garden hermoso" → roof_garden
-    for sin, slug in _SINONIMO_A_SLUG.items():
+    # contención: "depa con roof garden hermoso" → roof_garden (extra primero: lo promovido manda)
+    for sin, slug in list((extra or {}).items()) + list(_SINONIMO_A_SLUG.items()):
         if len(sin) >= 4 and sin in t:
             return slug
     return None
 
 
-def normalizar_features(textos: List[str]) -> Dict[str, List[str]]:
+def normalizar_features(textos: List[str],
+                        extra: Optional[Dict[str, str]] = None) -> Dict[str, List[str]]:
     """Lista de textos → {reconocidos: [slugs], desconocidos: [textos]} (lo desconocido es el
     radar léxico: features emergentes que aún no están en la taxonomía)."""
     slugs, desconocidos = [], []
     for t in textos or []:
-        s = normalizar_feature(t)
+        s = normalizar_feature(t, extra)
         if s and s not in slugs:
             slugs.append(s)
         elif not s and _norm_txt(t):
             desconocidos.append(_norm_txt(t))
     return {"reconocidos": slugs, "desconocidos": desconocidos}
+
+
+async def cargar_taxonomia_extra(db) -> Dict[str, str]:
+    """Sinónimos promovidos en runtime (radar léxico → botón/endpoint promover). FAIL-OPEN."""
+    out: Dict[str, str] = {}
+    try:
+        async for t in db.taxonomia_extra.find({}, {"_id": 0}):
+            if t.get("sinonimo") and t.get("slug"):
+                out[_norm_txt(t["sinonimo"])] = str(t["slug"]).strip().lower()
+    except Exception as e:
+        log.warning("[genoma] taxonomia_extra fail-open: %s", e)
+    return out
+
+
+async def promover_termino(db, termino: str, slug: Optional[str] = None) -> Dict[str, Any]:
+    """Cierra el ciclo del radar léxico: un término emergente se vuelve feature contable YA
+    (y las próximas explosiones lo reconocen). slug default = el término slugificado."""
+    t = _norm_txt(termino)
+    if not t:
+        return {"ok": False, "error": "término vacío"}
+    s = _norm_txt(slug or t).replace(" ", "_")
+    await db.taxonomia_extra.update_one({"sinonimo": t}, {"$set": {"sinonimo": t, "slug": s}}, upsert=True)
+    return {"ok": True, "sinonimo": t, "slug": s,
+            "lectura": f"'{t}' promovido a la taxonomía como '{s}' — re-corre el explotador para re-clasificar."}
 
 
 # ── Bandas (para que los átomos sean agregables sin exponer el dato exacto) ──
@@ -127,17 +156,25 @@ _CAMPOS_CURADOS = {
     "estacionamiento_independiente", "stages", "plazo", "stage_pedido", "tipo_pedido",
     "features_pedidos", "amenidades_pedidas", "soft_criteria", "negative_criteria",
 }
+# PESO por intensidad (hardening): buscar explícito pesa 1.0; ver/like/dwell son deseo más débil.
+# La tensión usa VISITANTES ÚNICOS; el peso mide intensidad agregada de la señal.
+PESO_SENAL = {"search": 1.0, "intent": 0.8, "like": 0.6, "save": 0.6, "unit_save": 0.6,
+              "compare": 0.5, "ficha_view": 0.3, "unit_view": 0.3,
+              "photo_dwell": 0.2, "photo_zoom": 0.2}
+
+
 def _atomo(doc_id: str, colonia: str, dimension: str, valor: Any, *,
-           visitor: Optional[str], fuente: str, ts) -> Dict[str, Any]:
+           visitor: Optional[str], fuente: str, ts, peso: float = 1.0) -> Dict[str, Any]:
     return {
         "genoma_v": GENOMA_V,
         "search_id": doc_id, "colonia": colonia,
         "dimension": dimension, "valor": str(valor),
-        "visitor_id": visitor, "fuente": fuente, "ts": ts,
+        "visitor_id": visitor, "fuente": fuente, "ts": ts, "peso": peso,
     }
 
 
-def atomos_de_busqueda(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
+def atomos_de_busqueda(doc: Dict[str, Any],
+                       taxonomia_extra: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
     """Explota UN doc de marketplace_searches en átomos de demanda (puro, sin DB).
     Un átomo por (colonia × dimensión con valor). Fail-open: campos ausentes se omiten."""
     from market_4s_bridge import norm_colonia
@@ -188,7 +225,7 @@ def atomos_de_busqueda(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
     # features + amenidades → taxonomía (lo no reconocido = radar léxico, también se guarda)
     textos_feat = (doc.get("features_pedidos") or []) + (doc.get("amenidades_pedidas") or []) \
         + (doc.get("soft_criteria") or [])   # A5: los criterios suaves del buscador IA dejan de ser texto muerto
-    feats = normalizar_features(textos_feat)
+    feats = normalizar_features(textos_feat, taxonomia_extra)
     for slug in feats["reconocidos"]:
         dims.append(("producto.feature", slug))
     for raw in feats["desconocidos"]:
@@ -199,14 +236,14 @@ def atomos_de_busqueda(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
     if doc.get("query"):
         q = _norm_txt(doc["query"])
         ya = {v for d, v in dims if d == "producto.feature"}
-        for sin, slug in _SINONIMO_A_SLUG.items():
+        for sin, slug in list((taxonomia_extra or {}).items()) + list(_SINONIMO_A_SLUG.items()):
             if len(sin) >= 4 and sin in q and slug not in ya:
                 dims.append(("producto.feature", slug))
                 ya.add(slug)
 
     # Data NEGATIVA: las exclusiones también son demanda ("no avenida", "sin alberca")
     for neg in doc.get("negative_criteria") or []:
-        s = normalizar_feature(neg)
+        s = normalizar_feature(neg, taxonomia_extra)
         dims.append(("exclusion.feature" if s else "exclusion.texto", s or _norm_txt(neg)[:60]))
 
     if doc.get("precio_min") is not None:
@@ -304,10 +341,11 @@ def vector_unidad(unit: Dict[str, Any]) -> Dict[str, str]:
 async def explotar_busquedas(db, limite: int = 20000) -> Dict[str, Any]:
     """Backfill + re-proceso: TODAS las búsquedas → demand_atoms. Idempotente (clave natural)."""
     n_docs, n_atomos = 0, 0
+    extra = await cargar_taxonomia_extra(db)
     try:
         async for doc in db.marketplace_searches.find({}, {"_id": 0}):
             n_docs += 1
-            for a in atomos_de_busqueda(doc):
+            for a in atomos_de_busqueda(doc, taxonomia_extra=extra):
                 key = {"search_id": a["search_id"], "colonia": a["colonia"],
                        "dimension": a["dimension"], "valor": a["valor"]}
                 await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
@@ -363,3 +401,67 @@ async def resumen_genoma(db) -> Dict[str, Any]:
                     f"{len(visitantes)} visitantes. Este número debe crecer cada semana — es el moat.")
                    if atomos else "Aún sin átomos — corre el explotador o espera señal del marketplace.",
     }
+
+
+# ── HARDENING · señales de comportamiento → átomos con PESO ───────────────────
+async def explotar_senales(db, limite: int = 20000) -> Dict[str, Any]:
+    """buyer_signals (ver/like/comparar/dwell) → átomos de demanda con peso: el visitante que VE
+    una unidad con balcón está expresando deseo por sus llaves (más débil que buscarlo — PESO_SENAL).
+    Idempotente por (visitante × tipo × unidad × dimensión). FAIL-OPEN."""
+    try:
+        from demand_mirror import _oferta_vectores, _llaves_oferta
+        unidades = {str(u["unit_id"]): u for u in await _oferta_vectores(db) if u.get("unit_id")}
+    except Exception as e:
+        log.warning("[genoma] señales oferta fail-open: %s", e)
+        return {"senales_procesadas": 0, "atomos": 0, "error": "sin inventario"}
+
+    n_sig, n_atomos = 0, 0
+    try:
+        async for s in db.buyer_signals.find({}, {"_id": 0, "type": 1, "visitor_id": 1,
+                                                  "entity_id": 1, "created_at_dt": 1}):
+            t = s.get("type")
+            peso = PESO_SENAL.get(t)
+            u = unidades.get(str(s.get("entity_id") or ""))
+            if not peso or not u or not s.get("visitor_id"):
+                continue
+            n_sig += 1
+            base_id = f"sig:{s['visitor_id']}:{t}:{s['entity_id']}"
+            from demand_mirror import _llaves_oferta as _lo
+            for dim, val in _lo(u["vector"]):
+                a = _atomo(base_id, u["colonia"], dim, val, visitor=s["visitor_id"],
+                           fuente=f"senal:{t}", ts=s.get("created_at_dt"), peso=peso)
+                key = {"search_id": a["search_id"], "colonia": a["colonia"],
+                       "dimension": a["dimension"], "valor": a["valor"]}
+                await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
+                n_atomos += 1
+            if n_sig >= limite:
+                break
+    except Exception as e:
+        log.warning("[genoma] señales fail-open: %s", e)
+    return {"senales_procesadas": n_sig, "atomos": n_atomos}
+
+
+# ── HARDENING · el KPI del moat con HISTORIA (la curva semanal para YC) ───────
+async def snapshot_kpi(db) -> Dict[str, Any]:
+    """Foto semanal del KPI (idempotente por semana ISO) → la curva 'crece solo' es demostrable."""
+    from datetime import datetime, timezone
+    r = await resumen_genoma(db)
+    now = datetime.now(timezone.utc)
+    iso = now.isocalendar()
+    semana = f"{iso[0]}-W{iso[1]:02d}"
+    doc = {"semana": semana, "fecha": now.isoformat()[:10],
+           "n_atomos": r["n_atomos"], "n_visitantes": r["n_visitantes"],
+           "dimensiones_con_senal": r["dimensiones_con_senal"]}
+    await db.genoma_kpi_snapshots.update_one({"semana": semana}, {"$set": doc}, upsert=True)
+    return {"ok": True, **doc}
+
+
+async def historia_kpi(db, semanas: int = 26) -> List[Dict[str, Any]]:
+    out = []
+    try:
+        async for s in db.genoma_kpi_snapshots.find({}, {"_id": 0}):
+            out.append(s)
+    except Exception as e:
+        log.warning("[genoma] historia fail-open: %s", e)
+    out.sort(key=lambda x: x.get("semana", ""))
+    return out[-semanas:]

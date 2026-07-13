@@ -25,15 +25,29 @@ log = logging.getLogger("dmx.report_builder")
 # ── bloques (cada uno: motor existente + procedencia) ─────────────────────────
 async def _b_demanda_viva(db, ctx) -> Dict[str, Any]:
     from demand_mirror import _demanda_conteos
-    conteos = await _demanda_conteos(db, ctx.get("colonias"))
+    conteos = await _demanda_conteos(db, ctx.get("colonias"))   # visitantes únicos + ventana 90d
     corte = ctx.get("cortes") or {}
     if corte.get("dimension"):
         conteos = {k: v for k, v in conteos.items()
                    if k[0] == corte["dimension"] and (not corte.get("valor") or k[1] == str(corte["valor"]))}
-    filas = [{"dimension": d, "valor": v, "senales": n}
-             for (d, v), n in sorted(conteos.items(), key=lambda x: -x[1])[:40]]
-    return {"procedencia": "observado", "n_senales": sum(f["senales"] for f in filas), "filas": filas,
-            "lectura": f"{sum(f['senales'] for f in filas)} señales de demanda viva en el territorio."}
+    filas = [{"dimension": d, "valor": v, "visitantes": c["visitantes"], "senales": c["senales"]}
+             for (d, v), c in sorted(conteos.items(), key=lambda x: -x[1]["visitantes"])[:40]]
+    n_vis = sum(f["visitantes"] for f in filas)
+    return {"procedencia": "observado", "n_senales": n_vis, "filas": filas,
+            "lectura": f"{n_vis} visitantes únicos pidiendo en el territorio (ventana 90 días)."}
+
+
+async def _b_genoma_kpi(db, ctx) -> Dict[str, Any]:
+    """EL KPI DEL MOAT con su curva semanal — la evidencia 'crece solo' para YC."""
+    from demand_genome import resumen_genoma, historia_kpi
+    r = await resumen_genoma(db)
+    hist = await historia_kpi(db)
+    crecio = (len(hist) >= 2 and hist[-1]["n_atomos"] > hist[-2]["n_atomos"])
+    return {"procedencia": "observado", "n_atomos": r["n_atomos"], "n_visitantes": r["n_visitantes"],
+            "dimensiones_con_senal": r["dimensiones_con_senal"],
+            "historia_semanal": hist, "radar_lexico": r.get("radar_lexico"),
+            "lectura": r["lectura"] + (" La curva semanal SUBE." if crecio else
+                                       f" Historia: {len(hist)} snapshot(s) semanales.")}
 
 
 async def _b_espejo(db, ctx) -> Dict[str, Any]:
@@ -205,6 +219,8 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "set_competitivo": {"fn": _b_set_competitivo, "titulo": "Set competitivo de una unidad",
                         "desc": "El rival REAL: unidades co-vistas por los mismos visitantes.",
                         "necesita": ["unit_id"]},
+    "genoma_kpi": {"fn": _b_genoma_kpi, "titulo": "KPI del moat (curva semanal)",
+                   "desc": "Átomos, visitantes y dimensiones con señal + la historia semanal — la evidencia YC."},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
@@ -250,3 +266,35 @@ async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: 
         "generado": datetime.now(timezone.utc).isoformat(),
         "secciones": secciones,
     }
+
+
+# ── HARDENING · reportes con MEMORIA (comparar hoy vs hace un mes) ────────────
+async def guardar_reporte(db, reporte: Dict[str, Any], nombre: Optional[str] = None,
+                          actor: str = "superadmin") -> Dict[str, Any]:
+    import uuid
+    rid = f"rep_{uuid.uuid4().hex[:10]}"
+    doc = {"id": rid, "nombre": nombre or f"Reporte {reporte.get('generado', '')[:16]}",
+           "actor": actor, **reporte}
+    await db.reportes_guardados.update_one({"id": rid}, {"$set": doc}, upsert=True)
+    return {"ok": True, "id": rid, "nombre": doc["nombre"]}
+
+
+async def listar_reportes(db, limite: int = 30) -> Dict[str, Any]:
+    out = []
+    try:
+        async for r in db.reportes_guardados.find({}, {"_id": 0, "id": 1, "nombre": 1,
+                                                       "generado": 1, "territorio": 1, "n_bloques": 1}):
+            out.append(r)
+    except Exception as e:
+        log.warning("[report] listar fail-open: %s", e)
+    out.sort(key=lambda r: r.get("generado", ""), reverse=True)
+    return {"reportes": out[:limite]}
+
+
+async def obtener_reporte(db, reporte_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        async for r in db.reportes_guardados.find({"id": reporte_id}, {"_id": 0}):
+            return r
+    except Exception as e:
+        log.warning("[report] obtener fail-open: %s", e)
+    return None

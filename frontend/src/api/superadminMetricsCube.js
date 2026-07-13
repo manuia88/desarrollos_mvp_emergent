@@ -261,6 +261,12 @@ export async function generarReporte(payload) {
     method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(payload || {}),
   }));
 }
+export async function getReportesGuardados() {
+  return _j(await fetch(`${API}/api/superadmin/reportes/guardados`, { headers: h(), credentials: 'include' }));
+}
+export async function getReporteGuardado(id) {
+  return _j(await fetch(`${API}/api/superadmin/reportes/guardado?id=${encodeURIComponent(id)}`, { headers: h(), credentials: 'include' }));
+}
 // Brief de producto auto-generado desde los átomos + despacho al buzón del dev (cubo→brief).
 export async function getCubo4sBrief(estudio) {
   return _j(await fetch(`${API}/api/superadmin/cubo-4s/brief?estudio=${encodeURIComponent(estudio)}`, { headers: h(), credentials: 'include' }));

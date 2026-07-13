@@ -55,22 +55,25 @@ class _DB:
         return self._c.setdefault(n, _Col())
 
 
-def _u(uid, colonia, precio, m2, piso=1, rec=2, feats=(), disponible=True):
+def _u(uid, colonia, precio, m2, piso=1, rec=2, feats=(), disponible=True, dev="d1"):
     vec = {"producto.recamaras": str(rec)}
     for f in feats:
         vec[f"producto.feature.{f}"] = "si"
-    return {"colonia": colonia, "dev_id": "d1", "disponible": disponible, "unit_id": uid,
+    return {"colonia": colonia, "dev_id": dev, "disponible": disponible, "unit_id": uid,
             "precio": precio, "m2": m2, "piso": piso, "recamaras": rec, "vector": vec}
 
 
-# 12 unidades en condesa: 5 con balcón (~$120k/m²), 5 sin (~$100k/m²), niveles 1-4
+# edificio d1: 5 con balcón (~$120k/m²) + 5 sin (~$100k/m²) + gema/caro (mismo estrato 60m²/2rec)
+# edificio d2: base piso 1 ($110k) + tres piso 8 (~$130k) → prima de altura INTRA-edificio
 _UNIDADES = (
     [_u(f"b{i}", "condesa", 120000 * 60, 60, piso=i % 4 + 1, feats=("balcon",)) for i in range(5)]
     + [_u(f"s{i}", "condesa", 100000 * 60, 60, piso=i % 4 + 1) for i in range(5)]
     + [_u("gema", "condesa", 80000 * 60, 60, piso=2, feats=("balcon",))]     # infravalorada
     + [_u("caro", "condesa", 150000 * 60, 60, piso=3)]                        # sobrevalorada
-    + [_u("alto", "condesa", 130000 * 60, 60, piso=8), _u("alto2", "condesa", 132000 * 60, 60, piso=8),
-       _u("alto3", "condesa", 128000 * 60, 60, piso=8)]                       # prima de altura n=3
+    + [_u("alto0", "condesa", 110000 * 60, 60, piso=1, dev="d2"),
+       _u("alto", "condesa", 130000 * 60, 60, piso=8, dev="d2"),
+       _u("alto2", "condesa", 132000 * 60, 60, piso=8, dev="d2"),
+       _u("alto3", "condesa", 128000 * 60, 60, piso=8, dev="d2")]
 )
 
 
@@ -119,13 +122,16 @@ async def test_c3_screener_detecta_gema_y_caro(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_c5_curva_vertical_prima_de_altura(monkeypatch):
+async def test_c5_curva_vertical_intra_edificio(monkeypatch):
+    """HARDENING: la prima se mide dentro del MISMO edificio (d2: piso 8 vs su propio piso 1)."""
     _patch(monkeypatch)
     r = await curva_vertical(_DB(), {"condesa"})
+    assert r["control"] == "intra-edificio (dev_id)"
+    assert r["n_edificios"] == 2                      # d1 (niveles 1-4) y d2 (1 y 8)
     assert r["es_estimado"] is False
     nivel8 = next(n for n in r["niveles"] if n["nivel"] == 8)
-    assert nivel8["prima_vs_base_pct"] > 5            # el piso 8 cotiza arriba del base
-    assert nivel8["n"] == 3
+    assert nivel8["prima_vs_base_pct"] > 5            # ~+18% vs el piso 1 del MISMO edificio
+    assert nivel8["n_edificios"] == 1
 
 
 @pytest.mark.asyncio

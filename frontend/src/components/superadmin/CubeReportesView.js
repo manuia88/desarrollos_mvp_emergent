@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { FileText, Printer, Play } from 'lucide-react';
-import { getReporteBloques, generarReporte } from '../../api/superadminMetricsCube';
+import { getReporteBloques, generarReporte, getReportesGuardados, getReporteGuardado } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 });
 const tc = (s) => String(s ?? '—').replace(/[_.-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -119,12 +119,20 @@ export default function CubeReportesView() {
   const [reporte, setReporte] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [guardar, setGuardar] = useState(false);
+  const [guardados, setGuardados] = useState([]);
 
   useEffect(() => {
     let alive = true;
     getReporteBloques().then((d) => alive && setCatalogoB(d.bloques || [])).catch(() => setCatalogoB([]));
+    getReportesGuardados().then((d) => alive && setGuardados(d.reportes || [])).catch(() => setGuardados([]));
     return () => { alive = false; };
   }, []);
+
+  const abrirGuardado = async (id) => {
+    if (!id) return;
+    try { setReporte(await getReporteGuardado(id)); } catch (e) { setErr(e?.message || 'No se pudo abrir.'); }
+  };
 
   const toggle = (id) => setSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -137,8 +145,13 @@ export default function CubeReportesView() {
         bloques: [...sel],
         cortes: corteDim ? { dimension: corteDim, valor: corteVal || null } : null,
         unit_id: unitId || null,
+        guardar,
       };
-      setReporte(await generarReporte(payload));
+      const r = await generarReporte(payload);
+      setReporte(r);
+      if (r.guardado) {
+        getReportesGuardados().then((d) => setGuardados(d.reportes || [])).catch(() => {});
+      }
     } catch (e) { setErr(e?.message || 'No se pudo generar.'); } finally { setBusy(false); }
   };
 
@@ -186,6 +199,15 @@ export default function CubeReportesView() {
             <button onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
               <Printer size={14} /> Imprimir / PDF
             </button>
+          )}
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 12, color: guardar ? '#4ADE80' : 'rgba(240,235,224,0.6)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={guardar} onChange={(e) => setGuardar(e.target.checked)} /> Guardar (memoria)
+          </label>
+          {guardados.length > 0 && (
+            <select defaultValue="" onChange={(e) => abrirGuardado(e.target.value)} style={{ padding: '8px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12 }} data-testid="rep-guardados">
+              <option value="">Abrir guardado… ({guardados.length})</option>
+              {guardados.map((g) => <option key={g.id} value={g.id}>{g.nombre} · {String(g.generado).slice(0, 10)}</option>)}
+            </select>
           )}
           {err && <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5', alignSelf: 'center' }}>{err}</span>}
         </div>

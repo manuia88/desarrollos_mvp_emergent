@@ -2745,6 +2745,26 @@ async def startup():
         except Exception as e:
             logging.warning("[startup] facts_4s load fail-open: %s", e)
 
+        # GENOMA DE DEMANDA (hardening): backfill de átomos (búsquedas + señales con peso) +
+        # snapshot semanal del KPI del moat + cron horario para que la curva crezca SOLA.
+        try:
+            from demand_genome import explotar_busquedas, explotar_senales, snapshot_kpi
+            _g1 = await explotar_busquedas(db)
+            _g2 = await explotar_senales(db)
+            _g3 = await snapshot_kpi(db)
+            logging.info("[startup] genoma: %s · señales: %s · kpi: %s", _g1, _g2, _g3)
+
+            async def _genoma_tick():
+                try:
+                    await explotar_busquedas(db)
+                    await explotar_senales(db)
+                    await snapshot_kpi(db)
+                except Exception as _e:  # noqa: BLE001
+                    logging.warning("[genoma] tick fail-open: %s", _e)
+            sched.add_job(_genoma_tick, "interval", hours=1, id="genoma_tick", replace_existing=True)
+        except Exception as e:
+            logging.warning("[startup] genoma fail-open: %s", e)
+
         # W6.MOV.2 — Gov Data MX: indexes + 2 crons (weekly dom 04:00 + monthly día 1 05:00 UTC)
         # HONESTIDAD DE DATOS (auditoría 2026-07-12): el cron actual solo guardaba el HTML de la landing
         # (~3.9KB), NUNCA los datasets (INEGI/IMSS/ENVIPE/SEP) → daba FALSA frescura (ingested_at avanzaba,
