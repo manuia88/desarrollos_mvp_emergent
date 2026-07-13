@@ -96,7 +96,8 @@ async def r_reportes_generar(request: Request):
     from report_builder import generar_reporte
     return await generar_reporte(_db(request),
                                  colonias=body.get("colonias"), estudio=body.get("estudio"),
-                                 bloques=body.get("bloques"), cortes=body.get("cortes"))
+                                 bloques=body.get("bloques"), cortes=body.get("cortes"),
+                                 unit_id=body.get("unit_id"))
 
 
 # ── ESPEJO del genoma + data negativa + radar léxico (Ola B1/B2/B5/B6) ──

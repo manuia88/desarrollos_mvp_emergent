@@ -143,6 +143,13 @@ async def _b_corredores(db, ctx) -> Dict[str, Any]:
     return await corredores(db)
 
 
+async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
+    from demand_graph_engine import set_competitivo
+    if not ctx.get("unit_id"):
+        return {"procedencia": "sin_dato", "lectura": "Este bloque necesita una unidad (unit_id)."}
+    return {"procedencia": "observado", **(await set_competitivo(db, unit_id=ctx["unit_id"]))}
+
+
 # ═══ EL REGISTRO (universalidad: bloque nuevo = una entrada aquí) ═══
 BLOQUES: Dict[str, Dict[str, Any]] = {
     "demanda_viva": {"fn": _b_demanda_viva, "titulo": "Demanda viva (átomos del genoma)",
@@ -150,7 +157,13 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "espejo": {"fn": _b_espejo, "titulo": "Espejo demanda↔oferta",
                "desc": "Cada llave del genoma: cuántos la piden vs cuántas unidades la tienen."},
     "escasez": {"fn": _b_escasez, "titulo": "Escasez · lo inexistente · inventario ciego",
-                "desc": "Tensión demanda/oferta + el producto que nadie ofrece + oferta que nadie pide."},
+                "desc": "Tensión demanda/oferta + el producto que nadie ofrece + oferta que nadie pide.",
+                "acciones": [{"id": "despachar_inexistente",
+                              "titulo": "Enviar 'lo inexistente' al desarrollador (yo autorizo)",
+                              "metodo": "POST",
+                              "endpoint": "/api/superadmin/genoma/inexistente-a-brief",
+                              "params": ["colonias"],
+                              "confirmacion": "Esto envía la demanda sin oferta al buzón del dev. ¿Autorizas?"}]},
     "data_negativa": {"fn": _b_data_negativa, "titulo": "Data negativa",
                       "desc": "Zonas ciegas, unidades invisibles, interés sin amor."},
     "radar_lexico": {"fn": _b_radar_lexico, "titulo": "Radar léxico",
@@ -166,7 +179,14 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
     "gap_radar": {"fn": _b_gap_radar, "titulo": "Radar de oportunidad",
                   "desc": "Zonas×segmentos rankeados por hueco de mercado."},
     "brief_4s": {"fn": _b_brief_4s, "titulo": "Brief de producto",
-                 "desc": "La orden de trabajo: qué construir, para quién, a qué precio (requiere estudio)."},
+                 "desc": "La orden de trabajo: qué construir, para quién, a qué precio (requiere estudio).",
+                 "necesita": ["estudio"],
+                 "acciones": [{"id": "despachar_brief",
+                               "titulo": "Enviar brief al desarrollador (yo autorizo)",
+                               "metodo": "POST",
+                               "endpoint": "/api/superadmin/cubo-4s/brief/despachar",
+                               "params": ["estudio"],
+                               "confirmacion": "Esto envía el brief al buzón del dev. ¿Autorizas?"}]},
     "consumidor_4s": {"fn": _b_consumidor_4s, "titulo": "Inteligencia del consumidor 4S",
                       "desc": "WTP + producto ideal + score verde + plusvalía validada."},
     # Ola C · scores del mercado (cada uno aparece solo en el menú del founder)
@@ -182,21 +202,31 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                   "desc": "Dónde comprar tierra: demanda × potencial normativo × brecha suelo→mercado."},
     "corredores": {"fn": _b_corredores, "titulo": "Corredores de demanda",
                    "desc": "Colonias que comparten buscadores — el mercado real, no el radio."},
+    "set_competitivo": {"fn": _b_set_competitivo, "titulo": "Set competitivo de una unidad",
+                        "desc": "El rival REAL: unidades co-vistas por los mismos visitantes.",
+                        "necesita": ["unit_id"]},
 }
+
+# los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
+BLOQUES["equilibrio_4s"]["necesita"] = ["estudio"]
 
 
 def catalogo() -> Dict[str, Any]:
-    """El MENÚ que ve el founder: bloques disponibles con descripción."""
-    return {"bloques": [{"id": k, "titulo": v["titulo"], "desc": v["desc"]} for k, v in BLOQUES.items()]}
+    """El MENÚ auto-descriptivo (server-driven UI): cada bloque declara qué necesita y qué
+    ACCIONES autorizables ofrece — el front pinta inputs y botones desde aquí, sin cablearse."""
+    return {"bloques": [{"id": k, "titulo": v["titulo"], "desc": v["desc"],
+                         "necesita": v.get("necesita", []),
+                         "acciones": v.get("acciones", [])} for k, v in BLOQUES.items()]}
 
 
 async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: Optional[str] = None,
                           bloques: Optional[List[str]] = None,
-                          cortes: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+                          cortes: Optional[Dict[str, str]] = None,
+                          unit_id: Optional[str] = None) -> Dict[str, Any]:
     """El reporte a la medida: cada bloque corre AISLADO (uno truena → los demás viven)."""
     from market_4s_bridge import norm_colonia
     cols: Optional[Set[str]] = {norm_colonia(c) for c in colonias if c} if colonias else None
-    ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}}
+    ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}, "unit_id": unit_id}
     pedidos = [b for b in (bloques or list(BLOQUES))]
 
     secciones = []

@@ -47,7 +47,36 @@ function TablaGenerica({ rows }) {
 
 const _OMITIR = new Set(['bloque', 'titulo', 'procedencia', 'lectura', 'error', 'es_estimado', 'fuente', 'genoma_v', 'generado']);
 
-function Seccion({ s }) {
+// Server-driven: el botón de ACCIÓN viene declarado por el bloque (backend). El clic = la
+// autorización explícita del founder — nada llega al dev sin este botón.
+function BotonAccion({ accion, params }) {
+  const [msg, setMsg] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const correr = async () => {
+    if (accion.confirmacion && !window.confirm(accion.confirmacion)) return;
+    setBusy(true); setMsg('');
+    try {
+      const qs = (accion.params || []).map((p) => (params[p] ? `${p}=${encodeURIComponent(params[p])}` : null))
+        .filter(Boolean).join('&');
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const r = await fetch(`${API}${accion.endpoint}${qs ? `?${qs}` : ''}`,
+        { method: accion.metodo || 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      const d = await r.json();
+      setMsg(r.ok && d.ok !== false ? `✓ ${d.lectura || 'Autorizado y enviado'}` : (d.error || d.detail || 'No se pudo'));
+    } catch (e) { setMsg(e?.message || 'No se pudo'); } finally { setBusy(false); }
+  };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <button onClick={correr} disabled={busy} className="no-print"
+        style={{ padding: '6px 14px', borderRadius: 9, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+        {busy ? 'Enviando…' : accion.titulo}
+      </button>
+      {msg && <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: msg.startsWith('✓') ? '#4ADE80' : '#fca5a5' }}>{msg}</span>}
+    </span>
+  );
+}
+
+function Seccion({ s, acciones, params }) {
   const pc = PROC_COLOR[s.procedencia] || '#8b949e';
   return (
     <div style={{ marginBottom: 22, breakInside: 'avoid' }}>
@@ -70,6 +99,11 @@ function Seccion({ s }) {
           </span>
         ))}
       </div>
+      {(acciones || []).length > 0 && !s.error && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {acciones.map((a) => <BotonAccion key={a.id} accion={a} params={params} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -81,6 +115,7 @@ export default function CubeReportesView() {
   const [estudio, setEstudio] = useState('');
   const [corteDim, setCorteDim] = useState('');
   const [corteVal, setCorteVal] = useState('');
+  const [unitId, setUnitId] = useState('');
   const [reporte, setReporte] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -101,6 +136,7 @@ export default function CubeReportesView() {
         estudio: estudio || null,
         bloques: [...sel],
         cortes: corteDim ? { dimension: corteDim, valor: corteVal || null } : null,
+        unit_id: unitId || null,
       };
       setReporte(await generarReporte(payload));
     } catch (e) { setErr(e?.message || 'No se pudo generar.'); } finally { setBusy(false); }
@@ -126,6 +162,10 @@ export default function CubeReportesView() {
           </select>
           <input value={corteDim} onChange={(e) => setCorteDim(e.target.value)} placeholder="Corte: dimensión (producto.recamaras)" style={{ ...inp, minWidth: 220 }} />
           <input value={corteVal} onChange={(e) => setCorteVal(e.target.value)} placeholder="valor (2)" style={{ ...inp, width: 90 }} />
+          {/* server-driven: el input aparece solo si un bloque marcado lo declara */}
+          {catalogoB.some((b) => sel.has(b.id) && (b.necesita || []).includes('unit_id')) && (
+            <input value={unitId} onChange={(e) => setUnitId(e.target.value)} placeholder="Unidad (unit_id)" style={{ ...inp, minWidth: 160 }} data-testid="rep-unit" />
+          )}
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -158,7 +198,11 @@ export default function CubeReportesView() {
             {reporte.territorio.estudio ? <> · Estudio: <b style={{ color: 'var(--cream)' }}>{tc(reporte.territorio.estudio)}</b></> : null}
             {' '}· {reporte.n_bloques} bloques · {String(reporte.generado).slice(0, 16).replace('T', ' ')}
           </div>
-          {reporte.secciones.map((s) => <Seccion key={s.bloque} s={s} />)}
+          {reporte.secciones.map((s) => {
+            const meta = catalogoB.find((b) => b.id === s.bloque) || {};
+            return <Seccion key={s.bloque} s={s} acciones={meta.acciones}
+              params={{ colonias, estudio, unit_id: unitId }} />;
+          })}
         </div>
       )}
     </div>

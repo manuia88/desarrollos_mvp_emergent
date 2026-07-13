@@ -79,9 +79,40 @@ async def _db_full():
 def test_catalogo_es_el_menu():
     c = catalogo()
     ids = {b["id"] for b in c["bloques"]}
-    assert len(ids) == len(BLOQUES) >= 12
-    assert {"demanda_viva", "espejo", "escasez", "brief_4s", "contraste_4s", "gap_radar"} <= ids
+    assert len(ids) == len(BLOQUES) >= 19
+    assert {"demanda_viva", "espejo", "escasez", "brief_4s", "contraste_4s", "gap_radar",
+            "precio_sombra", "screener", "land_bank", "set_competitivo"} <= ids
     assert all(b["titulo"] and b["desc"] for b in c["bloques"])
+
+
+def test_catalogo_server_driven_declara_necesita_y_acciones():
+    """La MEJOR forma del guiado-por-datos: cada bloque se auto-describe — el front pinta
+    inputs (necesita) y botones de autorización (acciones) desde aquí, sin cablearse."""
+    c = {b["id"]: b for b in catalogo()["bloques"]}
+    assert c["set_competitivo"]["necesita"] == ["unit_id"]        # → input de unidad aparece solo
+    assert c["brief_4s"]["necesita"] == ["estudio"]
+    # las acciones (botones de despacho al dev) SOLO existen donde el founder autoriza
+    acc_brief = c["brief_4s"]["acciones"][0]
+    assert acc_brief["metodo"] == "POST" and "despachar" in acc_brief["endpoint"]
+    assert "autorizo" in acc_brief["titulo"].lower() or "Autorizas" in acc_brief["confirmacion"]
+    acc_esc = c["escasez"]["acciones"][0]
+    assert "inexistente-a-brief" in acc_esc["endpoint"]
+    # los bloques de solo-consulta NO llevan acciones (nada llega al dev sin botón)
+    assert c["demanda_viva"]["acciones"] == [] and c["screener"]["acciones"] == []
+
+
+@pytest.mark.asyncio
+async def test_bloque_set_competitivo_con_unidad():
+    db = await _db_full()
+    for i in range(3):
+        await db.buyer_signals.insert_one({"type": "unit_view", "visitor_id": f"q{i}", "entity_id": "uA"})
+        await db.buyer_signals.insert_one({"type": "unit_view", "visitor_id": f"q{i}", "entity_id": "uB"})
+    r = await generar_reporte(db, bloques=["set_competitivo"], unit_id="uA")
+    s = r["secciones"][0]
+    assert s["rivales"][0]["rival"] == "uB"
+    # sin unit_id → honesto
+    r2 = await generar_reporte(db, bloques=["set_competitivo"])
+    assert r2["secciones"][0]["procedencia"] == "sin_dato"
 
 
 @pytest.mark.asyncio
