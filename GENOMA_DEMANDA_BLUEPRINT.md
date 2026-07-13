@@ -112,5 +112,8 @@ Cada búsqueda y cada unidad hablan el mismo idioma de ~40 dimensiones (el GENOM
 - [ ] G5. Alertas dev ("240 buscan lo que tienes" / timing de publicación)
 - [ ] G6. API v1: catálogo de índices tier-gated (infra existe)
 
+## PRINCIPIO DE UNIVERSALIDAD (regla del founder 2026-07-13 — aplica a TODAS las olas)
+Ningún chunk se construye limitado a los ejemplos: **(1) GARANTÍA "ningún campo se pierde"** — cualquier campo escalar no curado de una búsqueda se vuelve átomo `busqueda.<campo>` automáticamente (campos nuevos entran solos, se curan con banda después); flags `tiene_*` de unidades → features automáticas. **(2) REGISTROS, no ifs** — el contraste 4S↔vivo recorre `_CONTRASTE_REGISTRO` (agregar dimensión = 1 línea); misma regla para escasez/espejo/reportes en olas B+. **(3) La taxonomía es extensible** y lo no-reconocido SIEMPRE queda en el radar léxico — nunca se descarta. Cualquier chunk futuro que no cumpla estas 3 reglas se rechaza en review.
+
 ## GATES DE CALIDAD (cada chunk, sin excepción)
 tests verdes · verificado logueado en app real · procedencia en cada número (medido/observado/transferido/estimado) · k-anon fuera de superadmin · sin features huérfanas (todo con ruta+UI) · commit descriptivo · este doc actualizado con ✅+fecha.

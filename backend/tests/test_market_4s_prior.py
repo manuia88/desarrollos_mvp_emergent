@@ -126,22 +126,50 @@ async def test_contraste_confirma_con_senal_viva():
 
 
 @pytest.mark.asyncio
-async def test_contraste_a8_metraje_y_features():
-    """A8: m² y features también entran al contraste (antes solo recámaras+presupuesto)."""
+async def test_contraste_universal_todas_las_dimensiones():
+    """A8 UNIVERSAL: el contraste recorre el REGISTRO de dimensiones (recámaras, baños, m²,
+    presupuesto, enganche) — no solo los ejemplos del founder. Agregar dimensión = 1 línea."""
     db = await _db_cargada()
     now = datetime.now(timezone.utc)
     for i in range(12):
         await db.marketplace_searches.insert_one({
             "visitor_id": f"m{i}", "colonias": ["Tabacalera"],
-            "recamaras_min": 2, "precio_max": 4500000, "m2_min": 75,
+            "recamaras_min": 2, "banos_min": 2, "precio_max": 4500000, "m2_min": 75,
+            "enganche_max": 20,
             "features_pedidos": ["balcón", "roof garden"], "created_at_dt": now,
         })
     c = await contraste_4s_vs_observado(db)
     pa = next(e for e in c["estudios"] if e["estudio"] == "puente_alvarado")
-    # metraje: 4S dice 71-80 m² dominante en PA; el mercado pide banda 70-80 → SE TOCAN
-    assert pa["prior_4s"]["metraje"]["opcion"] == "71_80"
-    assert pa["observado"]["m2_bandas"].get("70-80") == 12
-    assert pa["metraje_coincide"] is True
+    det = {d["dimension"]: d for d in pa["contraste_dimensiones"]}
+    # las 5 dimensiones del registro están contrastadas
+    assert set(det) == {"recamaras", "banos", "metraje", "presupuesto", "enganche"}
+    assert det["recamaras"]["estado"] == "coincide"      # 4S: 2 rec 74% · obs: 2
+    assert det["banos"]["estado"] == "coincide"          # 4S: 2 baños 50% · obs: 2
+    assert det["metraje"]["estado"] == "coincide"        # 4S: 71-80 · obs: 70-80 (se tocan)
+    assert det["enganche"]["estado"] == "coincide"       # 4S: 20% (54%) · obs: 20
+    assert pa["estado"] == "confirmado"
+    assert "dimensiones" in pa["veredicto"]
     # features observadas normalizadas a taxonomía
     assert pa["features_observadas_top"].get("balcon") == 12
     assert pa["features_observadas_top"].get("roof_garden") == 12
+
+
+@pytest.mark.asyncio
+async def test_contraste_universal_detecta_drift_en_cualquier_dimension():
+    """El DRIFT se detecta en CUALQUIER dimensión del registro, no solo recámaras."""
+    db = await _db_cargada()
+    now = datetime.now(timezone.utc)
+    for i in range(12):
+        await db.marketplace_searches.insert_one({
+            "visitor_id": f"d{i}", "colonias": ["Tabacalera"],
+            "recamaras_min": 2, "enganche_max": 40,       # enganche 40% ≠ 4S 20%
+            "created_at_dt": now,
+        })
+    c = await contraste_4s_vs_observado(db)
+    pa = next(e for e in c["estudios"] if e["estudio"] == "puente_alvarado")
+    det = {d["dimension"]: d for d in pa["contraste_dimensiones"]}
+    assert det["recamaras"]["estado"] == "coincide"
+    assert det["enganche"]["estado"] == "difiere"         # ← drift en enganche, no en rec
+    assert det["metraje"]["estado"] == "sin_senal"        # honesto: nadie pidió m²
+    assert pa["estado"] == "drift"
+    assert "enganche" in pa["veredicto"]

@@ -182,6 +182,23 @@ def test_a5_soft_criteria_y_exclusiones():
     assert any(d == "exclusion.texto" and "avenida" in v for d, v in dims)
 
 
+def test_universal_ningun_campo_se_pierde():
+    """GARANTÍA UNIVERSAL: un campo que NO está en la lista curada (p.ej. si mañana una
+    superficie guarda 'orientacion_pedida' o 'apartado_max') se vuelve átomo automáticamente."""
+    atomos = atomos_de_busqueda({
+        "id": "u1", "colonias": ["Napoles"], "source": "picker",
+        "orientacion_pedida": "sur",          # campo que NO existía cuando se escribió el genoma
+        "apartado_max": 50000,                # otro campo no curado
+        "acepta_mascotas": True,              # booleano no curado
+        "ip_hash": "abc123",                  # metadata → NO debe volverse átomo
+    })
+    dims = {(a["dimension"], a["valor"]) for a in atomos}
+    assert ("busqueda.orientacion_pedida", "sur") in dims
+    assert ("busqueda.apartado_max", "50000") in dims
+    assert ("busqueda.acepta_mascotas", "si") in dims
+    assert not any(d == "busqueda.ip_hash" for d, _ in dims)   # metadata excluida
+
+
 # ── A6: vector genoma por unidad (la oferta habla el mismo idioma) ────────────
 def test_a6_vector_unidad_mismo_idioma():
     from demand_genome import vector_unidad

@@ -112,6 +112,21 @@ def banda_m2(v: float) -> str:
 
 
 # ── El átomo de demanda ───────────────────────────────────────────────────────
+# Metadata del doc de búsqueda (NO son demanda — se excluyen del átomo universal)
+_CAMPOS_META = {
+    "id", "saved_search_id", "dedup_key", "crit_key", "visitor_id", "source",
+    "created_at", "created_at_dt", "email", "colonias", "colonia_id", "query",
+    "alert", "results_count", "ip_hash", "name", "ps", "hay_alertas", "parse_miss",
+    "banda", "lead_id", "genoma_v", "isr_renta_efectivo_pct",
+}
+# Campos ya curados arriba con semántica propia (bandas/taxonomía) — no se duplican en el genérico
+_CAMPOS_CURADOS = {
+    "recamaras_min", "banos_min", "estacionamientos_min", "m2_min", "m2_max",
+    "piso_min", "precio_max", "precio_min", "enganche_max", "mensualidad_max",
+    "meses_entrega_max", "tipo_credito", "descuento_min_pct", "max_unidades_edificio",
+    "estacionamiento_independiente", "stages", "plazo", "stage_pedido", "tipo_pedido",
+    "features_pedidos", "amenidades_pedidas", "soft_criteria", "negative_criteria",
+}
 def _atomo(doc_id: str, colonia: str, dimension: str, valor: Any, *,
            visitor: Optional[str], fuente: str, ts) -> Dict[str, Any]:
     return {
@@ -194,6 +209,24 @@ def atomos_de_busqueda(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         s = normalizar_feature(neg)
         dims.append(("exclusion.feature" if s else "exclusion.texto", s or _norm_txt(neg)[:60]))
 
+    if doc.get("precio_min") is not None:
+        dims.append(("finanzas.presupuesto_min_banda_mdp", banda_precio_mdp(doc["precio_min"])))
+
+    # ═══ GARANTÍA UNIVERSAL: NINGÚN campo se pierde ═══
+    # Cualquier campo escalar del doc que NO esté curado arriba ni sea metadata se vuelve átomo
+    # 'busqueda.<campo>' automáticamente. Si mañana una superficie guarda 'orientacion_pedida',
+    # ya es analizable sin tocar este código (se cura después si necesita banda).
+    for k, val in doc.items():
+        if k in _CAMPOS_META or k in _CAMPOS_CURADOS or k.startswith("_"):
+            continue
+        if isinstance(val, bool):
+            if val:
+                dims.append((f"busqueda.{k}", "si"))
+        elif isinstance(val, (int, float)):
+            dims.append((f"busqueda.{k}", val))
+        elif isinstance(val, str) and val.strip():
+            dims.append((f"busqueda.{k}", _norm_txt(val)[:60]))
+
     out = []
     for col in colonias:
         for dim, val in dims:
@@ -256,6 +289,13 @@ def vector_unidad(unit: Dict[str, Any]) -> Dict[str, str]:
     for s in feats["reconocidos"]:
         if s not in features:
             features.append(s)
+    # GARANTÍA UNIVERSAL: cualquier flag 'tiene_*' del esquema de unidad se vuelve feature
+    # automáticamente (tiene_roof, tiene_estacionamiento…) — campos nuevos entran solos.
+    for k, val in unit.items():
+        if k.startswith("tiene_") and val:
+            s = normalizar_feature(k[6:]) or _norm_txt(k[6:])
+            if s and s not in features:
+                features.append(s)
     for s in features:
         v[f"producto.feature.{s}"] = "si"
     return v
