@@ -97,7 +97,7 @@ async def r_reportes_generar(request: Request):
     r = await generar_reporte(_db(request),
                               colonias=body.get("colonias"), estudio=body.get("estudio"),
                               bloques=body.get("bloques"), cortes=body.get("cortes"),
-                              unit_id=body.get("unit_id"))
+                              unit_id=body.get("unit_id"), granularidad=body.get("granularidad"))
     if body.get("guardar"):   # memoria: comparar hoy vs hace un mes
         g = await guardar_reporte(_db(request), r, nombre=body.get("nombre"))
         r["guardado"] = g
@@ -249,6 +249,32 @@ async def r_genoma_promover(request: Request, termino: str = Query(...),
     await require_superadmin(request)
     from demand_genome import promover_termino
     return await promover_termino(_db(request), termino, slug)
+
+
+# ── BITÁCORA TEMPORAL (la 4ª dimensión: cualquier corte × tiempo) ──
+@router.post("/api/superadmin/genoma/snapshot-oferta")
+async def r_snapshot_oferta(request: Request):
+    """Event-sourcing del inventario: cada cambio de precio/estado queda escrito para siempre."""
+    await require_superadmin(request)
+    from market_timeline import snapshot_oferta, snapshot_contexto
+    o = await snapshot_oferta(_db(request))
+    c = await snapshot_contexto(_db(request))
+    return {"oferta": o, "contexto": c}
+
+
+@router.get("/api/superadmin/genoma/evolucion")
+async def r_evolucion(request: Request,
+                      colonias: Optional[str] = Query(None),
+                      dimension: Optional[str] = Query(None), valor: Optional[str] = Query(None),
+                      unit_id: Optional[str] = Query(None),
+                      desde: Optional[str] = Query(None), hasta: Optional[str] = Query(None),
+                      granularidad: str = Query("mes")):
+    """La serie temporal universal: el PH exacto, una feature, una colonia — por día/mes/año."""
+    await require_superadmin(request)
+    from market_timeline import evolucion
+    return await evolucion(_db(request), colonias=_cols_param(colonias),
+                           dimension=dimension, valor=valor, unit_id=unit_id,
+                           desde=desde, hasta=hasta, granularidad=granularidad)
 
 
 @router.get("/api/superadmin/genoma/resumen")

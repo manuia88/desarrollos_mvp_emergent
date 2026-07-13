@@ -7,11 +7,11 @@
  */
 import React, { useEffect, useState } from 'react';
 import { FileText, Printer, Play } from 'lucide-react';
-import { getReporteBloques, generarReporte, getReportesGuardados, getReporteGuardado } from '../../api/superadminMetricsCube';
+import { getReporteBloques, generarReporte, getReportesGuardados, getReporteGuardado, getCubo4sCatalogo } from '../../api/superadminMetricsCube';
 
 const nf = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 });
 const tc = (s) => String(s ?? '—').replace(/[_.-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-const ESTUDIOS = ['', 'coyoacan', 'insurgentes_antonio_caso', 'periferico', 'puente_alvarado'];
+// UNIVERSALIDAD: los estudios NO se hardcodean — se preguntan al backend (un 5º estudio aparece solo)
 const PROC_COLOR = { medido: '#4ADE80', observado: '#58a6ff', real: '#4ADE80', transferido: '#fbbf24', 'medido+observado': '#4ADE80', sin_dato: '#8b949e', sin_prior: '#8b949e', estimado: '#d29922' };
 
 // ── renderer universal ──
@@ -121,11 +121,16 @@ export default function CubeReportesView() {
   const [err, setErr] = useState('');
   const [guardar, setGuardar] = useState(false);
   const [guardados, setGuardados] = useState([]);
+  const [estudios, setEstudios] = useState(['']);
+  const [granularidad, setGranularidad] = useState('mes');
 
   useEffect(() => {
     let alive = true;
     getReporteBloques().then((d) => alive && setCatalogoB(d.bloques || [])).catch(() => setCatalogoB([]));
     getReportesGuardados().then((d) => alive && setGuardados(d.reportes || [])).catch(() => setGuardados([]));
+    // estudios data-driven: los que existan en los átomos 4S (un estudio nuevo aparece solo)
+    getCubo4sCatalogo().then((d) => alive && setEstudios(['', ...(d.estudios || []).map((e) => e.estudio)]))
+      .catch(() => setEstudios(['']));
     return () => { alive = false; };
   }, []);
 
@@ -145,6 +150,7 @@ export default function CubeReportesView() {
         bloques: [...sel],
         cortes: corteDim ? { dimension: corteDim, valor: corteVal || null } : null,
         unit_id: unitId || null,
+        granularidad,
         guardar,
       };
       const r = await generarReporte(payload);
@@ -171,13 +177,20 @@ export default function CubeReportesView() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
           <input value={colonias} onChange={(e) => setColonias(e.target.value)} placeholder="Colonias (coma): Tabacalera, Condesa… (vacío = ciudad)" style={{ ...inp, minWidth: 320 }} data-testid="rep-colonias" />
           <select value={estudio} onChange={(e) => setEstudio(e.target.value)} style={inp} data-testid="rep-estudio">
-            {ESTUDIOS.map((e) => <option key={e} value={e}>{e ? tc(e) : 'Sin estudio 4S'}</option>)}
+            {estudios.map((e) => <option key={e} value={e}>{e ? tc(e) : 'Sin estudio 4S'}</option>)}
           </select>
           <input value={corteDim} onChange={(e) => setCorteDim(e.target.value)} placeholder="Corte: dimensión (producto.recamaras)" style={{ ...inp, minWidth: 220 }} />
           <input value={corteVal} onChange={(e) => setCorteVal(e.target.value)} placeholder="valor (2)" style={{ ...inp, width: 90 }} />
-          {/* server-driven: el input aparece solo si un bloque marcado lo declara */}
+          {/* server-driven: los inputs aparecen solo si un bloque marcado los declara */}
           {catalogoB.some((b) => sel.has(b.id) && (b.necesita || []).includes('unit_id')) && (
             <input value={unitId} onChange={(e) => setUnitId(e.target.value)} placeholder="Unidad (unit_id)" style={{ ...inp, minWidth: 160 }} data-testid="rep-unit" />
+          )}
+          {catalogoB.some((b) => sel.has(b.id) && (b.necesita || []).includes('tiempo')) && (
+            <select value={granularidad} onChange={(e) => setGranularidad(e.target.value)} style={inp} data-testid="rep-granularidad">
+              <option value="dia">Por día</option>
+              <option value="mes">Por mes</option>
+              <option value="ano">Por año</option>
+            </select>
           )}
         </div>
 

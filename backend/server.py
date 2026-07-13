@@ -2762,6 +2762,21 @@ async def startup():
                 except Exception as _e:  # noqa: BLE001
                     logging.warning("[genoma] tick fail-open: %s", _e)
             sched.add_job(_genoma_tick, "interval", hours=1, id="genoma_tick", replace_existing=True)
+
+            # BITÁCORA TEMPORAL: event-sourcing del inventario + contexto (tasas) — diario.
+            # En 4 años, "¿cuánto costaba ese PH?" se responde porque nada se pisa, todo se escribe.
+            from market_timeline import snapshot_oferta, snapshot_contexto
+            _t1 = await snapshot_oferta(db)
+            _t2 = await snapshot_contexto(db)
+            logging.info("[startup] bitácora oferta: %s · contexto: %s", _t1, _t2)
+
+            async def _timeline_tick():
+                try:
+                    await snapshot_oferta(db)
+                    await snapshot_contexto(db)
+                except Exception as _e:  # noqa: BLE001
+                    logging.warning("[timeline] tick fail-open: %s", _e)
+            sched.add_job(_timeline_tick, "interval", hours=24, id="timeline_tick", replace_existing=True)
         except Exception as e:
             logging.warning("[startup] genoma fail-open: %s", e)
 

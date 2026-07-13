@@ -157,6 +157,17 @@ async def _b_corredores(db, ctx) -> Dict[str, Any]:
     return await corredores(db)
 
 
+async def _b_evolucion(db, ctx) -> Dict[str, Any]:
+    """La 4ª dimensión: cualquier corte del genoma × tiempo (día/mes/año)."""
+    from market_timeline import evolucion
+    corte = ctx.get("cortes") or {}
+    r = await evolucion(db, colonias=ctx.get("colonias"),
+                        dimension=corte.get("dimension"), valor=corte.get("valor"),
+                        unit_id=ctx.get("unit_id"),
+                        granularidad=ctx.get("granularidad") or "mes")
+    return {"procedencia": "observado", **r}
+
+
 async def _b_set_competitivo(db, ctx) -> Dict[str, Any]:
     from demand_graph_engine import set_competitivo
     if not ctx.get("unit_id"):
@@ -221,6 +232,9 @@ BLOQUES: Dict[str, Dict[str, Any]] = {
                         "necesita": ["unit_id"]},
     "genoma_kpi": {"fn": _b_genoma_kpi, "titulo": "KPI del moat (curva semanal)",
                    "desc": "Átomos, visitantes y dimensiones con señal + la historia semanal — la evidencia YC."},
+    "evolucion": {"fn": _b_evolucion, "titulo": "Evolución en el tiempo (bitácora)",
+                  "desc": "Cualquier corte del genoma × tiempo: demanda, oferta, $/m² y tasa por día/mes/año. Con unit_id: la vida de UNA unidad.",
+                  "necesita": ["tiempo"]},
 }
 
 # los bloques que requieren estudio 4S lo declaran (el front pinta el selector solo)
@@ -238,11 +252,13 @@ def catalogo() -> Dict[str, Any]:
 async def generar_reporte(db, *, colonias: Optional[List[str]] = None, estudio: Optional[str] = None,
                           bloques: Optional[List[str]] = None,
                           cortes: Optional[Dict[str, str]] = None,
-                          unit_id: Optional[str] = None) -> Dict[str, Any]:
+                          unit_id: Optional[str] = None,
+                          granularidad: Optional[str] = None) -> Dict[str, Any]:
     """El reporte a la medida: cada bloque corre AISLADO (uno truena → los demás viven)."""
     from market_4s_bridge import norm_colonia
     cols: Optional[Set[str]] = {norm_colonia(c) for c in colonias if c} if colonias else None
-    ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}, "unit_id": unit_id}
+    ctx = {"colonias": cols, "estudio": estudio, "cortes": cortes or {}, "unit_id": unit_id,
+           "granularidad": granularidad}
     pedidos = [b for b in (bloques or list(BLOQUES))]
 
     secciones = []
