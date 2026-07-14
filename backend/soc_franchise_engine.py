@@ -57,6 +57,13 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _aware(dt):
+    """Mongo devuelve datetimes tz-naive; normaliza a UTC-aware para poder restar con _now()."""
+    if isinstance(dt, datetime) and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, v))
 
@@ -252,7 +259,7 @@ async def compute_soc_score(
     if use_cache:
         cached = await db.soc_franchise_cache.find_one({"user_id": user_id})
         if cached:
-            computed_at = cached.get("computed_at")
+            computed_at = _aware(cached.get("computed_at"))
             if computed_at and (_now() - computed_at).days < CACHE_TTL_DAYS:
                 cached["cached"] = True
                 cached.pop("_id", None)

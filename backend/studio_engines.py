@@ -25,7 +25,12 @@ from fastapi import HTTPException
 # ─── Storage paths ───────────────────────────────────────────────────────────
 UPLOAD_ROOT = Path(os.environ.get("STUDIO_STORAGE_PATH", "/app/backend/uploads/studio"))
 for sub in ("videos", "ads", "tts"):
-    (UPLOAD_ROOT / sub).mkdir(parents=True, exist_ok=True)
+    try:
+        (UPLOAD_ROOT / sub).mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # dev local sin la ruta Docker '/app' (fs de solo-lectura): no revientes el import.
+        # Las carpetas se crean perezosamente al escribir; sin subir archivos no hacen falta.
+        pass
 
 
 # ═══ BUDGET ═════════════════════════════════════════════════════════════════

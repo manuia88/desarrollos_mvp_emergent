@@ -598,6 +598,8 @@ async def public_dev_narrative(dev_id: str, request: Request):
 async def _require_superadmin(request: Request):
     from server import get_current_user  # local import to avoid cycle
     user = await get_current_user(request)
+    if not user:                                       # sin sesión → 401 limpio, no 500
+        raise HTTPException(401, "No autenticado")
     if user.role != "superadmin":
         raise HTTPException(403, "Requiere role superadmin")
     return user
