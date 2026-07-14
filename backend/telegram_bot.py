@@ -286,7 +286,7 @@ async def procesar_mensaje(db, msg: Dict[str, Any]) -> None:
             await db.telegram_config.update_one({"_id": "cfg"}, {"$set": {"chat_id": chat_id,
                                                                           "vinculado_at": _now_iso()}})
             await _tg("sendMessage", {"chat_id": chat_id,
-                                      "text": "✅ Vinculado. Desde ahora te mando las tarjetas de decisión del vigía aquí.\nComandos: /pendientes · /ronda · /estado"})
+                                      "text": "✅ Vinculado. Desde ahora te mando las tarjetas de decisión del vigía aquí.\nComandos: /pendientes · /ronda · /estado · /parte"})
         else:
             await _tg("sendMessage", {"chat_id": chat_id, "text": "Código inválido o bot ya vinculado."})
         return
@@ -308,6 +308,12 @@ async def procesar_mensaje(db, msg: Dict[str, Any]) -> None:
         await _tg("sendMessage", {"chat_id": chat_id,
                                   "text": f"Ronda lista: {r['eventos']} evento(s), {r['pendientes_nuevos']} pendiente(s) nuevos."})
         await notificar_pendientes(db)
+    elif texto.startswith("/parte"):
+        from parte_engine import CADENCIAS, generar_parte
+        partes = texto.split()
+        periodo = partes[1].lower() if len(partes) > 1 and partes[1].lower() in CADENCIAS else "diario"
+        t = await generar_parte(db, periodo)
+        await _tg("sendMessage", {"chat_id": chat_id, "text": t[:4000], "parse_mode": "HTML"})
     elif texto.startswith("/estado"):
         f = await db.vigia_fuentes.count_documents({"activa": True})
         pn = await db.vigia_pendientes.count_documents({"estado": "pendiente"})
@@ -317,7 +323,7 @@ async def procesar_mensaje(db, msg: Dict[str, Any]) -> None:
                                   "text": f"📊 Vigía: {f} fuente(s) · {pn} pendientes\n🏢 Catálogo: {devs} proyectos · {units} unidades"})
     else:
         await _tg("sendMessage", {"chat_id": chat_id,
-                                  "text": "Comandos: /pendientes · /ronda · /estado\n(Las instrucciones en lenguaje libre llegan cuando conectemos la IA — necesita crédito API.)"})
+                                  "text": "Comandos: /pendientes · /ronda · /estado · /parte [diario|semanal|mensual…]\n(Las instrucciones en lenguaje libre llegan cuando conectemos la IA — necesita crédito API.)"})
 
 
 # ─── polling loop (arranca en el startup del server si hay token) ─────────────

@@ -46,6 +46,27 @@ async def estado(request: Request):
     return {"fuentes": fuentes, "pendientes_n": pendientes_n}
 
 
+# ─── EL PARTE: reportes periódicos (preview y envío manual) ───────────────────
+@router.get("/parte/{periodo}")
+async def ver_parte(request: Request, periodo: str):
+    """Preview del parte (diario/semanal/quincenal/mensual/trimestral/semestral/anual)."""
+    await require_superadmin(request)
+    from parte_engine import CADENCIAS, generar_parte
+    if periodo not in CADENCIAS:
+        raise HTTPException(400, f"Periodo inválido; usa uno de {sorted(CADENCIAS)}")
+    return {"periodo": periodo, "texto": await generar_parte(_db(request), periodo)}
+
+
+@router.post("/parte/{periodo}/enviar")
+async def mandar_parte(request: Request, periodo: str):
+    """Genera y manda AHORA por Telegram + correo (además del cron de las 8am)."""
+    await require_superadmin(request)
+    from parte_engine import CADENCIAS, enviar_parte
+    if periodo not in CADENCIAS:
+        raise HTTPException(400, f"Periodo inválido; usa uno de {sorted(CADENCIAS)}")
+    return await enviar_parte(_db(request), periodo)
+
+
 @router.get("/vigia/telegram")
 async def telegram_estado(request: Request):
     """Estado del bot de Telegram + código de vínculo (solo superadmin lo ve)."""

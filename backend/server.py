@@ -2557,6 +2557,19 @@ async def startup():
                           id="vigia_hourly", replace_existing=True, misfire_grace_time=600)
         except Exception as e:
             logging.warning(f"[vigia] cron register failed: {e}")
+        # EL PARTE: reportes periódicos (diario 8am MX ≈ 14:00 UTC; el engine decide qué
+        # cadencias tocan hoy: semanal/quincenal/mensual/trimestral/semestral/anual)
+        try:
+            from apscheduler.triggers.cron import CronTrigger as _CronParte
+
+            async def _partes_del_dia():
+                from parte_engine import enviar_partes_del_dia
+                await enviar_partes_del_dia(db)
+
+            sched.add_job(_partes_del_dia, _CronParte(hour=14, minute=0),
+                          id="parte_diario", replace_existing=True, misfire_grace_time=3600)
+        except Exception as e:
+            logging.warning(f"[parte] cron register failed: {e}")
         try:
             from gentrification_engine import schedule_gentrification_cron
             schedule_gentrification_cron(sched, db)
