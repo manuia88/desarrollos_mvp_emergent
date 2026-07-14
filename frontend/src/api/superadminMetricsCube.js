@@ -281,3 +281,8 @@ export async function generarEstudioDmx(colonias) {
     body: JSON.stringify({ colonias: colonias || [] }),
   }));
 }
+// FASE A · CATÁLOGO VIVO: el índice único del portal en lenguaje humano (6 dominios).
+export async function getCatalogo(params) {
+  const qs = new URLSearchParams(Object.entries(params || {}).filter(([, v]) => v)).toString();
+  return _j(await fetch(`${API}/api/superadmin/catalogo${qs ? `?${qs}` : ''}`, { headers: h(), credentials: 'include' }));
+}

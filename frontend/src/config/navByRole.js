@@ -198,6 +198,8 @@ const SUPERADMIN_NAV = [
     tier: 1, label: 'Principal', section_key: 'principal',
     items: [
       { key: 'inicio',  to: '/superadmin',         label: 'Inicio',   Icon: LayoutDashboard, end: true },
+      // FASE A · CATÁLOGO VIVO: la puerta de entrada — todo lo que el portal hace, buscable y en lenguaje humano.
+      { key: 'catalogo', to: '/superadmin/catalogo', label: 'El Catálogo', Icon: Search },
       { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
       { key: 'alta-devs', to: '/superadmin/alta', label: 'Desarrolladores y carga', Icon: Building2 },
       { key: 'tenants', to: '/superadmin/tenants', label: 'Clientes', Icon: Users },

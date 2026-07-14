@@ -300,6 +300,7 @@ const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/Proper
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 const SuperadminHubMercado           = lazy(() => import('./pages/superadmin/SuperadminHubMercado'));
+const SuperadminCatalogo             = lazy(() => import('./pages/superadmin/SuperadminCatalogo'));
 const SuperadminModeloHub            = lazy(() => import('./pages/superadmin/SuperadminModeloHub'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
@@ -933,6 +934,7 @@ function AppRouter() {
       <Route path="/superadmin/rag-inspector" element={<Navigate to="/superadmin/ia-conversacional?tab=rag" replace />} />
       <Route path="/superadmin/commercial" element={<Navigate to="/superadmin/monetizacion?tab=comercial" replace />} />
       <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
+      <Route path="/superadmin/catalogo" element={<SuperadminRoute Page={SuperadminCatalogo} />} />{/* Fase A · El Catálogo Vivo */}
       <Route path="/superadmin/monetizacion" element={<SuperadminRoute Page={SuperadminMonetizacionHub} />} />{/* Hub de Monetización & API */}
       <Route path="/superadmin/modelo" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* Hub de Modelo & Aprendizaje */}
       <Route path="/superadmin/aprendizaje" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* F5 · Dashboard de Aprendizaje */}

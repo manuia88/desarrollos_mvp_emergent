@@ -1,0 +1,30 @@
+# REBUILD UX SUPERADMIN — plan y avance (2026-07-13)
+
+Objetivo (founder): ~24 tabs × ~300 subtabs → navegación por PREGUNTA, lenguaje humano en cada
+pieza (qué es · qué me dice · para qué sirve · qué hago), 6 dominios, CERO pérdida de motores/
+scores/reportes/tabs. Anclado a la verdad viva (OpenAPI + registros auto-descritos), no a regex.
+
+## Concepto: EL CATÁLOGO VIVO
+Un registro maestro server-driven que INDEXA (no reimplementa) todo lo que el portal hace, con
+capa humana + 6 dominios. El front pinta buscador + filtros; una pieza nueva en el backend
+aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md + verdad viva.
+
+## FASES
+- **A · Catálogo maestro** ✅ 2026-07-13 — `catalogo_maestro.py` (registro + 6 dominios + agrega
+  los 44 bloques auto-descritos + 41 features del feature_registry + 3 productos = 105 piezas) +
+  GET /api/superadmin/catalogo (con búsqueda/filtros) + vista `SuperadminCatalogo.js` (buscador +
+  chips de dominio/tipo + cards con lenguaje humano expandible + botón Ir) + entrada 'El Catálogo'
+  como puerta del sidebar. Verificado en navegador: 105 piezas, búsqueda 'renta'→1 exacto, filtros
+  por dominio. Tests: test_catalogo_maestro.py (3). CERO pérdida probada por test.
+- **B · Home Pregunta-y-Filtra** ⬜ — elevar la home a filtros universales (tema/territorio/tiempo)
+  + conectar ⌘K al catálogo.
+- **C · Sidebar 6 dominios** ⬜ — reagrupar las 24 rutas en los 6 dominios + hubs por dominio +
+  redirects de rutas viejas (nada se rompe).
+- **D · Prender huecos** ⬜ — comercio-pb/cuota dev · zones-public · tablero de telemetría ·
+  terminal-mercado enriquecida.
+- **E · Matriz de trazabilidad** ⬜ — cada tab del crawl → su casa nueva, verificado antes/después.
+
+## ENRIQUECIMIENTO PENDIENTE (mejora incremental, no bloqueante)
+Las 41 features del feature_registry entran al catálogo con descripción genérica ("Capacidad del
+sistema (X), del plan Y"). Fase A las INDEXA (cero pérdida); su capa humana rica se llena
+incrementalmente igual que las 44 vistas/reportes/productos ya descritos a mano.

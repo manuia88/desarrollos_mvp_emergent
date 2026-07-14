@@ -462,6 +462,24 @@ async def r_carfax(request: Request, unit_id: str):
     return await carfax(_db(request), unit_id=unit_id)
 
 
+@router.get("/api/superadmin/catalogo")
+async def r_catalogo(request: Request, texto: Optional[str] = Query(None),
+                     dominio: Optional[str] = Query(None), tipo: Optional[str] = Query(None),
+                     tema: Optional[str] = Query(None), necesita: Optional[str] = Query(None)):
+    """EL CATÁLOGO VIVO (Fase A rebuild UX): todo lo que el portal puede hacer, en lenguaje
+    humano, agrupado en 6 dominios. Sin filtros → el catálogo completo con contadores; con
+    filtros → solo las piezas que coinciden (buscador + dominio/tipo/tema/necesita)."""
+    await require_superadmin(request)
+    from catalogo_maestro import construir_catalogo, buscar
+    cat = construir_catalogo()
+    if any([texto, dominio, tipo, tema, necesita]):
+        res = buscar(cat, texto=texto or "", dominio=dominio or "", tipo=tipo or "",
+                     tema=tema or "", necesita=necesita or "")
+        return {"dominios": cat["dominios"], "por_tipo": cat["por_tipo"], "temas": cat["temas"],
+                "necesita_valores": cat["necesita_valores"], "filtrado": True, **res}
+    return cat
+
+
 @router.get("/api/superadmin/genoma/resumen")
 async def r_genoma_resumen(request: Request):
     """EL KPI DEL MOAT: átomos de demanda, dimensiones con señal, radar léxico. Debe crecer cada semana."""
