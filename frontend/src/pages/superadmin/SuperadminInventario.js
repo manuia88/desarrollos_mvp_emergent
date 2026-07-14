@@ -41,42 +41,64 @@ function MiniTorre({ porEstado, total }) {
   );
 }
 
-/* LA TORRE: el grid real de unidades, clickeable */
-function Torre({ unidades, onUnidad, seleccionada }) {
-  // agrupar por nivel (piso) si existe; si no, grid corrido
-  const porNivel = useMemo(() => {
-    const g = {};
+/* LA TORRE: el grid real de unidades, clickeable. v2 (feedback founder):
+   - torres separadas (A y B ya no se mezclan en el piso)
+   - PATRÓN DE MOLDES visible: clic en un molde (chip) → sus unidades se iluminan */
+const PALETA_MOLDE = ['#58a6ff', '#4ADE80', '#d29922', '#a78bfa', '#f472b6', '#2dd4bf', '#fb923c', '#e879f9', '#a3e635', '#38bdf8', '#facc15', '#f87171'];
+
+function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel }) {
+  // torre desde el número ('A-1402' → 'A'); nivel para las filas
+  const porTorre = useMemo(() => {
+    const t = {};
     unidades.forEach((u) => {
+      const m = /^([A-Za-z]{1,2})\s*-/.exec(u.unit_number || '');
+      const torre = m ? m[1].toUpperCase() : '·';
       const lvl = (u.level ?? '—').toString();
-      (g[lvl] = g[lvl] || []).push(u);
+      ((t[torre] = t[torre] || {})[lvl] = t[torre][lvl] || []).push(u);
     });
-    return Object.entries(g).sort((a, b) => (Number(b[0]) || 0) - (Number(a[0]) || 0));
+    return Object.entries(t).sort(([a], [b]) => a.localeCompare(b));
   }, [unidades]);
   return (
-    <div style={{ display: 'grid', gap: 6 }}>
-      {porNivel.map(([nivel, us]) => (
-        <div key={nivel} style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ ...S.mini, width: 34, textAlign: 'right' }}>{nivel === '—' ? '' : `p.${nivel}`}</span>
-          {us.map((u) => {
-            const col = C[(u.status || 'disponible').toLowerCase()] || C.disponible;
-            const sel = seleccionada === u.id;
-            return (
-              <button key={u.id} data-testid={`unidad-${u.unit_number || u.id}`} onClick={() => onUnidad(u)}
-                title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}`}
-                style={{ minWidth: 52, padding: '7px 6px', borderRadius: 6, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5,
-                  background: `${col}${sel ? 'ee' : '33'}`, border: `${sel ? 2 : 1}px solid ${col}`, color: sel ? '#000' : 'var(--cream)' }}>
-                {u.unit_number || '·'}
-              </button>
-            );
-          })}
+    <div style={{ display: 'grid', gap: 16 }}>
+      {porTorre.map(([torre, niveles]) => (
+        <div key={torre}>
+          {porTorre.length > 1 && (
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)', margin: '2px 0 8px' }}>
+              🏢 Torre {torre} <span style={S.mini}>· {Object.values(niveles).flat().length} unidades</span>
+            </div>
+          )}
+          <div style={{ display: 'grid', gap: 6 }}>
+            {Object.entries(niveles).sort((a, b) => (Number(b[0]) || 0) - (Number(a[0]) || 0)).map(([nivel, us]) => (
+              <div key={nivel} style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...S.mini, width: 34, textAlign: 'right' }}>{nivel === '—' ? '' : `p.${nivel}`}</span>
+                {us.sort((a, b) => (a.unit_number || '').localeCompare(b.unit_number || '')).map((u) => {
+                  const col = C[(u.status || 'disponible').toLowerCase()] || C.disponible;
+                  const sel = seleccionada === u.id;
+                  const molde = colorDeMolde(u.prototype_id);
+                  const apagada = moldeSel && u.prototype_id !== moldeSel;
+                  return (
+                    <button key={u.id} data-testid={`unidad-${u.unit_number || u.id}`} onClick={() => onUnidad(u)}
+                      title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}`}
+                      style={{ minWidth: 52, padding: '7px 6px 5px', borderRadius: 6, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5,
+                        background: `${col}${sel ? 'ee' : '33'}`, border: `${sel ? 2 : 1}px solid ${col}`, color: sel ? '#000' : 'var(--cream)',
+                        opacity: apagada ? 0.18 : 1, transition: 'opacity .15s',
+                        borderBottom: molde ? `3px solid ${molde}` : undefined }}>
+                      {u.unit_number || '·'}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginTop: 2, flexWrap: 'wrap' }}>
         {ESTADOS.map((e) => (
           <span key={e} style={{ ...S.mini, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <span style={{ width: 9, height: 9, borderRadius: 2, background: C[e], display: 'inline-block' }} />{e}
           </span>
         ))}
+        <span style={S.mini}>· la franja inferior de cada depto = su molde (clic en un molde arriba para iluminar su patrón)</span>
       </div>
     </div>
   );
@@ -132,6 +154,11 @@ export default function SuperadminInventario({ user, onLogout }) {
   const proySel = q.get('proyecto') || '';
   const [proy, setProy] = useState(null);        // {proyecto, unidades, prototipos}
   const [unidadSel, setUnidadSel] = useState(null);
+  const [moldeSel, setMoldeSel] = useState(null);
+  const colorDeMolde = (pid) => {
+    const i = (proy?.prototipos || []).findIndex((p) => p.prototype_id === pid);
+    return i >= 0 ? PALETA_MOLDE[i % PALETA_MOLDE.length] : null;
+  };
 
   const cargarArbol = useCallback(() => _get('/arbol').then(setArbol).catch((e) => setErr(String(e.message))), []);
   useEffect(() => { cargarArbol(); }, [cargarArbol]);
@@ -284,12 +311,24 @@ export default function SuperadminInventario({ user, onLogout }) {
                   <div style={S.mini}>{proy.n_unidades} unidades · {proy.prototipos.length} moldes · clic en una unidad para editarla</div>
                 </div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {proy.prototipos.slice(0, 6).map((pr) => (
-                    <span key={pr.prototype_id} style={{ ...S.mini, padding: '3px 8px', borderRadius: 9999, border: '1px solid rgba(74,222,128,0.35)', color: '#86efac' }}>{pr.nombre} · {pr.unidades_total}u</span>
-                  ))}
+                  {proy.prototipos.map((pr, i) => {
+                    const col = PALETA_MOLDE[i % PALETA_MOLDE.length];
+                    const activo = moldeSel === pr.prototype_id;
+                    return (
+                      <button key={pr.prototype_id} data-testid={`molde-${i}`}
+                        onClick={() => setMoldeSel(activo ? null : pr.prototype_id)}
+                        title={activo ? 'Quitar filtro' : 'Iluminar este molde en la torre'}
+                        style={{ ...S.mini, padding: '3px 9px', borderRadius: 9999, cursor: 'pointer',
+                          border: `1px solid ${col}${activo ? '' : '66'}`, color: col,
+                          background: activo ? `${col}22` : 'transparent', fontWeight: activo ? 800 : 600 }}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: col, marginRight: 5, verticalAlign: -1 }} />
+                        {pr.nombre} · {pr.unidades_total}u
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <Torre unidades={proy.unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} />
+              <Torre unidades={proy.unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
             </div>
             {unidadSel && (
               <PanelUnidad u={unidadSel} onCerrar={() => setUnidadSel(null)}
