@@ -49,7 +49,8 @@ export default function SuperadminCatalogo() {
   const [cat, setCat] = useState(null);
   const [err, setErr] = useState('');
   const [texto, setTexto] = useState('');
-  const [dominio, setDominio] = useState('');
+  // deep-link desde el sidebar (?dominio=productos) → arranca filtrado por ese dominio
+  const [dominio, setDominio] = useState(new URLSearchParams(window.location.search).get('dominio') || '');
   const [tipo, setTipo] = useState('');
   const [necesita, setNecesita] = useState('');
   const SUGERENCIAS = ['absorción', 'renta', 'escasez', 'plusvalía', 'riesgo', 'leads', 'precio'];

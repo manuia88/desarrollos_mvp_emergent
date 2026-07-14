@@ -192,78 +192,71 @@ const COMPRADOR_NAV = [
   },
 ];
 
-// ─── SUPERADMIN — 7 secciones por color (Aurora design) ───────────────────────
+// ─── SUPERADMIN — FASE C: sidebar reagrupado en los 6 DOMINIOS del Catálogo Vivo ──────────────
+// Antes: 7 tiers técnicos (Datos/Inteligencia/Monetización…). Ahora: los MISMOS 6 dominios que el
+// catálogo (Mercado/Demanda/Inventario/Dinero/Operación/Productos) + Principal — un solo lenguaje
+// mental en TODO el portal. CERO pérdida: ninguna ruta desaparece, solo cambia de casa. Los
+// section_key reusan los colores Aurora existentes (mapeo dominio→color en superadmin-aurora.css).
 const SUPERADMIN_NAV = [
   {
     tier: 1, label: 'Principal', section_key: 'principal',
     items: [
       { key: 'inicio',  to: '/superadmin',         label: 'Inicio',   Icon: LayoutDashboard, end: true },
-      // FASE A · CATÁLOGO VIVO: la puerta de entrada — todo lo que el portal hace, buscable y en lenguaje humano.
+      // La puerta de entrada — todo lo que el portal hace, buscable y en lenguaje humano.
       { key: 'catalogo', to: '/superadmin/catalogo', label: 'El Catálogo', Icon: Search },
-      { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
-      { key: 'alta-devs', to: '/superadmin/alta', label: 'Desarrolladores y carga', Icon: Building2 },
-      { key: 'tenants', to: '/superadmin/tenants', label: 'Clientes', Icon: Users },
+    ],
+  },
+  {
+    tier: 2, label: '🏙️ Mercado', section_key: 'datos',   // color cian
+    items: [
+      { key: 'hub-mercado',  to: '/superadmin/mercado',      label: 'Hub de Mercado',   Icon: TrendingUp },
+      { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
+      { key: 'terminal-zona',    to: '/superadmin/terminal-zona',    label: 'Terminal de Zona',   Icon: Target },
+      { key: 'live-pulse',       to: '/superadmin/live-pulse',       label: 'Live Pulse',        Icon: Activity },
+      { key: 'terminal-mercado', to: '/superadmin/terminal-mercado', label: 'Terminal de Mercado CDMX', Icon: Layers },
+      { key: 'transactions',     to: '/superadmin/transactions',     label: 'Transaction Network', Icon: Network },
+      { key: 'intelligence-hub', to: '/superadmin/intelligence-hub', label: 'Inteligencia ejecutiva',  Icon: Sparkles },
+    ],
+  },
+  {
+    tier: 3, label: '👤 Demanda y personas', section_key: 'inteligencia',   // color morado
+    items: [
+      { key: 'inteligencia',      to: '/superadmin/inteligencia',      label: 'Demanda · Tableros', Icon: BarChart3 },
+      { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional (Atlax)', Icon: MessageCircle },
       { key: 'inmobiliaria-leads', to: '/superadmin/inmobiliaria-leads', label: 'Leads inmobiliaria', Icon: Users },
     ],
   },
   {
-    tier: 2, label: 'Datos', section_key: 'datos',
+    tier: 4, label: '🏗️ Inventario y devs', section_key: 'crecimiento',   // color teal
     items: [
-      // Hub de Datos & Fuentes — 8 pantallas de plomería (ingesta/almacén/cobertura) en 1 (metodología Hub de Mercado)
-      { key: 'datos-hub',    to: '/superadmin/datos',        label: 'Datos & Fuentes',  Icon: Database },
-      // Superficies drill-down insignia: se quedan top-level (NO enterrar en pestañas)
-      { key: 'hub-mercado',  to: '/superadmin/mercado',      label: 'Hub de Mercado',   Icon: TrendingUp },
-      { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
-    ],
-  },
-  {
-    tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
-    items: [
-      // Hubs ya consolidados (cada uno agrupa N pantallas en pestañas)
+      { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
+      { key: 'alta-devs',   to: '/superadmin/alta',        label: 'Desarrolladores y carga', Icon: Building2 },
+      { key: 'datos-hub',   to: '/superadmin/datos',       label: 'Datos & Fuentes (ingesta)', Icon: Database },
       { key: 'modelo',            to: '/superadmin/modelo',            label: 'Modelo & Aprendizaje', Icon: Activity },
-      { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional', Icon: MessageCircle },
-      // Hub de Inteligencia · Tableros — 10 dashboards ligeros (demanda/calidad/cobertura) en 1 (metodología Hub de Mercado)
-      { key: 'inteligencia',      to: '/superadmin/inteligencia',      label: 'Inteligencia · Tableros', Icon: BarChart3 },
-      // ─ Terminales full-screen: se quedan top-level a propósito (drill-down / mapas / tabs internas) ─
-      { key: 'terminal-zona',     to: '/superadmin/terminal-zona',     label: 'Terminal de Zona',   Icon: Target },
-      { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },
       { key: 'phase5-foundation', to: '/superadmin/phase5-foundation', label: 'Foundation Phase 5', Icon: Database },
-      { key: 'transactions',      to: '/superadmin/transactions',      label: 'Transaction Network', Icon: Network },
-      { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
-      { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
-      { key: 'terminal-mercado',  to: '/superadmin/terminal-mercado',  label: 'Terminal de Mercado CDMX', Icon: Layers },
     ],
   },
-  // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─
   {
-    tier: 4, label: 'Operación', section_key: 'operacion',
+    tier: 5, label: '💰 Dinero e ingresos', section_key: 'monetizacion',   // color verde
     items: [
-      // Hub de Operación & Seguridad — 15 pantallas (salud/auditoría/fraude/integridad/plataforma) en 1 (metodología Hub de Mercado)
-      { key: 'operacion',            to: '/superadmin/operacion',            label: 'Operación & Seguridad',  Icon: ShieldCheck },
+      { key: 'monetizacion', to: '/superadmin/monetizacion', label: 'Monetización & API', Icon: Briefcase },
+      { key: 'tenants',      to: '/superadmin/tenants',      label: 'Clientes', Icon: Users },
     ],
   },
-  // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────
   {
-    tier: 5, label: 'Monetización', section_key: 'monetizacion',
+    tier: 6, label: '⚙️ Operación y seguridad', section_key: 'operacion',   // color naranja
     items: [
-      // Hub de Monetización & API — API pública + 6 productos (cross-sell/franquicia/templates/enrichment/ads/video) + interno, en 1 (metodología Hub de Mercado)
-      { key: 'monetizacion',      to: '/superadmin/monetizacion',          label: 'Monetización & API', Icon: Briefcase },
+      { key: 'operacion',       to: '/superadmin/operacion',       label: 'Operación & Seguridad',  Icon: ShieldCheck },
+      { key: 'crecimiento',     to: '/superadmin/crecimiento',     label: 'Crecimiento & Distribución', Icon: Megaphone },
+      { key: 'knowledge-graph', to: '/superadmin/knowledge-graph', label: 'Knowledge Graph',   Icon: Network },
+      { key: 'devtools',        to: '/superadmin/devtools',        label: 'Dev Tools',         Icon: Network },
     ],
   },
-  // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────
   {
-    tier: 6, label: 'Crecimiento', section_key: 'crecimiento',
+    tier: 7, label: '📦 Productos del moat', section_key: 'devtools',   // color morado
     items: [
-      // Hub de Crecimiento & Distribución — 11 pantallas (canales/captación/aliados) en 1 (metodología Hub de Mercado)
-      { key: 'crecimiento', to: '/superadmin/crecimiento', label: 'Crecimiento & Distribución', Icon: Megaphone },
-    ],
-  },
-  // ─── tier 7 · DEV TOOLS morado · 2026-05-18 sidebar fix ───────────────────────────────
-  {
-    tier: 7, label: 'Dev Tools', section_key: 'devtools',
-    items: [
-      // Hub de Dev Tools — 3 herramientas internas (primitivas/mapa/diagnóstico) en 1 (metodología Hub de Mercado)
-      { key: 'devtools',         to: '/superadmin/devtools',         label: 'Dev Tools',               Icon: Network },
+      // los productos (Estudio DMX, DMX-30, CARFAX) viven en el catálogo filtrado — un clic los abre
+      { key: 'productos', to: '/superadmin/catalogo?dominio=productos', label: 'Productos DMX', Icon: Sparkles },
     ],
   },
 ];

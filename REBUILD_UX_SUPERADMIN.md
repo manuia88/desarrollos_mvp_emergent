@@ -31,7 +31,16 @@ aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md 
   'absorci'→2 reportes con deep-link. Suites: backend 1544 · front 181.
 - **B (antes)** ⬜ — elevar la home a filtros universales (tema/territorio/tiempo)
   + conectar ⌘K al catálogo.
-- **C · Sidebar 6 dominios** ⬜ — reagrupar las 24 rutas en los 6 dominios + hubs por dominio +
+- **C · Sidebar 6 dominios** ✅ 2026-07-13 — el sidebar se reagrupó de 7 tiers técnicos
+  (Datos/Inteligencia/Monetización…) a los MISMOS 6 dominios del catálogo:
+  Principal · 🏙️ Mercado · 👤 Demanda y personas · 🏗️ Inventario y devs · 💰 Dinero e ingresos ·
+  ⚙️ Operación y seguridad · 📦 Productos del moat. Un solo lenguaje mental en todo el portal.
+  CERO pérdida / CERO redirect necesario: ninguna URL cambió, solo su casa en el nav. Los colores
+  Aurora se reusan (mapeo dominio→section_key en sectionFromPath + verificado: tenants→verde/Dinero,
+  transactions→cian/Mercado, KG→naranja/Operación). 'Productos DMX' abre el catálogo filtrado
+  (?dominio=productos → 3 productos). Verificado en navegador: nav de 6 dominios + rutas movidas
+  cargan + color correcto. Front 181.
+- **C (antes)** ⬜ — reagrupar las 24 rutas en los 6 dominios + hubs por dominio +
   redirects de rutas viejas (nada se rompe).
 - **D · Prender huecos** ⬜ — comercio-pb/cuota dev · zones-public · tablero de telemetría ·
   terminal-mercado enriquecida.

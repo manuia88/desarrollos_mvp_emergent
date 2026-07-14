@@ -8,14 +8,21 @@ const ROLES_OK = new Set(['superadmin']);
 
 // Section keys must match tier.section_key in navByRole.js SUPERADMIN_NAV
 // AND .portal-superadmin[data-section="..."] rules in superadmin-aurora.css.
+// FASE C: el color de cada ruta sigue su DOMINIO nuevo (reusa los 7 section_key de color Aurora,
+// mapeados a los 6 dominios del catálogo). El resaltado del item activo lo da NavLink por `to`;
+// esto solo pinta el tema del dominio.
 function sectionFromPath(p) {
-  if (p === '/superadmin' || p.startsWith('/superadmin/tenants') || p.startsWith('/superadmin/inmobiliaria-leads') || p.startsWith('/superadmin/desarrollos')) return 'principal';
-  if (/^\/superadmin\/(datos|bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|metrics-cube|catalog-pulse)/.test(p)) return 'datos';
-  if (/^\/superadmin\/(inteligencia|ia-conversacional|rag-inspector|conversation-cost|modelo|aprendizaje|scores|drpi|indices|risk-score|fsd-accuracy|granularidad|demanda-mercado|terminal-zona|gemelo-demanda|virtual-staging|climate-migration|investment-explorer|intelligence-hub|trends|phase5-foundation|transactions|avm-accuracy|forecast-accuracy|knowledge-graph|live-pulse|grafo-comprador|cerebro-mercado|terminal-mercado|construction-quality|reviews-residents|conversations|copilot|calibracion|kb-gaps|ab-testing|conversation-drift)/.test(p)) return 'inteligencia';
-  if (/^\/superadmin\/(operacion|entity-resolution|health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor)/.test(p)) return 'operacion';
-  if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|conversation-cost)/.test(p)) return 'monetizacion';
-  if (/^\/superadmin\/(crecimiento|whatsapp|newsletter|bulletins|landing-leads|partners|invites|onboarding-analytics|free-audit-funnel|lead-sources|social-cards|marketing-mcp)/.test(p)) return 'crecimiento';
-  if (/^\/superadmin\/(devtools|primitives-demo|system-map|user-diagnostics)/.test(p)) return 'devtools';
+  if (p === '/superadmin' || p.startsWith('/superadmin/catalogo')) return 'principal';
+  // 🏙️ MERCADO → cian ('datos')
+  if (/^\/superadmin\/(mercado|metrics-cube|terminal-zona|live-pulse|terminal-mercado|transactions|intelligence-hub|cerebro-mercado|trends)/.test(p)) return 'datos';
+  // 👤 DEMANDA Y PERSONAS → morado ('inteligencia')
+  if (/^\/superadmin\/(inteligencia|ia-conversacional|rag-inspector|conversation-cost|granularidad|demanda-mercado|gemelo-demanda|grafo-comprador|inmobiliaria-leads|conversations|copilot|kb-gaps|ab-testing|conversation-drift|reviews-residents|virtual-staging|climate-migration|investment-explorer)/.test(p)) return 'inteligencia';
+  // 🏗️ INVENTARIO Y DEVS → teal ('crecimiento' color) pero por ruta de inventario
+  if (/^\/superadmin\/(desarrollos|alta|datos|bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|catalog-pulse|modelo|aprendizaje|scores|drpi|indices|risk-score|fsd-accuracy|avm-accuracy|forecast-accuracy|phase5-foundation|construction-quality|calibracion)/.test(p)) return 'crecimiento';
+  // 💰 DINERO E INGRESOS → verde ('monetizacion')
+  if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|tenants)/.test(p)) return 'monetizacion';
+  // ⚙️ OPERACIÓN Y SEGURIDAD → naranja ('operacion') — incluye crecimiento/canales + devtools + KG
+  if (/^\/superadmin\/(operacion|entity-resolution|health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor|crecimiento|whatsapp|newsletter|bulletins|landing-leads|partners|invites|onboarding-analytics|free-audit-funnel|lead-sources|social-cards|marketing-mcp|knowledge-graph|devtools|primitives-demo|system-map|user-diagnostics)/.test(p)) return 'operacion';
   return 'principal';
 }
 
