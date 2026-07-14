@@ -169,3 +169,42 @@ def test_materializar_llena_dmx_prototypes_y_asigna_ids():
     # las unidades quedaron apuntando a su prototipo
     q, u = db.units.updates[0]
     assert u["$set"]["prototype_id"].startswith("dev1__p")
+
+
+def test_aprobar_lista_en_raiz_no_filtra_con_raiz():
+    """BUG cazado (founder 07-14): un Sheets suelto en la raíz del dev (p.ej. con varios
+    desarrollos) generaba only_project='(raíz)' → la ingesta filtraba TODO y procesaba 0.
+    La aprobación debe ingerir el dev completo (only_project=None)."""
+    import asyncio as _a
+
+    class _Pend:
+        def __init__(self, doc): self.doc = doc; self.updated = None
+        async def find_one(self, q, proj=None): return dict(self.doc)
+        async def update_one(self, q, u): self.updated = u
+
+    class _Jobs:
+        def __init__(self): self.inserted = None
+        async def insert_one(self, d): self.inserted = d
+
+    class _DB:
+        def __init__(self, pend):
+            self.vigia_pendientes = pend
+            self.bulk_ingest_jobs = _Jobs()
+
+    pend = _Pend({"id": "vp1", "estado": "pendiente", "tipo": "lista_cambiada",
+                  "dev": "QC", "proyecto": "(raíz)", "dev_folder_id": "folder123",
+                  "archivo": {"id": "a1", "nombre": "precios varios.gsheet"}})
+    db = _DB(pend)
+
+    import vigia_engine as _ve
+    import bulk_ingest_engine as _bie
+    orig = _bie.run
+    async def _fake_run(db_, job_id): return None
+    _bie.run = _fake_run
+    try:
+        r = _a.run(_ve.aprobar_pendiente(db, "vp1", "founder"))
+    finally:
+        _bie.run = orig
+    assert r["accion"] == "ingesta_disparada"
+    assert db.bulk_ingest_jobs.inserted["only_project"] is None      # ← el fix
+    assert db.bulk_ingest_jobs.inserted["origen"]["via"] == "vigia"  # linaje intacto

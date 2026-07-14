@@ -244,11 +244,14 @@ async def aprobar_pendiente(db, pendiente_id: str, user_id: str) -> Dict[str, An
             "id": job_id,
             "drive_folder_url": f"https://drive.google.com/drive/folders/{p['dev_folder_id']}",
             "target_dev_org_id": None, "dry_run": False,
-            "only_project": p.get("proyecto") if p["tipo"] != "dev_nuevo" else None,
+            "only_project": (p.get("proyecto") if p["tipo"] != "dev_nuevo"
+                             and p.get("proyecto") not in (None, "", "(raíz)") else None),
             "status": "pending", "items_total": 0, "items_auto_approved": 0,
             "items_pending_review": 0, "items_rejected": 0, "items_failed": 0,
             "started_at": _now_iso(), "completed_at": None,
             "started_by": user_id, "error_log": [],
+            # nota: only_project se limpia abajo — "(raíz)" no es carpeta real (archivo suelto
+            # en la raíz del dev, p.ej. un Sheets con varios desarrollos) → se ingiere el dev entero
             "origen": {"via": "vigia", "pendiente_id": pendiente_id,   # ← linaje end-to-end
                        "archivo": p.get("archivo"), "dev": p.get("dev")},
         })
