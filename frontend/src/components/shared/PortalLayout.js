@@ -108,8 +108,9 @@ function NavItem({ item, collapsed, badge }) {
   );
 }
 
-function NavTier({ tier, collapsed, badges }) {
+function NavTier({ tier, collapsed, badges, domainCounts }) {
   const [open, setOpen] = useState(true);
+  const cuenta = tier.dominio && domainCounts ? domainCounts[tier.dominio] : undefined;
   return (
     <div className="mb-1">
       {!collapsed && (
@@ -119,7 +120,10 @@ function NavTier({ tier, collapsed, badges }) {
           className="nav-tier-label w-full flex items-center gap-2 px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-[rgba(var(--frame-fg),0.35)] hover:text-[rgba(var(--frame-fg),0.55)] transition-colors"
         >
           {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-          {tier.label}
+          <span className="flex-1 text-left">{tier.label}</span>
+          {cuenta != null && (
+            <span style={{ fontSize: 9, opacity: 0.7, fontWeight: 700 }}>{cuenta}</span>
+          )}
         </button>
       )}
       {(open || collapsed) && (
@@ -144,6 +148,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [badges, setBadges] = useState({});
+  const [domainCounts, setDomainCounts] = useState({});   // dominio → nº de herramientas (catálogo)
   const [searchOpen, setSearchOpen] = useState(false);
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -214,6 +219,25 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
     const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, [role]);
+
+  // FASE C (cero deuda): conteo de herramientas por dominio en el sidebar (solo superadmin).
+  // Server-driven: sale del catálogo, así el número siempre refleja lo que EXISTE.
+  useEffect(() => {
+    if (!isSuperadmin) return undefined;
+    let alive = true;
+    (async () => {
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const r = await fetch(`${API}/api/superadmin/catalogo`, { credentials: 'include' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (alive && d.dominios) {
+          setDomainCounts(Object.fromEntries(d.dominios.map((x) => [x.id, x.n_piezas])));
+        }
+      } catch { /* fail-soft: sin conteo, el sidebar sigue igual */ }
+    })();
+    return () => { alive = false; };
+  }, [isSuperadmin]);
 
   // Global Cmd+K shortcut · for superadmin → CommandPaletteExtended W2.6 (overlays B0)
   // For other roles → existing UniversalSearch B0. Cmd+/ stays universal for everyone.
@@ -304,7 +328,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       {/* Nav tiers */}
       <nav ref={navRef} className="flex-1 overflow-y-auto px-2 space-y-2 scrollbar-none" aria-label="Navegación principal">
         {tiers.map(tier => (
-          <NavTier key={tier.tier} tier={tier} collapsed={collapsed} badges={badges} />
+          <NavTier key={tier.tier} tier={tier} collapsed={collapsed} badges={badges} domainCounts={domainCounts} />
         ))}
       </nav>
 

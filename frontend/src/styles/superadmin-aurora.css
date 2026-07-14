@@ -82,6 +82,13 @@
   --theme: #7c2fff; --theme-rgb: 124, 47, 255;
   --theme-2: #a463ff; --theme-3: #3b82f6; --theme-text: #0a0014;
 }
+/* FASE C (cero deuda): los 6 DOMINIOS del catálogo como section_key de primera clase —
+ * el nombre del color coincide con el dominio (sin el aliasing datos→Mercado de antes). */
+.portal-superadmin[data-section="mercado"]    { --theme: #00E5FF; --theme-rgb: 0, 229, 255;  --theme-2: #5cf0ff; --theme-3: #38e4be; --theme-text: #001a1f; }
+.portal-superadmin[data-section="demanda"]    { --theme: #7c2fff; --theme-rgb: 124, 47, 255; --theme-2: #a463ff; --theme-3: #3b82f6; --theme-text: #0a0014; }
+.portal-superadmin[data-section="inventario"] { --theme: #14B8A6; --theme-rgb: 20, 184, 166;  --theme-2: #5EEAD4; --theme-3: #0D9488; --theme-text: #001a17; }
+.portal-superadmin[data-section="dinero"]     { --theme: #5BE235; --theme-rgb: 91, 226, 53;  --theme-2: #7DEE5C; --theme-3: #2EB48F; --theme-text: #001a0e; }
+.portal-superadmin[data-section="productos"]  { --theme: #FF9F1C; --theme-rgb: 255, 159, 28;  --theme-2: #FFBF69; --theme-3: #ff5fa0; --theme-text: #1a0e00; }
 
 /* Section labels (sidebar tier headers) · color por sección con dot glow.
  * Canonical pattern dmx_design_system.reference.css líneas 794-814. */
@@ -92,6 +99,11 @@
 .portal-superadmin .nav-tier-label[data-section-key="monetizacion"] { color: #5BE235 !important; }
 .portal-superadmin .nav-tier-label[data-section-key="crecimiento"]  { color: #14B8A6 !important; }
 .portal-superadmin .nav-tier-label[data-section-key="devtools"]     { color: #7c2fff !important; }
+.portal-superadmin .nav-tier-label[data-section-key="mercado"]      { color: #00E5FF !important; }
+.portal-superadmin .nav-tier-label[data-section-key="demanda"]      { color: #7c2fff !important; }
+.portal-superadmin .nav-tier-label[data-section-key="inventario"]   { color: #14B8A6 !important; }
+.portal-superadmin .nav-tier-label[data-section-key="dinero"]       { color: #5BE235 !important; }
+.portal-superadmin .nav-tier-label[data-section-key="productos"]    { color: #FF9F1C !important; }
 
 .portal-superadmin .nav-tier-label[data-section-key]::before {
   content: '';

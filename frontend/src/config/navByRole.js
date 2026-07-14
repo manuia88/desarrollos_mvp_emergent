@@ -207,7 +207,7 @@ const SUPERADMIN_NAV = [
     ],
   },
   {
-    tier: 2, label: '🏙️ Mercado', section_key: 'datos',   // color cian
+    tier: 2, label: '🏙️ Mercado', section_key: 'mercado', dominio: 'mercado',
     items: [
       { key: 'hub-mercado',  to: '/superadmin/mercado',      label: 'Hub de Mercado',   Icon: TrendingUp },
       { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
@@ -219,7 +219,7 @@ const SUPERADMIN_NAV = [
     ],
   },
   {
-    tier: 3, label: '👤 Demanda y personas', section_key: 'inteligencia',   // color morado
+    tier: 3, label: '👤 Demanda y personas', section_key: 'demanda', dominio: 'demanda',
     items: [
       { key: 'inteligencia',      to: '/superadmin/inteligencia',      label: 'Demanda · Tableros', Icon: BarChart3 },
       { key: 'ia-conversacional', to: '/superadmin/ia-conversacional', label: 'IA Conversacional (Atlax)', Icon: MessageCircle },
@@ -227,7 +227,7 @@ const SUPERADMIN_NAV = [
     ],
   },
   {
-    tier: 4, label: '🏗️ Inventario y devs', section_key: 'crecimiento',   // color teal
+    tier: 4, label: '🏗️ Inventario y devs', section_key: 'inventario', dominio: 'inventario',
     items: [
       { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
       { key: 'alta-devs',   to: '/superadmin/alta',        label: 'Desarrolladores y carga', Icon: Building2 },
@@ -237,14 +237,14 @@ const SUPERADMIN_NAV = [
     ],
   },
   {
-    tier: 5, label: '💰 Dinero e ingresos', section_key: 'monetizacion',   // color verde
+    tier: 5, label: '💰 Dinero e ingresos', section_key: 'dinero', dominio: 'dinero',
     items: [
       { key: 'monetizacion', to: '/superadmin/monetizacion', label: 'Monetización & API', Icon: Briefcase },
       { key: 'tenants',      to: '/superadmin/tenants',      label: 'Clientes', Icon: Users },
     ],
   },
   {
-    tier: 6, label: '⚙️ Operación y seguridad', section_key: 'operacion',   // color naranja
+    tier: 6, label: '⚙️ Operación y seguridad', section_key: 'operacion', dominio: 'operacion',
     items: [
       { key: 'operacion',       to: '/superadmin/operacion',       label: 'Operación & Seguridad',  Icon: ShieldCheck },
       { key: 'crecimiento',     to: '/superadmin/crecimiento',     label: 'Crecimiento & Distribución', Icon: Megaphone },
@@ -253,7 +253,7 @@ const SUPERADMIN_NAV = [
     ],
   },
   {
-    tier: 7, label: '📦 Productos del moat', section_key: 'devtools',   // color morado
+    tier: 7, label: '📦 Productos del moat', section_key: 'productos', dominio: 'productos',
     items: [
       // los productos (Estudio DMX, DMX-30, CARFAX) viven en el catálogo filtrado — ruta propia
       // para que el resaltado del sidebar sea correcto (query no vive en pathname).

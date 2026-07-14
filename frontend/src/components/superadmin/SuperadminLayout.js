@@ -13,16 +13,16 @@ const ROLES_OK = new Set(['superadmin']);
 // esto solo pinta el tema del dominio.
 function sectionFromPath(p) {
   if (p === '/superadmin' || p.startsWith('/superadmin/catalogo')) return 'principal';
-  if (p.startsWith('/superadmin/productos')) return 'devtools';   // 📦 Productos (color morado)
-  // 🏙️ MERCADO → cian ('datos')
-  if (/^\/superadmin\/(mercado|metrics-cube|terminal-zona|live-pulse|terminal-mercado|transactions|intelligence-hub|cerebro-mercado|trends)/.test(p)) return 'datos';
-  // 👤 DEMANDA Y PERSONAS → morado ('inteligencia')
-  if (/^\/superadmin\/(inteligencia|ia-conversacional|rag-inspector|conversation-cost|granularidad|demanda-mercado|gemelo-demanda|grafo-comprador|inmobiliaria-leads|conversations|copilot|kb-gaps|ab-testing|conversation-drift|reviews-residents|virtual-staging|climate-migration|investment-explorer)/.test(p)) return 'inteligencia';
-  // 🏗️ INVENTARIO Y DEVS → teal ('crecimiento' color) pero por ruta de inventario
-  if (/^\/superadmin\/(desarrollos|alta|datos|bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|catalog-pulse|modelo|aprendizaje|scores|drpi|indices|risk-score|fsd-accuracy|avm-accuracy|forecast-accuracy|phase5-foundation|construction-quality|calibracion)/.test(p)) return 'crecimiento';
-  // 💰 DINERO E INGRESOS → verde ('monetizacion')
-  if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|tenants)/.test(p)) return 'monetizacion';
-  // ⚙️ OPERACIÓN Y SEGURIDAD → naranja ('operacion') — incluye crecimiento/canales + devtools + KG
+  if (p.startsWith('/superadmin/productos')) return 'productos';   // 📦
+  // 🏙️ MERCADO
+  if (/^\/superadmin\/(mercado|metrics-cube|terminal-zona|live-pulse|terminal-mercado|transactions|intelligence-hub|cerebro-mercado|trends)/.test(p)) return 'mercado';
+  // 👤 DEMANDA Y PERSONAS
+  if (/^\/superadmin\/(inteligencia|ia-conversacional|rag-inspector|conversation-cost|granularidad|demanda-mercado|gemelo-demanda|grafo-comprador|inmobiliaria-leads|conversations|copilot|kb-gaps|ab-testing|conversation-drift|reviews-residents|virtual-staging|climate-migration|investment-explorer)/.test(p)) return 'demanda';
+  // 🏗️ INVENTARIO Y DEVS
+  if (/^\/superadmin\/(desarrollos|alta|datos|bulk-ingest|data-sources|recipes-coverage|drive|documents|data-lake|gov-data-mx|catalog-pulse|modelo|aprendizaje|scores|drpi|indices|risk-score|fsd-accuracy|avm-accuracy|forecast-accuracy|phase5-foundation|construction-quality|calibracion)/.test(p)) return 'inventario';
+  // 💰 DINERO E INGRESOS
+  if (/^\/superadmin\/(monetizacion|ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics|soc-franchise|marketplace-templates|lead-enrichment|social-ads|video-standalone|tenants)/.test(p)) return 'dinero';
+  // ⚙️ OPERACIÓN Y SEGURIDAD (incluye crecimiento/canales + devtools + KG)
   if (/^\/superadmin\/(operacion|entity-resolution|health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility|widget-embeds|reputation-monitor|crecimiento|whatsapp|newsletter|bulletins|landing-leads|partners|invites|onboarding-analytics|free-audit-funnel|lead-sources|social-cards|marketing-mcp|knowledge-graph|devtools|primitives-demo|system-map|user-diagnostics)/.test(p)) return 'operacion';
   return 'principal';
 }

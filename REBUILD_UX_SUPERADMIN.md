@@ -87,3 +87,15 @@ navegaba: una pregunta natural daba 0 resultados. Confusión de superficies.
   local — el cableado es correcto.)
 Regla de oro: el Catálogo te LLEVA, el Copilot te RESPONDE, y el buscador te pasa de uno al otro
 sin que tengas que saber cuál es cuál. Suites: backend (catálogo+seguridad) · front 181.
+
+
+## FASE C — CERO DEUDA (upgrades post-auditoría) — ✅ 2026-07-13
+Orden founder: 'cero deuda, corrige, mejora e implementa'. Las 2 oportunidades anotadas, hechas:
+- **Deuda de color eliminada**: los section_key ya no aliasean (antes 'Inventario' usaba color-key
+  'crecimiento'). Ahora los 6 dominios son section_key de PRIMERA CLASE (mercado/demanda/inventario/
+  dinero/operacion/productos) con su propia regla de color en superadmin-aurora.css + campo `dominio`
+  en el nav. sectionFromPath devuelve el dominio real. Productos estrena color ámbar (#FF9F1C).
+- **Conteo por dominio en el sidebar**: cada tier muestra su nº de herramientas (🏙️ Mercado 30 ·
+  👤 Demanda 33 · 🏗️ Inventario 9 · 💰 Dinero 13 · ⚙️ Operación 23 · 📦 Productos 3), server-driven
+  del catálogo (fetch solo superadmin, fail-soft). El sidebar y el catálogo muestran el MISMO número.
+Verificado en navegador: 6 dominios con su color propio + conteo correcto. Front 181.
