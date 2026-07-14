@@ -18,6 +18,14 @@ def test_catalogo_completo_y_sin_perdida():
     assert "reporte_carfax" not in ids and "reporte_dmx30" not in ids
     # los 3 productos del moat son piezas de primera clase
     assert {"estudio_dmx", "dmx30_producto", "carfax_producto"} <= ids
+    # FASE D: los 7 lentes de Desarrollos ahora son descubribles (antes solo por clic interno)
+    lentes = {"lente_construir", "lente_gusto", "lente_comportamiento", "lente_stock",
+              "lente_macro", "lente_competencia", "lente_ia"}
+    assert lentes <= ids, f"lentes faltantes del catálogo: {lentes - ids}"
+    # y todos deep-linkean a su lente (no al genérico)
+    for p in cat["piezas"]:
+        if p["id"] in lentes:
+            assert "lente=" in p["ruta_ui"], f"{p['id']} sin deep-link a su lente"
     # toda pieza trae la capa HUMANA completa (nada vacío)
     for p in cat["piezas"]:
         for campo in ("titulo", "que_es", "que_dice", "beneficio", "que_hago"):
@@ -70,12 +78,14 @@ def test_sin_titulos_duplicados():
 
 
 def test_reportes_hacen_deep_link():
-    """El 'Ir' de un reporte debe abrir el generador con ESE bloque marcado, no el genérico."""
+    """Toda pieza tipo reporte debe hacer DEEP-LINK a su destino exacto: los bloques del
+    generador con ?tab=reportes&bloque=, los lentes de Desarrollos con ?lente=."""
     cat = construir_catalogo()
     reps = [p for p in cat["piezas"] if p["tipo"] == "reporte"]
     assert reps
     for p in reps:
-        assert "tab=reportes&bloque=" in p["ruta_ui"], f"{p['id']} no hace deep-link"
+        assert ("tab=reportes&bloque=" in p["ruta_ui"] or "lente=" in p["ruta_ui"]), \
+            f"{p['id']} no hace deep-link ({p['ruta_ui']})"
 
 
 def test_features_con_capa_humana():

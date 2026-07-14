@@ -51,7 +51,16 @@ aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md 
   cargan + color correcto. Front 181.
 - **C (antes)** ⬜ — reagrupar las 24 rutas en los 6 dominios + hubs por dominio +
   redirects de rutas viejas (nada se rompe).
-- **D · Prender huecos** ⬜ — comercio-pb/cuota dev · zones-public · tablero de telemetría ·
+- **D · Prender huecos** ✅ 2026-07-13 — AUDITORÍA: los 5 huecos del mapa estaban SOBREESTIMADOS
+  (heurístico del crawl contaba botones + memoria desactualizada). Verificado con grep +
+  orphan-detector (194 motores, 0 aislados; 46 'endpoints sin front' = falsos positivos por URLs
+  dinámicas): los 5 YA están cableados o se retiraron a propósito (comercio/cuota con endpoint+UI ·
+  zones-public retirado · lens/module_open consumidos · terminal-mercado página rica · inmo-leads
+  vista plana por diseño). HUECO REAL encontrado y prendido: los 7 LENTES de Desarrollos→Inteligencia
+  (ricos, antes solo descubribles con clic interno) → +7 piezas al catálogo (118) con deep-link
+  ?view=inteligencia&lente=X. Verificado en navegador: 'construir' en el catálogo → abre el lente.
+  Suites: backend 1544 · front 181.
+- **D (antes)** ⬜ — comercio-pb/cuota dev · zones-public · tablero de telemetría ·
   terminal-mercado enriquecida.
 - **E · Matriz de trazabilidad** ⬜ — cada tab del crawl → su casa nueva, verificado antes/después.
 

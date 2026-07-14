@@ -489,9 +489,14 @@ Generado por crawl de navegador (24 rutas del sidebar, tabs reales del DOM) + mi
 - ValidationMetricsTable.js
 - VerticalProductCard.js
 
-## 6 · Huecos detectados (prender/conectar — entran al plan del rebuild)
-- Estudio de Mercado del DEV: comercio-pb + cuota-recomendada sin UI (motor listo).
-- /api/zones-public (W5.2: 6 sub-scores + landings SEO) sin consumidor front propio.
-- Señales lens/module_open capturadas sin tablero de uso (telemetría UI).
-- Terminal de Mercado CDMX: 1 solo control visible (página flaca vs motor detrás).
-- /inmobiliaria-leads: 0 tabs en crawl (estado vacío a revisar).
+## 6 · Huecos — VERIFICADOS (Fase D, 2026-07-13): el mapa los SOBREESTIMÓ
+Auditoría real (grep + orphan-detector, NO el heurístico del crawl):
+- comercio-pb + cuota-recomendada: ✅ YA cableados (endpoint /api/dev/* + UI en dev estudio-mercado F2.9). CERRADO.
+- /api/zones-public: ✅ RETIRADO a propósito (server.py:1194 'el router se retiró'). Las landings SEO /cdmx/top-* siguen. No es hueco.
+- lens/module_open: ✅ CONSUMIDOS (buyer_signals scoring + demand_intelligence resucita section_view/module_open). CERRADO.
+- Terminal de Mercado CDMX: ✅ página RICA (4 llamadas: terminal/bancabilidad/historial/espejo). El crawl la marcó 'flaca' por contar solo botones. CERRADO.
+- inmobiliaria-leads: ✅ vista plana por diseño (pool de leads, sin tabs a propósito). No es hueco.
+ORPHAN-DETECTOR: 194 motores, 0 aislados (todos con route/engine/front). 46 'endpoints sin front' = falsos positivos (URLs dinámicas). **CERO huecos de cableado genuinos.**
+
+## 6b · Hueco REAL encontrado (y prendido): descubribilidad de los 7 lentes
+Los 7 lentes de Desarrollos → Inteligencia (Dónde Construir, Gusto del Mercado, Comportamiento, Stock/Sold-Out, Macro y Ciudad, Competencia y Red, Cómo Aprende la IA) estaban CABLEADOS pero solo se descubrían haciendo clic dentro de Desarrollos — NO en el catálogo. Fase D: +7 piezas al catálogo (118 total) con lenguaje humano + deep-link ?view=inteligencia&lente=X (Desarrollos ahora lee el query). Ahora se buscan y se abren directo.

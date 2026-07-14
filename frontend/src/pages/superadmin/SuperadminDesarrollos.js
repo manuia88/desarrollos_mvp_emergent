@@ -131,8 +131,10 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [f, setF] = useState({ zona: '', segmento: '', etapa: '', dev: '', publicado: '', q: '' });
-  const [view, setView] = useState('panorama'); // panorama | inteligencia | catalogo
-  const [lente, setLente] = useState('construir'); // lente activo dentro de Inteligencia
+  // deep-link desde El Catálogo (?view=inteligencia&lente=gusto) → abre ese lente directo
+  const _sp = new URLSearchParams(window.location.search);
+  const [view, setView] = useState(_sp.get('view') || 'panorama'); // panorama | inteligencia | catalogo
+  const [lente, setLente] = useState(_sp.get('lente') || 'construir'); // lente activo dentro de Inteligencia
   const [facetas, setFacetas] = useState({});
   const verInteligencia = (k) => { setLente(k); setView('inteligencia'); };
 
