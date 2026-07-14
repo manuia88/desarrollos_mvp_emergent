@@ -160,6 +160,19 @@ export default function SuperadminInventario({ user, onLogout }) {
           <button style={S.btn} onClick={() => nav('/superadmin/alta?tab=manual')}><UserPlus size={13} /> Alta</button>
         </div>
 
+        {/* acceso directo al ANÁLISIS (la página Desarrollos con Panorama/Inteligencia/lentes
+            sigue viva completa — esto evita que quede escondida tras el buscador) */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+          <span style={S.mini}>Análisis:</span>
+          {[['Panorama', '/superadmin/desarrollos'],
+            ['Inteligencia (7 lentes)', '/superadmin/desarrollos?view=inteligencia'],
+            ['Catálogo y aprobación', '/superadmin/desarrollos?view=catalogo'],
+            ['Granularidad', '/superadmin/alta?tab=granularidad'],
+            ['Prototipos', '/superadmin/alta?tab=prototipos']].map(([l, to]) => (
+            <button key={l} onClick={() => nav(to)} style={{ ...S.mini, background: 'none', border: 'none', color: 'var(--theme)', cursor: 'pointer', fontWeight: 700, padding: '2px 4px' }}>{l}</button>
+          ))}
+        </div>
+
         {/* breadcrumb del drill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0 16px', flexWrap: 'wrap' }}>
           <button onClick={() => ir('')} style={{ ...S.btn, padding: '4px 10px', background: !devSel ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.04)' }}><Home size={12} /> Desarrolladores</button>
