@@ -16,9 +16,9 @@ const _j = async (r) => { if (!r.ok) throw new Error((await r.json().catch(() =>
 const _get = (p) => fetch(`${API}/api/superadmin/inventario${p}`, { credentials: 'include' }).then(_j);
 const _patch = (p, body) => fetch(`${API}/api/superadmin/inventario${p}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(_j);
 
-const C = { disponible: '#58a6ff', apartada: '#d29922', vendida: '#4ADE80', bloqueada: '#8b949e', renta: '#a78bfa' };
-const ESTADOS = ['disponible', 'apartada', 'vendida', 'bloqueada', 'renta'];
-const S = {
+export const C = { disponible: '#58a6ff', apartada: '#d29922', vendida: '#4ADE80', bloqueada: '#8b949e', renta: '#a78bfa' };
+export const ESTADOS = ['disponible', 'apartada', 'vendida', 'bloqueada', 'renta'];
+export const S = {
   card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: 16 },
   h: { fontFamily: 'Outfit', fontWeight: 800, color: 'var(--cream)' },
   p: { fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)', margin: 0 },
@@ -26,7 +26,7 @@ const S = {
   btn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', textDecoration: 'none' },
   inp: { padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, width: '100%' },
 };
-const fmtM = (n) => (n === null || n === undefined) ? '—' : `$${(Number(n) / 1e6).toFixed(2)}M`;
+export const fmtM = (n) => (n === null || n === undefined) ? '—' : `$${(Number(n) / 1e6).toFixed(2)}M`;
 
 /* mini-torre: una franja por estado, proporcional (resumen de un proyecto en 1 vistazo) */
 function MiniTorre({ porEstado, total }) {
@@ -44,9 +44,9 @@ function MiniTorre({ porEstado, total }) {
 /* LA TORRE: el grid real de unidades, clickeable. v2 (feedback founder):
    - torres separadas (A y B ya no se mezclan en el piso)
    - PATRÓN DE MOLDES visible: clic en un molde (chip) → sus unidades se iluminan */
-const PALETA_MOLDE = ['#58a6ff', '#4ADE80', '#d29922', '#a78bfa', '#f472b6', '#2dd4bf', '#fb923c', '#e879f9', '#a3e635', '#38bdf8', '#facc15', '#f87171'];
+export const PALETA_MOLDE = ['#58a6ff', '#4ADE80', '#d29922', '#a78bfa', '#f472b6', '#2dd4bf', '#fb923c', '#e879f9', '#a3e635', '#38bdf8', '#facc15', '#f87171'];
 
-function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel }) {
+export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel }) {
   // torre desde el número ('A-1402' → 'A'); nivel para las filas
   const porTorre = useMemo(() => {
     const t = {};
@@ -105,7 +105,7 @@ function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel }) {
 }
 
 /* panel de edición: aparece al clic en una unidad — SIN wizard */
-function PanelUnidad({ u, onCerrar, onGuardado }) {
+export function PanelUnidad({ u, onCerrar, onGuardado }) {
   const [status, setStatus] = useState((u.status || 'disponible').toLowerCase());
   const [precio, setPrecio] = useState(u.price_mxn || u.price || '');
   const [msg, setMsg] = useState('');
@@ -286,7 +286,7 @@ export default function SuperadminInventario({ user, onLogout }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {dev.proyectos.length === 0 && <p style={S.p}>Este dev aún no tiene proyectos cargados. Usa «Cargar» o aprueba su carpeta en el Vigía.</p>}
             {dev.proyectos.map((p) => (
-              <button key={p.id} data-testid={`proy-${p.id}`} onClick={() => ir(`dev=${encodeURIComponent(devSel)}&proyecto=${encodeURIComponent(p.id)}`)}
+              <button key={p.id} data-testid={`proy-${p.id}`} onClick={() => nav(`/superadmin/expediente/${encodeURIComponent(p.id)}`)}
                 style={{ ...S.card, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 7 }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.5)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}>

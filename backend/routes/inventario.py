@@ -97,6 +97,96 @@ async def arbol(request: Request):
             "revision_pendientes": revision_n}
 
 
+@router.get("/expediente/{development_id}")
+async def expediente(request: Request, development_id: str):
+    """EL EXPEDIENTE (orden founder 07-14: 'todo en un mismo espacio, no regado por media
+    plataforma'). UNA llamada = TODO el desarrollo: datos, unidades, prototipos, multimedia con
+    URLs, pagos, avance, legal, política comercial, confianza y el semáforo de completitud."""
+    await require_superadmin(request)
+    db = _db(request)
+    d = await db.developments.find_one({"id": development_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+
+    units = await db.units.find({"development_id": development_id}, {"_id": 0}) \
+        .sort("unit_number", 1).to_list(2000)
+    protos = await db.dmx_prototypes.find({"development_id": development_id}, {"_id": 0}).to_list(200)
+
+    # multimedia: locales (con URL servible) + referencias a Drive (agrupadas por categoría)
+    locales = []
+    async for a in db.dev_assets.find({"development_id": development_id}, {"_id": 0}) \
+            .sort("order_index", 1):
+        sp = a.get("storage_path") or ""
+        locales.append({"id": a.get("id"), "tipo": a.get("asset_type"),
+                        "nombre": a.get("filename"), "caption": a.get("ai_caption"),
+                        "url": f"/api/assets-static/{sp.split('/')[-1]}" if sp else None,
+                        "cover": a.get("role") == "cover"})
+    drive_por_cat: Dict[str, Any] = {}
+    async for a in db.project_assets.find({"development_id": development_id},
+                                          {"_id": 0, "asset_categoria": 1, "filename": 1,
+                                           "unidad_hint": 1, "image_kind": 1}):
+        c = drive_por_cat.setdefault(a.get("asset_categoria") or "otro",
+                                     {"n": 0, "muestra": [], "con_unidad": 0})
+        c["n"] += 1
+        if a.get("unidad_hint"):
+            c["con_unidad"] += 1
+        if len(c["muestra"]) < 3:
+            c["muestra"].append(a.get("filename"))
+
+    pagos = await db.dev_payment_schemes.find_one({"project_id": development_id}, {"_id": 0}) or {}
+    avance = await db.project_construction_progress.find_one({"project_id": development_id}, {"_id": 0}) or {}
+    comm = await db.project_commercialization.find_one({"project_id": development_id}, {"_id": 0}) or {}
+    legal_docs = await db.di_documents.count_documents({"development_id": development_id})
+    amen = await db.project_amenities.find_one({"project_id": development_id}, {"_id": 0}) or {}
+
+    from routes.dev_project_full import project_full, project_readiness
+    readiness = project_readiness(await project_full(db, development_id))
+
+    return {
+        "desarrollo": d, "unidades": units, "n_unidades": len(units),
+        "prototipos": protos,
+        "multimedia": {"locales": locales, "drive": drive_por_cat},
+        "pagos": pagos.get("schemes") or [],
+        "avance": {"pct": avance.get("overall_percent"), "etapa": avance.get("current_stage")},
+        "comercializacion": {"configurada": bool(comm.get("configured")),
+                             "comision_pct": comm.get("default_commission_pct"),
+                             "brokers": comm.get("works_with_brokers")},
+        "legal": {"docs": legal_docs, "estado": d.get("legal_status")},
+        "amenidades": (amen.get("amenities") or d.get("amenities") or []),
+        "servicios": (amen.get("servicios") or {}),
+        "completitud": readiness,
+    }
+
+
+class ExpedientePatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    address_full: Optional[str] = None
+    stage: Optional[str] = None
+    delivery_estimate: Optional[str] = None
+
+
+@router.patch("/expediente/{development_id}")
+async def editar_expediente(request: Request, development_id: str, body: ExpedientePatch):
+    """Edición directa de los datos del desarrollo — sin wizard, con auditoría."""
+    user = await require_superadmin(request)
+    db = _db(request)
+    cambios = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not cambios:
+        raise HTTPException(400, "Nada que cambiar")
+    cambios["updated_at"] = _now_iso()
+    r = await db.developments.update_one({"id": development_id}, {"$set": cambios})
+    if not r.matched_count:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "update", "development", development_id,
+                           before=None, after=cambios, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "cambios": sorted(cambios)}
+
+
 @router.get("/proyecto/{development_id}")
 async def proyecto(request: Request, development_id: str):
     """El proyecto completo con su torre: unidades + prototipos, listo para pintar y editar."""

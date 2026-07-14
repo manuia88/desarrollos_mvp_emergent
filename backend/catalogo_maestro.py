@@ -104,6 +104,12 @@ _PIEZAS: List[Dict[str, Any]] = [
        "/superadmin/inteligencia", temas=["demanda", "tiempo"]),
 
     # ── INVENTARIO Y DESARROLLADORES ──
+    _p("expediente_desarrollo", "inventario", "vista", "Expediente del desarrollo",
+       "UNA página con TODO lo de un desarrollo: datos, torre, moldes, fotos, planos, pagos, legal.",
+       "Todo lo que se ha subido y lo que falta, con quién puede llenarlo.",
+       "Nada regado: revisas, editas y publicas desde un solo lugar.",
+       "Inventario → clic en el proyecto. Edita directo; el semáforo dice qué falta para publicar.",
+       "/superadmin/inventario", temas=["expediente", "desarrollo", "ficha", "completitud", "publicar"]),
     _p("inventario_drill", "inventario", "vista", "Inventario (todo en uno)",
        "La página nueva del inventario: desarrolladores → proyectos → unidades, en 3 clics.",
        "Quién tiene qué, en qué estado está cada unidad, y edición directa sin asistentes.",
