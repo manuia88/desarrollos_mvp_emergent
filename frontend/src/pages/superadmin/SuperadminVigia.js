@@ -52,8 +52,12 @@ function Manifiesto({ pendientes, fuentes, onChanged }) {
     const dev = sel[carpeta];
     if (!dev) { setMsg(`Elige a qué desarrollador corresponde "${carpeta}".`); return; }
     try {
-      await _put('/vigia/manifiesto', { fuente_id: fuenteId || fuentes?.[0]?.id, dev_carpeta: carpeta, dev_org_id: dev, dev_folder_id: folderId || '', patron_notas: notas[carpeta] || '' });
-      setMsg(`"${carpeta}" mapeado ✓`); cargar(); onChanged();
+      const body = { fuente_id: fuenteId || fuentes?.[0]?.id, dev_carpeta: carpeta, dev_folder_id: folderId || '', patron_notas: notas[carpeta] || '' };
+      if (dev === '__crear__') body.crear_dev_nombre = carpeta;   // crea el dev AL VUELO con el nombre de la carpeta
+      else body.dev_org_id = dev;
+      const r = await _put('/vigia/manifiesto', body);
+      setMsg(`"${carpeta}" mapeado ✓${r.dev_creado ? ' (dev creado — link de reclamo en Directorio)' : ''}`);
+      cargar(); onChanged();
     } catch (e) { setMsg(String(e.message)); }
   };
 
@@ -69,6 +73,7 @@ function Manifiesto({ pendientes, fuentes, onChanged }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <select data-testid={`map-sel-${c}`} style={{ ...inp, maxWidth: 300 }} value={sel[c] || ''} onChange={(e) => setSel({ ...sel, [c]: e.target.value })}>
               <option value="">¿Qué desarrollador de la plataforma es?</option>
+              <option value="__crear__">➕ No existe — créalo con este nombre ({c})</option>
               {data.devs_plataforma.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}</option>)}
             </select>
             <button style={btn('ok')} data-testid={`map-ok-${c}`} onClick={() => guardar(c, f, fu)}><Check size={13} /> Mapear</button>

@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { UserPlus, Building2, Check, UploadCloud, LayoutGrid, FolderUp, Layers, ListChecks, ChevronRight, Radar, Boxes } from 'lucide-react';
 import { altaDesarrollador, listarDesarrolladores, altaProyecto, uploadIngesta, ingestaJob } from '../../api/superadminAlta';
-import { fetchDriveOAuthUrl, listAllDriveConnections } from '../../api/drive';
 
 // Componentes que se EMBEBEN aquí para unificar todo en un solo lugar (aceptan prop `embedded`).
 const SuperadminBulkIngest = lazy(() => import('./SuperadminBulkIngest'));
@@ -46,30 +45,15 @@ export default function SuperadminAltaDesarrolladores() {
   const [upJob, setUpJob] = useState(null);   // {status, extracted, ...}
   // Conexión de Drive (OAuth) — para carpetas grandes sin el límite del API key público.
   const [drive, setDrive] = useState(null);   // {configured, connected, email} | null
-  const [driveMsg, setDriveMsg] = useState('');
 
+  // Estado REAL del acceso a Drive (el card viejo llamaba rutas que no existían — era UI fantasma)
   const cargarDrive = useCallback(() => {
-    listAllDriveConnections()
-      .then((d) => {
-        const conns = d.connections || [];
-        const on = conns.find((c) => c.status === 'connected');
-        setDrive({ configured: d.configured !== false, connected: !!on, email: on?.email || on?.account_email || '' });
-      })
-      .catch(() => setDrive({ configured: true, connected: false, email: '' }));
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/superadmin/vigia/drive-estado`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then(setDrive)
+      .catch(() => setDrive({ modo: 'ninguno', detalle: 'No se pudo consultar el estado de Drive.' }));
   }, []);
 
-  const conectarDrive = async () => {
-    setDriveMsg('');
-    const id = (upDev && upDev !== '__new__') ? upDev : (devs[0]?.dev_org_id || 'superadmin');
-    try {
-      const r = await fetchDriveOAuthUrl(id, 'superadmin');
-      if (r && r.configured === false) { setDriveMsg(r.message || 'Falta configurar GOOGLE_OAUTH_* en el backend.'); return; }
-      const url = r.authorization_url || r.auth_url;
-      if (!url) { setDriveMsg('No se pudo obtener el link de autorización.'); return; }
-      window.open(url, '_blank', 'noopener');
-      setDriveMsg('Se abrió Google en otra pestaña. Autoriza tu cuenta, vuelve aquí y pulsa "Verificar".');
-    } catch (e) { setDriveMsg(e.message || 'No se pudo iniciar la conexión.'); }
-  };
 
   // Crea un desarrollador (cuenta vacía) SIN salir de la carga masiva y lo deja seleccionado.
   const crearDevDesdeCarga = async () => {
@@ -288,29 +272,21 @@ export default function SuperadminAltaDesarrolladores() {
 
         {tab === 'masiva' && (
           <div style={{ display: 'grid', gap: 14 }}>
-            {/* Conexión de Drive (OAuth) — sin el límite del API key público, para carpetas grandes */}
-            <div style={{ ...card, padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
-              background: drive?.connected ? 'rgba(31,160,106,0.07)' : 'rgba(99,102,241,0.07)',
-              border: `1px solid ${drive?.connected ? 'rgba(31,160,106,0.28)' : 'rgba(99,102,241,0.28)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: drive?.connected ? '#34D399' : '#A5B4FC', display: 'inline-block' }} />
-                <div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>
-                    {drive?.connected ? `Drive conectado${drive.email ? ` · ${drive.email}` : ''}` : 'Drive no conectado'}
-                  </div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)' }}>
-                    {drive?.connected
-                      ? 'Las carpetas de Drive se leen con tu cuota (sin bloqueos). Ideal para catálogos grandes.'
-                      : 'Conecta tu Google una vez para leer carpetas grandes sin el límite del modo público.'}
-                  </div>
+            {/* Estado REAL de Drive (el card anterior era fantasma: botones a rutas inexistentes) */}
+            <div style={{ ...card, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+              background: drive?.modo === 'ninguno' ? 'rgba(239,68,68,0.06)' : 'rgba(31,160,106,0.07)',
+              border: `1px solid ${drive?.modo === 'ninguno' ? 'rgba(239,68,68,0.3)' : 'rgba(31,160,106,0.28)'}` }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: drive?.modo === 'ninguno' ? '#f87171' : '#34D399', display: 'inline-block' }} />
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }} data-testid="drive-estado">
+                  {drive === null ? 'Consultando acceso a Drive…'
+                    : drive.modo === 'oauth' ? `Drive: cuenta conectada${drive.email ? ` · ${drive.email}` : ''}`
+                    : drive.modo === 'llave_publica' ? 'Drive: leyendo con llave pública ✓'
+                    : 'Drive: sin acceso'}
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {!drive?.connected && <button onClick={conectarDrive} style={btn(true)} data-testid="drive-connect">Conectar Drive</button>}
-                <button onClick={cargarDrive} style={{ ...btn(true), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(240,235,224,0.8)' }} data-testid="drive-verify">Verificar</button>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)' }}>{drive?.detalle || ''}</div>
               </div>
             </div>
-            {driveMsg && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#A5B4FC', marginTop: -6 }}>{driveMsg}</div>}
 
             {/* UPLOAD DIRECTO — sube PDF/XLS/imágenes, la IA llena los campos sola */}
             <div style={card}>

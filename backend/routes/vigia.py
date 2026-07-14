@@ -46,6 +46,25 @@ async def estado(request: Request):
     return {"fuentes": fuentes, "pendientes_n": pendientes_n}
 
 
+@router.get("/vigia/drive-estado")
+async def drive_estado(request: Request):
+    """El estado REAL del acceso a Drive (reemplaza al card fantasma que llamaba rutas
+    inexistentes). Modos: oauth (cuenta conectada) · llave_publica (carpetas compartidas
+    con link) · ninguno."""
+    await require_superadmin(request)
+    db = _db(request)
+    import bulk_ingest_engine as bie
+    conn = await bie._resolve_drive_conn(db, None)
+    if not conn:
+        return {"modo": "ninguno", "detalle": "Sin acceso a Drive: no hay cuenta conectada ni llave configurada."}
+    if conn.get("_mode") == "api_key":
+        return {"modo": "llave_publica",
+                "detalle": "Leyendo con llave pública: funciona con carpetas compartidas "
+                           "'cualquiera con el link'. Tu carpeta maestra ya funciona así."}
+    return {"modo": "oauth", "email": conn.get("email") or conn.get("account_email") or "",
+            "detalle": "Cuenta de Google conectada: lee también carpetas privadas compartidas contigo."}
+
+
 class FuenteIn(BaseModel):
     url: str
     nombre: str = Field(default="Carpeta maestra", max_length=120)
@@ -127,24 +146,45 @@ async def ver_manifiesto(request: Request):
 class MapeoIn(BaseModel):
     fuente_id: str
     dev_carpeta: str = Field(min_length=1, max_length=200)     # nombre de la carpeta en TU drive
-    dev_org_id: str = Field(min_length=1)                      # el dev de la plataforma
+    dev_org_id: str = Field(default="")                        # el dev de la plataforma…
+    crear_dev_nombre: str = Field(default="", max_length=200)  # …o créalo AL VUELO (shell sin credenciales)
     dev_folder_id: str = Field(default="", max_length=120)
     patron_notas: str = Field(default="", max_length=1500)     # cómo trabaja este dev (para el RECON)
 
 
 @router.put("/vigia/manifiesto")
 async def guardar_mapeo(request: Request, body: MapeoIn):
+    """Mapea carpeta→dev. Si el dev NO existe aún, `crear_dev_nombre` lo crea al vuelo como
+    cuenta VACÍA (shell, misma forma que Alta manual: pending_claim + claim_token) y mapea —
+    el founder no tiene que ir a otra pestaña y regresar."""
     await require_superadmin(request)
     db = _db(request)
-    existe = (await db.users.find_one({"role": "developer_admin", "tenant_id": body.dev_org_id},
+    dev_org_id = body.dev_org_id
+    creado = None
+    if not dev_org_id and body.crear_dev_nombre.strip():
+        import uuid
+        tenant_id = f"org_user_{uuid.uuid4().hex[:12]}"
+        claim_token = secrets.token_urlsafe(16)
+        await db.dev_orgs.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {"tenant_id": tenant_id, "name": body.crear_dev_nombre.strip(),
+                      "plan_tier": "pro", "status": "pending_claim",
+                      "claim_token": claim_token, "created_by": "superadmin",
+                      "created_at": _now_iso(), "origen": "vigia_manifiesto"}},
+            upsert=True)
+        dev_org_id = tenant_id
+        creado = {"dev_org_id": tenant_id, "claim_path": f"/reclamar/{claim_token}"}
+    if not dev_org_id:
+        raise HTTPException(400, "Elige un desarrollador o manda crear_dev_nombre")
+    existe = (await db.users.find_one({"role": "developer_admin", "tenant_id": dev_org_id},
                                       {"_id": 0, "tenant_id": 1})
-              or await db.dev_orgs.find_one({"tenant_id": body.dev_org_id},
+              or await db.dev_orgs.find_one({"tenant_id": dev_org_id},
                                             {"_id": 0, "tenant_id": 1}))
     if not existe:
-        raise HTTPException(404, "Ese desarrollador no existe en la plataforma (créalo en Alta manual)")
-    doc = await VE.mapear_dev(db, body.fuente_id, body.dev_carpeta, body.dev_org_id,
+        raise HTTPException(404, "Ese desarrollador no existe en la plataforma")
+    doc = await VE.mapear_dev(db, body.fuente_id, body.dev_carpeta, dev_org_id,
                               body.dev_folder_id, body.patron_notas)
-    return {"ok": True, "mapeo": doc}
+    return {"ok": True, "mapeo": doc, "dev_creado": creado}
 
 
 @router.post("/vigia/pendientes/{pendiente_id}/aprobar")

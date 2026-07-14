@@ -282,3 +282,13 @@ def test_patron_del_founder_llega_al_recon():
     hints = _a.run(profile_hints(_DB(), "fld_class"))
     assert "PATRÓN DE ESTE DEV" in hints and "pestaña DISPONIBLE" in hints
     assert "HUELLA DE ESTE DRIVE" in hints and "precio (3x)" in hints
+
+
+def test_mapeo_crear_dev_al_vuelo_shape():
+    """El PUT del manifiesto puede crear el dev AL VUELO (shell pending_claim) — misma forma
+    que Alta manual. Aquí congelamos el contrato del body (crear_dev_nombre XOR dev_org_id)."""
+    from routes.vigia import MapeoIn
+    m = MapeoIn(fuente_id="vf_1", dev_carpeta="GDC", crear_dev_nombre="GDC Desarrollos")
+    assert m.dev_org_id == "" and m.crear_dev_nombre == "GDC Desarrollos"
+    m2 = MapeoIn(fuente_id="vf_1", dev_carpeta="DECA", dev_org_id="deca")
+    assert m2.crear_dev_nombre == ""
