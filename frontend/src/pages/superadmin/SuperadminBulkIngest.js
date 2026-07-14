@@ -139,7 +139,17 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState({ items: [], total: 0 });
   const [reviewItems, setReviewItems] = useState({ items: [], total: 0 });
-  const [tab, setTab] = useState('jobs');
+  // ?cola=1 en el URL = el flujo TE TRAE aquí (banner de Inventario, correo, Telegram):
+  // abre la Cola de revisión directo y se desplaza hasta ella — cero búsqueda manual.
+  const _directoACola = new URLSearchParams(window.location.search).get('cola') === '1';
+  const [tab, setTab] = useState(_directoACola ? 'review' : 'jobs');
+  const _colaRef = React.useRef(null);
+  useEffect(() => {
+    if (_directoACola && _colaRef.current) {
+      setTimeout(() => _colaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [statusFilter, setStatusFilter] = useState('all');
   const [drawerJob, setDrawerJob] = useState(null);
   const [form, setForm] = useState({ url: '', org: '' });
@@ -306,6 +316,7 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          <span ref={_colaRef} />
           <button data-testid="tab-jobs" onClick={() => setTab('jobs')}
             style={{ padding: '8px 14px', borderRadius: 9999, fontSize: 12.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: tab === 'jobs' ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)', background: tab === 'jobs' ? 'rgba(var(--theme-rgb),0.16)' : 'transparent', color: tab === 'jobs' ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
             Jobs históricos

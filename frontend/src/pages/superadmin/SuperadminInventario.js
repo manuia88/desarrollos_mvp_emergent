@@ -187,6 +187,25 @@ export default function SuperadminInventario({ user, onLogout }) {
         {err && <p style={{ ...S.p, color: '#fca5a5' }}>⚠ {err}</p>}
         {!arbol && !err && <p style={S.p}>Cargando el inventario…</p>}
 
+        {/* LA TAREA PENDIENTE — el flujo te lleva: un clic y caes en el botón de Aprobar */}
+        {arbol && arbol.revision_pendientes > 0 && (
+          <button data-testid="banner-aprobar" onClick={() => nav('/superadmin/alta?tab=masiva&cola=1')}
+            style={{ width: '100%', textAlign: 'left', cursor: 'pointer', marginBottom: 14, padding: '16px 20px',
+              borderRadius: 14, background: 'rgba(210,153,34,0.12)', border: '2px solid rgba(210,153,34,0.55)',
+              display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 26 }}>📋</span>
+            <span style={{ flex: 1, minWidth: 220 }}>
+              <b style={{ ...S.h, fontSize: 16, color: '#d29922', display: 'block' }}>
+                {arbol.revision_pendientes} proyecto{arbol.revision_pendientes > 1 ? 's' : ''} esperando TU aprobación
+              </b>
+              <span style={{ ...S.p, fontSize: 12.5 }}>Ya está extraído y revisado — solo falta tu clic para que entre al catálogo.</span>
+            </span>
+            <span style={{ padding: '10px 20px', borderRadius: 10, background: '#d29922', color: '#000', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5 }}>
+              Revisar y aprobar →
+            </span>
+          </button>
+        )}
+
         {/* estado inicial: catálogo en cero → onboarding con propósito (no un vacío) */}
         {arbol && !devSel && arbol.n_proyectos === 0 && (
           <div style={{ ...S.card, marginBottom: 14, padding: 22, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.06), rgba(255,255,255,0.02))' }}>

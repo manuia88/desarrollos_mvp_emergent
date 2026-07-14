@@ -159,7 +159,7 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
           <div style={{ display: 'flex', gap: 10, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <Layers size={10} />
-              {(e.units || []).length} prototipos · 
+              {(e.units || []).length} unidades extraídas · 
               <InlineEditableField
                 testId={`field-total-${item.id}`}
                 value={e.total_units || 0}
@@ -260,7 +260,7 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
       {(e.units || []).length > 0 && (
         <button onClick={() => setExpanded(x => !x)} data-testid={`review-expand-${item.id}`}
           style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--theme-rgb),0.85)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600 }}>
-          {expanded ? 'Ocultar' : `Ver ${e.units.length} prototipos`}
+          {expanded ? 'Ocultar' : `Ver ${e.units.length} unidades`}
         </button>
       )}
       {expanded && (e.units || []).length > 0 && (

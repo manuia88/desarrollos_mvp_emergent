@@ -85,6 +85,7 @@ async def arbol(request: Request):
     mapeos = {m["dev_org_id"]: m["dev_carpeta"] for m in
               await db.vigia_manifiesto.find({}, {"_id": 0}).to_list(200)}
     pendientes_n = await db.vigia_pendientes.count_documents({"estado": "pendiente"})
+    revision_n = await db.bulk_ingest_items.count_documents({"decision": "pending_review"})
     for org, dev in devs.items():
         dev["carpeta_vigilada"] = mapeos.get(org)
 
@@ -92,7 +93,8 @@ async def arbol(request: Request):
     return {"devs": orden, "n_devs": len(orden),
             "n_proyectos": sum(d["n_proyectos"] for d in orden),
             "n_unidades": sum(d["n_unidades"] for d in orden),
-            "vigia_pendientes": pendientes_n}
+            "vigia_pendientes": pendientes_n,
+            "revision_pendientes": revision_n}
 
 
 @router.get("/proyecto/{development_id}")
