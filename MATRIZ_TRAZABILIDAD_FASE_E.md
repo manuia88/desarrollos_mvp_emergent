@@ -42,3 +42,21 @@ UX nueva: 24 rutas en el menú · 23 rutas en el Catálogo · 76 piezas · 112 p
 ## Veredicto
 
 ✅ **CERO PÉRDIDA COMPROBADA.** Las 24 páginas y sus pestañas tienen casa en la UX nueva (menú, Catálogo, o conservadas como control dentro de su página).
+
+---
+
+# MATRIZ HISTÓRICA (2026-07-14) — la pregunta del founder: "¿de los 50+ tabs no se perdió nada?"
+
+La matriz de Fase E cubría el crawl reciente (24 páginas YA consolidadas). Esta va más atrás,
+reconstruyendo TODAS las versiones del sidebar desde git:
+
+- **Pico real del sidebar: 88 rutas** (2026-07-06) — el founder recordaba bien: eran más de 50.
+- **Unión histórica: 105 rutas** que alguna vez estuvieron en el sidebar.
+- ✅ 25 siguen como ruta directa · ↪️ 74 tienen redirect vivo a su hub nuevo · 👻 6 eran links
+  FANTASMA de la era Emergent (02-may): jamás tuvieron página detrás en toda la historia del repo
+  (verificado commit por commit: ai-usage, analytics, audits, config, ie-engine, users).
+- Falso positivo cazado y corregido: ie-engine matcheaba ie-engine-sources (substring), que fue
+  AGREGADA y sigue viva hoy (/superadmin/ie-engine-sources + /data-sources).
+
+**VEREDICTO: CERO PÉRDIDA HISTÓRICA — 99/99 rutas que existieron como página tienen casa hoy.**
+Herramienta reejecutable: backend/tools/matriz_historica.py
