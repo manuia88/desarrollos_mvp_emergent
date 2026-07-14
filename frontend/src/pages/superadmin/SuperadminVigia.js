@@ -93,6 +93,25 @@ function Manifiesto({ pendientes, fuentes, onChanged }) {
   );
 }
 
+/* ── Telegram: tarjetas de decisión en el celular ── */
+function TelegramCard() {
+  const [tg, setTg] = useState(null);
+  useEffect(() => { _get('/vigia/telegram').then(setTg).catch(() => setTg(null)); }, []);
+  if (!tg) return null;
+  return (
+    <div style={{ ...card, borderColor: tg.vinculado ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.1)' }}>
+      <div style={h3}>📱 Telegram {tg.vinculado ? <span style={{ color: '#86efac', fontSize: 12 }}>· vinculado ✓</span> : ''}</div>
+      {tg.vinculado ? (
+        <p style={p13}>Las tarjetas de decisión te llegan al celular con contexto y botones. Comandos: /pendientes · /ronda · /estado.</p>
+      ) : !tg.token_configurado ? (
+        <p style={p13}>Para aprobar desde el celular: abre Telegram → <b>@BotFather</b> → <code>/newbot</code> → pega el token en <code>backend/.env</code> como <code>TELEGRAM_BOT_TOKEN=…</code> y reinicia. Luego regresa aquí por tu código de vínculo.</p>
+      ) : (
+        <p style={p13}>Bot encendido. En Telegram, mándale a tu bot: <b><code>/vincular {tg.bind_code}</code></b> — y las tarjetas de decisión empiezan a llegarte.</p>
+      )}
+    </div>
+  );
+}
+
 export function VigiaTab() {
   const [estado, setEstado] = useState(null);
   const [pend, setPend] = useState(null);
@@ -142,6 +161,8 @@ export function VigiaTab() {
           </div>
         ))}
       </div>
+
+      <TelegramCard />
 
       {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}
 

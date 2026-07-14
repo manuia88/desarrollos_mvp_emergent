@@ -226,6 +226,12 @@ async def _notificar(db, resumen: Dict[str, Any]) -> None:
                                            (os.environ.get("FRONTEND_URL") or "") + url)
     except Exception as e:  # noqa: BLE001
         log.warning(f"[vigia] correo falló: {e}")
+    # Telegram: tarjetas de decisión con contexto (fail-soft si el bot no está vinculado)
+    try:
+        from telegram_bot import notificar_pendientes
+        await notificar_pendientes(db)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[vigia] telegram falló: {e}")
 
 
 # ─── EL MANIFIESTO: carpeta del founder → dev de la plataforma + su patrón ────

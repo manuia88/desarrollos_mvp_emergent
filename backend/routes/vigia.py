@@ -46,6 +46,16 @@ async def estado(request: Request):
     return {"fuentes": fuentes, "pendientes_n": pendientes_n}
 
 
+@router.get("/vigia/telegram")
+async def telegram_estado(request: Request):
+    """Estado del bot de Telegram + código de vínculo (solo superadmin lo ve)."""
+    await require_superadmin(request)
+    from telegram_bot import get_config, _token
+    cfg = await get_config(_db(request))
+    return {"token_configurado": bool(_token()), "vinculado": bool(cfg.get("chat_id")),
+            "bind_code": None if cfg.get("chat_id") else cfg.get("bind_code")}
+
+
 @router.get("/vigia/drive-estado")
 async def drive_estado(request: Request):
     """El estado REAL del acceso a Drive (reemplaza al card fantasma que llamaba rutas

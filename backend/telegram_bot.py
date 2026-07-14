@@ -1,0 +1,344 @@
+"""BOT DE TELEGRAM — el copiloto de decisiones del founder en el celular.
+
+No manda botones pelones: manda TARJETAS DE DECISIÓN con contexto real (qué pasó, historial
+del archivo, estado del proyecto, mapeo del dev), las opciones disponibles y la consecuencia
+de cada una. Flujos de varios pasos con botones (carpeta nueva → ¿de quién es? → ¿ingiero?).
+TODO templado desde datos reales — $0, sin IA. (Cuando haya crédito API, la misma tarjeta
+gana un botón de recomendación de la IA.)
+
+Seguridad: el bot solo obedece al chat VINCULADO. Vincular = mandarle /vincular <código>
+(el código vive en la pestaña Vigía del superadmin). Sin token en .env, todo no-opea.
+
+Comandos: /pendientes · /ronda · /estado · /vincular <código>
+Callbacks: ap:<id> aprobar · rj:<id> ignorar · det:<id> detalle · mapmenu:<id> · map:<id>:<org>
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+import secrets
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+log = logging.getLogger("dmx.telegram")
+
+_API = "https://api.telegram.org/bot{token}/{method}"
+
+
+def _token() -> str:
+    return (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+async def _tg(method: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Llamada cruda al API de Telegram (gratis). Fail-soft: None si no hay token o falla."""
+    tok = _token()
+    if not tok:
+        return None
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=60) as cli:
+            r = await cli.post(_API.format(token=tok, method=method), json=payload)
+            data = r.json()
+            if not data.get("ok"):
+                log.warning(f"[telegram] {method} → {str(data)[:200]}")
+                return None
+            return data.get("result")
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[telegram] {method} falló: {str(e)[:120]}")
+        return None
+
+
+# ─── vínculo (solo el founder manda) ─────────────────────────────────────────
+async def get_config(db) -> Dict[str, Any]:
+    cfg = await db.telegram_config.find_one({"_id": "cfg"}) or {}
+    if not cfg.get("bind_code"):
+        cfg = {"_id": "cfg", "bind_code": secrets.token_hex(3).upper(), "chat_id": None}
+        await db.telegram_config.update_one({"_id": "cfg"}, {"$set": cfg}, upsert=True)
+    return cfg
+
+
+async def _chat_vinculado(db) -> Optional[int]:
+    return (await get_config(db)).get("chat_id")
+
+
+# ─── TARJETAS DE DECISIÓN (puras y testeables: datos → texto+botones) ─────────
+def _esc(s: Any) -> str:
+    return str(s or "").replace("<", "‹").replace(">", "›")
+
+
+def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """Arma la tarjeta con CONTEXTO: qué pasó · datos para decidir · consecuencia de cada botón.
+    ctx = {mapeado_a, n_proyectos_dev, n_unidades_dev, eventos_previos, ultima_ingesta}."""
+    tipo = p.get("tipo")
+    dev = _esc(p.get("dev"))
+    lineas: List[str] = []
+    botones: List[List[Dict[str, str]]] = []
+    pid = p["id"]
+
+    if tipo == "dev_nuevo":
+        det = p.get("detalle") or {}
+        proyectos = det.get("proyectos") or []
+        lineas = [
+            f"🏢 <b>Desarrollador nuevo detectado: {dev}</b>",
+            f"Su carpeta trae <b>{len(proyectos)} proyectos</b> y {det.get('n_archivos', '?')} archivos.",
+            "Muestra: " + ", ".join(_esc(x) for x in proyectos[:4]) + ("…" if len(proyectos) > 4 else ""),
+            "",
+        ]
+        if ctx.get("mapeado_a"):
+            lineas += [f"✅ Ya está mapeado a <b>{_esc(ctx['mapeado_a'])}</b>.",
+                       "▸ <b>Aprobar</b>: ingiere TODA su carpeta con IA (gasta API).",
+                       "▸ <b>Ignorar</b>: lo archivo y no entra nada."]
+            botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
+                        {"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+        else:
+            lineas += ["⚠️ <b>Aún no me dices de quién es esta carpeta.</b>",
+                       "Primero el mapeo (sin dueño, nada se ingiere):"]
+            botones = [[{"text": "👤 ¿De quién es? (elegir dev)", "callback_data": f"mapmenu:{pid}"}],
+                       [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+    elif tipo in ("lista_cambiada", "lista_nueva"):
+        a = p.get("archivo") or {}
+        verbo = "CAMBIÓ" if tipo == "lista_cambiada" else "apareció NUEVA"
+        lineas = [
+            f"📄 <b>{dev} · {_esc(p.get('proyecto'))}</b>",
+            f"La lista <b>{_esc(a.get('nombre'))}</b> {verbo}"
+            + (f" (modificada {_esc(a.get('modificado'))[:16]})" if a.get("modificado") else "") + ".",
+        ]
+        if ctx.get("ultima_ingesta"):
+            lineas.append(f"Última ingesta de este dev: {_esc(ctx['ultima_ingesta'])[:10]}.")
+        if ctx.get("n_unidades_proyecto") is not None:
+            lineas.append(f"El proyecto tiene <b>{ctx['n_unidades_proyecto']} unidades</b> en el catálogo.")
+        if ctx.get("eventos_previos"):
+            lineas.append(f"Historial: {ctx['eventos_previos']} eventos previos de este archivo (linaje completo con /detalle).")
+        lineas += ["",
+                   "▸ <b>Aprobar</b>: re-leo SOLO este proyecto con IA (gasta API) y los cambios por unidad quedan en la bitácora.",
+                   "▸ <b>Detalle</b>: te muestro el linaje sin gastar nada.",
+                   "▸ <b>Ignorar</b>: lo archivo (el archivo sigue vigilado)."]
+        botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
+                    {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
+                   [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+        if not ctx.get("mapeado_a"):
+            lineas.append("⚠️ Este dev no está mapeado — aprobar te pedirá el mapeo primero.")
+            botones.insert(0, [{"text": "👤 Mapear dev primero", "callback_data": f"mapmenu:{pid}"}])
+    elif tipo == "proyecto_nuevo":
+        lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>.",
+                  "▸ <b>Aprobar</b>: la ingiero con IA (gasta API) y entra al catálogo de ese dev.",
+                  "▸ <b>Ignorar</b>: queda fuera (la sigo vigilando)."]
+        botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
+                    {"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+    elif tipo == "acceso_roto":
+        lineas = [f"⚠️ <b>Perdí acceso a la carpeta de {dev}.</b>",
+                  "Causas típicas: te quitaron el permiso o borraron/movieron la carpeta.",
+                  "▸ <b>Enterado</b>: lo archivo. Si vuelve el acceso, la ronda lo re-detecta sola."]
+        botones = [[{"text": "👍 Enterado", "callback_data": f"ap:{pid}"}]]
+    else:
+        lineas = [f"🔔 {_esc(tipo)} · {dev}"]
+        botones = [[{"text": "👍 OK", "callback_data": f"rj:{pid}"}]]
+
+    return {"texto": "\n".join(lineas), "botones": botones}
+
+
+async def _contexto_de(db, p: Dict[str, Any]) -> Dict[str, Any]:
+    """Junta el contexto REAL para decidir (código puro, $0)."""
+    ctx: Dict[str, Any] = {}
+    try:
+        m = await db.vigia_manifiesto.find_one(
+            {"fuente_id": p.get("fuente_id"), "dev_carpeta": p.get("dev")}, {"_id": 0})
+        if m:
+            nombre = await db.dev_orgs.find_one({"tenant_id": m["dev_org_id"]}, {"_id": 0, "name": 1})
+            ctx["mapeado_a"] = (nombre or {}).get("name") or m["dev_org_id"]
+            ctx["dev_org_id"] = m["dev_org_id"]
+        arch = (p.get("archivo") or {}).get("id")
+        if arch:
+            ctx["eventos_previos"] = await db.vigia_eventos.count_documents({"archivo.id": arch})
+        if ctx.get("dev_org_id"):
+            ult = await db.bulk_ingest_jobs.find_one(
+                {"target_dev_org_id": ctx["dev_org_id"]}, {"_id": 0, "started_at": 1},
+                sort=[("started_at", -1)])
+            if ult:
+                ctx["ultima_ingesta"] = ult.get("started_at")
+        if p.get("proyecto") and p["proyecto"] != "(raíz)":
+            d = await db.developments.find_one(
+                {"name": {"$regex": f"^{p['proyecto'][:40]}", "$options": "i"}}, {"_id": 0, "id": 1})
+            if d:
+                ctx["n_unidades_proyecto"] = await db.units.count_documents({"development_id": d["id"]})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[telegram] contexto: {e}")
+    return ctx
+
+
+# ─── envío de tarjetas ────────────────────────────────────────────────────────
+async def notificar_pendientes(db, limite: int = 5) -> int:
+    """Manda tarjeta por cada pendiente NUEVO (marca telegram_sent para no repetir)."""
+    chat = await _chat_vinculado(db)
+    if not chat:
+        return 0
+    enviados = 0
+    cur = db.vigia_pendientes.find({"estado": "pendiente",
+                                    "telegram_sent": {"$ne": True}}, {"_id": 0}).limit(limite)
+    async for p in cur:
+        card = tarjeta_pendiente(p, await _contexto_de(db, p))
+        r = await _tg("sendMessage", {"chat_id": chat, "text": card["texto"],
+                                      "parse_mode": "HTML",
+                                      "reply_markup": {"inline_keyboard": card["botones"]}})
+        if r:
+            await db.vigia_pendientes.update_one({"id": p["id"]}, {"$set": {"telegram_sent": True}})
+            enviados += 1
+    return enviados
+
+
+# ─── flujo de callbacks (los botones) ────────────────────────────────────────
+async def _detalle(db, pid: str) -> str:
+    p = await db.vigia_pendientes.find_one({"id": pid}, {"_id": 0})
+    if not p:
+        return "Ese pendiente ya no existe."
+    lineas = [f"🔍 <b>Linaje de {_esc(p.get('dev'))} · {_esc(p.get('proyecto') or '')}</b>"]
+    arch = (p.get("archivo") or {}).get("id")
+    q = {"archivo.id": arch} if arch else {"dev": p.get("dev")}
+    async for ev in db.vigia_eventos.find(q, {"_id": 0}).sort("ts", -1).limit(6):
+        lineas.append(f"· {_esc(ev.get('ts'))[:16]} — {_esc(ev.get('tipo'))}"
+                      + (f" · {_esc((ev.get('archivo') or {}).get('nombre'))}" if ev.get("archivo") else ""))
+    if p.get("antes"):
+        lineas.append(f"Huella anterior: {_esc(p['antes'].get('huella'))[:18]}… (cambió de verdad, no solo lo abrieron)")
+    return "\n".join(lineas)
+
+
+async def _menu_mapear(db, pid: str) -> Dict[str, Any]:
+    p = await db.vigia_pendientes.find_one({"id": pid}, {"_id": 0})
+    botones: List[List[Dict[str, str]]] = []
+    async for o in db.dev_orgs.find({}, {"_id": 0, "tenant_id": 1, "name": 1}).limit(6):
+        if o.get("tenant_id"):
+            botones.append([{"text": f"👤 {o.get('name') or o['tenant_id']}",
+                             "callback_data": f"map:{pid}:{o['tenant_id']}"}])
+    botones.append([{"text": f"➕ Crear \"{(p or {}).get('dev','')[:24]}\"", "callback_data": f"map:{pid}:__crear__"}])
+    return {"texto": f"👤 ¿De quién es la carpeta <b>{_esc((p or {}).get('dev'))}</b>?", "botones": botones}
+
+
+async def procesar_callback(db, cb: Dict[str, Any]) -> None:
+    chat = await _chat_vinculado(db)
+    if not chat or (cb.get("message") or {}).get("chat", {}).get("id") != chat:
+        return
+    data = cb.get("data") or ""
+    await _tg("answerCallbackQuery", {"callback_query_id": cb.get("id")})
+    partes = data.split(":")
+    accion, pid = partes[0], (partes[1] if len(partes) > 1 else "")
+    import vigia_engine as VE
+
+    if accion == "det":
+        await _tg("sendMessage", {"chat_id": chat, "text": await _detalle(db, pid), "parse_mode": "HTML"})
+    elif accion == "mapmenu":
+        m = await _menu_mapear(db, pid)
+        await _tg("sendMessage", {"chat_id": chat, "text": m["texto"], "parse_mode": "HTML",
+                                  "reply_markup": {"inline_keyboard": m["botones"]}})
+    elif accion == "map" and len(partes) == 3:
+        p = await db.vigia_pendientes.find_one({"id": pid}, {"_id": 0})
+        if not p:
+            await _tg("sendMessage", {"chat_id": chat, "text": "Ese pendiente ya no existe."})
+            return
+        org = partes[2]
+        if org == "__crear__":
+            import uuid
+            org = f"org_user_{uuid.uuid4().hex[:12]}"
+            await db.dev_orgs.update_one({"tenant_id": org}, {"$set": {
+                "tenant_id": org, "name": p.get("dev"), "plan_tier": "pro",
+                "status": "pending_claim", "claim_token": secrets.token_urlsafe(16),
+                "created_by": "superadmin", "created_at": _now_iso(), "origen": "telegram"}}, upsert=True)
+        await VE.mapear_dev(db, p["fuente_id"], p.get("dev") or "", org,
+                            p.get("dev_folder_id") or "")
+        await _tg("sendMessage", {"chat_id": chat, "parse_mode": "HTML",
+                                  "text": f"✅ <b>{_esc(p.get('dev'))}</b> mapeado. "
+                                          f"¿Ingiero su contenido ahora? (esto sí usa IA)",
+                                  "reply_markup": {"inline_keyboard": [[
+                                      {"text": "✅ Sí, ingerir", "callback_data": f"ap:{pid}"},
+                                      {"text": "⏸ Después", "callback_data": f"noop:{pid}"}]]}})
+    elif accion == "ap":
+        try:
+            r = await VE.aprobar_pendiente(db, pid, "founder_telegram")
+            txt = ("🚀 Ingesta disparada (job " + r.get("job_id", "?")[:14] + "…). Te aviso al terminar."
+                   if r.get("accion") == "ingesta_disparada" else "👍 Archivado.")
+        except LookupError as e:
+            txt = f"⚠️ {e}"
+        except ValueError:
+            txt = "Ese pendiente ya estaba resuelto."
+        await _tg("sendMessage", {"chat_id": chat, "text": txt})
+    elif accion == "rj":
+        try:
+            await VE.rechazar_pendiente(db, pid, "founder_telegram", "desde telegram")
+            txt = "❌ Ignorado. Sigo vigilando."
+        except ValueError:
+            txt = "Ese pendiente ya estaba resuelto."
+        await _tg("sendMessage", {"chat_id": chat, "text": txt})
+
+
+# ─── comandos de texto ────────────────────────────────────────────────────────
+async def procesar_mensaje(db, msg: Dict[str, Any]) -> None:
+    chat_id = (msg.get("chat") or {}).get("id")
+    texto = (msg.get("text") or "").strip()
+    cfg = await get_config(db)
+
+    if texto.startswith("/vincular"):
+        code = texto.split(maxsplit=1)[1].strip().upper() if len(texto.split()) > 1 else ""
+        if code == cfg.get("bind_code") and not cfg.get("chat_id"):
+            await db.telegram_config.update_one({"_id": "cfg"}, {"$set": {"chat_id": chat_id,
+                                                                          "vinculado_at": _now_iso()}})
+            await _tg("sendMessage", {"chat_id": chat_id,
+                                      "text": "✅ Vinculado. Desde ahora te mando las tarjetas de decisión del vigía aquí.\nComandos: /pendientes · /ronda · /estado"})
+        else:
+            await _tg("sendMessage", {"chat_id": chat_id, "text": "Código inválido o bot ya vinculado."})
+        return
+
+    if cfg.get("chat_id") != chat_id:
+        await _tg("sendMessage", {"chat_id": chat_id,
+                                  "text": "Este bot es privado. Vincúlalo con /vincular <código> (el código está en Superadmin → Inventario → Vigía)."})
+        return
+
+    if texto.startswith("/pendientes"):
+        n = await db.vigia_pendientes.count_documents({"estado": "pendiente"})
+        await _tg("sendMessage", {"chat_id": chat_id, "text": f"📥 {n} pendiente(s). Te mando las tarjetas…"})
+        await db.vigia_pendientes.update_many({"estado": "pendiente"}, {"$set": {"telegram_sent": False}})
+        await notificar_pendientes(db)
+    elif texto.startswith("/ronda"):
+        import vigia_engine as VE
+        await _tg("sendMessage", {"chat_id": chat_id, "text": "🔄 Corriendo ronda (solo metadata, $0)…"})
+        r = await VE.ronda(db, notificar=False)
+        await _tg("sendMessage", {"chat_id": chat_id,
+                                  "text": f"Ronda lista: {r['eventos']} evento(s), {r['pendientes_nuevos']} pendiente(s) nuevos."})
+        await notificar_pendientes(db)
+    elif texto.startswith("/estado"):
+        f = await db.vigia_fuentes.count_documents({"activa": True})
+        pn = await db.vigia_pendientes.count_documents({"estado": "pendiente"})
+        devs = await db.developments.estimated_document_count()
+        units = await db.units.estimated_document_count()
+        await _tg("sendMessage", {"chat_id": chat_id,
+                                  "text": f"📊 Vigía: {f} fuente(s) · {pn} pendientes\n🏢 Catálogo: {devs} proyectos · {units} unidades"})
+    else:
+        await _tg("sendMessage", {"chat_id": chat_id,
+                                  "text": "Comandos: /pendientes · /ronda · /estado\n(Las instrucciones en lenguaje libre llegan cuando conectemos la IA — necesita crédito API.)"})
+
+
+# ─── polling loop (arranca en el startup del server si hay token) ─────────────
+async def polling_loop(db) -> None:
+    if not _token():
+        log.info("[telegram] sin TELEGRAM_BOT_TOKEN — bot apagado")
+        return
+    log.info("[telegram] bot encendido (long-polling)")
+    offset = 0
+    while True:
+        try:
+            updates = await _tg("getUpdates", {"timeout": 50, "offset": offset,
+                                               "allowed_updates": ["message", "callback_query"]})
+            for u in updates or []:
+                offset = max(offset, u["update_id"] + 1)
+                if u.get("callback_query"):
+                    await procesar_callback(db, u["callback_query"])
+                elif u.get("message"):
+                    await procesar_mensaje(db, u["message"])
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[telegram] loop: {str(e)[:120]}")
+            await asyncio.sleep(5)
+        if not updates:
+            await asyncio.sleep(1)

@@ -2534,6 +2534,13 @@ async def startup():
             schedule_zone_data_cron(sched, db)
         except Exception as e:
             logging.warning(f"[zone_data] cron register failed: {e}")
+        # Bot de Telegram: tarjetas de decisión en el celular (long-polling; no-op sin token)
+        try:
+            import asyncio as _aio_tg
+            from telegram_bot import polling_loop as _tg_loop
+            _aio_tg.create_task(_tg_loop(db))
+        except Exception as e:
+            logging.warning(f"[telegram] no arrancó: {e}")
         # El Vigía: ronda CADA HORA (metadata pura, $0) + refresco de prototipos (código, $0).
         # La única acción que gasta (ingesta con IA) sigue detrás del clic de aprobación.
         try:
