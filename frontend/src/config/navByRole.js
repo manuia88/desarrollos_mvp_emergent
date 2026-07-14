@@ -228,8 +228,7 @@ const SUPERADMIN_NAV = [
   {
     tier: 4, label: '🏗️ Inventario y devs', section_key: 'inventario', dominio: 'inventario',
     items: [
-      { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
-      { key: 'alta-devs',   to: '/superadmin/alta',        label: 'Desarrolladores y carga', Icon: Building2 },
+      { key: 'inventario', to: '/superadmin/inventario', label: 'Inventario', Icon: Building2 },
       { key: 'datos-hub',   to: '/superadmin/datos',       label: 'Datos & Fuentes (ingesta)', Icon: Database },
       { key: 'modelo',            to: '/superadmin/modelo',            label: 'Modelo & Aprendizaje', Icon: Activity },
       { key: 'phase5-foundation', to: '/superadmin/phase5-foundation', label: 'Foundation Phase 5', Icon: Database },

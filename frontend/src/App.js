@@ -278,6 +278,7 @@ const SuperadminInteligenciaHub      = lazy(() => import('./pages/superadmin/Sup
 const SuperadminDevtoolsHub          = lazy(() => import('./pages/superadmin/SuperadminDevtoolsHub'));
 // Sala de Inversionistas (perfil YC/VC) + demo público con datos simulados
 const SuperadminInvestorRoom         = lazy(() => import('./pages/superadmin/SuperadminInvestorRoom'));
+const SuperadminInventario           = lazy(() => import('./pages/superadmin/SuperadminInventario'));
 const DemoInversionista              = lazy(() => import('./pages/DemoInversionista'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
@@ -906,6 +907,7 @@ function AppRouter() {
       {/* W1.4 ZZ.1 — Bulk Drive Ingestion */}
       <Route path="/superadmin/bulk-ingest" element={<Navigate to="/superadmin/datos?tab=bulk-ingest" replace />} />
       <Route path="/superadmin/inversionistas" element={<SuperadminRoute Page={SuperadminInvestorRoom} />} />
+      <Route path="/superadmin/inventario" element={<SuperadminRoute Page={SuperadminInventario} />} />
       <Route path="/superadmin/alta" element={<SuperadminRoute Page={SuperadminAltaDesarrolladores} />} />
       <Route path="/superadmin/alta/dev/:devOrgId" element={<SuperadminRoute Page={SuperadminDesarrolladorFicha} />} />
       <Route path="/superadmin/alta/proyecto/:projectId" element={<SuperadminRoute Page={SuperadminProyectoFicha} />} />

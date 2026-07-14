@@ -657,6 +657,10 @@ app.include_router(investor_room_router)
 from routes.vigia import router as vigia_router
 app.include_router(vigia_router)
 
+# Inventario (Fase 3 rebuild UX): drill devs→proyectos→unidades + edición sin wizard
+from routes.inventario import router as inventario_router
+app.include_router(inventario_router)
+
 # W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)
