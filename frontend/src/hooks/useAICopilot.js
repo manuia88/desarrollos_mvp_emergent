@@ -8,10 +8,17 @@ import * as api from '../api/copilot';
 
 const TOGGLE_EVENT = 'dmx-copilot-toggle';
 
-/** Anyone (button, shortcut) can toggle the panel via this helper. */
-export function dispatchCopilotToggle(action = 'toggle') {
+/** Anyone (button, shortcut) can toggle the panel via this helper.
+ * `prompt` (opcional): abre el Copilot Y envía esa pregunta — el handoff desde El Catálogo
+ * cuando lo que el founder escribió es una PREGUNTA (respóndeme), no un nombre de herramienta. */
+export function dispatchCopilotToggle(action = 'toggle', prompt = null) {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(TOGGLE_EVENT, { detail: { action } }));
+  window.dispatchEvent(new CustomEvent(TOGGLE_EVENT, { detail: { action, prompt } }));
+}
+
+/** Atajo semántico: llévale una pregunta al Copilot DMX (abre + envía). */
+export function preguntarAlCopilot(prompt) {
+  dispatchCopilotToggle('open', prompt);
 }
 
 export default function useAICopilot() {
@@ -22,6 +29,7 @@ export default function useAICopilot() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const pendingRef = useRef(false);
+  const [autoPrompt, setAutoPrompt] = useState(null);   // pregunta llegada por el handoff del Catálogo
 
   // Listen to global toggle events
   useEffect(() => {
@@ -30,6 +38,7 @@ export default function useAICopilot() {
       if (action === 'open') setIsOpen(true);
       else if (action === 'close') setIsOpen(false);
       else setIsOpen(o => !o);
+      if (e?.detail?.prompt) setAutoPrompt(e.detail.prompt);   // se envía al abrir (efecto abajo)
     };
     window.addEventListener(TOGGLE_EVENT, onEvt);
     return () => window.removeEventListener(TOGGLE_EVENT, onEvt);
@@ -127,6 +136,16 @@ export default function useAICopilot() {
   useEffect(() => {
     if (isOpen) refreshConversations();
   }, [isOpen, refreshConversations]);
+
+  // Handoff del Catálogo: al abrir con una pregunta pendiente, se envía sola (una vez)
+  useEffect(() => {
+    if (isOpen && autoPrompt) {
+      const q = autoPrompt;
+      setAutoPrompt(null);
+      newConversation();
+      sendMessage(q);
+    }
+  }, [isOpen, autoPrompt, sendMessage, newConversation]);
 
   return {
     isOpen, open, close, toggle,

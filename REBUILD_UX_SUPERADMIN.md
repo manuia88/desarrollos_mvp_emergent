@@ -41,3 +41,31 @@ aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md 
 Las 41 features del feature_registry entran al catálogo con descripción genérica ("Capacidad del
 sistema (X), del plan Y"). Fase A las INDEXA (cero pérdida); su capa humana rica se llena
 incrementalmente igual que las 44 vistas/reportes/productos ya descritos a mano.
+
+## AUDITORÍA FASE B + ATLAX — ✅ 2026-07-13
+Pregunta founder: "¿el buscador es lo mismo que Atlax? ¿dónde queda Atlax?". Reveló un defecto
+real de arquitectura/etiqueta. Mapa aclarado y corregido:
+
+### Las 3 cosas (distintas y complementarias)
+- **El Catálogo + ⌘K** (Fase A/B) = NAVEGACIÓN. Escribes el nombre de una herramienta → te LLEVA.
+  Instantáneo, sin IA, sin costo. Responde "¿a dónde voy?".
+- **Copilot DMX (⌘J)** = el ATLAX del superadmin. Chat de IA (Claude) que RESPONDE con datos y
+  ejecuta acciones (askCopilot). Responde "¿cuál es la respuesta?".
+- **Atlax público** = el mismo tipo de asistente pero para COMPRADORES (/asistente, /atlax), 55+
+  tools. No es superadmin.
+
+### El defecto (founder lo cazó)
+Mi buscador decía "¿Qué quieres saber?" — esa es la PROMESA de Atlax (responder). Pero solo
+navegaba: una pregunta natural daba 0 resultados. Confusión de superficies.
+
+### El fix (los hago trabajar JUNTOS)
+- Re-etiqueta: "Encuentra tu herramienta · escribe y te llevo · ¿es una pregunta? te la responde
+  el Copilot DMX". Ya no compite con Atlax; lo COMPLEMENTA.
+- HANDOFF: cuando el buscador da 0 herramientas (es una pregunta, no un nombre) → botón
+  "Pregúntale al Copilot DMX" que ABRE el Copilot y ENVÍA la pregunta sola (preguntarAlCopilot →
+  evento con prompt → useAICopilot auto-send). En Home y en la página del Catálogo.
+- Verificado end-to-end en navegador: 'cuánto cuesta un depa en condesa' → detectado pregunta →
+  Copilot abierto + pregunta auto-enviada. (La respuesta cae a fallback solo por falta de API key
+  local — el cableado es correcto.)
+Regla de oro: el Catálogo te LLEVA, el Copilot te RESPONDE, y el buscador te pasa de uno al otro
+sin que tengas que saber cuál es cuál. Suites: backend (catálogo+seguridad) · front 181.

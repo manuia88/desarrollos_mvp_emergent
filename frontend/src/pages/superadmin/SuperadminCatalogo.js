@@ -7,8 +7,9 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, ArrowRight } from 'lucide-react';
+import { Search, ChevronDown, ArrowRight, Sparkles } from 'lucide-react';
 import { getCatalogo } from '../../api/superadminMetricsCube';
+import { preguntarAlCopilot } from '../../hooks/useAICopilot';
 
 const TIPO_LABEL = { vista: 'Pantalla', reporte: 'Reporte', motor: 'Capacidad', score: 'Score', producto: 'Producto', indice: 'Índice' };
 const TIPO_COLOR = { vista: '#58a6ff', reporte: '#4ADE80', producto: '#d29922', indice: '#a78bfa', motor: '#8b949e', score: '#f472b6' };
@@ -86,7 +87,7 @@ export default function SuperadminCatalogo() {
         <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)', margin: 0 }}>El Catálogo</h1>
       </div>
       <p style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(240,235,224,0.7)', margin: '0 0 18px' }}>
-        Todo lo que este portal puede hacer — <b>{cat.n_piezas} herramientas</b> en 6 áreas, en lenguaje simple. Busca por lo que quieres saber, no por dónde está el botón.
+        Todas las <b>{cat.n_piezas} herramientas</b> del portal en 6 áreas, en lenguaje simple. Busca la que necesitas y te lleva. <span style={{ opacity: 0.7 }}>¿Buscas una respuesta, no una pantalla? Eso lo responde el Copilot DMX (⌘J).</span>
       </p>
 
       {/* BUSCADOR */}
@@ -145,8 +146,21 @@ export default function SuperadminCatalogo() {
         {piezas.map((p) => <Pieza key={p.id} p={p} onIr={(r) => nav(r)} />)}
       </div>
       {piezas.length === 0 && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.6)', padding: 30, textAlign: 'center' }}>
-          Nada coincide con “{texto}”. Prueba con otra palabra o quita filtros.
+        <div style={{ padding: 30, textAlign: 'center', display: 'grid', gap: 12, justifyItems: 'center' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.6)' }}>
+            Ninguna <b>herramienta</b> coincide con “{texto}”.
+          </div>
+          {texto.trim() && (
+            <>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.55)' }}>
+                Si es una <b>pregunta</b> (quieres una respuesta, no una pantalla), pásasela a la IA:
+              </div>
+              <button onClick={() => preguntarAlCopilot(texto.trim())} data-testid="cat-handoff-copilot"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.16)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <Sparkles size={14} /> Pregúntale al Copilot DMX
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
