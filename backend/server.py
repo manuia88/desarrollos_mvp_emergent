@@ -649,6 +649,10 @@ app.include_router(disputes_router)
 from routes.knowledge_graph import router as kg_router
 app.include_router(kg_router)
 
+# Sala de Inversionistas (perfil YC/VC): entrevistas + pilotos + números verificables
+from routes.investor_room import router as investor_room_router
+app.include_router(investor_room_router)
+
 # W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)

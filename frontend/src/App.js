@@ -276,6 +276,9 @@ const SuperadminCrecimientoHub       = lazy(() => import('./pages/superadmin/Sup
 const SuperadminDatosHub             = lazy(() => import('./pages/superadmin/SuperadminDatosHub'));
 const SuperadminInteligenciaHub      = lazy(() => import('./pages/superadmin/SuperadminInteligenciaHub'));
 const SuperadminDevtoolsHub          = lazy(() => import('./pages/superadmin/SuperadminDevtoolsHub'));
+// Sala de Inversionistas (perfil YC/VC) + demo público con datos simulados
+const SuperadminInvestorRoom         = lazy(() => import('./pages/superadmin/SuperadminInvestorRoom'));
+const DemoInversionista              = lazy(() => import('./pages/DemoInversionista'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminAltaDesarrolladores  = lazy(() => import('./pages/superadmin/SuperadminAltaDesarrolladores'));
 const SuperadminDesarrolladorFicha   = lazy(() => import('./pages/superadmin/SuperadminDesarrolladorFicha'));
@@ -766,6 +769,7 @@ function AppRouter() {
       <Route path="/desarrolladores" element={<DesarrolladoresV2 />} />
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/inteligencia" element={<Inteligencia />} />
+      <Route path="/demo" element={<DemoInversionista />} />
       <Route path="/picks" element={<PicksRoute />} />
       <Route path="/screener" element={<ScreenerRoute />} />
       <Route path="/indice" element={<IndiceRoute />} />
@@ -901,6 +905,7 @@ function AppRouter() {
       <Route path="/superadmin/health" element={<Navigate to="/superadmin/operacion?tab=health" replace />} />
       {/* W1.4 ZZ.1 — Bulk Drive Ingestion */}
       <Route path="/superadmin/bulk-ingest" element={<Navigate to="/superadmin/datos?tab=bulk-ingest" replace />} />
+      <Route path="/superadmin/inversionistas" element={<SuperadminRoute Page={SuperadminInvestorRoom} />} />
       <Route path="/superadmin/alta" element={<SuperadminRoute Page={SuperadminAltaDesarrolladores} />} />
       <Route path="/superadmin/alta/dev/:devOrgId" element={<SuperadminRoute Page={SuperadminDesarrolladorFicha} />} />
       <Route path="/superadmin/alta/proyecto/:projectId" element={<SuperadminRoute Page={SuperadminProyectoFicha} />} />

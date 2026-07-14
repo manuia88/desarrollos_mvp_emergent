@@ -161,3 +161,18 @@ Auditada la matriz misma (era juez y parte). 4 trampas revisadas:
 - Trampa 4 (dientes del test): ✅ borrar ruta de nav+catálogo → test rojo; borrarla solo del nav
   (sigue en catálogo) → verde (correcto, aún tiene casa). El guardia sirve.
 Suites: backend 1548 · front 181.
+
+## SALA DE INVERSIONISTAS + DEMO PÚBLICO (perfil YC/VC) — ✅ 2026-07-14
+Módulo nuevo end-to-end (regla: verificable, no slideware — cada número con fuente o marcado supuesto):
+- backend/investor_room.py — motor: economía (price book real del feature_registry), TAM bottom-up
+  (catastro 1,089,684 predios × supuestos editables), velocity (git), burn/runway (costo IA medido),
+  métricas norte instrumentadas HOY (átomos/predios/proyectos/unidades/usuarios/leads), score YC 5 criterios.
+- backend/routes/investor_room.py — /api/superadmin/investor-room/* (resumen + CRUD entrevistas +
+  CRUD pipeline 6 etapas + checklist legal 8 ítems + supuestos). Guard require_superadmin (401 verificado).
+- frontend SuperadminInvestorRoom.js — /superadmin/inversionistas (6 tabs deep-linkables) · nav dominio
+  Dinero · 2 piezas en el Catálogo (buscables: yc/inversionistas/pitch).
+- frontend DemoInversionista.js — /demo PÚBLICO: recorrido 5 pasos con DATOS 100% SIMULADOS (badge
+  siempre visible, cero llamadas al backend, cero PII). Para YC/VCs/devs. CTA agendar.
+Verificado en app real (playwright): login → Sala renderiza score 20% honesto · demo 5 pasos OK.
+CRUD roundtrip en vivo completo + limpieza. Tests: +6 investor_room. Suites: backend 1557 · front 181.
+Fix colateral hallado por QA: navByRole import roto por doble coma (build) + Handshake icono inexistente.

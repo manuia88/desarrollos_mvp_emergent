@@ -6,16 +6,20 @@ from datetime import datetime, timezone
 
 
 def test_narratives_guard_no_revienta_sin_user(monkeypatch):
-    """narratives/budget daba 500 (AttributeError: NoneType.role) sin sesión → debe ser 401."""
+    """narratives/budget daba 500 (AttributeError: NoneType.role) sin sesión → debe ser 401.
+    OJO: NO importamos el server real — su import registra features de Studio en el catálogo
+    compartido y contamina el test de integridad de wave2. Stub de módulo, aislado."""
     import asyncio
+    import sys
+    import types
     import narrative_engine
     from fastapi import HTTPException
 
     async def _fake_get_current_user(request):
         return None  # sin sesión
 
-    import server
-    monkeypatch.setattr(server, "get_current_user", _fake_get_current_user, raising=False)
+    monkeypatch.setitem(sys.modules, "server",
+                        types.SimpleNamespace(get_current_user=_fake_get_current_user))
 
     async def run():
         try:
@@ -24,7 +28,7 @@ def test_narratives_guard_no_revienta_sin_user(monkeypatch):
         except HTTPException as e:
             return e.status_code
 
-    assert asyncio.get_event_loop().run_until_complete(run()) == 401
+    assert asyncio.run(run()) == 401
 
 
 def test_soc_aware_normaliza_naive():

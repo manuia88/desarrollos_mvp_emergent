@@ -16,8 +16,7 @@ import {
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, GitMerge, ShieldCheck, Swords,
   Share2, Video, MessageCircle, HelpCircle, FlaskConical, Gauge,
-  Bot,
-} from 'lucide-react';
+  Bot, Rocket } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
 // 3 tiers collapsible: Workflow diario | Inteligencia | Configuración
@@ -241,6 +240,7 @@ const SUPERADMIN_NAV = [
     items: [
       { key: 'monetizacion', to: '/superadmin/monetizacion', label: 'Monetización & API', Icon: Briefcase },
       { key: 'tenants',      to: '/superadmin/tenants',      label: 'Clientes', Icon: Users },
+      { key: 'inversionistas', to: '/superadmin/inversionistas', label: 'Sala de Inversionistas', Icon: Rocket },
     ],
   },
   {
