@@ -162,14 +162,16 @@ export default function SuperadminInventario({ user, onLogout }) {
 
         {/* acceso directo al ANÁLISIS (la página Desarrollos con Panorama/Inteligencia/lentes
             sigue viva completa — esto evita que quede escondida tras el buscador) */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-          <span style={S.mini}>Análisis:</span>
-          {[['Panorama', '/superadmin/desarrollos'],
-            ['Inteligencia (7 lentes)', '/superadmin/desarrollos?view=inteligencia'],
-            ['Catálogo y aprobación', '/superadmin/desarrollos?view=catalogo'],
-            ['Granularidad', '/superadmin/alta?tab=granularidad'],
-            ['Prototipos', '/superadmin/alta?tab=prototipos']].map(([l, to]) => (
-            <button key={l} onClick={() => nav(to)} style={{ ...S.mini, background: 'none', border: 'none', color: 'var(--theme)', cursor: 'pointer', fontWeight: 700, padding: '2px 4px' }}>{l}</button>
+        <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', margin: '2px 0 4px' }}>
+          <span style={{ ...S.mini, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800 }}>Análisis</span>
+          {[['📊 Panorama', '/superadmin/desarrollos'],
+            ['🔬 Inteligencia · 7 lentes', '/superadmin/desarrollos?view=inteligencia'],
+            ['✅ Catálogo y aprobación', '/superadmin/desarrollos?view=catalogo'],
+            ['🧩 Granularidad', '/superadmin/alta?tab=granularidad'],
+            ['📦 Prototipos', '/superadmin/alta?tab=prototipos']].map(([l, to]) => (
+            <button key={l} onClick={() => nav(to)}
+              style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, padding: '5px 12px', borderRadius: 9999, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.85)' }}>{l}</button>
           ))}
         </div>
 
@@ -185,21 +187,51 @@ export default function SuperadminInventario({ user, onLogout }) {
         {err && <p style={{ ...S.p, color: '#fca5a5' }}>⚠ {err}</p>}
         {!arbol && !err && <p style={S.p}>Cargando el inventario…</p>}
 
+        {/* estado inicial: catálogo en cero → onboarding con propósito (no un vacío) */}
+        {arbol && !devSel && arbol.n_proyectos === 0 && (
+          <div style={{ ...S.card, marginBottom: 14, padding: 22, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.06), rgba(255,255,255,0.02))' }}>
+            <b style={{ ...S.h, fontSize: 17 }}>El catálogo está en cero — enciéndelo en 3 pasos</b>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 14 }}>
+              {[['1', '👁 El vigía ya vigila tu Drive', 'Revisa su bandeja y mapea cada carpeta a su desarrollador.', 'Abrir Vigía', '/superadmin/alta?tab=vigia'],
+                ['2', '✅ Aprueba lo detectado', 'Cada lista aprobada entra al catálogo con su historia desde el día uno.', 'Ver pendientes', '/superadmin/alta?tab=vigia'],
+                ['3', '🏢 Mira crecer las torres', 'Cada proyecto se pinta unidad por unidad — clic para editar sin asistentes.', 'Cargar a mano', '/superadmin/alta?tab=masiva']].map(([n, t, d, cta, to]) => (
+                <div key={n} style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.45)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme)' }}>{n}</span>
+                  <b style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>{t}</b>
+                  <span style={{ ...S.p, fontSize: 12 }}>{d}</span>
+                  <button onClick={() => nav(to)} style={{ ...S.btn, alignSelf: 'start', padding: '5px 12px', fontSize: 11.5 }}>{cta}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* NIVEL 1 · devs */}
         {arbol && !devSel && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
-            {arbol.devs.length === 0 && <p style={S.p}>Catálogo en cero — listo para la ingesta real. Corre el vigía o carga desde «Cargar».</p>}
-            {arbol.devs.map((d) => (
+
+            {arbol.devs.map((d) => {
+              const iniciales = (d.nombre || '?').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+              return (
               <button key={d.dev_org_id} data-testid={`dev-${d.dev_org_id}`} onClick={() => ir(`dev=${encodeURIComponent(d.dev_org_id)}`)}
-                style={{ ...S.card, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 6 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.5)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}>
-                <b style={{ ...S.h, fontSize: 15 }}>{d.nombre}</b>
-                <span style={S.mini}>{d.n_proyectos} proyectos · {d.n_unidades} unidades</span>
-                {d.carpeta_vigilada ? <span style={{ ...S.mini, color: '#86efac' }}>👁 vigilado: {d.carpeta_vigilada}</span>
-                  : <span style={{ ...S.mini, color: '#d29922' }}>sin carpeta vigilada</span>}
+                style={{ ...S.card, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 10, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.4)',
+                    fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--theme)' }}>{iniciales}</span>
+                  <b style={{ ...S.h, fontSize: 15.5 }}>{d.nombre}</b>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>🏗 {d.n_proyectos} proyectos</span>
+                  <span style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>🚪 {d.n_unidades} unidades</span>
+                </div>
+                <span style={{ ...S.mini, display: 'inline-flex', alignItems: 'center', gap: 5, color: d.carpeta_vigilada ? '#86efac' : 'rgba(240,235,224,0.45)' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.carpeta_vigilada ? '#4ADE80' : '#8b949e', display: 'inline-block' }} />
+                  {d.carpeta_vigilada ? `Vigilado: ${d.carpeta_vigilada}` : 'Sin carpeta vigilada aún'}
+                </span>
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, color: 'var(--theme)' }}>Abrir expediente →</span>
               </button>
-            ))}
+            ); })}
           </div>
         )}
 
