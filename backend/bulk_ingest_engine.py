@@ -1882,7 +1882,13 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
         "total_units": int(extracted.get("total_units") or 0),
         "price_min_mxn": (extracted.get("price_range") or {}).get("min_mxn"),
         "price_max_mxn": (extracted.get("price_range") or {}).get("max_mxn"),
-        "price_from": (extracted.get("price_range") or {}).get("min_mxn"),
+        # price_from: del rango extraído, o del campo directo, o derivado del MÍNIMO de las
+        # unidades (bug cazado con Almina: sin price_range el doc quedaba en None y el readiness
+        # reprobaba 'Datos básicos' aunque las 80 unidades tuvieran precio)
+        "price_from": ((extracted.get("price_range") or {}).get("min_mxn")
+                       or extracted.get("price_from")
+                       or min((u.get("price_mxn") for u in (extracted.get("units") or [])
+                               if u.get("price_mxn")), default=None)),
         "delivery_estimate": extracted.get("delivery_date"),
         "maintenance_fee_mxn": extracted.get("maintenance_fee_mxn"),
         "amenities": extracted.get("amenities") or [],
