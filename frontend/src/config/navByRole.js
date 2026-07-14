@@ -255,8 +255,9 @@ const SUPERADMIN_NAV = [
   {
     tier: 7, label: '📦 Productos del moat', section_key: 'devtools',   // color morado
     items: [
-      // los productos (Estudio DMX, DMX-30, CARFAX) viven en el catálogo filtrado — un clic los abre
-      { key: 'productos', to: '/superadmin/catalogo?dominio=productos', label: 'Productos DMX', Icon: Sparkles },
+      // los productos (Estudio DMX, DMX-30, CARFAX) viven en el catálogo filtrado — ruta propia
+      // para que el resaltado del sidebar sea correcto (query no vive en pathname).
+      { key: 'productos', to: '/superadmin/productos', label: 'Productos DMX', Icon: Sparkles },
     ],
   },
 ];

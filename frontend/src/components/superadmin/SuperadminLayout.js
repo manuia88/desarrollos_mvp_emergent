@@ -13,6 +13,7 @@ const ROLES_OK = new Set(['superadmin']);
 // esto solo pinta el tema del dominio.
 function sectionFromPath(p) {
   if (p === '/superadmin' || p.startsWith('/superadmin/catalogo')) return 'principal';
+  if (p.startsWith('/superadmin/productos')) return 'devtools';   // 📦 Productos (color morado)
   // 🏙️ MERCADO → cian ('datos')
   if (/^\/superadmin\/(mercado|metrics-cube|terminal-zona|live-pulse|terminal-mercado|transactions|intelligence-hub|cerebro-mercado|trends)/.test(p)) return 'datos';
   // 👤 DEMANDA Y PERSONAS → morado ('inteligencia')

@@ -8,6 +8,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, ArrowRight, Sparkles } from 'lucide-react';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { getCatalogo } from '../../api/superadminMetricsCube';
 import { preguntarAlCopilot } from '../../hooks/useAICopilot';
 
@@ -44,13 +45,14 @@ function Pieza({ p, onIr }) {
   );
 }
 
-export default function SuperadminCatalogo() {
+export default function SuperadminCatalogo({ dominioInicial = '', user, onLogout }) {
   const nav = useNavigate();
   const [cat, setCat] = useState(null);
   const [err, setErr] = useState('');
   const [texto, setTexto] = useState('');
-  // deep-link desde el sidebar (?dominio=productos) → arranca filtrado por ese dominio
-  const [dominio, setDominio] = useState(new URLSearchParams(window.location.search).get('dominio') || '');
+  // dominio inicial: prop (ruta dedicada /productos) o ?dominio= (deep-link) — su propia URL
+  // para que el resaltado del sidebar sea correcto (el query no vive en pathname).
+  const [dominio, setDominio] = useState(dominioInicial || new URLSearchParams(window.location.search).get('dominio') || '');
   const [tipo, setTipo] = useState('');
   const [necesita, setNecesita] = useState('');
   const SUGERENCIAS = ['absorción', 'renta', 'escasez', 'plusvalía', 'riesgo', 'leads', 'precio'];
@@ -78,10 +80,11 @@ export default function SuperadminCatalogo() {
 
   const chip = (activo) => ({ padding: '7px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, background: activo ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.04)', border: `1px solid ${activo ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.1)'}`, color: activo ? 'var(--theme)' : 'rgba(240,235,224,0.7)' });
 
-  if (err) return <div style={{ padding: 40, fontFamily: 'DM Sans', color: '#fca5a5' }}>⚠ {err}</div>;
-  if (!cat) return <div style={{ padding: 40, fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.6)' }}>Cargando el catálogo…</div>;
+  if (err) return <SuperadminLayout user={user} onLogout={onLogout}><div style={{ padding: 40, fontFamily: 'DM Sans', color: '#fca5a5' }}>⚠ {err}</div></SuperadminLayout>;
+  if (!cat) return <SuperadminLayout user={user} onLogout={onLogout}><div style={{ padding: 40, fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.6)' }}>Cargando el catálogo…</div></SuperadminLayout>;
 
   return (
+    <SuperadminLayout user={user} onLogout={onLogout}>
     <div style={{ padding: '28px 32px', maxWidth: 1280, margin: '0 auto' }} data-testid="superadmin-catalogo">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
         <Search size={22} color="var(--theme)" />
@@ -165,5 +168,6 @@ export default function SuperadminCatalogo() {
         </div>
       )}
     </div>
+    </SuperadminLayout>
   );
 }

@@ -31,7 +31,16 @@ aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md 
   'absorci'→2 reportes con deep-link. Suites: backend 1544 · front 181.
 - **B (antes)** ⬜ — elevar la home a filtros universales (tema/territorio/tiempo)
   + conectar ⌘K al catálogo.
-- **C · Sidebar 6 dominios** ✅ 2026-07-13 — el sidebar se reagrupó de 7 tiers técnicos
+- **C · Sidebar 6 dominios** ✅ 2026-07-13
+- **C.1 · Auditoría Fase C** ✅ 2026-07-13 — 2 defectos detectados y corregidos:
+  (1) 🔴 GRAVE (arrastrado de Fase A): SuperadminCatalogo NO envolvía con SuperadminLayout → la
+  página del Catálogo se renderizaba SIN sidebar. Envuelto (los 3 return: err/loading/main).
+  (2) 🔴 'Productos DMX' nunca se resaltaba (su `to` con ?query no vive en pathname, así el
+  isActive por startsWith fallaba y 'El Catálogo' se robaba el activo) → ruta propia
+  /superadmin/productos (SuperadminCatalogo con dominioInicial='productos') + SuperadminRoute
+  pasa props (...rest) + sectionFromPath mapea /productos. Verificado en navegador: catálogo CON
+  sidebar, 'Productos DMX' resaltado, color devtools, filtro 3 de 111. CERO pérdida confirmada
+  (diff rutas nav viejo vs nuevo: idénticas). Front 181. — el sidebar se reagrupó de 7 tiers técnicos
   (Datos/Inteligencia/Monetización…) a los MISMOS 6 dominios del catálogo:
   Principal · 🏙️ Mercado · 👤 Demanda y personas · 🏗️ Inventario y devs · 💰 Dinero e ingresos ·
   ⚙️ Operación y seguridad · 📦 Productos del moat. Un solo lenguaje mental en todo el portal.

@@ -935,6 +935,7 @@ function AppRouter() {
       <Route path="/superadmin/commercial" element={<Navigate to="/superadmin/monetizacion?tab=comercial" replace />} />
       <Route path="/superadmin/mercado" element={<SuperadminRoute Page={SuperadminHubMercado} />} />{/* Hub de Mercado — cubo unificado */}
       <Route path="/superadmin/catalogo" element={<SuperadminRoute Page={SuperadminCatalogo} />} />{/* Fase A · El Catálogo Vivo */}
+      <Route path="/superadmin/productos" element={<SuperadminRoute Page={SuperadminCatalogo} dominioInicial="productos" />} />{/* Fase C · ruta propia (resaltado correcto) */}
       <Route path="/superadmin/monetizacion" element={<SuperadminRoute Page={SuperadminMonetizacionHub} />} />{/* Hub de Monetización & API */}
       <Route path="/superadmin/modelo" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* Hub de Modelo & Aprendizaje */}
       <Route path="/superadmin/aprendizaje" element={<SuperadminRoute Page={SuperadminModeloHub} />} />{/* F5 · Dashboard de Aprendizaje */}
@@ -1194,7 +1195,7 @@ function AdvisorRoute({ Page }) {
 
 // Strict gate: only role=superadmin can render. Defense in depth — pages may
 // also do their own role check; both layers are intentional.
-function SuperadminRoute({ Page }) {
+function SuperadminRoute({ Page, ...rest }) {
   const { user, logout, loading, openAuth } = useAuth();
   const location = useLocation();
 
@@ -1212,7 +1213,7 @@ function SuperadminRoute({ Page }) {
   if (user.role !== 'superadmin') {
     return <Navigate to="/?reason=admin_only" replace />;
   }
-  return <Page user={user} onLogout={logout} />;
+  return <Page user={user} onLogout={logout} {...rest} />;
 }
 
 // ─── Fallback route: protects portal users from dropping onto Landing ─────────
