@@ -9,6 +9,7 @@ Compatible con tests legacy `backend/tests/test_batch*.py` (integration sin mark
 from __future__ import annotations
 
 import os
+os.environ.setdefault("DEMO_SEED_ON", "1")   # tests validan motores con la data fixture (runtime la apaga)
 import socket
 from urllib.parse import urlparse
 

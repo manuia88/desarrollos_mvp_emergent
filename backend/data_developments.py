@@ -816,3 +816,17 @@ def inventory_stats(dev: dict) -> dict:
         "absorption_pct": round(100 * sold / total, 1) if total else 0.0,
         "availability_pct": round(100 * available / total, 1) if total else 0.0,
     }
+
+
+# ─── APAGADOR DE SEEDS (founder 2026-07-14: "borra todos los proyectos, incluyendo los seed") ──
+# Los 18 desarrollos DEMO de la era Emergent se apagan en runtime: el marketplace y superadmin
+# solo muestran dato REAL (db.developments, ingerido). Los motores que importan estas constantes
+# reciben listas vacías y agregan en cero — sin romperse. DEMO_SEED_ON=1 los revive (lo usa el
+# conftest de tests, que valida lógica de motores con esta data de fixture).
+import os as _os
+if _os.environ.get("DEMO_SEED_ON", "").lower() not in ("1", "true", "yes"):
+    DEVELOPMENTS = []
+    DEVELOPMENTS_BY_ID = {}
+    ALL_UNITS = []
+    DEVELOPERS = []
+    DEVELOPERS_BY_ID = {}
