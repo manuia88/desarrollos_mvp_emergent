@@ -28,12 +28,13 @@ TCO (precio + fondo + cuota) · cajones incluidos vs precio.
 Prototipos (n, spread m², precio desde) · curva vertical (prima por piso, pendiente $/nivel) ·
 mix de producto (2R vs 3R %) · ticket promedio/mediano · dispersión de precios (¿pricing
 disciplinado o caótico?) · disponibles por piso/molde · concentración del inventario ·
-**⭐ ABSORCIÓN ACUMULADA SIN HISTORIA: total del desarrollo (245) − disponibles hoy (80) =
-165 colocadas = 67% vendido — UN SOLO SNAPSHOT la revela** · inventario restante en $ ·
-meses estimados al ritmo de la zona.
+**⭐ COLOCACIÓN ACUMULADA (stock): total del desarrollo (245) − disponibles hoy (80) =
+165 colocadas = 67% — un solo snapshot la revela. ⚠️ NO confundir con absorción: esto dice
+CUÁNTO se ha vendido desde siempre, NO a qué ritmo (corrección founder 07-14)** ·
+inventario restante en $ · la ABSORCIÓN real (u/periodo) vive en el Nivel 3: necesita ≥2 fotos.
 
 ## Nivel 3 · SERIES TEMPORALES (cada ronda del vigía suma un punto, ~25)
-Velocidad de venta (u/semana) por molde/torre/proyecto · days-on-market por unidad · cambios
+**ABSORCIÓN (flujo): u/periodo por molde/torre/proyecto — la métrica de ritmo de verdad; con ella: meses de inventario = disponibles ÷ ritmo** · days-on-market por unidad · cambios
 de precio (dirección, magnitud, frecuencia) · **elasticidad medida** (¿qué bajada acelera la
 venta?) · descuento real lista→venta · reapariciones (caídas de apartado) · ETA de sold-out
 por molde · estacionalidad de actualizaciones del dev (cronobiología) · frescura del dato ·
