@@ -23,7 +23,13 @@ aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md 
   chips de dominio/tipo + cards con lenguaje humano expandible + botón Ir) + entrada 'El Catálogo'
   como puerta del sidebar. Verificado en navegador: 105 piezas, búsqueda 'renta'→1 exacto, filtros
   por dominio. Tests: test_catalogo_maestro.py (3). CERO pérdida probada por test.
-- **B · Home Pregunta-y-Filtra** ⬜ — elevar la home a filtros universales (tema/territorio/tiempo)
+- **B · Home Pregunta-y-Filtra** ✅ 2026-07-13 — (1) buscador del catálogo AL FRENTE de la Home
+  (`CatalogoQuickSearch`): '¿Qué quieres saber? 111 herramientas en 6 áreas' + sugerencias
+  clicables + resultados en vivo con qué-es → clic navega a la pieza. (2) el ⌘K global ahora
+  INDEXA las 111 piezas del catálogo (antes ~12 estáticas) con su lenguaje humano + deep-link;
+  sublabel con el 'qué es' bajo cada comando. Verificado en navegador: 'renta'→Cap rate, ⌘K
+  'absorci'→2 reportes con deep-link. Suites: backend 1544 · front 181.
+- **B (antes)** ⬜ — elevar la home a filtros universales (tema/territorio/tiempo)
   + conectar ⌘K al catálogo.
 - **C · Sidebar 6 dominios** ⬜ — reagrupar las 24 rutas en los 6 dominios + hubs por dominio +
   redirects de rutas viejas (nada se rompe).

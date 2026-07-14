@@ -480,6 +480,25 @@ async def _build_command_registry(db) -> List[Dict[str, Any]]:
     except Exception:
         pass
 
+    # FASE B · EL CATÁLOGO EN EL ⌘K: las 111 piezas del catálogo entran como comandos navegables,
+    # con su lenguaje humano — así el founder llega a CUALQUIER herramienta desde el buscador global.
+    try:
+        from catalogo_maestro import construir_catalogo, DOMINIOS
+        cat = construir_catalogo()
+        for p in cat.get("piezas", []):
+            if not p.get("ruta_ui"):
+                continue
+            dom = DOMINIOS.get(p["dominio"], {})
+            items.append({
+                "id": f"cat_{p['id']}", "label": p["titulo"],
+                "sublabel": p.get("que_es", ""),
+                "category": f"{dom.get('icono', '')} {dom.get('titulo', p['dominio'])}".strip(),
+                "icon_key": "Search", "action": "navigate",
+                "payload": {"route": p["ruta_ui"]},
+            })
+    except Exception:
+        pass
+
     return items
 
 

@@ -260,7 +260,10 @@ export default function CommandPaletteExtended({ onClose }) {
                     <Icon size={11} style={{
                       color: active ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                     }} />
-                    <span style={{ flex: 1 }}>{it.label}</span>
+                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <span>{it.label}</span>
+                      {it.sublabel && <span style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.sublabel}</span>}
+                    </span>
                     {active && <ArrowRight size={11} color="var(--theme)" />}
                   </button>
                 );

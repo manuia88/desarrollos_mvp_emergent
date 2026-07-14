@@ -4,6 +4,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import ExecutiveKpiGrid from '../../components/superadmin/ExecutiveKpiGrid';
 import AnomalyFeed from '../../components/superadmin/AnomalyFeed';
 import QuickActionsToolbar from '../../components/superadmin/QuickActionsToolbar';
+import CatalogoQuickSearch from '../../components/superadmin/CatalogoQuickSearch';
 import { LayoutDashboard, RefreshCw, Sparkles, Command, TrendingDown, TrendingUp } from 'lucide-react';
 import {
   getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow, getDemandInsights, getStudioOpportunities, getProductBrief,
@@ -424,6 +425,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             <RefreshCw size={11} />
           </button>
         </div>
+
+        {/* FASE B · pregunta y filtra: el buscador del Catálogo al frente de la Home */}
+        <CatalogoQuickSearch />
 
         {/* KPI Grid */}
         {dashboard ? (
