@@ -162,6 +162,50 @@ _PIEZAS: List[Dict[str, Any]] = [
        "Diagnosticas problemas sin salir del portal.",
        "Abre el mapa del sistema o el diagnóstico de usuarios.",
        "/superadmin/devtools", temas=["operacion"]),
+
+    # ── AUDITORÍA FASE A: las 7 vistas del sidebar que faltaban (cero pérdida real) ──
+    _p("tenants", "operacion", "vista", "Clientes (tenants)",
+       "Todos los clientes de la plataforma: devs, inmobiliarias, su estado y plan.",
+       "Quién te paga, en qué plan está y si está activo, en trial o suspendido.",
+       "Controlas tu base de clientes y su ciclo de vida comercial.",
+       "Filtra por tipo (devs/inmobiliarias) y estado; entra a cada cliente.",
+       "/superadmin/tenants", temas=["dinero", "operacion"]),
+    _p("inmobiliaria_leads", "demanda", "vista", "Leads de inmobiliaria",
+       "Los leads que llegan a tu propia inmobiliaria (no a terceros).",
+       "Quién quiere comprar contigo directamente y en qué etapa está.",
+       "No pierdes un solo comprador que tocó tu puerta.",
+       "Revisa la lista y da seguimiento a cada lead.",
+       "/superadmin/inmobiliaria-leads", temas=["leads", "demanda"]),
+    _p("ia_conversacional", "demanda", "vista", "Conversaciones IA",
+       "Todo lo que Atlax (el asistente) conversa: costos, huecos de conocimiento y calidad.",
+       "Qué preguntan los usuarios, qué no supo responder la IA y cuánto cuesta.",
+       "Mejoras al asistente donde falla y controlas su gasto.",
+       "Revisa conversaciones, huecos de conocimiento, A/B de prompts y el RAG Inspector.",
+       "/superadmin/ia-conversacional", temas=["ia", "calidad", "dinero"]),
+    _p("phase5_foundation", "inventario", "vista", "Foundation Phase 5",
+       "Los cimientos de datos: DENUE (comercios), costos de construcción, scores de zona.",
+       "La base geográfica y económica sobre la que corren los motores.",
+       "Aseguras que los datos-cimiento estén cargados y frescos.",
+       "Sincroniza DENUE, carga costos de construcción y zone scores.",
+       "/superadmin/phase5-foundation", temas=["calidad", "zona", "ingesta"]),
+    _p("transactions_network", "mercado", "vista", "Transaction Network",
+       "La red de transacciones reales: quién vendió qué, dónde y a qué precio.",
+       "Las operaciones cerradas de verdad — el precio real, no el de lista.",
+       "Calibras los AVM y precios con transacciones reales, no estimadas.",
+       "Ingresa transacciones (CSV/notaría) y filtra por zona/tipo/fuente.",
+       "/superadmin/transactions", temas=["precio", "transacciones", "certeza"]),
+    _p("knowledge_graph", "operacion", "vista", "Knowledge Graph",
+       "El grafo de conocimiento: cómo se conectan zonas, proyectos y entidades del mercado.",
+       "Las relaciones ocultas entre entidades + anomalías detectadas.",
+       "Descubres conexiones que ninguna tabla plana te muestra.",
+       "Haz preguntas al grafo, explóralo visualmente, revisa anomalías.",
+       "/superadmin/knowledge-graph", temas=["operacion", "certeza"]),
+    _p("granularidad", "inventario", "vista", "Visibilidad de granularidad",
+       "Hasta qué nivel de detalle llega cada dato (ciudad → colonia → proyecto → unidad).",
+       "Qué tan fino es tu dato en cada dimensión — dónde tienes el átomo.",
+       "Sabes dónde tu moat de granularidad es real y dónde es estimado.",
+       "Inspecciona el registro de granularidad por dimensión.",
+       "/superadmin/granularidad", temas=["granularidad", "calidad"]),
 ]
 
 
@@ -217,23 +261,74 @@ def _piezas_de_reportes() -> List[Dict[str, Any]]:
     except Exception as e:
         log.warning("[catalogo] reportes fail-open: %s", e)
         return []
+    # los bloques que YA son productos de primera clase no se re-listan como reporte suelto
+    # (dedup: CARFAX y DMX-30 viven como 'producto'/'indice', su bloque no duplica la card)
+    ya_producto = {"carfax", "dmx30"}
     out = []
     for b in reportes_catalogo().get("bloques", []):
+        if b["id"] in ya_producto:
+            continue
         out.append(_p(
             f"reporte_{b['id']}", _BLOQUE_A_DOMINIO.get(b["id"], "mercado"), "reporte",
             b["titulo"],
             b["desc"],
             b["desc"],
             "Es un bloque del generador de reportes: combínalo con otros y expórtalo o guárdalo.",
-            "Está en el Hub de Mercado → Reportes; márcalo y pulsa Generar.",
-            "/superadmin/mercado", ["/api/superadmin/reportes/generar"], b.get("necesita", []),
+            "Pulsa 'Ir': abre el generador con este reporte ya marcado.",
+            # DEEP-LINK (auditoría Fase A): 'Ir' pre-selecciona el bloque en el Hub, no manda al genérico
+            f"/superadmin/mercado?tab=reportes&bloque={b['id']}",
+            ["/api/superadmin/reportes/generar"], b.get("necesita", []),
             temas=["reporte"] + ([b["id"]] if b["id"] in _BLOQUE_A_DOMINIO else []),
         ))
     return out
 
 
+# AUDITORÍA FASE A: la capa humana de las features (antes genéricas). key → (dominio, ruta, qué_es,
+# qué_dice, beneficio, qué_hago). Una feature nueva sin entrada aquí cae al fallback honesto.
+_FEATURE_HUMANO: Dict[str, tuple] = {
+    "battle_card": ("demanda", "/superadmin/inteligencia", "La ficha de combate vs un competidor: cómo le ganas.", "En qué eres mejor y peor que un proyecto rival, punto por punto.", "Cierras ventas mostrando ventajas concretas.", "Ábrela desde la ficha de una unidad o proyecto."),
+    "buyer_score": ("demanda", "/superadmin/inteligencia", "El puntaje de calidad de un comprador (qué tan probable es que cierre).", "Qué tan caliente y solvente es cada lead.", "Priorizas los leads que sí van a comprar.", "Míralo en el detalle de cada lead."),
+    "drpi": ("mercado", "/superadmin/modelo", "El índice de riesgo-precio de un desarrollo (DRPI).", "Si un proyecto está bien o mal valuado según su riesgo.", "Detectas gangas y sobreprecios de proyectos completos.", "Revísalo en Modelo & Aprendizaje → Índices DMX."),
+    "zone_score": ("mercado", "/superadmin/terminal-zona", "El puntaje de calidad de una zona (0-100).", "Qué tan buena es una colonia según servicios, seguridad y transporte.", "Comparas zonas con un número objetivo.", "Ábrelo en la Terminal de Zona."),
+    "forecast_accuracy": ("operacion", "/superadmin/modelo", "Qué tan bien acertó el pronóstico del sistema.", "Si puedes confiar en las predicciones de precio.", "Sabes cuánto creerle al modelo antes de decidir.", "Revísalo en Modelo & Aprendizaje → Precisión pronóstico."),
+    "fsd_accuracy": ("operacion", "/superadmin/modelo", "La confiabilidad de los scores (Full Self-Driving del dato).", "Qué tan estables y confiables son los índices.", "Distingues un score sólido de uno ruidoso.", "Míralo en Modelo → Confiabilidad (FSD)."),
+    "knowledge_graph": ("operacion", "/superadmin/knowledge-graph", "El grafo de conocimiento del mercado.", "Cómo se conectan zonas, proyectos y entidades.", "Descubres relaciones que las tablas no muestran.", "Explóralo en Knowledge Graph."),
+    "live_pulse_alerts": ("mercado", "/superadmin/live-pulse", "Alertas en vivo de movimientos del mercado.", "Qué zona se está moviendo AHORA.", "Reaccionas el mismo día a un cambio.", "Actívalas en Live Pulse → Alertas."),
+    "transactions_network": ("mercado", "/superadmin/transactions", "La red de transacciones reales cerradas.", "El precio real de venta, no el de lista.", "Calibras precios con la verdad del mercado.", "Ábrela en Transaction Network."),
+    "probability_ux": ("demanda", "/superadmin/modelo", "La probabilidad de cada evento expresada de forma clara.", "Qué tan probable es que algo pase, en lenguaje simple.", "Decides con probabilidades, no corazonadas.", "Aparece en los tableros de predicción."),
+    "metrics_cube": ("mercado", "/superadmin/metrics-cube", "El cubo de métricas: cualquier corte del mercado.", "El número exacto de cualquier combinación de filtros.", "Respondes preguntas muy específicas al instante.", "Ábrelo en Cubo de métricas."),
+    "data_lake": ("dinero", "/superadmin/datos", "El almacén de todos los datos crudos.", "Todo lo que el sistema ha capturado, sin procesar.", "Licencias o exportas datos crudos a terceros.", "Gestiónalo en Ingesta → Data Lake."),
+    "data_licensing": ("dinero", "/superadmin/monetizacion", "La venta de datos a terceros (licenciamiento).", "Qué datos vendes y a quién.", "Monetizas el moat de datos que construiste.", "Configúralo en Monetización."),
+    "ai_cost_dashboard": ("dinero", "/superadmin/monetizacion", "El tablero de cuánto cuesta la IA.", "Cuánto gastas en modelos de IA y en qué.", "Controlas el costo antes de que se dispare.", "Míralo en Monetización → Costo de IA."),
+    "cross_sell": ("dinero", "/superadmin/monetizacion", "Analítica de venta cruzada entre productos.", "Qué clientes comprarían otro producto tuyo.", "Aumentas el ingreso por cliente existente.", "Revísalo en Monetización → Cross-sell."),
+    "vertical_products": ("dinero", "/superadmin/monetizacion", "Los productos verticales licenciables.", "Qué paquetes de producto puedes vender por industria.", "Empaquetas el moat en productos vendibles.", "Gestiónalos en Monetización."),
+    "whatsapp": ("operacion", "/superadmin/crecimiento", "El canal de WhatsApp Business.", "Los mensajes que entran y salen por WhatsApp.", "Conversas con leads donde ya están.", "Ábrelo en Crecimiento → WhatsApp."),
+    "newsletter_pulse": ("operacion", "/superadmin/crecimiento", "El motor de newsletters automáticas.", "Qué boletines se envían y su desempeño.", "Nutres tu audiencia sin trabajo manual.", "Gestiónalo en Crecimiento → Newsletter."),
+    "bulletins": ("operacion", "/superadmin/crecimiento", "Los boletines de mercado generados por IA.", "Reportes de mercado listos para publicar.", "Publicas autoridad de marca sin escribir.", "Genéralos en Crecimiento → Boletines."),
+    "social_cards": ("operacion", "/superadmin/crecimiento", "Tarjetas para redes sociales auto-generadas.", "Contenido visual listo para compartir.", "Distribuyes en redes sin diseñador.", "Créalas en Crecimiento → Tarjetas sociales."),
+    "smart_notifications": ("operacion", "/superadmin/operacion", "Notificaciones inteligentes por evento.", "Qué avisos automáticos manda el sistema.", "Te enteras de lo importante sin revisar.", "Configúralas en Operación."),
+    "lead_journey": ("demanda", "/superadmin/crecimiento", "El viaje completo de un lead de principio a fin.", "Por dónde pasó cada lead hasta comprar (o no).", "Optimizas el embudo donde se cae la gente.", "Ábrelo en Crecimiento → Embudo."),
+    "marketplace_search": ("demanda", "/superadmin/inteligencia", "El motor de búsqueda del marketplace (Atlax).", "Qué y cómo busca la gente en tu marketplace.", "Entiendes la demanda desde el buscador mismo.", "Su señal alimenta el genoma; revísala en Demanda."),
+    "partners": ("operacion", "/superadmin/crecimiento", "El directorio de aliados y socios.", "Con quién estás asociado y su desempeño.", "Escalas distribución vía aliados.", "Gestiónalo en Crecimiento → Aliados."),
+    "private_beta": ("operacion", "/superadmin/crecimiento", "Las invitaciones a la beta privada.", "Quién está invitado y quién entró.", "Controlas el acceso temprano al producto.", "Gestiónalas en Crecimiento → Invitaciones."),
+    "brochure": ("operacion", "/superadmin/monetizacion", "El generador de folletos de proyectos.", "Material de venta listo por proyecto.", "Das a los devs material profesional al instante.", "Genéralos desde Plantillas marketplace."),
+    "studio_ads": ("dinero", "/superadmin/monetizacion", "El estudio de anuncios sociales (Social Ads).", "Campañas de anuncios y su rendimiento.", "Monetizas con publicidad de proyectos.", "Ábrelo en Monetización → Social Ads."),
+    "studio_video": ("dinero", "/superadmin/monetizacion", "El estudio de video para proyectos.", "Videos generados y en cola.", "Vendes contenido de video a los devs.", "Ábrelo en Monetización → Video."),
+    "tour_3dgs": ("dinero", "/superadmin/monetizacion", "Los recorridos 3D (Gaussian Splatting) de unidades.", "Qué unidades tienen tour inmersivo.", "Diferencias la ficha con experiencia 3D.", "Gestiónalos en Monetización."),
+    "avm_public": ("mercado", "/superadmin/modelo", "El AVM público: valuación automática de una propiedad.", "Cuánto vale un inmueble según el modelo.", "Das una valuación instantánea y creíble.", "Revisa su precisión en Modelo → Precisión AVM."),
+    "duplicates": ("operacion", "/superadmin/operacion", "La revisión de registros duplicados.", "Qué proyectos/unidades están duplicados.", "Mantienes el inventario limpio y confiable.", "Resuélvelos en Operación → Duplicados."),
+    "entity_resolution": ("operacion", "/superadmin/operacion", "La resolución de entidades (el mismo dev/proyecto con nombres distintos).", "Qué registros son en realidad la misma entidad.", "Unificas datos que estaban fragmentados.", "Ábrelo en Operación → Resolución de entidades."),
+    "audit_chain": ("operacion", "/superadmin/operacion", "La cadena de auditoría inmutable (SHA-256).", "Todo lo que cambió, imposible de alterar.", "Pruebas ante YC/regulador que nada se manipuló.", "Revísala en Operación → Cadena."),
+    "bulk_drive_ingest": ("inventario", "/superadmin/datos", "La ingesta masiva desde Google Drive.", "Qué archivos entraron y su estado.", "Subes inventarios completos desde Drive.", "Ábrelo en Ingesta → Drive."),
+    "widget_embeds": ("operacion", "/superadmin/operacion", "La analítica de los widgets embebidos en sitios externos.", "Dónde están embebidos tus widgets y su uso.", "Mides tu alcance fuera de la plataforma.", "Revísalo en Operación → Widgets embebidos."),
+    "valores_landing": ("operacion", "/superadmin/crecimiento", "Los lead-magnets de las landing pages.", "Qué formularios capturan leads y cuántos.", "Captas compradores desde landings de marca.", "Revísalos en Crecimiento → Leads de landing."),
+    "atlax_chat": ("demanda", "/superadmin/ia-conversacional", "El chat de Atlax (el asistente IA público).", "Qué conversa la IA con los usuarios.", "Escalas atención sin agentes humanos.", "Revísalo en Conversaciones IA."),
+}
+
+
 def _piezas_de_features() -> List[Dict[str, Any]]:
-    """Indexa las features del feature_registry (pricing) que aún no están descritas como pieza."""
+    """Indexa las features del feature_registry con capa HUMANA (registro _FEATURE_HUMANO) o
+    fallback honesto. Cero pérdida: toda feature registrada entra al catálogo."""
     try:
         from feature_registry import get_all_features
     except Exception as e:
@@ -243,21 +338,25 @@ def _piezas_de_features() -> List[Dict[str, Any]]:
     out = []
     for f in get_all_features():
         pid = f"feature_{f['key']}"
-        if pid in ya or f["key"] in {p["id"] for p in _PIEZAS}:
+        if pid in ya:
             continue
+        h = _FEATURE_HUMANO.get(f["key"])
         cat = str(f.get("category", "")).lower()
-        dominio = ("dinero" if cat in ("monetization", "pricing", "billing")
-                   else "demanda" if "demand" in cat or "intelligence" in cat
-                   else "operacion")
-        out.append(_p(
-            pid, dominio, "motor", f.get("name", f["key"]),
-            f"Capacidad del sistema ({cat or 'general'}), del plan {f.get('plan_tier', 'free')}.",
-            "Una función licenciable registrada en el catálogo de producto.",
-            ("Genera ingreso: es una feature de pago." if f.get("monthly_price_mxn")
-             else "Amplía lo que el sistema puede hacer."),
-            "Se activa/gestiona desde Monetización según su plan.",
-            "/superadmin/monetizacion", temas=["feature", cat or "general"],
-        ))
+        if h:
+            dominio, ruta, que_es, que_dice, beneficio, que_hago = h
+        else:  # fallback honesto para features sin descripción a mano (mejorable incrementalmente)
+            dominio = ("dinero" if cat in ("monetization", "pricing", "billing")
+                       else "demanda" if "demand" in cat or "intelligence" in cat else "operacion")
+            ruta = "/superadmin/monetizacion"
+            que_es = f"Capacidad del sistema ({cat or 'general'}), del plan {f.get('plan_tier', 'free')}."
+            que_dice = "Una función registrada del producto — su descripción detallada está pendiente."
+            beneficio = ("Genera ingreso (feature de pago)." if f.get("monthly_price_mxn")
+                         else "Amplía lo que el sistema puede hacer.")
+            que_hago = "Se activa/gestiona desde Monetización según su plan."
+        out.append(_p(pid, dominio, "motor", f.get("name", f["key"]),
+                      que_es, que_dice, beneficio, que_hago, ruta,
+                      temas=["feature", cat or "general",
+                             ("descrita" if h else "por_describir")]))
     return out
 
 

@@ -36,7 +36,9 @@ const TABS = [
 ];
 
 export default function SuperadminHubMercado({ user, onLogout }) {
-  const [tab, setTab] = useState('explorador');
+  // deep-link desde El Catálogo: ?tab=reportes&bloque=X abre esa pestaña (y CubeReportesView lee el bloque)
+  const _sp = new URLSearchParams(window.location.search);
+  const [tab, setTab] = useState(_sp.get('tab') || 'explorador');
   const [drillUnit, setDrillUnit] = useState('');
   const [period, setPeriod] = useState('current');
   const [toast, setToast] = useState('');

@@ -10,7 +10,14 @@ capa humana + 6 dominios. El front pinta buscador + filtros; una pieza nueva en 
 aparece sola. Base: MAPA_SUPERADMIN_FULLSTACK.md + MAPA_CONEXIONES_FULLSTACK.md + verdad viva.
 
 ## FASES
-- **A · Catálogo maestro** ✅ 2026-07-13 — `catalogo_maestro.py` (registro + 6 dominios + agrega
+- **A · Catálogo maestro** ✅ 2026-07-13
+- **A.1 · Auditoría + upgrades de Fase A** ✅ 2026-07-13 — audité mi propia Fase A y encontré 5 defectos, todos corregidos:
+  (1) 🔴 7 vistas del sidebar faltaban en el catálogo (mi test de cero-pérdida solo cubría bloques) → agregadas (tenants, ia-conversacional, phase5, transactions, knowledge-graph, granularidad, inmobiliaria-leads) + test reforzado contra el crawl.
+  (2) 🔴 CARFAX duplicado (producto + reporte) → dedup (carfax/dmx30 viven solo como producto/índice).
+  (3) 🔴 el placeholder del buscador daba 0 resultados con sus propios ejemplos → ejemplos reales (absorción/renta/escasez) + chips de sugerencias clicables.
+  (4) 🟡 el 'Ir' de los 44 reportes iba al Hub genérico → DEEP-LINK (?tab=reportes&bloque=X abre el reporte ya marcado; verificado: 'Generar reporte (1 bloques)').
+  (5) 🟡 filtro 'necesita' disponible en API pero no en UI → chips 'Necesita: una zona/fecha/unidad' + las 41 features genéricas enriquecidas con lenguaje humano real (29 descritas a mano, 13 con fallback honesto marcado 'por_describir').
+  111 piezas. Suites: backend 1544 · front 181. Verificado en navegador. — `catalogo_maestro.py` (registro + 6 dominios + agrega
   los 44 bloques auto-descritos + 41 features del feature_registry + 3 productos = 105 piezas) +
   GET /api/superadmin/catalogo (con búsqueda/filtros) + vista `SuperadminCatalogo.js` (buscador +
   chips de dominio/tipo + cards con lenguaje humano expandible + botón Ir) + entrada 'El Catálogo'

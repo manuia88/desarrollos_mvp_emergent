@@ -9,11 +9,13 @@ def test_catalogo_completo_y_sin_perdida():
     assert len(cat["dominios"]) == 6
     assert {d["id"] for d in cat["dominios"]} == set(DOMINIOS)
     assert all(d["n_piezas"] > 0 for d in cat["dominios"]), "un dominio vacío = card sin casa"
-    # cero pérdida: los 44 bloques de reportes están indexados como piezas
+    # cero pérdida: los bloques de reportes están indexados como piezas
     ids = {p["id"] for p in cat["piezas"]}
     for bloque in ("reporte_transiciones", "reporte_absorcion_viva", "reporte_etapa_vida",
-                   "reporte_indice_adelantado", "reporte_carfax"):
+                   "reporte_indice_adelantado"):
         assert bloque in ids, f"bloque perdido del catálogo: {bloque}"
+    # dedup: carfax/dmx30 viven como producto/índice, NO como reporte suelto
+    assert "reporte_carfax" not in ids and "reporte_dmx30" not in ids
     # los 3 productos del moat son piezas de primera clase
     assert {"estudio_dmx", "dmx30_producto", "carfax_producto"} <= ids
     # toda pieza trae la capa HUMANA completa (nada vacío)
@@ -44,3 +46,46 @@ def test_contadores_coherentes():
     assert cat["n_piezas"] == len(cat["piezas"])
     assert sum(d["n_piezas"] for d in cat["dominios"]) == cat["n_piezas"]
     assert sum(cat["por_tipo"].values()) == cat["n_piezas"]
+
+
+def test_cero_perdida_de_vistas_del_sidebar():
+    """AUDITORÍA FASE A: el test viejo solo cubría bloques → 7 vistas del sidebar quedaron fuera.
+    Ahora se exige que TODA ruta mayor del portal tenga una pieza en el catálogo."""
+    cat = construir_catalogo()
+    rutas = {p["ruta_ui"].split("?")[0] for p in cat["piezas"] if p["ruta_ui"]}
+    for r in ("/superadmin/tenants", "/superadmin/inmobiliaria-leads", "/superadmin/ia-conversacional",
+              "/superadmin/phase5-foundation", "/superadmin/transactions", "/superadmin/knowledge-graph",
+              "/superadmin/granularidad", "/superadmin/mercado", "/superadmin/metrics-cube",
+              "/superadmin/operacion", "/superadmin/monetizacion", "/superadmin/datos"):
+        assert r in rutas, f"vista del sidebar SIN pieza en el catálogo: {r}"
+
+
+def test_sin_titulos_duplicados():
+    """CARFAX y DMX-30 no deben aparecer dos veces (producto + reporte con el mismo título)."""
+    cat = construir_catalogo()
+    from collections import Counter
+    titulos = Counter(p["titulo"].lower().split("(")[0].strip() for p in cat["piezas"])
+    dups = {t: n for t, n in titulos.items() if n > 1}
+    assert not dups, f"títulos duplicados en el catálogo: {dups}"
+
+
+def test_reportes_hacen_deep_link():
+    """El 'Ir' de un reporte debe abrir el generador con ESE bloque marcado, no el genérico."""
+    cat = construir_catalogo()
+    reps = [p for p in cat["piezas"] if p["tipo"] == "reporte"]
+    assert reps
+    for p in reps:
+        assert "tab=reportes&bloque=" in p["ruta_ui"], f"{p['id']} no hace deep-link"
+
+
+def test_features_con_capa_humana():
+    """El registro _FEATURE_HUMANO cubre ≥30 features con lenguaje real (las features solo se
+    registran al cargar la app; en test aislado el registry está vacío, por eso se prueba el
+    MAPA directamente, que es lo que garantiza la calidad en vivo)."""
+    from catalogo_maestro import _FEATURE_HUMANO
+    assert len(_FEATURE_HUMANO) >= 30
+    for key, tupla in _FEATURE_HUMANO.items():
+        assert len(tupla) == 6, f"{key} mal formado"
+        dominio, ruta, que_es, que_dice, beneficio, que_hago = tupla
+        assert dominio in DOMINIOS and ruta.startswith("/superadmin/")
+        assert all(len(x) > 5 for x in (que_es, que_dice, beneficio, que_hago))

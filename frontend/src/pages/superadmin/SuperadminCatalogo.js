@@ -50,6 +50,9 @@ export default function SuperadminCatalogo() {
   const [texto, setTexto] = useState('');
   const [dominio, setDominio] = useState('');
   const [tipo, setTipo] = useState('');
+  const [necesita, setNecesita] = useState('');
+  const SUGERENCIAS = ['absorción', 'renta', 'escasez', 'plusvalía', 'riesgo', 'leads', 'precio'];
+  const NECESITA_LABEL = { colonias: 'una zona', tiempo: 'un periodo', fecha: 'una fecha', unit_id: 'una unidad', estudio: 'un estudio 4S' };
 
   useEffect(() => {
     getCatalogo().then(setCat).catch((e) => setErr(e?.message || 'No se pudo cargar el catálogo.'));
@@ -62,13 +65,14 @@ export default function SuperadminCatalogo() {
     return cat.piezas.filter((p) => {
       if (dominio && p.dominio !== dominio) return false;
       if (tipo && p.tipo !== tipo) return false;
+      if (necesita && !(p.necesita || []).includes(necesita)) return false;
       if (t) {
         const heno = [p.titulo, p.que_es, p.que_dice, p.beneficio, p.que_hago, ...(p.temas || [])].join(' ').toLowerCase();
         if (!heno.includes(t)) return false;
       }
       return true;
     });
-  }, [cat, texto, dominio, tipo]);
+  }, [cat, texto, dominio, tipo, necesita]);
 
   const chip = (activo) => ({ padding: '7px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, background: activo ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.04)', border: `1px solid ${activo ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.1)'}`, color: activo ? 'var(--theme)' : 'rgba(240,235,224,0.7)' });
 
@@ -89,8 +93,15 @@ export default function SuperadminCatalogo() {
       <div style={{ position: 'relative', marginBottom: 14 }}>
         <Search size={16} style={{ position: 'absolute', left: 14, top: 13, color: 'rgba(240,235,224,0.4)' }} />
         <input value={texto} onChange={(e) => setTexto(e.target.value)} data-testid="cat-buscar"
-          placeholder="¿Qué quieres saber? ej: quién busca en Condesa, cuánto rinde rentar, precio por m²…"
+          placeholder="¿Qué quieres saber? ej: absorción, renta, escasez, quién busca, precio, riesgo…"
           style={{ width: '100%', padding: '11px 14px 11px 40px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 14 }} />
+      </div>
+      {/* sugerencias rápidas: el founder no adivina palabras */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>Prueba:</span>
+        {SUGERENCIAS.map((s) => (
+          <button key={s} onClick={() => setTexto(s)} style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(240,235,224,0.7)', fontFamily: 'DM Sans', fontSize: 11.5, cursor: 'pointer' }}>{s}</button>
+        ))}
       </div>
 
       {/* DOMINIOS */}
@@ -113,8 +124,20 @@ export default function SuperadminCatalogo() {
         ))}
       </div>
 
+      {/* filtro por lo que la herramienta NECESITA (una zona, una fecha, una unidad…) */}
+      {cat.necesita_valores?.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>Necesita:</span>
+          {cat.necesita_valores.map((n) => (
+            <button key={n} onClick={() => setNecesita(necesita === n ? '' : n)} style={{ ...chip(necesita === n), fontSize: 11.5, padding: '5px 11px' }}>
+              {NECESITA_LABEL[n] || n}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', marginBottom: 12 }}>
-        {piezas.length} de {cat.n_piezas}{(texto || dominio || tipo) ? ' (filtrado)' : ''}
+        {piezas.length} de {cat.n_piezas}{(texto || dominio || tipo || necesita) ? ' (filtrado)' : ''}
       </div>
 
       {/* CARDS */}

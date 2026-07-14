@@ -179,7 +179,9 @@ function Seccion({ s, acciones, accionesFila, params }) {
 
 export default function CubeReportesView() {
   const [catalogoB, setCatalogoB] = useState([]);
-  const [sel, setSel] = useState(new Set(['demanda_viva', 'escasez', 'data_negativa', 'gap_radar']));
+  // deep-link desde El Catálogo (?bloque=X): arranca con ESE reporte marcado y solo ese
+  const _bloqueDL = new URLSearchParams(window.location.search).get('bloque');
+  const [sel, setSel] = useState(new Set(_bloqueDL ? [_bloqueDL] : ['demanda_viva', 'escasez', 'data_negativa', 'gap_radar']));
   const [colonias, setColonias] = useState('');
   const [estudio, setEstudio] = useState('');
   const [corteDim, setCorteDim] = useState('');
