@@ -428,6 +428,22 @@ _HUB_INCLUYE: Dict[str, List[str]] = {
                              "Migración climática"],
     "ia_conversacional": ["Conversaciones", "Copiloto", "Costo", "Huecos de conocimiento",
                           "A/B de prompts", "Drift", "RAG Inspector"],
+    # FASE E (matriz de trazabilidad): vistas NO-hub que traen sub-pestañas con capacidades
+    # reales (motores/scores/índices). Se listan para que la búsqueda las encuentre igual que
+    # a un hub — cerró los últimos huecos del crawl (Precisión AVM, DENUE, Heatmap, etc.).
+    "modelo_aprendizaje": ["Precisión AVM", "Precisión pronóstico", "Confiabilidad (FSD)",
+                           "Calibración", "Cómo aprende el modelo", "Scores", "Índices DMX",
+                           "DRPI", "Risk Score"],
+    "alta_devs": ["Alta manual", "Carga masiva (IA)", "Directorio de desarrolladores"],
+    "terminal_zona": ["Explorar", "Analizar", "Reportar", "Celda atómica", "Explorador (árbol)",
+                      "Mapa de tensión", "Atlas de zonas", "Por desarrollo"],
+    "live_pulse": ["Heatmap", "Timeline", "Alertas", "Readiness"],
+    "cubo_metricas": ["Comparar zonas", "Drill-down", "Corte cruzado", "Backfill histórico"],
+    "knowledge_graph": ["Preguntas al grafo", "Grafo", "Anomalías", "Monitoring"],
+    "phase5_foundation": ["DENUE", "Costos de construcción", "Zone Scores"],
+    "devtools": ["Primitivas UI", "Mapa del sistema", "Diagnóstico de usuarios"],
+    "intelligence_hub": ["Precio", "Demanda", "Riesgo", "Oferta"],
+    "hub_mercado": ["Equilibrio 4S", "Asequibilidad", "Vida a pie y segura", "Explorador"],
 }
 
 

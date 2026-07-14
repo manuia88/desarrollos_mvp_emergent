@@ -122,3 +122,27 @@ Audité mi propia Fase D. Hallazgos y fixes:
   las 62 pestañas → searchable (backend buscar + front) + visibles como chips en la card del hub.
   Verificado: gov data→Ingesta, reputación→Salud, rag inspector→IA Conversacional. Gap cerrado.
 Tests: hubs listan pestañas + 'gov data' encuentra su hub. Suites: backend 1545 · front 181.
+
+
+## FASE E — matriz de trazabilidad (prueba de CERO PÉRDIDA) — ✅ 2026-07-13
+La fase final del rebuild. Cruce programático del crawl ORIGINAL (Playwright, ANTES del
+rebuild: 24 páginas · 296 pestañas) contra la UX NUEVA (nav de 6 dominios + Catálogo Vivo).
+Herramienta: backend/tools/matriz_trazabilidad.py · reporte: MATRIZ_TRAZABILIDAD_FASE_E.md
+
+RESULTADO — ✅ CERO PÉRDIDA COMPROBADA:
+- Nivel 1 (páginas): **24/24 con casa** · 22 en el menú, 2 (gemelo-demanda, granularidad)
+  hallables por el Catálogo. **0 huérfanas.** Ningún módulo/ruta se perdió en el rediseño.
+- Nivel 2 (pestañas): 140 capacidades reales hallables por búsqueda · 118 cromo de UI
+  (botones de acción, filtros de estado, chips de valor-dato como colonias/tipos). **0 sin casa.**
+
+Gaps que la matriz encontró y cerró (mismo patrón que Fase D):
+- Sub-tabs de vistas NO-hub con capacidades reales no eran buscables → extendí el registro
+  _HUB_INCLUYE a 9 vistas más (modelo: Precisión AVM/DRPI/Risk Score; terminal-zona: Mapa de
+  tensión/Celda atómica/Atlas; live-pulse: Heatmap/Timeline/Readiness; phase5: DENUE/Zone Scores;
+  knowledge-graph: Anomalías/Grafo; intelligence-hub: Precio/Demanda/Riesgo/Oferta; alta: Alta
+  manual/Carga masiva IA; cubo: Drill-down; mercado: Equilibrio 4S/Asequibilidad/Vida a pie).
+
+GUARDIA PERMANENTE: tests/test_matriz_trazabilidad.py congela la prueba — si alguien borra una
+vista o agrega una capacidad sin casa, el test se pone rojo. Suites: backend 1548 · front 181.
+
+═══ REBUILD UX SUPERADMIN COMPLETO (Fases A→E). Cero pérdida demostrada con números. ═══
