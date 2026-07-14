@@ -1,0 +1,497 @@
+# MAPA SUPERADMIN FULL-STACK — inventario canónico (2026-07-13)
+Generado por crawl de navegador (24 rutas del sidebar, tabs reales del DOM) + minado del repo. Base del rebuild UX/UI: NADA se pierde — todo lo listado debe tener casa en la nueva UX.
+
+## Números duros
+- Páginas superadmin (front): **105** · Componentes: **93** · Helpers API front: **121**
+- Rutas API `/api/superadmin/*`: **300** en 107 dominios
+- Archivos de motor (engine/ola/market/demand/scores): **194**
+- Bloques del menú de Reportes (server-driven, YA catalogados con qué-es/desc/acciones): **44**
+
+## 1 · Lo que VE el founder (crawl real)
+| Ruta | Título | Tabs/controles (muestra) |
+|---|---|---|
+| / | Bienvenido, Admin | (11) Detectar anomalías · MRR$0ARR $0 · Tenants activos00 en trial · Costo IA · MTD$0forecast $0 · Alertas críticas80abiertas · Conversión 30d0%14 leads · Refrescar metrics cube · Ver alertas críticas · Costos IA mes · Crear snapshot · Ingestar Drive |
+| /desarrollos | Desarrollos | (4) Panorama · Inteligencia · Catálogo · Aprobar |
+| /alta | Desarrolladores y desarrollos | (5) Directorio · Alta manual · Carga masiva (IA) · Granularidad · Copiar link |
+| /tenants | Tenants | (7) Refrescar · Todos · Devs · Inmobiliarias · Activos · Trial · Suspendidos |
+| /inmobiliaria-leads | Leads de mi inmobiliaria | (0)  |
+| /datos | Ingesta masiva | (18) Ingesta masiva · Conectores · Gov Data MX · Drive · Data Lake · Documentos · Cobertura de datos · Pulso del catálogo · Iniciar ingesta · Jobs históricos · Cola revisión148 · Todos |
+| /mercado | Hub de Mercado | (40) Actual · 7d · 30d · 90d · Explorador · Equilibrio 4S · Reportes · Catálogo · Corte cruzado · Historia · Átomo · Actuar |
+| /metrics-cube | Cubo de métricas | (25) Actual · 7d · 30d · 90d · Refrescar · Comparar zonas · Backfill histórico · Drill-down · Corte cruzado · Actuar · Sin agrupar · Por tipo |
+| /modelo | Aprendizaje del modelo | (11) Resumen · Precisión AVM · Precisión pronóstico · Confiabilidad (FSD) · Calibración · Cómo aprende · Scores · Índices DMX · DRPI · Risk Score · Inspeccionar |
+| /ia-conversacional | Conversaciones IA | (8) Conversaciones · Copiloto · Costo · Huecos de conocimiento · A/B de prompts · Drift · RAG Inspector · Actualizar |
+| /inteligencia | Demanda de mercado | (16) Demanda de mercado · Gemelo de demanda · Grafo del comprador · Google Trends · Calidad de obra · Reseñas de residentes · Staging virtual · Investment Explorer · Granularidad · Migración climática · Día · Semana |
+| /terminal-zona | Terminal de Zona | (22) Explorarnavega el mercado · Analizarbusca y compara · Reportarel resultado · Celda atómica · Explorador (árbol) · Mapa de tensión · Atlas (explorador) · Por desarrollo · Benito Juárez· Alcaldía · Coyoacán· Alcaldía · Cuajimalpa· Alcaldía · Cuauhtémoc· Alcaldía |
+| /intelligence-hub | Inteligencia ejecutiva | (11) Actual · 7d · 30d · 90d · Exportar PDF · Refrescar insights · Precio · Demanda · Riesgo (W3 ZZ.4) · Oferta · Regenerar |
+| /phase5-foundation | Foundation Phase 5 | (5) DENUE · Costos Construcción · Zone Scores · Cargar · Sincronizar DENUE |
+| /transactions | Transaction Network | (20) Manual ingest CSV · Todas · polanco · condesa · roma · santa_fe · napoles · iztapalapa · Todos · depto · casa · loft |
+| /knowledge-graph | Knowledge Graph | (5) preguntas · grafo · anomalias · monitoring · Recargar |
+| /live-pulse | Live Pulse CDMX | (4) Heatmap · Timeline · Alertas · Readiness |
+| /terminal-mercado | Terminal de Mercado CDMX | (1) 📸 Guardar Foto de Hoy |
+| /operacion | Salud del sistema | (21) Salud sistema · Observabilidad · ROI & Phase Y · Actividad unificada · Audit log · Cadena (SHA-256) · Compliance · Patrones de fraude · Alertas de fraude · Alertas de riesgo · Duplicados · Resolución de entidades |
+| /monetizacion | Public API · llaves y suscripciones | (12) API Keys & Uso · Bundles B2B · Probar API · Cross-sell · Franquicia SOC · Plantillas marketplace · Enriquecimiento de leads · Social Ads · Video · Costo de IA · Comercial & Planes · Revocar |
+| /crecimiento | WhatsApp Business | (13) WhatsApp · Newsletter · Boletines · Tarjetas sociales · Distribución social · Leads de landing · Embudo auditoría · Fuentes de leads · Onboarding · Aliados · Invitaciones · Mensajes |
+| /devtools | Primitivas UI — B0 Sub-chunk B | (13) Primitives demo · Mapa del sistema · Diagnóstico de usuarios · 25/100 · 65/100 · 92/100 · 78/100 · 55/100 · Disparar 1 undo · Disparar 3 undos (stack) · Continuar · Guardar borrador |
+| /gemelo-demanda | Gemelo de Demanda | (13) Demanda de mercado · Gemelo de demanda · Grafo del comprador · Google Trends · Calidad de obra · Reseñas de residentes · Staging virtual · Investment Explorer · Granularidad · Migración climática · Oportunidad ↓ · Demanda |
+| /granularidad | Visibilidad de granularidad | (11) Demanda de mercado · Gemelo de demanda · Grafo del comprador · Google Trends · Calidad de obra · Reseñas de residentes · Staging virtual · Investment Explorer · Granularidad · Migración climática · Inspeccionar |
+
+## 2 · Dominios de API superadmin
+- `genoma` × 33
+- `developments` × 17
+- `colonias` × 13
+- `cubo-4s` × 11
+- `entity-resolution` × 9
+- `kg` × 8
+- `gov-data-mx` × 7
+- `drive` × 7
+- `documents` × 6
+- `avm-accuracy` × 6
+- `observability` × 6
+- `agentic-crm` × 5
+- `marketing-mcp` × 5
+- `marketplace` × 5
+- `equilibrio` × 4
+- `reportes` × 4
+- `newsletter` × 4
+- `compliance` × 4
+- `live-pulse` × 4
+- `tenants` × 3
+- `construction-quality` × 3
+- `whatsapp` × 3
+- `soc-franchise` × 3
+- `audit` × 3
+- `reviews` × 3
+- `data-licensing` × 3
+- `risk-alerts` × 3
+- `api-keys` × 3
+- `forecast-accuracy` × 3
+- `invites` × 3
+- `drpi` × 3
+- `inmobiliaria` × 3
+- `accuracy` × 3
+- `market-4s` × 3
+- `stripe` × 3
+- `rag` × 3
+- `shf` × 3
+- `cross-sell` × 2
+- `picks` × 2
+- `calibracion` × 2
+- `risk-score` × 2
+- `investment-explorer` × 2
+- `commercial` × 2
+- `google-places` × 2
+- `maps` × 2
+- `social-ads` × 2
+- `gentrificacion` × 2
+- `indices-historial` × 2
+- `bulletins` × 2
+- `cross-checks` × 2
+- `director` × 2
+- `ai-usage` × 2
+- `partners` × 2
+- `founder-console` × 2
+- `metrics-cube` × 2
+- `health` × 1
+- `insights` × 1
+- `atlas-riesgo` × 1
+- `subagents` × 1
+- `fraud-alerts` × 1
+- `crime-data` × 1
+- `conversation-drift` × 1
+- `behavioral` × 1
+- `units` × 1
+- `hook-predictor` × 1
+- `conversation-cost` × 1
+- `demand-intel` × 1
+- `widgets` × 1
+- `data-sources-gov-mx` × 1
+- `asistente` × 1
+- `sync` × 1
+- `lead-enrichment` × 1
+- `reputation` × 1
+- `terminal-mercado` × 1
+- `conversations` × 1
+- `transactions` × 1
+- `indices` × 1
+- `phase5` × 1
+- `copiloto` × 1
+- `ab-testing` × 1
+- `data-hub` × 1
+- `bancabilidad` × 1
+- `document-types` × 1
+- `phase-y` × 1
+- `kb-gaps` × 1
+- `ai-cost` × 1
+- `bulk-ingest` × 1
+- `video-standalone` × 1
+- `waitlist` × 1
+- `alta` × 1
+- `cerebro-mercado` × 1
+- `catalog-pulse` × 1
+- `confidence` × 1
+- `social-cards` × 1
+- `data-lake` × 1
+- `agent-workforce` × 1
+- `grafo-comprador` × 1
+- `granularity` × 1
+- `trends` × 1
+- `whatif` × 1
+- `intelligence-hub` × 1
+- `devmaster` × 1
+- `landing-leads` × 1
+- `atlax-persona` × 1
+- `features` × 1
+- `lead-capture` × 1
+- `voice` × 1
+
+## 3 · Familias de motores
+- **market** (10): market_4s_bridge.py, market_4s_facts.py, market_4s_loader.py, market_4s_prior.py, market_4s_transfer.py, market_comps_seed.py, market_estimate_engine.py, market_rates_engine.py, market_scores_engine.py, market_timeline.py
+- **studio** (8): studio_brand_kit_engine.py, studio_buyer_copy_engine.py, studio_carrusel_ab_engine.py, studio_carrusel_engine.py, studio_engines.py, studio_hook_score_engine.py, studio_landing_engine.py, studio_video_engine.py
+- **demand** (6): demand_feedback.py, demand_genome.py, demand_graph_engine.py, demand_intelligence.py, demand_mirror.py, demand_twin_engine.py
+- **engines** (6): engines_batch_cubo.py, engines_batch_demanda.py, engines_batch_geo.py, engines_batch_inversion.py, engines_batch_valuacion.py, engines_hub.py
+- **lead** (5): lead_capture_engine.py, lead_capture_marketplace_engine.py, lead_enrichment_engine.py, lead_journey_engine.py, lead_nurture_engine.py
+- **avm** (4): avm_explain_engine.py, avm_feature_engine.py, avm_predios_engine.py, avm_public_engine.py
+- **ola** (4): ola_d_engines.py, ola_e_engines.py, ola_f_engines.py, ola_g_products.py
+- **conversation** (3): conversation_cost_stats_engine.py, conversation_engine.py, conversation_kb_gaps_engine.py
+- **atlax** (2): atlax_engine.py, atlax_persona_engine.py
+- **auto** (2): auto_pilot_engine.py, auto_sync_engine.py
+- **buyer** (2): buyer_coach_engine.py, buyer_score_engine.py
+- **construction** (2): construction_cost_engine.py, construction_quality_engine.py
+- **crime** (2): crime_data_engine.py, crime_fgj_engine.py
+- **cross** (2): cross_check_engine.py, cross_sell_engine.py
+- **cube** (2): cube_4s_engine.py, cube_olap_engine.py
+- **director** (2): director_agent_engine.py, director_memory_engine.py
+- **estudio** (2): estudio_autopiloto_engine.py, estudio_mercado_engine.py
+- **feature** (2): feature_flags_engine.py, feature_gate_engine.py
+- **maps** (2): maps_cross_engine.py, maps_engine.py
+- **narrative** (2): narrative_engine.py, narrative_layer_engine.py
+- **score** (2): score_engine.py, score_inversion_engine.py
+- **social** (2): social_ads_engine.py, social_cards_engine.py
+- **zone** (2): zone_cycle_engine.py, zone_score_engine.py
+- **ab** (1): ab_testing_engine.py
+- **absorcion** (1): absorcion_engine.py
+- **accuracy** (1): accuracy_engine.py
+- **ai** (1): ai_quota_engine.py
+- **amenidades** (1): amenidades_engine.py
+- **anomaly** (1): anomaly_detection_engine.py
+- **anonymization** (1): anonymization_engine.py
+- **apify** (1): apify_trends_engine.py
+- **asesor** (1): asesor_digest_engine.py
+- **asistente** (1): asistente_engine.py
+- **audit** (1): audit_immutable_engine.py
+- **bancabilidad** (1): bancabilidad_engine.py
+- **battle** (1): battle_card_engine.py
+- **behavioral** (1): behavioral_tracking_engine.py
+- **brief** (1): brief_4s_engine.py
+- **briefing** (1): briefing_engine.py
+- **brochure** (1): brochure_engine.py
+- **bulk** (1): bulk_ingest_engine.py
+- **bulletins** (1): bulletins_engine.py
+- **captacion** (1): captacion_value_engine.py
+- **catastro** (1): catastro_sig_engine.py
+- **cerebro** (1): cerebro_mercado_engine.py
+- **churn** (1): churn_prediction_engine.py
+- **climate** (1): climate_migration_engine.py
+- **cma** (1): cma_engine.py
+- **colonia** (1): colonia_valoracion_engine.py
+- **comparable** (1): comparable_anomaly_engine.py
+- **comparator** (1): comparator_engine.py
+- **compare** (1): compare_engine.py
+- **compliance** (1): compliance_engine.py
+- **consumer** (1): consumer_4s_engine.py
+- **demanda** (1): demanda_demografica_engine.py
+- **dev** (1): dev_memory_engine.py
+- **developer** (1): developer_track_record_engine.py
+- **diagnostic** (1): diagnostic_engine.py
+- **dmx** (1): dmx_indices_engine.py
+- **drive** (1): drive_engine.py
+- **drpi** (1): drpi_engine.py
+- **engine** (1): engine_present.py
+- **entity** (1): entity_resolution_engine.py
+- **equilibrium** (1): equilibrium_engine.py
+- **external** (1): external_insights_engine.py
+- **extraction** (1): extraction_engine.py
+- **facet** (1): facet_engine.py
+- **fit** (1): fit_engine.py
+- **forecast** (1): forecast_engine.py
+- **fraud** (1): fraud_detection_engine.py
+- **free** (1): free_audit_engine.py
+- **fsd** (1): fsd_engine.py
+- **generador** (1): generador_producto_engine.py
+- **gentrification** (1): gentrification_engine.py
+- **geocode** (1): geocode_engine.py
+- **golden** (1): golden_calibration_engine.py
+- **gov** (1): gov_data_mx_engine.py
+- **grafo** (1): grafo_comprador_engine.py
+- **grid** (1): grid_engine.py
+- **hedonic** (1): hedonic_regression_engine.py
+- **hook** (1): hook_predictor_engine.py
+- **house** (1): house_pool_engine.py
+- **insights** (1): insights_factcheck_engine.py
+- **intelligence** (1): intelligence_insights_engine.py
+- **inversionista** (1): inversionista_engine.py
+- **investment** (1): investment_simulator_engine.py
+- **knowledge** (1): knowledge_graph_engine.py
+- **liv** (1): liv_engine.py
+- **live** (1): live_pulse_engine.py
+- **lote** (1): lote_veredicto_engine.py
+- **marketing** (1): marketing_mcp_engine.py
+- **marketplace** (1): marketplace_templates_engine.py
+- **mcp** (1): mcp_distribution_engine.py
+- **model** (1): model_validation_engine.py
+- **mood** (1): mood_engine.py
+- **natural** (1): natural_risk_engine.py
+- **newsletter** (1): newsletter_pulse_engine.py
+- **norma3** (1): norma3_engine.py
+- **notifications** (1): notifications_engine.py
+- **osm** (1): osm_engine.py
+- **ownership** (1): ownership_economics_engine.py
+- **parallax** (1): parallax_engine.py
+- **perception** (1): perception_risk_engine.py
+- **perfil** (1): perfil_zona_engine.py
+- **picks** (1): picks_engine.py
+- **pipeline** (1): pipeline_engine.py
+- **plusvalia** (1): plusvalia_grid_engine.py
+- **predictive** (1): predictive_alerts_engine.py
+- **predio** (1): predio_due_diligence_engine.py
+- **preferencias** (1): preferencias_engine.py
+- **price** (1): price_context_engine.py
+- **private** (1): private_beta_engine.py
+- **probability** (1): probability_engine.py
+- **project** (1): project_wizard_engine.py
+- **rag** (1): rag_engine.py
+- **reputation** (1): reputation_monitor_engine.py
+- **resend** (1): resend_engine.py
+- **reverse** (1): reverse_search_engine.py
+- **reviews** (1): reviews_residents_engine.py
+- **risk** (1): risk_score_engine.py
+- **shf** (1): shf_engine.py
+- **sig** (1): sig_catastro_engine.py
+- **simulador** (1): simulador_palancas_engine.py
+- **smart** (1): smart_lists_engine.py
+- **soc** (1): soc_franchise_engine.py
+- **state** (1): state_of_cdmx_engine.py
+- **stripe** (1): stripe_billing_engine.py
+- **tax** (1): tax_projector_engine.py
+- **terminal** (1): terminal_mercado_engine.py
+- **tour** (1): tour_3dgs_engine.py
+- **transaction** (1): transaction_network_engine.py
+- **unidad** (1): unidad_insights_engine.py
+- **valor** (1): valor_residual_engine.py
+- **valores** (1): valores_unitarios_engine.py
+- **vertical** (1): vertical_products_engine.py
+- **video** (1): video_standalone_engine.py
+- **virtual** (1): virtual_staging_engine.py
+- **voice** (1): voice_atlax_engine.py
+- **whatif** (1): whatif_engine.py
+- **whatsapp** (1): whatsapp_engine.py
+- **workflow** (1): workflow_engine.py
+
+## 4 · Páginas front superadmin
+- CatalogProjectDrawer.js
+- CompetenciaRed.js
+- Comportamiento.js
+- DataSourceDetailPage.js
+- DesarrollosPanorama.js
+- DocumentsPage.js
+- DondeConstruir.js
+- GustoMercado.js
+- MacroCiudad.js
+- ObservabilidadIA.js
+- PrimitivesDemo.js
+- ScoresPage.js
+- StockSoldOut.js
+- SuperadminAiCost.js
+- SuperadminAltaDesarrolladores.js
+- SuperadminApiKeys.js
+- SuperadminAprendizaje.js
+- SuperadminAuditChain.js
+- SuperadminAuditLog.js
+- SuperadminAuditUnified.js
+- SuperadminAvmAccuracy.js
+- SuperadminBulkIngest.js
+- SuperadminBulletins.js
+- SuperadminCalibracion.js
+- SuperadminCatalogPulse.js
+- SuperadminCerebroMercado.js
+- SuperadminClimateMigration.js
+- SuperadminCommercial.js
+- SuperadminCompliance.js
+- SuperadminConstructionQuality.js
+- SuperadminCrecimientoHub.js
+- SuperadminCrossSellAnalytics.js
+- SuperadminDRPI.js
+- SuperadminDataLake.js
+- SuperadminDataLicensing.js
+- SuperadminDataSources.js
+- SuperadminDataSourcesHub.js
+- SuperadminDatosHub.js
+- SuperadminDemandaMercado.js
+- SuperadminDesarrolladorFicha.js
+- SuperadminDesarrolloFicha.js
+- SuperadminDesarrollos.js
+- SuperadminDevtoolsHub.js
+- SuperadminDrivePage.js
+- SuperadminDuplicates.js
+- SuperadminEntityResolution.js
+- SuperadminFSDAccuracy.js
+- SuperadminFeatureVisibility.js
+- SuperadminForecastAccuracy.js
+- SuperadminFounderConsole.js
+- SuperadminFraudAlerts.js
+- SuperadminFraudPatterns.js
+- SuperadminFreeAuditFunnel.js
+- SuperadminGemeloDemanda.js
+- SuperadminGovDataMx.js
+- SuperadminGrafoComprador.js
+- SuperadminGranularidad.js
+- SuperadminHealth.js
+- SuperadminHubMercado.js
+- SuperadminIaConversacionalHub.js
+- SuperadminIndices.js
+- SuperadminInmobiliariaLeads.js
+- SuperadminInteligenciaHub.js
+- SuperadminIntelligenceHub.js
+- SuperadminInvestmentExplorer.js
+- SuperadminInvites.js
+- SuperadminKnowledgeGraph.js
+- SuperadminLandingLeads.js
+- SuperadminLeadEnrichment.js
+- SuperadminLeadSources.js
+- SuperadminLivePulse.js
+- SuperadminMarketingMcp.js
+- SuperadminMarketplaceTemplates.js
+- SuperadminMetricsCube.js
+- SuperadminModeloHub.js
+- SuperadminMonetizacionHub.js
+- SuperadminNewsletter.js
+- SuperadminObservability.js
+- SuperadminObservabilityPage.js
+- SuperadminOnboardingAnalytics.js
+- SuperadminOperacionHub.js
+- SuperadminPartners.js
+- SuperadminPhase5Foundation.js
+- SuperadminProyectoFicha.js
+- SuperadminRagInspector.js
+- SuperadminRecipesCoverage.js
+- SuperadminReputationMonitor.js
+- SuperadminReviewsResidents.js
+- SuperadminRiskAlerts.js
+- SuperadminRiskScore.js
+- SuperadminSocFranchise.js
+- SuperadminSocialAds.js
+- SuperadminSocialCards.js
+- SuperadminTenants.js
+- SuperadminTerminalMercado.js
+- SuperadminTerminalZona.js
+- SuperadminTransactionNetwork.js
+- SuperadminTrends.js
+- SuperadminVerticalProducts.js
+- SuperadminVideoStandalone.js
+- SuperadminVirtualStaging.js
+- SuperadminWhatsApp.js
+- SuperadminWidgetEmbeds.js
+- SystemMap.js
+- UserDiagnostics.js
+
+## 5 · Componentes front superadmin
+- ABExperimentsModal.js
+- AbTestCreateModal.js
+- AlertItem.js
+- AnalisisPanel.js
+- AnomalyFeed.js
+- ApiKeyCard.js
+- AtlasPanel.js
+- AtlaxPersonaPanel.js
+- AuditEntryDrawer.js
+- BeforeAfterDiff.js
+- CapModal.js
+- CeldaPanel.js
+- ColoniaPicker.js
+- CommandPaletteExtended.js
+- ComparablesMatrix.js
+- CompararPanel.js
+- ConnectModal.js
+- ConnectorCard.js
+- CostBreakdownTable.js
+- CronCard.js
+- CubeActuarView.js
+- CubeAtomView.js
+- CubeBreadcrumb.js
+- CubeCatalogView.js
+- CubeCrossCutView.js
+- CubeDrilldownTable.js
+- CubeEquilibrioView.js
+- CubeExploradorView.js
+- CubeHeatmap.js
+- CubeHistoriaView.js
+- CubeIntelPanel.js
+- CubeKpiStrip.js
+- CubeLicensableView.js
+- CubeReportesView.js
+- DataLicensingBundleCard.js
+- DsrRequestCard.js
+- DuplicateDiffCard.js
+- EtlRunsTable.js
+- ExecutiveKpiGrid.js
+- ExploradorPanel.js
+- FacetPanel.js
+- FeatureFlagsChecklist.js
+- FeatureMatrixGrid.js
+- FeatureTemplateModal.js
+- FraudAlertCard.js
+- FsdDistributionTab.js
+- GridPanel.js
+- HallazgoView.js
+- HeatmapPanel.js
+- HedonicCoefficientsTable.js
+- ImpersonationBanner.js
+- Indicador.js
+- IngestionJobCard.js
+- InlineEditableField.js
+- KGAnomaliesPanel.js
+- KGGraphViz.js
+- KGMonitoringPanel.js
+- KGQueryTemplates.js
+- LivePulseAlertsTab.js
+- LivePulseFrequencyModal.js
+- LivePulseMapTab.js
+- LivePulseReadinessTab.js
+- LivePulseTimelineTab.js
+- MarketInsightsPanel.js
+- MemorandumPanel.js
+- MergeDiffVisualizer.js
+- ModelMixChart.js
+- MotoresPanel.js
+- MultiLayerHeatmap.js
+- PhaseYControlsPanel.js
+- PlanTemplateCard.js
+- PlansPanel.js
+- PriceIndexChart.js
+- QuickActionsToolbar.js
+- ReviewQueueItem.js
+- RiskAlertCard.js
+- ScreenerPanel.js
+- SnapshotApplyModal.js
+- SnapshotCard.js
+- StripeSubscriptionPanel.js
+- SuperadminAbTesting.js
+- SuperadminConversationCost.js
+- SuperadminConversationDrift.js
+- SuperadminConversations.js
+- SuperadminCopilot.js
+- SuperadminKbGaps.js
+- SuperadminLayout.js
+- TransactionFeed.js
+- UnitDemandPanel.js
+- UploadModal.js
+- UserQuotaPanel.js
+- ValidationMetricsTable.js
+- VerticalProductCard.js
+
+## 6 · Huecos detectados (prender/conectar — entran al plan del rebuild)
+- Estudio de Mercado del DEV: comercio-pb + cuota-recomendada sin UI (motor listo).
+- /api/zones-public (W5.2: 6 sub-scores + landings SEO) sin consumidor front propio.
+- Señales lens/module_open capturadas sin tablero de uso (telemetría UI).
+- Terminal de Mercado CDMX: 1 solo control visible (página flaca vs motor detrás).
+- /inmobiliaria-leads: 0 tabs en crawl (estado vacío a revisar).
