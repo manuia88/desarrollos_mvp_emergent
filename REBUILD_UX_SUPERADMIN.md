@@ -108,3 +108,17 @@ Orden founder: 'cero deuda, corrige, mejora e implementa'. Las 2 oportunidades a
   👤 Demanda 33 · 🏗️ Inventario 9 · 💰 Dinero 13 · ⚙️ Operación 23 · 📦 Productos 3), server-driven
   del catálogo (fetch solo superadmin, fail-soft). El sidebar y el catálogo muestran el MISMO número.
 Verificado en navegador: 6 dominios con su color propio + conteo correcto. Front 181.
+
+
+## FASE D — auditoría + cierre de gaps (cero deuda) — ✅ 2026-07-13
+Audité mi propia Fase D. Hallazgos y fixes:
+- ✅ Los 7 lentes funcionan (verificado navegación real: ?lente=macro abre 'Macro y Ciudad' con su contenido).
+- 🔴 DEFECTO: el deep-link de lentes solo leía el URL al MONTAR → si el URL cambiaba estando ya en
+  Desarrollos, no reaccionaba. Fix: useEffect sobre location.search (robusto).
+- 🔴 GAP de descubribilidad: los 62 sub-tabs de los 6 hubs (Operación 15, Datos 8, Monetización 11,
+  Crecimiento 11, Inteligencia 10, IA-Conversacional 7) NO todos se encontraban — 'gov data' daba
+  0 resultados. Estándar honesto: los lentes (2-niveles) son piezas propias; los tabs (1-nivel,
+  visibles al abrir el hub) van como 'incluye' de su hub-vista. Fix: registro _HUB_INCLUYE lista
+  las 62 pestañas → searchable (backend buscar + front) + visibles como chips en la card del hub.
+  Verificado: gov data→Ingesta, reputación→Salud, rag inspector→IA Conversacional. Gap cerrado.
+Tests: hubs listan pestañas + 'gov data' encuentra su hub. Suites: backend 1545 · front 181.

@@ -36,6 +36,14 @@ function Pieza({ p, onIr }) {
           {p.necesita?.length > 0 && <div style={{ fontSize: 11, opacity: 0.7 }}>Necesita: {p.necesita.join(', ')}</div>}
         </div>
       )}
+      {/* pestañas del hub (incluye): buscar cualquiera de ellas encuentra este hub */}
+      {p.incluye?.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+          {p.incluye.map((t) => (
+            <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(240,235,224,0.6)' }}>{t}</span>
+          ))}
+        </div>
+      )}
       {p.ruta_ui && (
         <button onClick={() => onIr(p.ruta_ui)} data-testid={`ir-${p.id}`} style={{ marginTop: 2, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, cursor: 'pointer' }}>
           Ir <ArrowRight size={13} />
@@ -71,7 +79,7 @@ export default function SuperadminCatalogo({ dominioInicial = '', user, onLogout
       if (tipo && p.tipo !== tipo) return false;
       if (necesita && !(p.necesita || []).includes(necesita)) return false;
       if (t) {
-        const heno = [p.titulo, p.que_es, p.que_dice, p.beneficio, p.que_hago, ...(p.temas || [])].join(' ').toLowerCase();
+        const heno = [p.titulo, p.que_es, p.que_dice, p.beneficio, p.que_hago, ...(p.temas || []), ...(p.incluye || [])].join(' ').toLowerCase();
         if (!heno.includes(t)) return false;
       }
       return true;

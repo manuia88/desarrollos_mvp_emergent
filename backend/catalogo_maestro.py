@@ -405,10 +405,42 @@ def _piezas_de_features() -> List[Dict[str, Any]]:
     return out
 
 
+# FASE D (auditoría): cada hub-vista LISTA sus pestañas → buscar cualquier término de tab
+# encuentra su hub (cerró el gap 'gov data'→0). Los tabs son 1-nivel (visibles al abrir el hub),
+# por eso van como 'incluye' del hub, no como pieza propia (los lentes de 2-niveles sí son piezas).
+_HUB_INCLUYE: Dict[str, List[str]] = {
+    "ingesta_datos": ["Ingesta masiva", "Conectores", "Gov Data MX", "Drive", "Data Lake",
+                      "Documentos", "Cobertura de datos", "Pulso del catálogo"],
+    "operacion_salud": ["Salud sistema", "Observabilidad", "ROI & Phase Y", "Actividad unificada",
+                        "Audit log", "Cadena SHA-256", "Compliance", "Patrones de fraude",
+                        "Alertas de fraude", "Alertas de riesgo", "Duplicados",
+                        "Resolución de entidades", "Visibilidad de funciones", "Widgets embebidos",
+                        "Reputación de marca"],
+    "monetizacion": ["API Keys & Uso", "Bundles B2B", "Probar API", "Cross-sell", "Franquicia SOC",
+                     "Plantillas marketplace", "Enriquecimiento de leads", "Social Ads", "Video",
+                     "Costo de IA", "Comercial & Planes"],
+    "crecimiento": ["WhatsApp", "Newsletter", "Boletines", "Tarjetas sociales",
+                    "Distribución social", "Leads de landing", "Embudo auditoría",
+                    "Fuentes de leads", "Onboarding", "Aliados", "Invitaciones"],
+    "inteligencia_demanda": ["Demanda de mercado", "Gemelo de demanda", "Grafo del comprador",
+                             "Google Trends", "Calidad de obra", "Reseñas de residentes",
+                             "Staging virtual", "Investment Explorer", "Granularidad",
+                             "Migración climática"],
+    "ia_conversacional": ["Conversaciones", "Copiloto", "Costo", "Huecos de conocimiento",
+                          "A/B de prompts", "Drift", "RAG Inspector"],
+}
+
+
 def construir_catalogo() -> Dict[str, Any]:
     """El catálogo COMPLETO: piezas propias + reportes auto-descritos + features de pricing.
     Idempotente y puro (sin I/O) salvo la lectura de los registros vivos."""
     piezas = list(_PIEZAS) + _piezas_de_reportes() + _piezas_de_features()
+    # enriquecer los hubs con sus pestañas (searchable + visible como 'incluye')
+    for p in piezas:
+        tabs = _HUB_INCLUYE.get(p["id"])
+        if tabs:
+            p["incluye"] = tabs
+            p["temas"] = list(dict.fromkeys(p["temas"] + [t.lower() for t in tabs]))
     # dedup por id (last-write-wins), estable
     vistos: Dict[str, Dict[str, Any]] = {}
     for p in piezas:
@@ -449,7 +481,8 @@ def buscar(catalogo: Dict[str, Any], *, texto: str = "", dominio: str = "",
             continue
         if t:
             heno = " ".join([p["titulo"], p["que_es"], p["que_dice"], p["beneficio"],
-                             p["que_hago"], " ".join(p["temas"])]).lower()
+                             p["que_hago"], " ".join(p["temas"]),
+                             " ".join(p.get("incluye", []))]).lower()
             if t not in heno:
                 continue
         out.append(p)

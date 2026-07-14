@@ -49,6 +49,22 @@ def test_busqueda_universal():
     assert all(p["dominio"] == "demanda" for p in r2["piezas"])
 
 
+def test_hubs_listan_sus_pestanas():
+    """AUDITORÍA D: cada hub-vista debe listar sus pestañas ('incluye') para que buscar
+    cualquier término de sub-tab lo encuentre (cerró el gap 'gov data'→0 resultados)."""
+    cat = construir_catalogo()
+    porid = {p["id"]: p for p in cat["piezas"]}
+    # el hub de datos incluye 'Gov Data MX' → buscar 'gov data' lo encuentra
+    assert "Gov Data MX" in porid["ingesta_datos"].get("incluye", [])
+    r = buscar(cat, texto="gov data")
+    assert r["n"] >= 1 and any(p["id"] == "ingesta_datos" for p in r["piezas"])
+    # operación incluye compliance/fraude/observabilidad
+    inc = porid["operacion_salud"].get("incluye", [])
+    assert "Compliance" in inc and "Patrones de fraude" in inc
+    for term in ("compliance", "fraude", "duplicados", "reputación"):
+        assert buscar(cat, texto=term)["n"] >= 1, f"'{term}' no encuentra su hub"
+
+
 def test_contadores_coherentes():
     cat = construir_catalogo()
     assert cat["n_piezas"] == len(cat["piezas"])

@@ -4,7 +4,7 @@
  * Reusa /api/superadmin/devmaster/projects (filtros + facetas).
  */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Search } from 'lucide-react';
 import { fetchDevmasterProjects, ASSET_BASE, fetchPendingApproval, approveProject } from '../../api/superadminDevmaster';
@@ -135,6 +135,14 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
   const _sp = new URLSearchParams(window.location.search);
   const [view, setView] = useState(_sp.get('view') || 'panorama'); // panorama | inteligencia | catalogo
   const [lente, setLente] = useState(_sp.get('lente') || 'construir'); // lente activo dentro de Inteligencia
+  // robustez (auditoría D): si el URL cambia estando ya en la página (ej. otro link del catálogo),
+  // reacciona — no solo al montar.
+  const _loc = useLocation();
+  useEffect(() => {
+    const q = new URLSearchParams(_loc.search);
+    if (q.get('view')) setView(q.get('view'));
+    if (q.get('lente')) setLente(q.get('lente'));
+  }, [_loc.search]);
   const [facetas, setFacetas] = useState({});
   const verInteligencia = (k) => { setLente(k); setView('inteligencia'); };
 
