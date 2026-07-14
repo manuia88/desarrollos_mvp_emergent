@@ -146,3 +146,18 @@ GUARDIA PERMANENTE: tests/test_matriz_trazabilidad.py congela la prueba — si a
 vista o agrega una capacidad sin casa, el test se pone rojo. Suites: backend 1548 · front 181.
 
 ═══ REBUILD UX SUPERADMIN COMPLETO (Fases A→E). Cero pérdida demostrada con números. ═══
+
+
+## AUDITORÍA de la Fase E (independiente) — ✅ 2026-07-13
+Auditada la matriz misma (era juez y parte). 4 trampas revisadas:
+- Trampa 1 (dirección inversa): ✅ las 24 rutas del nav apuntan a página montada; granularidad/
+  gemelo-demanda son redirects vivos al hub Inteligencia (mejor de lo que la matriz decía).
+- Trampa 2 (over-clasificación): 🔴 DEFECTO — el clasificador chequeaba el léxico de controles
+  ANTES que el registro de capacidades, así que vistas reales (Explorador árbol, Corte cruzado,
+  Comparar zonas, Átomo, Licenciable, Historia…) caían en 'cromo'. Fix: incluye gana primero +
+  las 8 vistas del Hub de Mercado agregadas a incluye. Split honesto: 152 capacidades / 106 cromo
+  (antes 140/118), sigue 0 sin casa. Verificado en vivo que las 8 se buscan.
+- Trampa 3 (paridad front): ✅ el buscador del front incluye ...(p.incluye) — igual que el backend.
+- Trampa 4 (dientes del test): ✅ borrar ruta de nav+catálogo → test rojo; borrarla solo del nav
+  (sigue en catálogo) → verde (correcto, aún tiene casa). El guardia sirve.
+Suites: backend 1548 · front 181.

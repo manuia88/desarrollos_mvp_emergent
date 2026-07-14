@@ -102,13 +102,16 @@ def clasificar_tab(label, ux):
         return "CROMO", "número/valor de UI (no capacidad)"
     if re.search(r"(mrr|arr)\s*\$", n) or "$" in n:  # readout de KPI ("MRR$0ARR $0")
         return "CROMO", "indicador numérico del tablero (no capacidad)"
+    # ORDEN IMPORTA (hallazgo auditoría E): el registro EXPLÍCITO de capacidades gana ANTES
+    # que el léxico de controles — si no, una vista real ('Explorador (árbol)', 'Corte cruzado')
+    # se marcaría cromo solo porque su nombre choca con una palabra genérica.
+    if n in ux["incluye"]:
+        return "INCLUYE_HUB", "listado como pestaña/vista de su hub (buscable)"
     if n in FILTROS_TIEMPO or n in CONTROLES_UI or n in ESTADO_VALOR:
         return "CROMO", "filtro/control/valor — se conserva dentro de su página"
     if any(a in n for a in ACCIONES):
         return "CROMO", "botón de acción (verbo) — no es un destino navegable"
-    if n in ux["incluye"]:
-        return "INCLUYE_HUB", "listado como pestaña de su vista (buscable)"
-    # ¿aparece como término buscable de alguna pieza?
+    # ¿aparece como término buscable de alguna pieza? (fuzzy, va al final para no pisar filtros)
     for h in ux["heno"]:
         if len(n) >= 3 and (n == h or n in h or h in n):
             return "EN_CATALOGO", "hallable por búsqueda"

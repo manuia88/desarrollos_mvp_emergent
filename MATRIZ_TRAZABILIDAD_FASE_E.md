@@ -1,7 +1,7 @@
 # FASE E — MATRIZ DE TRAZABILIDAD (prueba de cero pérdida)
 
 Crawl original: **24 páginas** · **296 pestañas**
-UX nueva: 24 rutas en el menú · 23 rutas en el Catálogo · 76 piezas · 107 pestañas de hub indexadas
+UX nueva: 24 rutas en el menú · 23 rutas en el Catálogo · 76 piezas · 112 pestañas de hub indexadas
 
 ## Nivel 1 — cada página del crawl → su casa
 
@@ -34,8 +34,8 @@ UX nueva: 24 rutas en el menú · 23 rutas en el Catálogo · 76 piezas · 107 p
 
 ## Nivel 2 — cada pestaña del crawl → su clasificación
 
-- 🔎 capacidad hallable en Catálogo / pestaña de vista: **140**
-- ⚙️  botón / filtro / valor de UI (se conserva dentro de su página, no es capacidad): **118**
+- 🔎 capacidad hallable en Catálogo / pestaña de vista: **152**
+- ⚙️  botón / filtro / valor de UI (se conserva dentro de su página, no es capacidad): **106**
 - 🔴 SIN CASA: **0**
 - (total pestañas: 258)
 

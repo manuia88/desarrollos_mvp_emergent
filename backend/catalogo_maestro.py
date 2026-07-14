@@ -438,12 +438,14 @@ _HUB_INCLUYE: Dict[str, List[str]] = {
     "terminal_zona": ["Explorar", "Analizar", "Reportar", "Celda atómica", "Explorador (árbol)",
                       "Mapa de tensión", "Atlas de zonas", "Por desarrollo"],
     "live_pulse": ["Heatmap", "Timeline", "Alertas", "Readiness"],
-    "cubo_metricas": ["Comparar zonas", "Drill-down", "Corte cruzado", "Backfill histórico"],
+    "cubo_metricas": ["Comparar zonas", "Drill-down", "Corte cruzado"],
     "knowledge_graph": ["Preguntas al grafo", "Grafo", "Anomalías", "Monitoring"],
     "phase5_foundation": ["DENUE", "Costos de construcción", "Zone Scores"],
     "devtools": ["Primitivas UI", "Mapa del sistema", "Diagnóstico de usuarios"],
     "intelligence_hub": ["Precio", "Demanda", "Riesgo", "Oferta"],
-    "hub_mercado": ["Equilibrio 4S", "Asequibilidad", "Vida a pie y segura", "Explorador"],
+    "hub_mercado": ["Equilibrio 4S", "Asequibilidad", "Vida a pie y segura", "Explorador",
+                    "Reportes", "Corte cruzado", "Historia", "Átomo", "Actuar",
+                    "Licenciable", "Preguntar al Copiloto"],
 }
 
 
