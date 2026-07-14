@@ -66,20 +66,28 @@ async def record_correction(db, folder_key: str, project_name: str, patch: Dict[
 
 
 async def profile_hints(db, folder_key: str) -> Optional[str]:
-    """Línea de advertencia para el prompt del recon (None si el drive no tiene historia)."""
+    """Advertencias para el prompt del recon: la huella APRENDIDA (correcciones previas) + el
+    PATRÓN DEL FOUNDER (notas de cómo trabaja ese dev, escritas en el manifiesto del vigía).
+    None si el drive no tiene ni historia ni notas."""
     if not folder_key:
         return None
     try:
         prof = await db.extraction_profiles.find_one({"folder_key": folder_key}, {"_id": 0})
-        if not prof or not prof.get("correcciones"):
+        if not prof:
             return None
+        lineas = []
+        # el patrón del founder MANDA (va primero): reglas de cómo trabaja este dev
+        if prof.get("notas_founder"):
+            lineas.append("PATRÓN DE ESTE DEV (reglas del founder — SÍGUELAS): "
+                          + str(prof["notas_founder"]))
         partes = [f"{fam} ({n}x)" for fam, n in
-                  sorted(prof["correcciones"].items(), key=lambda kv: -kv[1]) if n > 0][:6]
-        if not partes:
-            return None
-        return ("HUELLA DE ESTE DRIVE: en corridas previas se corrigieron manualmente estos campos: "
-                + ", ".join(partes) + ". Pon ATENCIÓN ESPECIAL en extraerlos bien esta vez "
-                "(verifica columna/etiqueta exacta en la fuente).")
+                  sorted((prof.get("correcciones") or {}).items(), key=lambda kv: -kv[1])
+                  if n > 0][:6]
+        if partes:
+            lineas.append("HUELLA DE ESTE DRIVE: en corridas previas se corrigieron manualmente "
+                          "estos campos: " + ", ".join(partes) + ". Pon ATENCIÓN ESPECIAL en "
+                          "extraerlos bien esta vez (verifica columna/etiqueta exacta en la fuente).")
+        return "\n".join(lineas) if lineas else None
     except Exception as e:  # noqa: BLE001
         log.warning(f"[extraction_profiles] hints: {e}")
         return None

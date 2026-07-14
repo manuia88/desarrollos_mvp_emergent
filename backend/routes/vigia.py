@@ -100,11 +100,60 @@ class RechazoIn(BaseModel):
     razon: str = Field(default="", max_length=300)
 
 
+# ─── EL MANIFIESTO: tu carpeta → el dev de la plataforma + su patrón ──────────
+async def _devs_plataforma(db):
+    """La identidad de un dev = dev_org_id (tenant de su usuario o shell sin reclamar)."""
+    out, seen = [], set()
+    async for u in db.users.find({"role": "developer_admin"},
+                                 {"_id": 0, "tenant_id": 1, "name": 1}).limit(500):
+        if u.get("tenant_id") and u["tenant_id"] not in seen:
+            seen.add(u["tenant_id"])
+            out.append({"dev_org_id": u["tenant_id"], "name": u.get("name") or u["tenant_id"]})
+    async for o in db.dev_orgs.find({}, {"_id": 0, "tenant_id": 1, "name": 1}).limit(500):
+        if o.get("tenant_id") and o["tenant_id"] not in seen:
+            seen.add(o["tenant_id"])
+            out.append({"dev_org_id": o["tenant_id"], "name": o.get("name") or o["tenant_id"]})
+    return sorted(out, key=lambda x: (x["name"] or "").lower())
+
+
+@router.get("/vigia/manifiesto")
+async def ver_manifiesto(request: Request):
+    await require_superadmin(request)
+    db = _db(request)
+    rows = await db.vigia_manifiesto.find({}, {"_id": 0}).sort("dev_carpeta", 1).to_list(200)
+    return {"mapeos": rows, "devs_plataforma": await _devs_plataforma(db)}
+
+
+class MapeoIn(BaseModel):
+    fuente_id: str
+    dev_carpeta: str = Field(min_length=1, max_length=200)     # nombre de la carpeta en TU drive
+    dev_org_id: str = Field(min_length=1)                      # el dev de la plataforma
+    dev_folder_id: str = Field(default="", max_length=120)
+    patron_notas: str = Field(default="", max_length=1500)     # cómo trabaja este dev (para el RECON)
+
+
+@router.put("/vigia/manifiesto")
+async def guardar_mapeo(request: Request, body: MapeoIn):
+    await require_superadmin(request)
+    db = _db(request)
+    existe = (await db.users.find_one({"role": "developer_admin", "tenant_id": body.dev_org_id},
+                                      {"_id": 0, "tenant_id": 1})
+              or await db.dev_orgs.find_one({"tenant_id": body.dev_org_id},
+                                            {"_id": 0, "tenant_id": 1}))
+    if not existe:
+        raise HTTPException(404, "Ese desarrollador no existe en la plataforma (créalo en Alta manual)")
+    doc = await VE.mapear_dev(db, body.fuente_id, body.dev_carpeta, body.dev_org_id,
+                              body.dev_folder_id, body.patron_notas)
+    return {"ok": True, "mapeo": doc}
+
+
 @router.post("/vigia/pendientes/{pendiente_id}/aprobar")
 async def aprobar(request: Request, pendiente_id: str):
     user = await require_superadmin(request)
     try:
         resultado = await VE.aprobar_pendiente(_db(request), pendiente_id, user.user_id)
+    except LookupError as e:          # sin mapeo en el manifiesto → la UI pide mapear
+        raise HTTPException(409, str(e))
     except ValueError as e:
         raise HTTPException(404, str(e))
     return {"ok": True, **resultado}

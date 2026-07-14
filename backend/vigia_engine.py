@@ -228,6 +228,33 @@ async def _notificar(db, resumen: Dict[str, Any]) -> None:
         log.warning(f"[vigia] correo falló: {e}")
 
 
+# ─── EL MANIFIESTO: carpeta del founder → dev de la plataforma + su patrón ────
+# Responde "¿cómo sabe el sistema que DESARROLLOS-CLASS es 'class' y Almina es su proyecto?":
+# NO adivina — TÚ lo declaras UNA vez y queda. Sin mapeo, la aprobación se niega (nada cae al
+# costal genérico superadmin_global). El patrón (notas de cómo trabaja ese dev) alimenta al
+# RECON de la ingesta vía extraction_profiles (la huella que ya existía).
+async def mapear_dev(db, fuente_id: str, dev_carpeta: str, dev_org_id: str,
+                     dev_folder_id: str = "", patron_notas: str = "") -> Dict[str, Any]:
+    doc = {"fuente_id": fuente_id, "dev_carpeta": dev_carpeta, "dev_org_id": dev_org_id,
+           "dev_folder_id": dev_folder_id, "patron_notas": patron_notas[:1500],
+           "updated_at": _now_iso()}
+    await db.vigia_manifiesto.update_one(
+        {"fuente_id": fuente_id, "dev_carpeta": dev_carpeta}, {"$set": doc}, upsert=True)
+    # las notas del founder viajan al RECON por la huella existente (extraction_profiles)
+    if dev_folder_id and patron_notas:
+        await db.extraction_profiles.update_one(
+            {"folder_key": dev_folder_id},
+            {"$set": {"notas_founder": patron_notas[:1500], "updated_at": _now_iso()}},
+            upsert=True)
+    return doc
+
+
+async def _dev_org_de(db, fuente_id: str, dev_carpeta: str) -> Optional[str]:
+    m = await db.vigia_manifiesto.find_one(
+        {"fuente_id": fuente_id, "dev_carpeta": dev_carpeta}, {"_id": 0, "dev_org_id": 1})
+    return (m or {}).get("dev_org_id")
+
+
 # ─── APROBAR / RECHAZAR (la única puerta que gasta: tu clic) ─────────────────
 async def aprobar_pendiente(db, pendiente_id: str, user_id: str) -> Dict[str, Any]:
     p = await db.vigia_pendientes.find_one({"id": pendiente_id, "estado": "pendiente"}, {"_id": 0})
@@ -236,6 +263,11 @@ async def aprobar_pendiente(db, pendiente_id: str, user_id: str) -> Dict[str, An
 
     resultado: Dict[str, Any] = {"accion": "archivado"}
     if p["tipo"] in ("proyecto_nuevo", "lista_nueva", "lista_cambiada", "dev_nuevo") and p.get("dev_folder_id"):
+        # identidad primero: sin mapeo en el manifiesto NO se ingiere (nada al costal genérico)
+        dev_org = await _dev_org_de(db, p["fuente_id"], p.get("dev") or "")
+        if not dev_org:
+            raise LookupError(f"Mapea primero '{p.get('dev')}' en el manifiesto "
+                              f"(¿a qué desarrollador de la plataforma corresponde?)")
         # tu clic ES la aprobación de gasto: arranca la ingesta del proyecto (o del dev completo)
         import asyncio
         import bulk_ingest_engine as bie
@@ -243,7 +275,7 @@ async def aprobar_pendiente(db, pendiente_id: str, user_id: str) -> Dict[str, An
         await db.bulk_ingest_jobs.insert_one({
             "id": job_id,
             "drive_folder_url": f"https://drive.google.com/drive/folders/{p['dev_folder_id']}",
-            "target_dev_org_id": None, "dry_run": False,
+            "target_dev_org_id": dev_org, "dry_run": False,
             "only_project": (p.get("proyecto") if p["tipo"] != "dev_nuevo"
                              and p.get("proyecto") not in (None, "", "(raíz)") else None),
             "status": "pending", "items_total": 0, "items_auto_approved": 0,

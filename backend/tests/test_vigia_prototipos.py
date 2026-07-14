@@ -186,13 +186,18 @@ def test_aprobar_lista_en_raiz_no_filtra_con_raiz():
         def __init__(self): self.inserted = None
         async def insert_one(self, d): self.inserted = d
 
+    class _Mani:
+        async def find_one(self, q, proj=None): return {"dev_org_id": "qc"}   # QC ya mapeado
+
     class _DB:
         def __init__(self, pend):
             self.vigia_pendientes = pend
             self.bulk_ingest_jobs = _Jobs()
+            self.vigia_manifiesto = _Mani()
 
     pend = _Pend({"id": "vp1", "estado": "pendiente", "tipo": "lista_cambiada",
                   "dev": "QC", "proyecto": "(raíz)", "dev_folder_id": "folder123",
+                  "fuente_id": "vf_1",
                   "archivo": {"id": "a1", "nombre": "precios varios.gsheet"}})
     db = _DB(pend)
 
@@ -208,3 +213,72 @@ def test_aprobar_lista_en_raiz_no_filtra_con_raiz():
     assert r["accion"] == "ingesta_disparada"
     assert db.bulk_ingest_jobs.inserted["only_project"] is None      # ← el fix
     assert db.bulk_ingest_jobs.inserted["origen"]["via"] == "vigia"  # linaje intacto
+
+
+def test_manifiesto_identidad_obligatoria():
+    """La pregunta del founder: '¿cómo sabe que DESARROLLOS-CLASS es class?' — NO adivina:
+    sin mapeo en el manifiesto la aprobación se NIEGA (nada al costal superadmin_global);
+    con mapeo, el job de ingesta lleva el dev_org correcto."""
+    import asyncio as _a
+    import pytest as _pt
+
+    class _Pend:
+        def __init__(self, doc): self.doc = doc
+        async def find_one(self, q, proj=None): return dict(self.doc)
+        async def update_one(self, q, u): pass
+
+    class _Jobs:
+        def __init__(self): self.inserted = None
+        async def insert_one(self, d): self.inserted = d
+
+    class _Mani:
+        def __init__(self, mapeo=None): self.mapeo = mapeo
+        async def find_one(self, q, proj=None): return self.mapeo
+        async def update_one(self, q, u, upsert=False): self.mapeo = u["$set"]
+
+    class _DB:
+        def __init__(self, mapeo=None):
+            self.vigia_pendientes = _Pend({"id": "vp1", "estado": "pendiente",
+                                           "tipo": "lista_cambiada", "dev": "DESARROLLOS-CLASS",
+                                           "proyecto": "Almina San Angel", "fuente_id": "vf_1",
+                                           "dev_folder_id": "fld_class"})
+            self.bulk_ingest_jobs = _Jobs()
+            self.vigia_manifiesto = _Mani(mapeo)
+            self.extraction_profiles = _Mani()
+
+    import vigia_engine as _ve
+    import bulk_ingest_engine as _bie
+    orig = _bie.run
+    async def _fake_run(db_, job_id): return None
+    _bie.run = _fake_run
+    try:
+        # SIN mapeo → se niega con mensaje claro
+        with _pt.raises(LookupError):
+            _a.run(_ve.aprobar_pendiente(_DB(mapeo=None), "vp1", "founder"))
+        # CON mapeo → el job lleva la identidad correcta
+        db = _DB(mapeo={"dev_org_id": "class"})
+        r = _a.run(_ve.aprobar_pendiente(db, "vp1", "founder"))
+        assert r["accion"] == "ingesta_disparada"
+        assert db.bulk_ingest_jobs.inserted["target_dev_org_id"] == "class"
+        assert db.bulk_ingest_jobs.inserted["only_project"] == "Almina San Angel"
+    finally:
+        _bie.run = orig
+
+
+def test_patron_del_founder_llega_al_recon():
+    """Las notas del manifiesto ('así trabaja este dev') viajan al prompt del RECON."""
+    import asyncio as _a
+
+    class _Prof:
+        async def find_one(self, q, proj=None):
+            return {"folder_key": "fld_class",
+                    "notas_founder": "Las listas están en la pestaña DISPONIBLE de cada Sheets",
+                    "correcciones": {"precio": 3}}
+
+    class _DB:
+        extraction_profiles = _Prof()
+
+    from extraction_profiles import profile_hints
+    hints = _a.run(profile_hints(_DB(), "fld_class"))
+    assert "PATRÓN DE ESTE DEV" in hints and "pestaña DISPONIBLE" in hints
+    assert "HUELLA DE ESTE DRIVE" in hints and "precio (3x)" in hints

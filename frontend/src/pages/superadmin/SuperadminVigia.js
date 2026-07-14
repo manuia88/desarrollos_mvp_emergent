@@ -32,6 +32,62 @@ const TIPO_HUMANO = {
   acceso_roto: ['⚠️', 'Perdimos acceso a este dev'],
 };
 
+const _put = (p, body) => fetch(`${API}/api/superadmin${p}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(_j);
+
+/* ── EL MANIFIESTO: tu carpeta → el dev de la plataforma + su patrón ── */
+function Manifiesto({ pendientes, fuentes, onChanged }) {
+  const [data, setData] = useState(null);
+  const [sel, setSel] = useState({});        // dev_carpeta → dev_org_id elegido
+  const [notas, setNotas] = useState({});    // dev_carpeta → patrón
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback(() => _get('/vigia/manifiesto').then(setData).catch((e) => setMsg(String(e.message))), []);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (!data) return null;
+
+  const mapeados = new Set(data.mapeos.map((m) => m.dev_carpeta));
+  // carpetas detectadas por el robot que AÚN no tienen dueño en la plataforma
+  const sinMapear = [...new Set(pendientes.filter((p) => p.dev && !mapeados.has(p.dev)).map((p) => JSON.stringify({ c: p.dev, f: p.dev_folder_id, fu: p.fuente_id })))].map((s) => JSON.parse(s));
+
+  const guardar = async (carpeta, folderId, fuenteId) => {
+    const dev = sel[carpeta];
+    if (!dev) { setMsg(`Elige a qué desarrollador corresponde "${carpeta}".`); return; }
+    try {
+      await _put('/vigia/manifiesto', { fuente_id: fuenteId || fuentes?.[0]?.id, dev_carpeta: carpeta, dev_org_id: dev, dev_folder_id: folderId || '', patron_notas: notas[carpeta] || '' });
+      setMsg(`"${carpeta}" mapeado ✓`); cargar(); onChanged();
+    } catch (e) { setMsg(String(e.message)); }
+  };
+
+  if (!sinMapear.length && !data.mapeos.length) return null;
+  return (
+    <div style={card}>
+      <div style={h3}>El manifiesto (quién es quién)</div>
+      <p style={p13}>Así sabe el sistema que tu carpeta "DESARROLLOS-CLASS" es el dev <i>class</i> y que sus proyectos van a su catálogo. Se declara UNA vez por dev; sin mapeo, nada se ingiere (nada cae a un costal genérico).</p>
+      {msg && <p style={{ ...p13, marginTop: 6, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
+      {sinMapear.map(({ c, f, fu }) => (
+        <div key={c} style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 0', display: 'grid', gap: 6 }}>
+          <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#d29922' }}>📂 {c} <span style={{ ...mini }}>· sin mapear</span></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <select data-testid={`map-sel-${c}`} style={{ ...inp, maxWidth: 300 }} value={sel[c] || ''} onChange={(e) => setSel({ ...sel, [c]: e.target.value })}>
+              <option value="">¿Qué desarrollador de la plataforma es?</option>
+              {data.devs_plataforma.map((d) => <option key={d.dev_org_id} value={d.dev_org_id}>{d.name}</option>)}
+            </select>
+            <button style={btn('ok')} data-testid={`map-ok-${c}`} onClick={() => guardar(c, f, fu)}><Check size={13} /> Mapear</button>
+          </div>
+          <input style={inp} placeholder="Patrón de este dev (opcional): cómo organiza sus carpetas, dónde pone las listas, qué ignorar… (la IA lo leerá al ingerir)"
+            value={notas[c] || ''} onChange={(e) => setNotas({ ...notas, [c]: e.target.value })} />
+          <span style={mini}>Si no aparece en la lista: créalo primero en «Alta manual» y regresa aquí.</span>
+        </div>
+      ))}
+      {data.mapeos.map((m) => (
+        <div key={m.dev_carpeta} style={{ ...mini, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '7px 0' }}>
+          ✓ {m.dev_carpeta} → <b style={{ color: 'var(--cream)' }}>{(data.devs_plataforma.find((d) => d.dev_org_id === m.dev_org_id) || {}).name || m.dev_org_id}</b>
+          {m.patron_notas ? ` · patrón: "${m.patron_notas.slice(0, 80)}${m.patron_notas.length > 80 ? '…' : ''}"` : ''}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function VigiaTab() {
   const [estado, setEstado] = useState(null);
   const [pend, setPend] = useState(null);
@@ -81,6 +137,8 @@ export function VigiaTab() {
           </div>
         ))}
       </div>
+
+      {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}
 
       <div style={card}>
         <div style={h3}>Bandeja de aprobación {pend?.length > 0 && <span style={{ color: '#d29922' }}>({pend.length})</span>}</div>
