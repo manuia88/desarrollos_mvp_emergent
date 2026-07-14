@@ -192,44 +192,85 @@ async def _resolve_drive_conn(db, target_dev_org_id: Optional[str]) -> Optional[
 
 # ─── Drive operations (sync wrappers via run_in_executor) ─────────────────────
 
+SHORTCUT_MIME = "application/vnd.google-apps.shortcut"
+
+
+def _resolver_shortcut(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Un acceso directo NO es el archivo — es un apuntador. Aquí lo 'cruzamos': devolvemos el
+    item como si fuera su destino (id/mime del target), conservando el nombre visible. Así la
+    carpeta maestra del founder (accesos directos a carpetas de devs) funciona igual que carpetas
+    reales. La fecha del shortcut se ignora (no cambia cuando cambia el destino)."""
+    if item.get("mimeType") == SHORTCUT_MIME:
+        det = item.get("shortcutDetails") or {}
+        if det.get("targetId"):
+            return {**item, "id": det["targetId"],
+                    "mimeType": det.get("targetMimeType") or item.get("mimeType"),
+                    "_via_shortcut": True}
+    return item
+
+
+def _huella(f: Dict[str, Any]) -> str:
+    """Huella de cambio REAL: md5 si existe (xlsx/pdf); los nativos de Google (Sheets/Docs) no
+    traen md5 → cae a la fecha de modificación. Distingue 'cambió de verdad' de 'lo abrieron'."""
+    return f.get("md5Checksum") or f"mt:{f.get('modifiedTime') or ''}"
+
+
+def _list_children_sync(svc, fid: str, is_api_key: bool) -> List[Dict[str, Any]]:
+    """UN nivel de una carpeta, con backoff anti-throttle y accesos directos RESUELTOS.
+    Compartido por el listado recursivo (ingesta) y el vigía (escaneo barato por metadata)."""
+    import time
+    out: List[Dict[str, Any]] = []
+    q = f"'{fid}' in parents and trashed = false"
+    page_token = None
+    while True:
+        # Reintenta con backoff si Google throttlea (API key comparte cuota / anti-abuso "Sorry…").
+        resp = None
+        for attempt in range(5):
+            try:
+                resp = svc.files().list(
+                    q=q,
+                    fields="files(id,name,mimeType,modifiedTime,size,md5Checksum,"
+                           "shortcutDetails),nextPageToken",
+                    pageSize=200, pageToken=page_token,
+                    supportsAllDrives=True, includeItemsFromAllDrives=True,
+                ).execute()
+                break
+            except Exception as e:  # noqa: BLE001
+                if attempt == 4:
+                    log.warning(f"[bulk_ingest] list falló en {fid} tras reintentos: {str(e)[:120]}")
+                    return out
+                time.sleep(1.5 * (2 ** attempt))   # 1.5s, 3s, 6s, 12s
+        if is_api_key:
+            time.sleep(0.25)   # respira entre páginas para no disparar el anti-abuso del key
+        out.extend(_resolver_shortcut(f) for f in (resp.get("files", []) or []))
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+    return out
+
+
+async def list_folder_children(conn: Dict[str, Any], folder_id: str) -> List[Dict[str, Any]]:
+    """API pública: hijos directos de una carpeta (shortcuts resueltos, md5 incluido). La usa el
+    vigía para leer la carpeta maestra del founder sin recorrer todo el árbol."""
+    from drive_engine import _drive_service
+    svc = await asyncio.to_thread(_drive_service, conn)
+    return await asyncio.to_thread(_list_children_sync, svc, folder_id,
+                                   bool(conn and conn.get("_mode") == "api_key"))
+
+
 async def _list_folder_recursive(conn: Dict[str, Any], folder_id: str) -> List[Dict[str, Any]]:
     """Todos los archivos bajo `folder_id` a CUALQUIER profundidad. Cada archivo se atribuye a la
     subcarpeta de PRIMER nivel de la que desciende (= el proyecto); los archivos sueltos en la raíz
     van al grupo raíz. Recorre subcarpetas anidadas (DFS, máx `MAX_TREE_DEPTH` niveles) hasta el tope
     global `MAX_FILES_PER_FOLDER`. Así una carpeta general → sub → sub-sub → … con PDFs adentro se
-    agrupa bien: el proyecto es la subcarpeta directa y hereda TODO lo que cuelga de ella."""
-    import time
+    agrupa bien: el proyecto es la subcarpeta directa y hereda TODO lo que cuelga de ella.
+    Los ACCESOS DIRECTOS se cruzan como si fueran su destino (carpeta maestra del founder)."""
     from drive_engine import _drive_service
     svc = await asyncio.to_thread(_drive_service, conn)
     is_api_key = bool(conn and conn.get("_mode") == "api_key")   # el key comparte cuota → throttle
 
     def _list_in(fid: str) -> List[Dict[str, Any]]:
-        out = []
-        q = f"'{fid}' in parents and trashed = false"
-        page_token = None
-        while True:
-            # Reintenta con backoff si Google throttlea (API key comparte cuota / anti-abuso "Sorry…").
-            resp = None
-            for attempt in range(5):
-                try:
-                    resp = svc.files().list(
-                        q=q, fields="files(id,name,mimeType,modifiedTime,size),nextPageToken",
-                        pageSize=200, pageToken=page_token,
-                        supportsAllDrives=True, includeItemsFromAllDrives=True,
-                    ).execute()
-                    break
-                except Exception as e:  # noqa: BLE001
-                    if attempt == 4:
-                        log.warning(f"[bulk_ingest] list falló en {fid} tras reintentos: {str(e)[:120]}")
-                        return out
-                    time.sleep(1.5 * (2 ** attempt))   # 1.5s, 3s, 6s, 12s
-            if is_api_key:
-                time.sleep(0.25)   # respira entre páginas para no disparar el anti-abuso del key
-            out.extend(resp.get("files", []) or [])
-            page_token = resp.get("nextPageToken")
-            if not page_token:
-                break
-        return out
+        return _list_children_sync(svc, fid, is_api_key)
 
     root_items = await asyncio.to_thread(_list_in, folder_id)
     all_files: List[Dict[str, Any]] = []

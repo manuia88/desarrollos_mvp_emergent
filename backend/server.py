@@ -653,6 +653,10 @@ app.include_router(kg_router)
 from routes.investor_room import router as investor_room_router
 app.include_router(investor_room_router)
 
+# El Vigía (rondas de Drive cada hora, bandeja de aprobación) + Prototipos v2
+from routes.vigia import router as vigia_router
+app.include_router(vigia_router)
+
 # W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)
@@ -2526,6 +2530,22 @@ async def startup():
             schedule_zone_data_cron(sched, db)
         except Exception as e:
             logging.warning(f"[zone_data] cron register failed: {e}")
+        # El Vigía: ronda CADA HORA (metadata pura, $0) + refresco de prototipos (código, $0).
+        # La única acción que gasta (ingesta con IA) sigue detrás del clic de aprobación.
+        try:
+            from apscheduler.triggers.interval import IntervalTrigger
+
+            async def _vigia_hourly():
+                import vigia_engine as _ve
+                import prototype_engine as _pe
+                r = await _ve.ronda(db)
+                if r.get("eventos"):
+                    await _pe.materializar_todos(db, bautizar=False)
+
+            sched.add_job(_vigia_hourly, IntervalTrigger(minutes=60),
+                          id="vigia_hourly", replace_existing=True, misfire_grace_time=600)
+        except Exception as e:
+            logging.warning(f"[vigia] cron register failed: {e}")
         try:
             from gentrification_engine import schedule_gentrification_cron
             schedule_gentrification_cron(sched, db)

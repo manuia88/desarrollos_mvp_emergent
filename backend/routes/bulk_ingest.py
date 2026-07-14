@@ -306,6 +306,14 @@ async def approve_item(item_id: str, request: Request):
                            before=None, after={"dev_id": dev_id}, request=request)
     except Exception as _e:
         log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s approve): %s", item_id, _e)
+    # PROTOTIPOS v2: tras aprobar, re-derivar los prototipos del catálogo (código puro, $0;
+    # fire-and-forget para no bloquear la respuesta). El marketplace recibe dmx_prototypes frescos.
+    try:
+        import asyncio as _aio
+        import prototype_engine as _pe
+        _aio.create_task(_pe.materializar_todos(db))
+    except Exception as _e:
+        log.warning("[prototipos] rederivar post-approve falló: %s", _e)
     return {"ok": True, "dev_id": dev_id}
 
 
@@ -420,6 +428,13 @@ async def bulk_approve(
                            before=None, after={"approved": approved, "skipped": skipped}, request=request)
     except Exception as _e:
         log.warning("[audit] log_mutation perdido (bulk_ingest_job/%s bulk_approve): %s", job_id, _e)
+    # PROTOTIPOS v2: catálogo cambió en lote → re-derivar prototipos (código puro, $0)
+    try:
+        import asyncio as _aio
+        import prototype_engine as _pe
+        _aio.create_task(_pe.materializar_todos(db))
+    except Exception as _e:
+        log.warning("[prototipos] rederivar post-bulk-approve falló: %s", _e)
     return {"approved_count": approved, "skipped_count": skipped}
 
 

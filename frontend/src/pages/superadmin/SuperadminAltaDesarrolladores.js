@@ -6,13 +6,15 @@
 import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { UserPlus, Building2, Check, UploadCloud, LayoutGrid, FolderUp, Layers, ListChecks, ChevronRight } from 'lucide-react';
+import { UserPlus, Building2, Check, UploadCloud, LayoutGrid, FolderUp, Layers, ListChecks, ChevronRight, Radar, Boxes } from 'lucide-react';
 import { altaDesarrollador, listarDesarrolladores, altaProyecto, uploadIngesta, ingestaJob } from '../../api/superadminAlta';
 import { fetchDriveOAuthUrl, listAllDriveConnections } from '../../api/drive';
 
 // Componentes que se EMBEBEN aquí para unificar todo en un solo lugar (aceptan prop `embedded`).
 const SuperadminBulkIngest = lazy(() => import('./SuperadminBulkIngest'));
 const SuperadminGranularidad = lazy(() => import('./SuperadminGranularidad'));
+const VigiaProto = lazy(() => import('./SuperadminVigia').then(m => ({ default: m.VigiaTab })));
+const ProtoTab   = lazy(() => import('./SuperadminVigia').then(m => ({ default: m.PrototiposTab })));
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '18px 20px' };
 const inp = { width: '100%', padding: '9px 11px', borderRadius: 9, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', marginTop: 4 };
@@ -25,7 +27,7 @@ function Field({ label, children }) {
 
 export default function SuperadminAltaDesarrolladores() {
   const nav = useNavigate();
-  const [tab, setTab] = useState('directorio');
+  const [tab, setTab] = useState(new URLSearchParams(window.location.search).get('tab') || 'directorio');
   const [devs, setDevs] = useState([]);
   const [msg, setMsg] = useState(null);      // {tipo:'ok'|'err', txt}
   const [busy, setBusy] = useState(false);
@@ -160,7 +162,7 @@ export default function SuperadminAltaDesarrolladores() {
         </p>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          {[['directorio', 'Directorio', LayoutGrid], ['manual', 'Alta manual', UserPlus], ['masiva', 'Carga masiva (IA)', FolderUp], ['granularidad', 'Granularidad', ListChecks]].map(([k, l, Ic]) => (
+          {[['directorio', 'Directorio', LayoutGrid], ['manual', 'Alta manual', UserPlus], ['masiva', 'Carga masiva (IA)', FolderUp], ['granularidad', 'Granularidad', ListChecks], ['vigia', 'Vigía', Radar], ['prototipos', 'Prototipos', Boxes]].map(([k, l, Ic]) => (
             <button key={k} data-testid={`alta-tab-${k}`} onClick={() => setTab(k)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: 10, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
                 background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
@@ -185,6 +187,8 @@ export default function SuperadminAltaDesarrolladores() {
               { k: 'masiva', t: 'Carga masiva con IA', s: 'Sube PDF/Excel/fotos o una carpeta de Drive → la IA llena todo.', Ic: FolderUp, go: () => setTab('masiva') },
               { k: 'granularidad', t: 'Granularidad de datos', s: 'Qué tan completo está cada dato por colonia y proyecto.', Ic: ListChecks, go: () => setTab('granularidad') },
               { k: 'catalogo', t: 'Catálogo y aprobación', s: 'Todos los proyectos + cola para publicar al marketplace.', Ic: Layers, go: () => nav('/superadmin/desarrollos') },
+              { k: 'vigia', t: 'Vigía de Drive', s: 'El robot ronda tu carpeta maestra cada hora y te avisa qué aprobar.', Ic: Radar, go: () => setTab('vigia') },
+              { k: 'prototipos', t: 'Prototipos', s: 'Los moldes de cada desarrollo, medidos por código (no adivinados).', Ic: Boxes, go: () => setTab('prototipos') },
             ].map((c) => (
               <button key={c.k} onClick={c.go} data-testid={`dir-card-${c.k}`}
                 style={{ ...card, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 7 }}
@@ -377,6 +381,16 @@ export default function SuperadminAltaDesarrolladores() {
           </div>
         )}
 
+        {tab === 'vigia' && (
+          <Suspense fallback={<div style={{ fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.6)', padding: 20 }}>Cargando el vigía…</div>}>
+            <VigiaProto />
+          </Suspense>
+        )}
+        {tab === 'prototipos' && (
+          <Suspense fallback={<div style={{ fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.6)', padding: 20 }}>Cargando prototipos…</div>}>
+            <ProtoTab />
+          </Suspense>
+        )}
         {tab === 'granularidad' && (
           <Suspense fallback={<div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.5)', padding: 12 }}>Cargando granularidad…</div>}>
             <SuperadminGranularidad embedded />
