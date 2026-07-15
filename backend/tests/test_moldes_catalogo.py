@@ -312,3 +312,43 @@ def test_corte_ancla_y_baja_al_atomo():
         assert False
     except ValueError:
         pass
+
+
+# ═══ LA FICHA DEL ÁTOMO ═══════════════════════════════════════════════════════
+def test_ficha_atomo_registro_y_faltas_honestas():
+    import ficha_atomo as FA
+    u = {"id": "u1", "unit_number": "A-107", "level": 1, "bedrooms": 3, "bathrooms": 2.5,
+         "m2_privative": 117.0, "patio_m2": 59.0, "m2_total": 176.0, "size_m2": 117.0,
+         "price_mxn": 8_004_300, "enganche_mxn": 1_604_300, "enganche_pct": 20.0,
+         "parking_spots": 2, "amueblado": "si", "status": "disponible"}
+    secs = FA.armar_ficha(u, {"nombre": "3R·117"}, {"flex_visual": True,
+                                                    "espacios_detalle": ["cocina"]})
+    plano = {c["label"]: c for s in secs for c in s["campos"]}
+    assert plano["m² habitables"]["valor"] == "117 m²"
+    assert plano["m² patio"]["valor"] == "59 m²"
+    assert plano["Recámara FLEX"]["valor"].startswith("sí")
+    assert plano["Enganche"]["valor"] == "$1,604,300 (20%)"
+    # lo que NO hay sale como FALTA con quién lo llena (jamás inventado)
+    assert plano["Tipo de cajón"]["valor"] is None
+    assert plano["Tipo de cajón"]["quien_llena"] == "el desarrollador"
+    assert plano["Orientación"]["quien_llena"].startswith("tú")
+
+
+def test_analisis_atomo_vs_molde_gemelas_y_demanda():
+    import ficha_atomo as FA
+    u = {"id": "u1", "unit_number": "A-501", "level": 5, "bedrooms": 2, "bathrooms": 2.0,
+         "size_m2": 100.0, "m2_total": 110.0, "m2_balcony": 10.0,
+         "price_mxn": 10_600_000, "status": "disponible", "_colonia_id": "tetelpan"}
+    gemela = {"id": "u2", "unit_number": "A-101", "level": 1, "size_m2": 100.0,
+              "price_mxn": 10_000_000, "status": "disponible"}
+    a = FA.analisis_atomo(u, [gemela], [gemela], [u, gemela],
+                          [{"id": "b1", "colonias": ["tetelpan"], "precio_max": 12_000_000,
+                            "recamaras_min": 2}],
+                          [{"ts": "2026-07-01", "precio": 10_400_000},
+                           {"ts": "2026-07-14", "precio": 10_600_000}])
+    assert a["vs_molde_pct"] == 6.0          # paga 6% sobre su gemela (piso 5 vs 1)
+    assert a["gemela_mas_barata"]["unidad"] == "A-101"
+    assert a["percentil_pm2"] == 100         # la más cara del desarrollo
+    assert a["busquedas_compatibles"] == 1
+    assert a["exterior_pct"] == 9.1
+    assert a["cambios_de_precio"] == 1 and a["primera_foto"] == "2026-07-01"

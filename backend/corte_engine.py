@@ -164,7 +164,7 @@ def _atomo_humano(u: Dict[str, Any], m: Dict[str, Any], d: Dict[str, Any]) -> Di
     """La unidad tal cual, lista para el drill (y para saltar a su Expediente)."""
     precio = u.get("price_mxn") or u.get("price")
     m2 = u.get("size_m2") or u.get("m2_total")
-    return {"unidad": u.get("unit_number"), "piso": u.get("level"),
+    return {"id": u.get("id"), "unidad": u.get("unit_number"), "piso": u.get("level"),
             "m2": m2, "precio": precio,
             "pm2": round(precio / m2) if precio and m2 else None,
             "estatus": (u.get("status") or "disponible").lower(),

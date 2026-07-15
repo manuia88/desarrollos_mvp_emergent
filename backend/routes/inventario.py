@@ -263,6 +263,19 @@ ORIENTACIONES = {"norte", "sur", "oriente", "poniente", "noreste", "noroeste",
                  "sureste", "suroeste"}
 
 
+@router.get("/unidad/{unit_id}/ficha")
+async def ficha_de_unidad(request: Request, unit_id: str):
+    """LA FICHA DEL ÁTOMO: todo lo que se sabe de UNA unidad (registro universal de
+    campos — lo que falta sale en ámbar con quién lo llena) + el análisis del motor
+    (vs molde, vs piso, percentil, gemelas, demanda, bitácora)."""
+    await require_superadmin(request)
+    from ficha_atomo import ficha_unidad
+    r = await ficha_unidad(_db(request), unit_id)
+    if not r:
+        raise HTTPException(404, "Unidad no encontrada")
+    return r
+
+
 class UnidadPatch(BaseModel):
     status: Optional[str] = None
     price_mxn: Optional[float] = Field(default=None, ge=0)

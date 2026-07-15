@@ -112,6 +112,7 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
   const [precio, setPrecio] = useState(u.price_mxn || u.price || '');
   const [orientacion, setOrientacion] = useState(u.orientacion || '');
   const [vista, setVista] = useState(u.vista || '');
+  const [verFicha, setVerFicha] = useState(false);
   const [msg, setMsg] = useState('');
   const guardar = async () => {
     try {
@@ -154,8 +155,79 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
           <input data-testid="unidad-vista" style={{ ...S.inp, marginTop: 3 }} placeholder="calle / interior / parque" value={vista} onChange={(e) => setVista(e.target.value)} />
         </label>
       </div>
-      <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
+        <button style={{ ...S.btn, background: 'rgba(255,255,255,0.05)' }} onClick={() => setVerFicha(true)}>📇 Ficha completa</button>
+      </div>
+      {verFicha && <FichaUnidad unitId={u.id} onCerrar={() => setVerFicha(false)} />}
       {msg && <p style={{ ...S.p, marginTop: 8, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
+    </div>
+  );
+}
+
+export function FichaUnidad({ unitId, onCerrar }) {
+  const nav = useNavigate();
+  const [x, setX] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { setX(null); _get(`/unidad/${unitId}/ficha`).then(setX).catch((e) => setErr(String(e.message))); }, [unitId]);
+  const a = x?.analisis || {};
+  const chip = (txt, tono = 'neutro') => (
+    <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, marginRight: 6, marginBottom: 6,
+      background: tono === 'ok' ? 'rgba(74,222,128,0.12)' : tono === 'alerta' ? 'rgba(210,153,34,0.12)' : 'rgba(255,255,255,0.05)',
+      border: `1px solid ${tono === 'ok' ? 'rgba(74,222,128,0.4)' : tono === 'alerta' ? 'rgba(210,153,34,0.45)' : 'rgba(255,255,255,0.12)'}`,
+      color: tono === 'ok' ? '#86efac' : tono === 'alerta' ? '#d29922' : 'rgba(240,235,224,0.8)' }}>{txt}</span>
+  );
+  return (
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 300, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: 'min(880px, 96vw)', maxHeight: '92vh', overflowY: 'auto', border: '1px solid rgba(var(--theme-rgb),0.45)', padding: '20px 24px' }} data-testid="ficha-unidad">
+        {!x ? <p style={S.p}>{err || 'Abriendo la ficha…'}</p> : (<>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0 }}>Depto {x.unidad.numero}</h2>
+            <span style={{ ...S.mini, color: x.unidad.estatus === 'disponible' ? '#86efac' : '#fca5a5', fontWeight: 800, textTransform: 'uppercase' }}>{x.unidad.estatus}</span>
+            <span style={S.mini}>{x.unidad.desarrollo}{x.molde ? ` · molde ${x.molde.nombre}` : ''}</span>
+            <span style={{ flex: 1 }} />
+            <button style={S.btn} onClick={() => nav(`/superadmin/expediente/${x.unidad.development_id}`)}>Expediente del desarrollo</button>
+            <button style={{ ...S.btn, padding: '5px 9px' }} onClick={onCerrar}><X size={14} /></button>
+          </div>
+
+          {/* EL ANÁLISIS del motor: la posición de este átomo contra su contexto */}
+          <div style={{ margin: '10px 0 4px' }}>
+            {a.pm2 != null && chip(`$${(a.pm2 / 1000).toFixed(1)}k/m²`)}
+            {a.vs_molde_pct != null && chip(`${a.vs_molde_pct > 0 ? '+' : ''}${a.vs_molde_pct}% vs sus gemelas (mismo plano)`, a.vs_molde_pct > 3 ? 'alerta' : a.vs_molde_pct < -3 ? 'ok' : 'neutro')}
+            {a.vs_piso_pct != null && chip(`${a.vs_piso_pct > 0 ? '+' : ''}${a.vs_piso_pct}% vs su piso`, 'neutro')}
+            {a.percentil_pm2 != null && chip(`percentil ${a.percentil_pm2} de $/m² en el desarrollo`)}
+            {a.exterior_pct != null && chip(`${a.exterior_pct}% del total es exterior`)}
+            {a.busquedas_compatibles != null && chip(`${a.busquedas_compatibles} búsquedas reales le quedan`, a.busquedas_compatibles > 0 ? 'ok' : 'neutro')}
+            {a.gemelas_disponibles != null && a.gemela_mas_barata && chip(`${a.gemelas_disponibles} gemelas disponibles · la más barata: ${a.gemela_mas_barata.unidad} $${((a.gemela_mas_barata.precio || 0) / 1e6).toFixed(2)}M (p${a.gemela_mas_barata.piso})`)}
+            {a.primera_foto && chip(`en bitácora desde ${a.primera_foto} · ${a.cambios_de_precio || 0} cambios de precio`)}
+          </div>
+
+          {/* planos del átomo */}
+          {(x.unidad.plano_url || x.unidad.plano_amueblado_url) && (
+            <div style={{ display: 'flex', gap: 10, margin: '8px 0 12px', flexWrap: 'wrap' }}>
+              {x.unidad.plano_amueblado_url && <img src={`${API}${x.unidad.plano_amueblado_url}`} alt="planta amueblada" style={{ height: 150, borderRadius: 10, background: '#fff' }} />}
+              {x.unidad.plano_url && <img src={`${API}${x.unidad.plano_url}`} alt="plano" style={{ height: 150, borderRadius: 10, background: '#fff' }} />}
+            </div>
+          )}
+
+          {/* las SECCIONES del registro universal: dato o FALTA con quién lo llena */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+            {x.secciones.map((sec) => (
+              <div key={sec.titulo} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>{sec.titulo}</div>
+                {sec.campos.map((c) => (
+                  <div key={c.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '3px 0', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>
+                    <span style={{ ...S.mini, flexShrink: 0 }}>{c.label}</span>
+                    {c.valor != null
+                      ? <span style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: 'var(--cream)', textAlign: 'right' }}>{String(c.valor)}</span>
+                      : <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#d29922', textAlign: 'right' }} title={`Lo llena: ${c.quien_llena}`}>FALTA · {c.quien_llena}</span>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>)}
+      </div>
     </div>
   );
 }
@@ -174,6 +246,7 @@ function Corte() {
   const [dims, setDims] = useState(['colonia', 'tipologia']);
   const [pins, setPins] = useState({});          // 📌 segmentos anclados: {dim: valor}
   const [abierta, setAbierta] = useState(null);  // fila expandida hasta el átomo
+  const [fichaId, setFichaId] = useState(null);  // ficha completa del átomo (modal)
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!dims.length && !Object.keys(pins).length) { setData(null); return; }
@@ -287,8 +360,8 @@ function Corte() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 5 }}>
                     {r.atomos.map((a) => (
-                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => nav(`/superadmin/expediente/${a.development_id}`)}
-                        title={`Abrir el expediente de ${a.desarrollo}`}
+                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => setFichaId(a.unit_id || a.id)}
+                        title={`Ficha completa del ${a.unidad}`}
                         style={{ textAlign: 'left', cursor: 'pointer', padding: '6px 10px', borderRadius: 8,
                           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
                         <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 800, color: 'var(--cream)' }}>{a.unidad}</span>
@@ -308,6 +381,7 @@ function Corte() {
           <p style={{ ...S.mini, marginTop: 8, opacity: 0.65 }}>Demanda = búsquedas reales del marketplace que le quedan al segmento (criterios completos) · señales y leads se atribuyen a nivel desarrollo · la serie en el tiempo vive en Mercado.</p>
         </div>
       )}
+      {fichaId && <FichaUnidad unitId={fichaId} onCerrar={() => setFichaId(null)} />}
     </div>
   );
 }
