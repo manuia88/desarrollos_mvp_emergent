@@ -46,7 +46,7 @@ function MiniTorre({ porEstado, total }) {
    - PATRÓN DE MOLDES visible: clic en un molde (chip) → sus unidades se iluminan */
 export const PALETA_MOLDE = ['#58a6ff', '#4ADE80', '#d29922', '#a78bfa', '#f472b6', '#2dd4bf', '#fb923c', '#e879f9', '#a3e635', '#38bdf8', '#facc15', '#f87171'];
 
-export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel }) {
+export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel, posicion }) {
   // torre desde el número ('A-1402' → 'A'); nivel para las filas
   const porTorre = useMemo(() => {
     const t = {};
@@ -76,12 +76,15 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
                   const sel = seleccionada === u.id;
                   const molde = colorDeMolde(u.prototype_id);
                   const apagada = moldeSel && u.prototype_id !== moldeSel;
+                  const pos = (posicion || {})[u.id];   // 💎 semáforo vs sus gemelas
+                  const halo = pos?.banda === 'ganga' ? '0 0 0 2px rgba(74,222,128,0.75)'
+                    : pos?.banda === 'premium' ? '0 0 0 2px rgba(210,153,34,0.7)' : undefined;
                   return (
                     <button key={u.id} data-testid={`unidad-${u.unit_number || u.id}`} onClick={() => onUnidad(u)}
-                      title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}`}
+                      title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}${pos ? ` · ${pos.vs_molde_pct > 0 ? '+' : ''}${pos.vs_molde_pct}% vs sus gemelas` : ''}`}
                       style={{ minWidth: 52, padding: '7px 6px 5px', borderRadius: 6, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5,
                         background: `${col}${sel ? 'ee' : '33'}`, border: `${sel ? 2 : 1}px solid ${col}`, color: sel ? '#000' : 'var(--cream)',
-                        opacity: apagada ? 0.18 : 1, transition: 'opacity .15s',
+                        opacity: apagada ? 0.18 : 1, transition: 'opacity .15s', boxShadow: halo,
                         borderBottom: molde ? `3px solid ${molde}` : undefined }}>
                       {u.unit_number || '·'}
                     </button>
@@ -573,7 +576,7 @@ export default function SuperadminInventario({ user, onLogout }) {
                   })}
                 </div>
               </div>
-              <Torre unidades={proy.unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
+              <Torre unidades={proy.unidades} posicion={proy.posicion_unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
             </div>
             {unidadSel && (
               <PanelUnidad u={unidadSel} onCerrar={() => setUnidadSel(null)}

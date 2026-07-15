@@ -17,9 +17,9 @@ log = logging.getLogger("dmx.parte")
 
 # ─── el registro de cadencias (universal) ─────────────────────────────────────
 CADENCIAS: Dict[str, Dict[str, Any]] = {
-    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes"]},
-    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes"]},
-    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes"]},
+    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes", "gangas"]},
+    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas"]},
+    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas"]},
     "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "trimestral": {"dias": 91,  "titulo": "📈 Parte trimestral",    "secciones": ["catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "semestral":  {"dias": 182, "titulo": "📈 Parte semestral",     "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
@@ -223,10 +223,23 @@ async def _sec_moldes(db, desde: str) -> List[str]:
     return out
 
 
+async def _sec_gangas(db, desde: str) -> List[str]:
+    """Las unidades que están BARATAS contra sus gemelas (mismo plano) — accionable hoy:
+    el comprador las quiere, el dev debe saber por qué no se han ido."""
+    from ficha_atomo import gangas_catalogo
+    gangas = await gangas_catalogo(db, limite=5)
+    if not gangas:
+        return []
+    return ["<b>💎 Gangas del catálogo (vs sus gemelas)</b>"] + [
+        f"· {g['unidad']} ({g['desarrollo']}, p.{g['piso']}): "
+        f"<b>{g['vs_molde_pct']}%</b> bajo su molde · {_fmt_precio(g['precio'])}"
+        for g in gangas]
+
+
 _SECCIONES = {"movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
               "absorcion": _sec_absorcion, "ritmo": _sec_ritmo, "frescura": _sec_frescura,
               "meses_inventario": _sec_meses_inventario, "demanda": _sec_demanda,
-              "moldes": _sec_moldes}
+              "moldes": _sec_moldes, "gangas": _sec_gangas}
 
 
 async def generar_parte(db, periodo: str = "diario") -> str:

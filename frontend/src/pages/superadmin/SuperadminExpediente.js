@@ -127,7 +127,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
 
         {/* ═══ 2 · LA TORRE (todas las unidades, clic = editar) ═══ */}
         <div style={sec}>
-          <H>🏢 La torre — {x.n_unidades} unidades <span style={S.mini}>· clic en un molde para ver su patrón · clic en una unidad para editarla</span></H>
+          <H>🏢 La torre — {x.n_unidades} unidades <span style={S.mini}>· clic en un molde para ver su patrón · clic en una unidad para editarla · anillo <span style={{ color: '#4ADE80' }}>verde</span> = barata vs sus gemelas · <span style={{ color: '#d29922' }}>ámbar</span> = paga premium</span></H>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
             {x.prototipos.map((pr, i) => {
               const col = PALETA_MOLDE[i % PALETA_MOLDE.length];
@@ -142,7 +142,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
             })}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: unidadSel ? '1fr 290px' : '1fr', gap: 14, alignItems: 'start' }}>
-            <Torre unidades={x.unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
+            <Torre unidades={x.unidades} posicion={x.posicion_unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
             {unidadSel && <PanelUnidad u={unidadSel} onCerrar={() => setUnidadSel(null)} onGuardado={cargar} />}
           </div>
         </div>

@@ -198,3 +198,57 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                   "estado": (molde or {}).get("estado"),
                   "unidades_total": (molde or {}).get("unidades_total")} if molde else None,
     }
+
+
+# ─── EL SEMÁFORO DEL CATÁLOGO: posición de CADA unidad vs sus gemelas, en bulk ─
+UMBRAL_GANGA_PCT = -3.0     # ≤ −3% vs la mediana de su molde = ganga (verde)
+UMBRAL_PREMIUM_PCT = 3.0    # ≥ +3% = premium (ámbar) — mismos umbrales que la ficha
+
+
+def posiciones_por_molde(units: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """{unit_id: {vs_molde_pct, banda}} — pura, misma matemática que analisis_atomo."""
+    def _pm2(x):
+        px, mx = x.get("price_mxn") or x.get("price"), x.get("size_m2") or x.get("m2_total")
+        return px / mx if px and mx else None
+    por_molde: Dict[str, List[Dict[str, Any]]] = {}
+    for u in units:
+        if u.get("prototype_id"):
+            por_molde.setdefault(u["prototype_id"], []).append(u)
+    out: Dict[str, Dict[str, Any]] = {}
+    for us in por_molde.values():
+        pm2s = sorted(v for v in (_pm2(u) for u in us) if v)
+        if len(pm2s) < 2:
+            continue                      # sin gemelas no hay comparación honesta
+        med = pm2s[len(pm2s) // 2]
+        for u in us:
+            v = _pm2(u)
+            if not v or not med:
+                continue
+            pct = round((v - med) * 100 / med, 1)
+            banda = ("ganga" if pct <= UMBRAL_GANGA_PCT
+                     else "premium" if pct >= UMBRAL_PREMIUM_PCT else "normal")
+            out[u["id"]] = {"vs_molde_pct": pct, "banda": banda}
+    return out
+
+
+async def gangas_catalogo(db, solo_disponibles: bool = True,
+                          limite: int = 10) -> List[Dict[str, Any]]:
+    """Las mejores gangas del catálogo completo (para El Parte y el radar)."""
+    units = await db.units.find({}, {"_id": 0}).to_list(20000)
+    pos = posiciones_por_molde(units)
+    devs = {d["id"]: d.get("name") for d in await db.developments.find(
+        {}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)}
+    filas = []
+    for u in units:
+        p = pos.get(u.get("id"))
+        if not p or p["banda"] != "ganga":
+            continue
+        if solo_disponibles and (u.get("status") or "disponible").lower() not in (
+                "disponible", "available"):
+            continue
+        filas.append({"unidad": u.get("unit_number"), "unit_id": u.get("id"),
+                      "desarrollo": devs.get(u.get("development_id")),
+                      "development_id": u.get("development_id"),
+                      "piso": u.get("level"), "vs_molde_pct": p["vs_molde_pct"],
+                      "precio": u.get("price_mxn") or u.get("price")})
+    return sorted(filas, key=lambda f: f["vs_molde_pct"])[:limite]

@@ -213,6 +213,7 @@ async def expediente(request: Request, development_id: str):
         "amenidades": (amen.get("amenities") or d.get("amenities") or []),
         "servicios": (amen.get("servicios") or {}),
         "completitud": readiness,
+        "posicion_unidades": __import__("ficha_atomo").posiciones_por_molde(units),
     }
 
 
@@ -256,7 +257,9 @@ async def proyecto(request: Request, development_id: str):
     units = await db.units.find({"development_id": development_id}, {"_id": 0}) \
         .sort("unit_number", 1).to_list(2000)
     protos = await db.dmx_prototypes.find({"development_id": development_id}, {"_id": 0}).to_list(200)
-    return {"proyecto": d, "unidades": units, "prototipos": protos, "n_unidades": len(units)}
+    from ficha_atomo import posiciones_por_molde
+    return {"proyecto": d, "unidades": units, "prototipos": protos, "n_unidades": len(units),
+            "posicion_unidades": posiciones_por_molde(units)}
 
 
 ORIENTACIONES = {"norte", "sur", "oriente", "poniente", "noreste", "noroeste",

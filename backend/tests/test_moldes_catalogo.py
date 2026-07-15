@@ -352,3 +352,20 @@ def test_analisis_atomo_vs_molde_gemelas_y_demanda():
     assert a["busquedas_compatibles"] == 1
     assert a["exterior_pct"] == 9.1
     assert a["cambios_de_precio"] == 1 and a["primera_foto"] == "2026-07-01"
+
+
+def test_semaforo_posiciones_y_gangas():
+    """El semáforo de la Torre: ganga ≤ −3% vs la mediana de su molde; premium ≥ +3%;
+    sin gemelas (1 unidad) no se compara — honesto."""
+    import ficha_atomo as FA
+    mk = lambda uid, pid, m2, precio, st="disponible": {
+        "id": uid, "prototype_id": pid, "size_m2": m2, "price_mxn": precio, "status": st}
+    units = [mk("u1", "p0", 100, 10_000_000), mk("u2", "p0", 100, 10_050_000),
+             mk("u3", "p0", 100, 9_500_000),          # −5% → ganga
+             mk("u4", "p0", 100, 10_700_000),         # +6.5% → premium
+             mk("u5", "p1", 80, 6_000_000)]           # molde de 1: sin comparación
+    pos = FA.posiciones_por_molde(units)
+    assert pos["u3"]["banda"] == "ganga" and pos["u3"]["vs_molde_pct"] <= -3
+    assert pos["u4"]["banda"] == "premium"
+    assert pos["u1"]["banda"] == "normal"
+    assert "u5" not in pos
