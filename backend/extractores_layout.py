@@ -95,7 +95,11 @@ def extraer_vp(pdf_bytes: bytes) -> Dict[str, Any]:
                 unidad = None
                 for x in c[:3]:
                     x2 = x.replace("\n", "").replace(" ", "")
-                    if re.match(r"^(T\d-?)?\d{3,4}$", x2):
+                    # formatos reales del catálogo CLASS: 203 · T2-1901 · PH01 (Dessea)
+                    # · 02C (Jai) · G001 (Panorama) — el resto lo filtran las
+                    # validaciones de m²/dinero de la propia familia
+                    if re.match(r"^(T\d-?)?(PH\d{1,3}|[A-Z]?\d{3,4}|\d{2,4}[A-Z])$",
+                                x2, re.IGNORECASE):
                         unidad = x.replace("\n", " ").strip()
                         break
                 if not unidad:
@@ -123,6 +127,110 @@ def extraer_vp(pdf_bytes: bytes) -> Dict[str, Any]:
             "validacion": {"m2": sum(1 for u in us if u["_valida_m2"]),
                            "dinero": sum(1 for u in us if u["_valida_dinero"]),
                            "total": len(us)}}
+
+
+# ─── vp_texto: la MISMA familia VP leída por TEXTO (cuando la tabla se desalinea) ──
+_MONEY_RE = re.compile(r"\$\s?[\d][\d\s,]*\.?\d*")
+_UNIT_TOKEN = re.compile(
+    r"^(T\d|[A-Z]{1,2}-?\d{1,4}[A-Z]?|\d{2,4}[A-Z]?|PH-?\d{0,3}|[A-Z]|\d{1,2}-)$",
+    re.IGNORECASE)
+
+
+def _tokens_de_unidad(tokens: List[str]) -> Optional[tuple]:
+    """Cuántos tokens del inicio forman el número de unidad ('B 102' · '1- PH01' ·
+    'T2 - 1901' · '0101' · 'G-001' · '02C'). None si la línea no arranca con unidad."""
+    if not tokens or not _UNIT_TOKEN.match(tokens[0]):
+        return None
+    n, t0 = 1, tokens[0]
+    if len(tokens) > 1:
+        if t0.endswith("-") or (t0.isalpha() and len(t0) <= 2) or \
+                re.fullmatch(r"T\d", t0, re.IGNORECASE):
+            if tokens[1] == "-" and len(tokens) > 2:
+                n = 3
+            elif re.fullmatch(r"(PH)?\d{1,4}[A-Z]?", tokens[1], re.IGNORECASE):
+                n = 2
+    unidad = " ".join(tokens[:n]).replace(" - ", "-").strip()
+    if not re.search(r"\d", unidad):
+        return None                    # una unidad sin dígitos no es unidad
+    return unidad, n
+
+
+def extraer_vp_texto(pdf_bytes: bytes) -> Dict[str, Any]:
+    """La familia VP por TEXTO crudo, posición-independiente (Revolución/Coyoacán/
+    Dessea/Panorama/Jai la desalinean como tabla). Anatomía de la línea:
+      unidad · [exteriores 0-3 decimales] · [conteos 0-2 enteros] · habitable ·
+      total · $precio $crédito $enganche $reservación $contrato $a-diferir
+    Asignación por INVARIANTE (no por posición): total = último decimal antes del
+    dinero; habitable = penúltimo; el resto de decimales = exteriores en el orden
+    del encabezado (balcón · patio · roof). 1 conteo = estacionamientos; 2 =
+    bodegas + estacionamientos. Las validaciones son las mismas de la familia."""
+    import pdfplumber
+    unidades: Dict[str, Dict[str, Any]] = {}
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            for ln in (page.extract_text() or "").split("\n"):
+                moneys = _MONEY_RE.findall(ln)
+                if len(moneys) < 4:
+                    continue                           # sin bloque de dinero no es unidad
+                cabeza = ln[:ln.index(moneys[0])].strip()
+                toks = cabeza.split()
+                par = _tokens_de_unidad(toks)
+                if not par:
+                    continue
+                unidad, n_u = par
+                resto = toks[n_u:]
+                numericos = [t for t in resto
+                             if re.fullmatch(r"\d[\d,]*\.?\d*", t)]
+                if len(numericos) < 2:
+                    continue                           # sin hab+total no hay unidad
+                # anatomía de la cola: [...ext/conteos...] + habitable + total —
+                # los DOS últimos numéricos son hab/tot aunque vengan sin decimales
+                # ('80', '128'); antes de ellos: enteros cortos = conteos (bod/est),
+                # decimales = exteriores en el orden del encabezado
+                u: Dict[str, Any] = {"unidad": unidad,
+                                     "m2_total": _num(numericos[-1]),
+                                     "m2_habitable": _num(numericos[-2])}
+                previos = numericos[:-2]
+                ext = [_num(t) for t in previos if re.fullmatch(r"\d[\d,]*\.\d+", t)]
+                conteos = [int(t) for t in previos if re.fullmatch(r"\d{1,2}", t)]
+                for campo, val in zip(("m2_balcon", "m2_patio", "m2_roof"), ext):
+                    u[campo] = val
+                if len(conteos) == 1:
+                    u["estacionamientos"] = conteos[0]
+                elif len(conteos) >= 2:
+                    u["bodegas"], u["estacionamientos"] = conteos[0], conteos[1]
+                dinero = [_num(m) for m in moneys]
+                for campo, val in zip(("precio", "credito", "enganche", "reservacion",
+                                       "contrato", "a_diferir"), dinero):
+                    u[campo] = val
+                hab, tot = u["m2_habitable"], u["m2_total"]
+                u["_valida_m2"] = abs(hab + sum(ext) - tot) < 0.6
+                pr, cr, en = u.get("precio"), u.get("credito"), u.get("enganche")
+                u["_valida_dinero"] = bool(pr and cr and en and abs((cr + en) - pr) < 2)
+                unidades[norm_unidad(unidad)] = u
+    us = list(unidades.values())
+    return {"familia": "vp_texto", "unidades": us,
+            "validacion": {"m2": sum(1 for u in us if u["_valida_m2"]),
+                           "dinero": sum(1 for u in us if u["_valida_dinero"]),
+                           "total": len(us)}}
+
+
+def extraer_vp_mejor(pdf_bytes: bytes) -> Dict[str, Any]:
+    """La familia VP completa: intenta TABLA y TEXTO y se queda con la extracción
+    que más unidades VÁLIDAS produce (la deriva de layout deja de doler)."""
+    candidatos = []
+    for fn in (extraer_vp, extraer_vp_texto):
+        try:
+            r = fn(pdf_bytes)
+            v = r["validacion"]
+            candidatos.append((min(v["m2"], v["dinero"]), v["total"], r))
+        except Exception:  # noqa: BLE001
+            continue
+    if not candidatos:
+        return {"familia": "vp_class", "unidades": [],
+                "validacion": {"m2": 0, "dinero": 0, "total": 0}}
+    candidatos.sort(key=lambda c: (c[0], c[1]), reverse=True)
+    return candidatos[0][2]
 
 
 def detecta_vp(nombre_archivo: str, primer_texto: str = "") -> bool:
@@ -181,8 +289,9 @@ def drift_de_familia(resultado: Dict[str, Any]) -> Optional[str]:
 
 # ─── EL REGISTRO (familia nueva = una entrada; la IA solo toca lo desconocido) ─
 FAMILIAS: List[Dict[str, Any]] = [
-    {"key": "vp_class", "detecta": detecta_vp, "extraer": extraer_vp,
-     "nota": "VP_Lista de CLASS · probada 160/160 con doble validación (07-15)"},
+    {"key": "vp_class", "detecta": detecta_vp, "extraer": extraer_vp_mejor,
+     "nota": "VP_Lista de CLASS (tabla + texto posición-independiente, gana la "
+             "extracción con más unidades válidas) · 160/160 (07-15) + masivo (07-15)"},
     {"key": "maestro_class", "detecta": detecta_maestro, "extraer": extraer_maestro_class,
      "nota": "Inventario maestro multi-dev de CLASS (Excel, hoja CDMX) · 582 renglones"},
 ]
