@@ -50,6 +50,26 @@ export default function SuperadminExpediente({ user, onLogout }) {
   const [confirmaPub, setConfirmaPub] = useState(false);
   const [salud, setSalud] = useState(null);
   const [pedido, setPedido] = useState(null);
+  const [completar, setCompletar] = useState(false);
+  const [cap, setCap] = useState({});
+
+  const guardarCaptura = async () => {
+    try {
+      const body = {};
+      const servicios = {};
+      ['gas', 'agua', 'luz'].forEach((k) => { if (cap[k]) servicios[k] = cap[k]; });
+      if (Object.keys(servicios).length) body.servicios = servicios;
+      if (cap.amenidades) body.amenidades = cap.amenidades.split(',').map((x) => x.trim()).filter(Boolean);
+      ['sistema_constructivo', 'etapa_obra', 'legal_status'].forEach((k) => { if (cap[k]) body[k] = cap[k]; });
+      ['avance_pct', 'comision_pct', 'fondo_mantenimiento_mxn', 'cuota_equipamiento_mxn'].forEach((k) => { if (cap[k] !== undefined && cap[k] !== '') body[k] = Number(cap[k]); });
+      if (cap.brokers !== undefined) body.brokers = !!cap.brokers;
+      if (!Object.keys(body).length) { setMsg('Nada capturado aún.'); return; }
+      await _patch(`/expediente/${encodeURIComponent(devId)}`, body);
+      setMsg('Datos guardados ✓ — el % y el pedido se actualizan solos');
+      setCompletar(false); setCap({}); cargar();
+      _get(`/pedidos/${encodeURIComponent(devId)}`).then(setPedido).catch(() => {});
+    } catch (e) { setMsg(String(e.message)); }
+  };
 
   const publicar = async (forzar, despublicar = false) => {
     try {
@@ -96,6 +116,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
         {/* ═══ CABECERA: identidad + completitud + publicar — todo lo importante arriba ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
           <button onClick={() => nav('/superadmin/inventario')} style={{ ...S.btn, padding: '5px 10px' }}><ChevronLeft size={14} /> Inventario</button>
+          <button onClick={() => setCompletar(!completar)} style={{ ...S.btn, background: completar ? 'rgba(210,153,34,0.2)' : undefined, border: completar ? '1px solid rgba(210,153,34,0.5)' : undefined, color: completar ? '#d29922' : undefined }}>✏️ {completar ? 'Cerrar captura' : 'Completar datos'}</button>
           <Building2 size={22} color="var(--theme)" />
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 23, color: 'var(--cream)', margin: 0 }}>{d.name}</h1>
           <span style={S.mini}>{d.colonia_name || d.colonia} · {d.alcaldia || ''} · {(d.stage || '').replace('_', ' ')}</span>
@@ -121,6 +142,30 @@ export default function SuperadminExpediente({ user, onLogout }) {
               <button style={{ ...S.btn, background: 'rgba(210,153,34,0.2)', border: '1px solid rgba(210,153,34,0.55)', color: '#d29922' }} onClick={() => publicar(true)}>Publicar de todos modos (queda con mi acuse)</button>
               <button style={S.btn} onClick={() => setConfirmaPub(false)}>Mejor no</button>
             </div>
+          </div>
+        )}
+
+        {/* ✏️ COMPLETAR DATOS: capturar aquí lo que el dev conteste al pedido */}
+        {completar && (
+          <div style={{ ...sec, border: '1px solid rgba(210,153,34,0.5)' }}>
+            <H>✏️ Completar datos del desarrollo <span style={S.mini}>· lo que captures mueve el % y se borra del pedido solo</span></H>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+              <label style={S.mini}>Servicio de gas<input style={{ ...S.inp, marginTop: 3 }} placeholder="natural / estacionario" value={cap.gas || ''} onChange={(e) => setCap({ ...cap, gas: e.target.value })} /></label>
+              <label style={S.mini}>Agua<input style={{ ...S.inp, marginTop: 3 }} placeholder="municipal / pozo" value={cap.agua || ''} onChange={(e) => setCap({ ...cap, agua: e.target.value })} /></label>
+              <label style={S.mini}>Luz<input style={{ ...S.inp, marginTop: 3 }} placeholder="CFE / subestación propia" value={cap.luz || ''} onChange={(e) => setCap({ ...cap, luz: e.target.value })} /></label>
+              <label style={S.mini}>Sistema constructivo<input style={{ ...S.inp, marginTop: 3 }} placeholder="concreto armado, losa postensada…" value={cap.sistema_constructivo || ''} onChange={(e) => setCap({ ...cap, sistema_constructivo: e.target.value })} /></label>
+              <label style={S.mini}>Avance de obra (%)<input style={{ ...S.inp, marginTop: 3 }} type="number" min="0" max="100" value={cap.avance_pct || ''} onChange={(e) => setCap({ ...cap, avance_pct: e.target.value })} /></label>
+              <label style={S.mini}>Etapa de obra<input style={{ ...S.inp, marginTop: 3 }} placeholder="acabados / entregado…" value={cap.etapa_obra || ''} onChange={(e) => setCap({ ...cap, etapa_obra: e.target.value })} /></label>
+              <label style={S.mini}>Comisión a asesores (%)<input style={{ ...S.inp, marginTop: 3 }} type="number" step="0.5" value={cap.comision_pct || ''} onChange={(e) => setCap({ ...cap, comision_pct: e.target.value })} /></label>
+              <label style={{ ...S.mini, display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
+                <input type="checkbox" checked={!!cap.brokers} onChange={(e) => setCap({ ...cap, brokers: e.target.checked })} /> Trabaja con brokers externos
+              </label>
+              <label style={S.mini}>Estatus legal<input style={{ ...S.inp, marginTop: 3 }} placeholder="aprobado / en_revision" value={cap.legal_status || ''} onChange={(e) => setCap({ ...cap, legal_status: e.target.value })} /></label>
+              <label style={S.mini}>Fondo de mantenimiento ($)<input style={{ ...S.inp, marginTop: 3 }} type="number" value={cap.fondo_mantenimiento_mxn || ''} onChange={(e) => setCap({ ...cap, fondo_mantenimiento_mxn: e.target.value })} /></label>
+              <label style={S.mini}>Cuota de equipamiento ($)<input style={{ ...S.inp, marginTop: 3 }} type="number" value={cap.cuota_equipamiento_mxn || ''} onChange={(e) => setCap({ ...cap, cuota_equipamiento_mxn: e.target.value })} /></label>
+              <label style={{ ...S.mini, gridColumn: '1 / -1' }}>Amenidades (separadas por coma — reemplaza la lista)<input style={{ ...S.inp, marginTop: 3 }} placeholder="Alberca, Spa, Gimnasio…" value={cap.amenidades || ''} onChange={(e) => setCap({ ...cap, amenidades: e.target.value })} /></label>
+            </div>
+            <button style={{ ...S.btn, marginTop: 10 }} onClick={guardarCaptura}>Guardar captura</button>
           </div>
         )}
 

@@ -283,6 +283,17 @@ class ExpedientePatch(BaseModel):
     address_full: Optional[str] = None
     stage: Optional[str] = None
     delivery_estimate: Optional[str] = None
+    # ✏️ Completar datos (founder 07-15): capturar AQUÍ lo que el dev conteste al pedido
+    fondo_mantenimiento_mxn: Optional[float] = Field(default=None, ge=0)
+    cuota_equipamiento_mxn: Optional[float] = Field(default=None, ge=0)
+    legal_status: Optional[str] = Field(default=None, max_length=40)
+    servicios: Optional[Dict[str, str]] = None          # {gas: "natural", agua: "...", luz: "..."}
+    amenidades: Optional[list] = None                   # lista completa (reemplaza)
+    sistema_constructivo: Optional[str] = Field(default=None, max_length=200)
+    avance_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    etapa_obra: Optional[str] = Field(default=None, max_length=80)
+    comision_pct: Optional[float] = Field(default=None, ge=0, le=20)
+    brokers: Optional[bool] = None
 
 
 @router.patch("/expediente/{development_id}")
@@ -290,13 +301,49 @@ async def editar_expediente(request: Request, development_id: str, body: Expedie
     """Edición directa de los datos del desarrollo — sin wizard, con auditoría."""
     user = await require_superadmin(request)
     db = _db(request)
-    cambios = {k: v for k, v in body.model_dump().items() if v is not None}
-    if not cambios:
+    todo = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not todo:
         raise HTTPException(400, "Nada que cambiar")
+    # cada dato aterriza en SU colección (las mismas llaves que lee el semáforo del 80%)
+    if "servicios" in todo or "amenidades" in todo:
+        set_a: Dict[str, Any] = {"project_id": development_id}
+        if todo.get("servicios") is not None:
+            set_a["servicios"] = {k: v for k, v in todo.pop("servicios").items() if v}
+        if todo.get("amenidades") is not None:
+            set_a["amenities"] = [str(x).strip() for x in todo.pop("amenidades") if str(x).strip()]
+        await db.project_amenities.update_one({"project_id": development_id},
+                                              {"$set": set_a}, upsert=True)
+    if any(k in todo for k in ("sistema_constructivo", "avance_pct", "etapa_obra")):
+        set_c: Dict[str, Any] = {"project_id": development_id}
+        if todo.get("sistema_constructivo") is not None:
+            sc = todo.pop("sistema_constructivo")
+            set_c["sistema_constructivo"] = {"cimentacion": sc, "descripcion": sc}
+        if todo.get("avance_pct") is not None:
+            set_c["overall_percent"] = todo.pop("avance_pct")
+        if todo.get("etapa_obra") is not None:
+            set_c["current_stage"] = todo.pop("etapa_obra")
+        await db.project_construction_progress.update_one(
+            {"project_id": development_id}, {"$set": set_c}, upsert=True)
+    if any(k in todo for k in ("comision_pct", "brokers")):
+        set_m: Dict[str, Any] = {"project_id": development_id, "configured": True}
+        if todo.get("comision_pct") is not None:
+            set_m["default_commission_pct"] = todo.pop("comision_pct")
+        if todo.get("brokers") is not None:
+            set_m["works_with_brokers"] = todo.pop("brokers")
+        await db.project_commercialization.update_one(
+            {"project_id": development_id}, {"$set": set_m}, upsert=True)
+    cambios = dict(todo)
     cambios["updated_at"] = _now_iso()
     r = await db.developments.update_one({"id": development_id}, {"$set": cambios})
     if not r.matched_count:
         raise HTTPException(404, "Desarrollo no encontrado")
+    # el semáforo y la barra se refrescan solos (auditor cachea readiness)
+    try:
+        from auditor_catalogo import auditar
+        import asyncio as _aio
+        _aio.create_task(auditar(db, development_id))
+    except Exception:
+        pass
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "development", development_id,
