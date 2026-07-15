@@ -160,45 +160,97 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
   );
 }
 
-const DIMS_CORTE = ['ciudad', 'alcaldia', 'colonia', 'microzona', 'desarrollo', 'torre', 'piso', 'molde', 'tipologia', 'banos', 'estacionamientos', 'banda_m2', 'banda_precio', 'banda_pm2', 'banda_enganche', 'exterior', 'flex', 'etapa', 'estatus', 'orientacion', 'vista', 'espacios'];
+const EJES_CORTE = [
+  ['Geografía', ['ciudad', 'alcaldia', 'colonia', 'microzona', 'desarrollo']],
+  ['Edificio', ['torre', 'piso', 'molde', 'exterior', 'espacios', 'flex']],
+  ['Producto', ['tipologia', 'banos', 'estacionamientos', 'banda_m2', 'etapa', 'estatus', 'orientacion', 'vista', 'amueblado', 'cuarto_servicio']],
+  ['Dinero', ['banda_precio', 'banda_pm2', 'banda_enganche']],
+  ['Tiempo', ['cohorte']],
+];
+const NOMBRE_DIM = { banda_m2: 'tamaño', banda_precio: 'precio', banda_pm2: '$/m²', banda_enganche: 'enganche', tipologia: 'recámaras', banos: 'baños', estacionamientos: 'cajones', cuarto_servicio: 'cto. servicio', orientacion: 'orientación' };
 
-function Escalera() {
-  const [dims, setDims] = useState(['colonia']);
+function Corte() {
+  const [dims, setDims] = useState(['colonia', 'tipologia']);
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!dims.length) { setData(null); return; }
     _get(`/corte?por=${dims.join(',')}`).then(setData).catch(() => setData(null));
   }, [dims]);
   const toggle = (d) => setDims(dims.includes(d) ? dims.filter((x) => x !== d) : [...dims, d].slice(-3));
-  const filas = (data?.filas || []).slice(0, 30);
+  const filas = (data?.filas || []).slice(0, 25);
+  const maxU = Math.max(1, ...filas.map((f) => f.unidades || 0));
+  const tot = (data?.filas || []).reduce((a, f) => a + (f.unidades || 0), 0);
+  const grid = { display: 'grid', gridTemplateColumns: 'minmax(170px, 1.6fr) 1.4fr 76px 92px 84px 90px 70px', gap: 10, alignItems: 'center' };
+  const num = { fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', fontWeight: 700 };
+  const th = { ...S.mini, textAlign: 'right', textTransform: 'uppercase', letterSpacing: 0.7, fontSize: 9.5, fontWeight: 800 };
+  const tension = (t) => t == null ? null : (
+    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800,
+      background: t >= 1 ? 'rgba(248,113,113,0.15)' : t >= 0.4 ? 'rgba(210,153,34,0.15)' : 'rgba(255,255,255,0.05)',
+      border: `1px solid ${t >= 1 ? 'rgba(248,113,113,0.45)' : t >= 0.4 ? 'rgba(210,153,34,0.45)' : 'rgba(255,255,255,0.12)'}`,
+      color: t >= 1 ? '#fca5a5' : t >= 0.4 ? '#d29922' : 'rgba(240,235,224,0.55)' }}>{t >= 1 ? '🔥 ' : ''}{t}</span>
+  );
   return (
-    <div style={{ ...S.card, margin: '4px 0 10px' }} data-testid="escalera">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-        <b style={{ ...S.h, fontSize: 14 }}>🔬 El corte del mercado</b>
-        <span style={S.mini}>elige hasta 3 dimensiones y se CRUZAN · de ciudad al átomo · series en el tiempo: Mercado</span>
+    <div style={{ ...S.card, margin: '4px 0 12px', padding: '18px 20px' }} data-testid="corte-mercado" className="dmx-card">
+      {/* cabecera + resumen */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>El corte del mercado</h2>
+        <span style={S.mini}>cruza hasta 3 dimensiones — de la ciudad al átomo · oferta ⨯ demanda real</span>
+        <span style={{ flex: 1 }} />
+        {data && <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums' }}><b style={{ color: 'var(--cream)' }}>{tot}</b> unidades · <b style={{ color: 'var(--cream)' }}>{(data.filas || []).length}</b> segmentos</span>}
       </div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-        {DIMS_CORTE.map((d) => (
-          <button key={d} onClick={() => toggle(d)}
-            style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, cursor: 'pointer', fontWeight: dims.includes(d) ? 800 : 600,
-              background: dims.includes(d) ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${dims.includes(d) ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`,
-              color: dims.includes(d) ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{d.replace('_', ' ')}</button>
+
+      {/* selector por eje (agrupado y legible) */}
+      <div style={{ display: 'grid', gap: 6, margin: '12px 0 4px' }}>
+        {EJES_CORTE.map(([eje, ds]) => (
+          <div key={eje} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ ...S.mini, width: 72, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, fontSize: 9.5, opacity: 0.65 }}>{eje}</span>
+            {ds.map((d) => {
+              const on = dims.includes(d);
+              const orden = dims.indexOf(d) + 1;
+              return (
+                <button key={d} onClick={() => toggle(d)}
+                  style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: on ? 800 : 600, padding: '4px 11px', borderRadius: 8, cursor: 'pointer',
+                    background: on ? 'var(--theme)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${on ? 'var(--theme)' : 'rgba(255,255,255,0.14)'}`,
+                    color: on ? '#0b0b0b' : 'rgba(240,235,224,0.8)', transition: 'all .15s' }}>
+                  {on ? `${orden}· ` : ''}{NOMBRE_DIM[d] || d}
+                </button>
+              );
+            })}
+          </div>
         ))}
       </div>
-      {filas.length === 0 ? <span style={S.mini}>Elige al menos una dimensión con datos.</span> : (
-        <div style={{ display: 'grid', gap: 3, maxHeight: 320, overflowY: 'auto' }}>
+
+      {/* la tabla del corte */}
+      {filas.length === 0 ? <p style={{ ...S.p, marginTop: 10 }}>Elige una dimensión con datos (o afloja el cruce).</p> : (
+        <div style={{ marginTop: 12, overflowX: 'auto' }}>
+          <div style={{ ...grid, padding: '0 0 6px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+            <span style={{ ...th, textAlign: 'left' }}>Segmento</span>
+            <span style={{ ...th, textAlign: 'left' }}>Oferta</span>
+            <span style={th}>Colocado</span>
+            <span style={th}>$/m² prom</span>
+            <span style={th}>Desde</span>
+            <span style={th} title="Búsquedas reales del marketplace cuyos criterios le quedan a este segmento">Demanda</span>
+            <span style={th} title="Búsquedas compatibles ÷ unidades disponibles">Tensión</span>
+          </div>
           {filas.map((r, i) => (
-            <div key={i} style={{ ...S.mini, display: 'flex', gap: 12, flexWrap: 'wrap', padding: '5px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <b style={{ color: 'var(--cream)', minWidth: 180 }}>{dims.map((d) => r[d]).filter(Boolean).join(' × ')}</b>
-              <span>{r.unidades}u · {r.disponibles} disp</span>
-              {r.colocacion_pct != null && r.colocacion_pct > 0 && <span>🏁 {r.colocacion_pct}%</span>}
-              {r.pm2_prom && <span>💲 ${r.pm2_prom.toLocaleString()}/m²</span>}
-              {r.precio_min && <span>desde ${(r.precio_min / 1e6).toFixed(1)}M</span>}
-              {r.m2_prom && <span>{r.m2_prom}m² prom</span>}
+            <div key={i} style={{ ...grid, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>
+                {dims.map((d) => r[d]).filter(Boolean).join('  ×  ')}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ height: 8, width: `${Math.max(3, (r.unidades / maxU) * 100)}%`, maxWidth: '70%', borderRadius: 4, background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.85), rgba(var(--theme-rgb),0.35))' }} />
+                <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{r.unidades}</b>u · {r.disponibles} disp</span>
+              </span>
+              <span style={num}>{r.colocacion_pct != null && r.colocacion_pct > 0 ? `${r.colocacion_pct}%` : '—'}</span>
+              <span style={num}>{r.pm2_prom ? `$${(r.pm2_prom / 1000).toFixed(1)}k` : '—'}</span>
+              <span style={num}>{r.precio_min ? `$${(r.precio_min / 1e6).toFixed(1)}M` : '—'}</span>
+              <span style={{ ...num, color: r.demanda_busquedas ? 'var(--cream)' : 'rgba(240,235,224,0.4)' }}>{r.demanda_busquedas ?? '—'}{r.leads ? ` · ${r.leads} leads` : ''}</span>
+              <span style={{ textAlign: 'right' }}>{tension(r.tension) || <span style={{ ...S.mini, opacity: 0.4 }}>—</span>}</span>
             </div>
           ))}
-          {(data?.filas || []).length > 30 && <span style={S.mini}>… {(data.filas.length - 30)} combinaciones más (afina el cruce)</span>}
+          {(data?.filas || []).length > 25 && <p style={{ ...S.mini, marginTop: 6 }}>… {(data.filas.length - 25)} segmentos más — afina el cruce para verlos.</p>}
+          <p style={{ ...S.mini, marginTop: 8, opacity: 0.65 }}>Demanda = búsquedas reales del marketplace que le quedan al segmento (criterios completos) · señales y leads se atribuyen a nivel desarrollo · la serie en el tiempo vive en Mercado.</p>
         </div>
       )}
     </div>
@@ -264,7 +316,7 @@ export default function SuperadminInventario({ user, onLogout }) {
         </div>
 
         {/* 🪜 LA ESCALERA: el dato de moldes en cada peldaño (solo en la raíz) */}
-        {!devSel && <Escalera />}
+        {!devSel && <Corte />}
 
         {/* breadcrumb del drill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0 16px', flexWrap: 'wrap' }}>

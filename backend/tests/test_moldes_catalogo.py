@@ -253,3 +253,35 @@ def test_corte_cruza_dimensiones_hasta_el_atomo():
         assert False
     except ValueError:
         pass
+
+
+def test_corte_espejo_demanda_y_tension():
+    """Oferta ⨯ DEMANDA: una búsqueda 'le queda' al corte solo si cumple TODOS sus
+    criterios; tensión = búsquedas compatibles ÷ disponibles."""
+    import corte_engine as CO
+    u1 = {"unit_number": "A-101", "development_id": "dev1", "bedrooms": 2, "bathrooms": 2.0,
+          "size_m2": 84.0, "price_mxn": 5_000_000, "status": "disponible",
+          "_colonia_id": "tetelpan", "_edad_dias": 30}
+    u2 = {"unit_number": "A-201", "development_id": "dev1", "bedrooms": 3, "bathrooms": 2.5,
+          "size_m2": 117.0, "price_mxn": 9_000_000, "status": "disponible",
+          "_colonia_id": "tetelpan", "_edad_dias": 10}
+    ctx = {"busquedas": [
+        {"id": "b1", "colonias": ["tetelpan"], "precio_max": 6_000_000, "recamaras_min": 2},
+        {"id": "b2", "colonias": ["tetelpan"], "precio_max": 10_000_000, "recamaras_min": 3},
+        {"id": "b3", "colonias": ["polanco"], "precio_max": 6_000_000},   # otra colonia: NO
+        {"id": "b4", "colonias": [], "precio_max": 4_000_000},            # tope bajo: NO
+    ], "senales_por_dev": {"dev1": {"n": 7, "visitantes": {"v1", "v2"}}},
+       "leads_por_dev": {"dev1": 3}}
+    d = {"name": "Alba"}
+    filas = CO.cortar([{"u": u1, "d": d, "m": {}, "p": {}},
+                       {"u": u2, "d": d, "m": {}, "p": {}}], ["tipologia"], ctx=ctx)
+    dos = next(f for f in filas if f["tipologia"] == "2R")
+    tres = next(f for f in filas if f["tipologia"] == "3R")
+    assert dos["demanda_busquedas"] == 1 and dos["tension"] == 1.0     # b1
+    assert tres["demanda_busquedas"] == 1 and tres["tension"] == 1.0   # b2
+    assert dos["leads"] == 3 and dos["demanda_visitantes"] == 2        # atribución dev
+    assert dos["dias_en_mercado_prom"] == 30 and tres["dias_en_mercado_prom"] == 10
+    # cohorte llega como dimensión (mes de la primera foto)
+    u1b = {**u1, "_primera_foto": "2026-07-14T09:00:00"}
+    fc = CO.cortar([{"u": u1b, "d": d, "m": {}, "p": {}}], ["cohorte"], ctx=ctx)
+    assert fc[0]["cohorte"] == "2026-07"

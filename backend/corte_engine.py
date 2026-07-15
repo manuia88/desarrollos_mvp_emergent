@@ -83,11 +83,38 @@ DIMENSIONES: Dict[str, Callable[..., Optional[str]]] = {
         if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total")) else None,
         [45, 55, 65, 80], "k/m²"),
     "banda_enganche": lambda u, d, m, p: _banda(u.get("enganche_pct"), [10, 20, 30], "%"),
+    # ── cohorte (edad del inventario: mes en que la unidad entró a la bitácora) ──
+    "cohorte":    lambda u, d, m, p: (u.get("_primera_foto") or "")[:7] or None,
+    # ── elemento (lo que la lista del dev declara por unidad) ──
+    "amueblado":  lambda u, d, m, p: {"si": "amueblado", "no": "sin amueblar"}.get(
+        str(u.get("amueblado") or "").strip().lower()[:2], None),
+    "cuarto_servicio": lambda u, d, m, p: ("con cuarto de servicio" if str(
+        u.get("cuarto_servicio") or "").strip().lower() in ("si", "sí", "1", "true")
+        else ("sin cuarto de servicio" if u.get("cuarto_servicio") is not None else None)),
 }
 
 
-# ─── medidas (idénticas en cualquier corte) ───────────────────────────────────
-def _medidas(unidades: List[Dict[str, Any]]) -> Dict[str, Any]:
+# ─── el espejo de DEMANDA: ¿cuántas búsquedas reales le quedan a este corte? ──
+def _busca_compatible(b: Dict[str, Any], u: Dict[str, Any], colonia_u: str) -> bool:
+    """Una búsqueda del marketplace 'le queda' a una unidad si cumple TODOS sus criterios."""
+    cols = [c for c in (b.get("colonias") or ([b["colonia_id"]] if b.get("colonia_id") else []))]
+    if cols and colonia_u not in cols:
+        return False
+    precio = u.get("price_mxn") or u.get("price")
+    if b.get("precio_max") and precio and precio > b["precio_max"]:
+        return False
+    if b.get("recamaras_min") is not None and (u.get("bedrooms") or 0) < b["recamaras_min"]:
+        return False
+    if b.get("banos_min") is not None and (u.get("bathrooms") or 0) < b["banos_min"]:
+        return False
+    if b.get("m2_min") and (u.get("size_m2") or u.get("m2_total") or 0) < b["m2_min"]:
+        return False
+    return True
+
+
+# ─── medidas (idénticas en cualquier corte; ctx = demanda/leads/bitácora) ─────
+def _medidas(unidades: List[Dict[str, Any]],
+             ctx: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     n = len(unidades)
     vend = [u for u in unidades if (u.get("status") or "").lower() in
             ("vendida", "vendido", "sold", "no_disponible")]
@@ -98,16 +125,40 @@ def _medidas(unidades: List[Dict[str, Any]]) -> Dict[str, Any]:
             if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total"))]
     m2s = [u.get("size_m2") or u.get("m2_total") for u in unidades
            if u.get("size_m2") or u.get("m2_total")]
-    return {"unidades": n, "vendidas": len(vend), "disponibles": n - len(vend),
-            "colocacion_pct": round(len(vend) * 100 / n, 1) if n else None,
-            "precio_prom": round(sum(precios) / len(precios)) if precios else None,
-            "precio_min": round(min(precios)) if precios else None,
-            "pm2_prom": round(sum(pm2s) / len(pm2s)) if pm2s else None,
-            "m2_prom": round(sum(m2s) / len(m2s), 1) if m2s else None}
+    out = {"unidades": n, "vendidas": len(vend), "disponibles": n - len(vend),
+           "colocacion_pct": round(len(vend) * 100 / n, 1) if n else None,
+           "precio_prom": round(sum(precios) / len(precios)) if precios else None,
+           "precio_min": round(min(precios)) if precios else None,
+           "pm2_prom": round(sum(pm2s) / len(pm2s)) if pm2s else None,
+           "m2_prom": round(sum(m2s) / len(m2s), 1) if m2s else None}
+    if ctx:
+        # DEMANDA REAL: búsquedas del marketplace que le quedan a ≥1 unidad del corte
+        compat = set()
+        for b in ctx.get("busquedas") or []:
+            for u in unidades:
+                if _busca_compatible(b, u, u.get("_colonia_id") or ""):
+                    compat.add(b.get("id") or b.get("dedup_key"))
+                    break
+        disp = out["disponibles"] or 0
+        out["demanda_busquedas"] = len(compat)
+        out["tension"] = round(len(compat) / disp, 2) if disp else None
+        # señales e leads: atribución a nivel DESARROLLO (honesto: no bajan más fino)
+        devs_fila = {u.get("development_id") for u in unidades}
+        spd = ctx.get("senales_por_dev") or {}
+        out["demanda_interacciones"] = sum(spd.get(dv, {}).get("n", 0) for dv in devs_fila)
+        out["demanda_visitantes"] = len(set().union(*[spd.get(dv, {}).get("visitantes", set())
+                                                      for dv in devs_fila]) if devs_fila else set())
+        lpd = ctx.get("leads_por_dev") or {}
+        out["leads"] = sum(lpd.get(dv, 0) for dv in devs_fila)
+        # EDAD del inventario (días desde su primera foto en la bitácora)
+        edades = [u.get("_edad_dias") for u in unidades if u.get("_edad_dias") is not None]
+        out["dias_en_mercado_prom"] = round(sum(edades) / len(edades)) if edades else None
+    return out
 
 
 def cortar(atomos: List[Dict[str, Any]], por: List[str],
-           incluir_sin_dato: bool = False) -> List[Dict[str, Any]]:
+           incluir_sin_dato: bool = False,
+           ctx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """El corte n-dimensional puro. `atomos` = [{u, d, m, p}]; `por` = dimensiones a cruzar.
     Devuelve un renglón por combinación con las medidas estándar."""
     for dim in por:
@@ -119,7 +170,7 @@ def cortar(atomos: List[Dict[str, Any]], por: List[str],
         if not incluir_sin_dato and any(v is None for v in llave):
             continue
         grupos.setdefault(llave, []).append(a["u"])
-    filas = [{**dict(zip(por, k)), **_medidas(us)} for k, us in grupos.items()]
+    filas = [{**dict(zip(por, k)), **_medidas(us, ctx)} for k, us in grupos.items()]
     return sorted(filas, key=lambda f: -(f["unidades"] or 0))
 
 
@@ -135,9 +186,44 @@ async def corte(db, por: List[str], development_id: Optional[str] = None,
         {}, {"_id": 0}).to_list(2000)}
     programas = {p["prototype_id"]: p for p in await db.molde_programa.find(
         {}, {"_id": 0}).to_list(2000)}
-    atomos = [{"u": u, "d": devs.get(u.get("development_id")) or {},
-               "m": moldes.get(u.get("prototype_id")) or {},
-               "p": programas.get(u.get("prototype_id")) or {}} for u in units]
+    # EL ESPEJO: demanda real (búsquedas con criterios), señales, leads y bitácora
+    busquedas = await db.marketplace_searches.find({}, {"_id": 0}).to_list(5000)
+    senales_por_dev: Dict[str, Dict[str, Any]] = {}
+    async for sg in db.buyer_signals.find({}, {"_id": 0, "entity_id": 1, "visitor_id": 1}):
+        e = senales_por_dev.setdefault(sg.get("entity_id") or "", {"n": 0, "visitantes": set()})
+        e["n"] += 1
+        if sg.get("visitor_id"):
+            e["visitantes"].add(sg["visitor_id"])
+    leads_por_dev: Dict[str, int] = {}
+    async for ld in db.leads.find({}, {"_id": 0, "development_id": 1, "project_id": 1}):
+        k = ld.get("development_id") or ld.get("project_id") or ""
+        leads_por_dev[k] = leads_por_dev.get(k, 0) + 1
+    primera: Dict[str, str] = {}
+    async for r in db.oferta_timeline.aggregate([
+            {"$group": {"_id": "$unit_id", "primera": {"$min": "$ts"}}}]):
+        primera[r["_id"]] = str(r["primera"])
+    from datetime import datetime, timezone
+    hoy = datetime.now(timezone.utc)
+
+    def _edad(ts: Optional[str]) -> Optional[int]:
+        if not ts:
+            return None
+        try:
+            return max(0, (hoy - datetime.fromisoformat(ts[:19]).replace(
+                tzinfo=timezone.utc)).days)
+        except ValueError:
+            return None
+
+    atomos = []
+    for u in units:
+        d = devs.get(u.get("development_id")) or {}
+        pf = primera.get(u.get("id") or "")
+        u = {**u, "_primera_foto": pf, "_edad_dias": _edad(pf),
+             "_colonia_id": u.get("colonia_id") or d.get("colonia_id") or ""}
+        atomos.append({"u": u, "d": d, "m": moldes.get(u.get("prototype_id")) or {},
+                       "p": programas.get(u.get("prototype_id")) or {}})
+    ctx = {"busquedas": busquedas, "senales_por_dev": senales_por_dev,
+           "leads_por_dev": leads_por_dev}
     return {"por": por, "n_atomos": len(atomos),
-            "filas": cortar(atomos, por, incluir_sin_dato),
+            "filas": cortar(atomos, por, incluir_sin_dato, ctx),
             "dimensiones_disponibles": sorted(DIMENSIONES)}
