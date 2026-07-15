@@ -105,9 +105,13 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
 }
 
 /* panel de edición: aparece al clic en una unidad — SIN wizard */
+const ORIENTACIONES = ['', 'norte', 'sur', 'oriente', 'poniente', 'noreste', 'noroeste', 'sureste', 'suroeste'];
+
 export function PanelUnidad({ u, onCerrar, onGuardado }) {
   const [status, setStatus] = useState((u.status || 'disponible').toLowerCase());
   const [precio, setPrecio] = useState(u.price_mxn || u.price || '');
+  const [orientacion, setOrientacion] = useState(u.orientacion || '');
+  const [vista, setVista] = useState(u.vista || '');
   const [msg, setMsg] = useState('');
   const guardar = async () => {
     try {
@@ -115,6 +119,8 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
       if (status !== (u.status || 'disponible').toLowerCase()) body.status = status;
       const pNum = Number(precio);
       if (precio !== '' && pNum !== (u.price_mxn || u.price)) body.price_mxn = pNum;
+      if (orientacion !== (u.orientacion || '')) body.orientacion = orientacion;
+      if (vista !== (u.vista || '')) body.vista = vista;
       if (!Object.keys(body).length) { setMsg('Sin cambios.'); return; }
       await _patch(`/unidad/${u.id}`, body);
       setMsg('Guardado ✓ (queda en la bitácora)'); onGuardado();
@@ -138,6 +144,16 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
       <label style={{ ...S.mini, display: 'block', marginBottom: 10 }}>Precio (MXN)
         <input data-testid="unidad-precio" style={{ ...S.inp, marginTop: 3 }} type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} />
       </label>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <label style={{ ...S.mini, flex: 1 }}>Orientación
+          <select data-testid="unidad-orientacion" style={{ ...S.inp, marginTop: 3 }} value={orientacion} onChange={(e) => setOrientacion(e.target.value)}>
+            {ORIENTACIONES.map((o) => <option key={o} value={o}>{o || '— sin dato —'}</option>)}
+          </select>
+        </label>
+        <label style={{ ...S.mini, flex: 1 }}>Vista
+          <input data-testid="unidad-vista" style={{ ...S.inp, marginTop: 3 }} placeholder="calle / interior / parque" value={vista} onChange={(e) => setVista(e.target.value)} />
+        </label>
+      </div>
       <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
       {msg && <p style={{ ...S.p, marginTop: 8, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
     </div>

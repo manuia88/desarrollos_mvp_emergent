@@ -165,11 +165,49 @@ async def bautizar_ia(clusters: List[Dict[str, Any]], development_nombre: str) -
         return {}
 
 
-# ─── MATERIALIZAR (escribe lo que el marketplace espera) ──────────────────────
+# ─── CATÁLOGO DE MOLDES (v3, 07-15): el molde es PERMANENTE ───────────────────
+# El robot ya no demuele y re-crea: CONCILIA. Un molde nace una vez (nacio_at), vive
+# ("nuevo"→"activo"), se agota si su última unidad sale de la lista ("agotado", con
+# agoto_at — JAMÁS se borra: conserva planos, renders e historia) y revive si el dev
+# libera más unidades (revivio_at). Los planos/renders quedan anclados al molde.
+
+def _match_molde(c: Dict[str, Any], existentes: List[Dict[str, Any]],
+                 usados: set) -> Optional[Dict[str, Any]]:
+    """El cluster nuevo ¿ya es un molde conocido? Mismas recámaras y m² a tolerancia
+    (±3% o ±2m², lo que sea mayor) — el más cercano gana."""
+    m2 = c.get("m2_prom") or 0
+    mejor, mejor_d = None, None
+    for m in existentes:
+        if m["prototype_id"] in usados or m.get("recamaras") != c.get("recamaras"):
+            continue
+        d = abs((m.get("m2_construido") or 0) - m2)
+        if d <= max(2.0, m2 * 0.03) and (mejor_d is None or d < mejor_d):
+            mejor, mejor_d = m, d
+    return mejor
+
+
+def huella_molde(recamaras: Any, m2: Any) -> str:
+    """Identidad legible del molde (para linaje y cotejo entre proyectos)."""
+    return f"{recamaras if recamaras is not None else '?'}r_{round(m2 or 0)}m2"
+
+
 async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[str, Any]:
     units = await db.units.find({"development_id": development_id}, {"_id": 0}).to_list(2000)
+    ahora = _now_iso()
+    existentes = await db.dmx_prototypes.find({"development_id": development_id},
+                                              {"_id": 0}).to_list(500)
     if not units:
-        return {"development_id": development_id, "prototipos": 0, "unidades": 0, "cuarentena": 0}
+        # sin unidades en catálogo: todos los moldes vivos pasan a "agotado" (nunca se borran)
+        agotados = 0
+        for m in existentes:
+            if m.get("estado") != "agotado":
+                await db.dmx_prototypes.update_one(
+                    {"prototype_id": m["prototype_id"]},
+                    {"$set": {"estado": "agotado", "agoto_at": ahora, "unidades_total": 0}})
+                agotados += 1
+        return {"development_id": development_id, "prototipos": 0, "unidades": 0,
+                "cuarentena": 0, "nuevos": 0, "actualizados": 0, "agotados": agotados,
+                "revividos": 0}
     res = clusterizar(units)
     clusters = res["clusters"]
 
@@ -178,51 +216,84 @@ async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[
         dev_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
         nombres_ia = await bautizar_ia(clusters, (dev_doc or {}).get("name") or development_id)
 
-    # PRESERVAR PLANOS (bug 07-14: el cron re-derivaba cada hora y borraba los planos ya
-    # asignados — "desaparecieron los renders"). Se heredan del prototipo anterior equivalente
-    # (misma recámara + mismos m² redondeados); el arquitectónico además puede venir de la unidad.
-    previos: Dict[Any, Dict[str, Any]] = {}
-    for pv in await db.dmx_prototypes.find({"development_id": development_id},
-                                           {"_id": 0, "recamaras": 1, "m2_construido": 1,
-                                            "floor_plan_url": 1,
-                                            "plano_amueblado_url": 1}).to_list(200):
-        previos[(pv.get("recamaras"), round(pv.get("m2_construido") or 0))] = pv
+    # ids estables: los nuevos continúan la numeración (los viejos JAMÁS cambian de id)
+    idx_sig = 0
+    for m in existentes:
+        try:
+            idx_sig = max(idx_sig, int(m["prototype_id"].rsplit("p", 1)[-1]) + 1)
+        except (ValueError, IndexError):
+            idx_sig = max(idx_sig, len(existentes))
 
-    await db.dmx_prototypes.delete_many({"development_id": development_id})
+    usados: set = set()
     asignadas = 0
+    resumen = {"nuevos": 0, "actualizados": 0, "agotados": 0, "revividos": 0}
     for i, c in enumerate(clusters):
-        pid = f"{development_id}__p{i:02d}"
-        viejo = previos.get((c["recamaras"], round(c["m2_prom"] or 0))) or {}
-        plano_arq = viejo.get("floor_plan_url")
-        if not plano_arq:
-            u_con_plano = await db.units.find_one({"id": {"$in": c["unidades"]},
-                                                   "plano_url": {"$nin": [None, ""]}},
-                                                  {"_id": 0, "plano_url": 1})
-            plano_arq = (u_con_plano or {}).get("plano_url")
-        await db.dmx_prototypes.insert_one({
-            # campos del schema Prototype (dmx_unit_schema) — el contrato del marketplace
-            "prototype_id": pid, "development_id": development_id,
-            "nombre": nombres_ia.get(i) or c["nombre_auto"],
-            "m2_construido": c["m2_prom"], "m2_privativo": None,
-            "recamaras": c["recamaras"], "banos": c["banos"],
-            "estacionamientos": c["estacionamientos"],
-            "precio_desde_mxn": c["precio_desde"], "unidades_total": c["n"],
-            "floor_plan_url": plano_arq,
-            "plano_amueblado_url": viejo.get("plano_amueblado_url"),
-            # linaje/confianza (extra, para la bandeja y auditoría)
-            "confianza": c["confianza"], "es_ph": c["es_ph"], "senales": c["senales"],
-            "m2_min": c["m2_min"], "m2_max": c["m2_max"],
-            "derivado_at": _now_iso(), "metodo": "cluster_medidas_v2",
-        })
+        molde = _match_molde(c, existentes, usados)
+        medidas = {
+            "m2_construido": c["m2_prom"], "recamaras": c["recamaras"], "banos": c["banos"],
+            "estacionamientos": c["estacionamientos"], "precio_desde_mxn": c["precio_desde"],
+            "unidades_total": c["n"], "confianza": c["confianza"], "es_ph": c["es_ph"],
+            "senales": c["senales"], "m2_min": c["m2_min"], "m2_max": c["m2_max"],
+            "huella": huella_molde(c["recamaras"], c["m2_prom"]),
+            "derivado_at": ahora, "metodo": "conciliador_moldes_v3",
+        }
+        if molde:  # molde conocido → actualizar SIN tocar identidad, nombre ni planos
+            pid = molde["prototype_id"]
+            usados.add(pid)
+            set_: Dict[str, Any] = dict(medidas)
+            if molde.get("estado") == "agotado":
+                set_["revivio_at"] = ahora
+                resumen["revividos"] += 1
+            set_["estado"] = "activo"
+            if bautizar and nombres_ia.get(i):
+                set_["nombre"] = nombres_ia[i]
+            if not molde.get("floor_plan_url"):
+                u_pl = await db.units.find_one({"id": {"$in": c["unidades"]},
+                                                "plano_url": {"$nin": [None, ""]}},
+                                               {"_id": 0, "plano_url": 1})
+                if u_pl and u_pl.get("plano_url"):
+                    set_["floor_plan_url"] = u_pl["plano_url"]
+            await db.dmx_prototypes.update_one({"prototype_id": pid}, {"$set": set_})
+            resumen["actualizados"] += 1
+        else:      # molde genuinamente nuevo → NACE (estado "nuevo" hasta la 2ª conciliación)
+            pid = f"{development_id}__p{idx_sig:02d}"
+            idx_sig += 1
+            u_pl = await db.units.find_one({"id": {"$in": c["unidades"]},
+                                            "plano_url": {"$nin": [None, ""]}},
+                                           {"_id": 0, "plano_url": 1})
+            await db.dmx_prototypes.insert_one({
+                # contrato del marketplace (schema Prototype) + biografía del molde
+                "prototype_id": pid, "development_id": development_id,
+                "nombre": nombres_ia.get(i) or c["nombre_auto"], "m2_privativo": None,
+                "floor_plan_url": (u_pl or {}).get("plano_url"),
+                "plano_amueblado_url": None,
+                "estado": "nuevo", "nacio_at": ahora, "agoto_at": None, "revivio_at": None,
+                **medidas,
+            })
+            resumen["nuevos"] += 1
         r = await db.units.update_many({"id": {"$in": c["unidades"]}},
                                        {"$set": {"prototype_id": pid}})
         asignadas += r.modified_count
+
+    # moldes sin unidades en la lista actual → "agotado" (biografía intacta, nunca borrar);
+    # los que ya se vieron 2 veces ("nuevo" conciliado de nuevo) maduran a "activo"
+    for m in existentes:
+        if m["prototype_id"] in usados:
+            if m.get("estado") == "nuevo":
+                await db.dmx_prototypes.update_one({"prototype_id": m["prototype_id"]},
+                                                   {"$set": {"estado": "activo"}})
+        elif m.get("estado") != "agotado":
+            await db.dmx_prototypes.update_one(
+                {"prototype_id": m["prototype_id"]},
+                {"$set": {"estado": "agotado", "agoto_at": ahora, "unidades_total": 0}})
+            resumen["agotados"] += 1
+
     if res["cuarentena"]:
         await db.units.update_many({"id": {"$in": res["cuarentena"]}},
                                    {"$set": {"prototype_id": None,
                                              "prototype_cuarentena": True}})
     return {"development_id": development_id, "prototipos": len(clusters),
-            "unidades": asignadas, "cuarentena": len(res["cuarentena"])}
+            "unidades": asignadas, "cuarentena": len(res["cuarentena"]), **resumen}
 
 
 async def materializar_todos(db, bautizar: bool = False) -> Dict[str, Any]:

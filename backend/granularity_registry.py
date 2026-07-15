@@ -24,6 +24,10 @@ REGISTRY: List[Dict[str, Any]] = [
     {"key": "health_project", "label": "Salud del proyecto (4 dims)", "portal": "dev", "entity_type": "desarrollo", "collection": "health_scores", "id_field": "entity_id", "filter": {"entity_type": "project"}},
     {"key": "inversion", "label": "Score de inversión (AAA–D)", "portal": "inversionista", "entity_type": "desarrollo", "collection": "score_inversion_cache", "id_field": "score_id"},
     {"key": "project_score", "label": "Score del proyecto (1 número, 5 dims) — histórico", "portal": "dev", "entity_type": "desarrollo", "collection": "score_snapshots", "id_field": "entity_id", "filter": {"family": "dmx_project_score"}},
+    # ── MOLDE (Catálogo de Moldes, 07-15) ──
+    {"key": "molde_biografia", "label": "Catálogo de Moldes: biografía (nació/agotó/revivió) + planos anclados", "portal": "superadmin", "entity_type": "molde", "collection": "dmx_prototypes", "id_field": "prototype_id"},
+    {"key": "molde_programa", "label": "Programa arquitectónico por molde (espacios del plano + planta tipo)", "portal": "superadmin", "entity_type": "molde", "collection": "molde_programa", "id_field": "prototype_id"},
+    {"key": "cotejo_fuentes", "label": "Cotejo multi-fuente (lista ⨯ plano ⨯ brochure): verificados y contradicciones", "portal": "superadmin", "entity_type": "desarrollo", "collection": "cotejo_datos", "id_field": "development_id"},
     # ── UNIDAD ──
     {"key": "avm", "label": "Valuación AVM + FSD (por propiedad)", "portal": "inversionista", "entity_type": "unidad", "collection": "avm_predictions", "id_field": "property_id"},
     {"key": "unit_atom", "label": "Átomo de unidad (taxonomía 14 grupos + completitud)", "portal": "dev", "entity_type": "unidad", "collection": "dmx_units", "id_field": "unit_id"},

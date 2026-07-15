@@ -145,24 +145,57 @@ export default function SuperadminExpediente({ user, onLogout }) {
           </div>
         </div>
 
-        {/* ═══ 3 · PROTOTIPOS con su plano oficial ═══ */}
+        {/* ═══ 3 · EL CATÁLOGO DE MOLDES: permanente, con biografía, cotejo y programa ═══ */}
         <div style={sec}>
-          <H>📐 Prototipos (los moldes) — con su planta oficial</H>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
-            {x.prototipos.map((pr) => (
-              <div key={pr.prototype_id} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-                {(pr.plano_amueblado_url || pr.floor_plan_url)
-                  ? <img src={`${API}${pr.plano_amueblado_url || pr.floor_plan_url}`} alt={pr.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', background: '#fff' }} />
-                  : <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Falta>plano de este molde</Falta></div>}
-                <div style={{ padding: 10 }}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>{pr.nombre}</div>
-                  <div style={S.mini}>{pr.unidades_total} unidades{pr.precio_desde_mxn ? ` · desde ${fmtM(pr.precio_desde_mxn)}` : ''}</div>
-                  {pr.nota && <div style={{ ...S.mini, color: '#d29922' }}>{pr.nota}</div>}
-                  {pr.plano_amueblado_url && pr.floor_plan_url && <div style={S.mini}>planta amueblada + plano arquitectónico ✓</div>}
+          <H>📐 El catálogo de moldes <span style={S.mini}>· el molde es permanente: nace, se agota (nunca se borra) y revive · sus planos viven anclados a él</span></H>
+          {x.cotejo?.resumen && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ ...S.mini, padding: '4px 10px', borderRadius: 9999, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.4)', color: '#86efac', fontWeight: 700 }}>✓ {x.cotejo.resumen.coincide} datos verificados por 2+ fuentes</span>
+              {x.cotejo.resumen.contradice > 0 && <span style={{ ...S.mini, padding: '4px 10px', borderRadius: 9999, background: 'rgba(210,153,34,0.12)', border: '1px solid rgba(210,153,34,0.45)', color: '#d29922', fontWeight: 700 }}>⚠ {x.cotejo.resumen.contradice} contradicciones entre fuentes (abajo)</span>}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
+            {x.prototipos.map((pr) => {
+              const met = x.metricas_moldes?.[pr.prototype_id];
+              const prog = x.programas?.[pr.prototype_id];
+              const checksM = (x.cotejo?.checks || []).filter((c) => c.ref === pr.prototype_id);
+              const verifs = checksM.filter((c) => c.veredicto === 'coincide').length;
+              const contra = checksM.find((c) => c.veredicto === 'contradice');
+              const coloc = met?.colocacion;
+              const premMax = (met?.premium_piso || []).slice(-1)[0];
+              return (
+                <div key={pr.prototype_id} style={{ border: `1px solid ${pr.estado === 'agotado' ? 'rgba(248,113,113,0.35)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 12, overflow: 'hidden', opacity: pr.estado === 'agotado' ? 0.75 : 1 }}>
+                  {(pr.plano_amueblado_url || pr.floor_plan_url)
+                    ? <img src={`${API}${pr.plano_amueblado_url || pr.floor_plan_url}`} alt={pr.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', background: '#fff' }} />
+                    : <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Falta>plano de este molde</Falta></div>}
+                  <div style={{ padding: 10, display: 'grid', gap: 4 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>
+                      {pr.nombre}
+                      {pr.estado === 'nuevo' && <span style={{ marginLeft: 6, fontSize: 10, color: '#9ecbff' }}>✨ nuevo</span>}
+                      {pr.estado === 'agotado' && <span style={{ marginLeft: 6, fontSize: 10, color: '#fca5a5' }}>🔴 AGOTADO {pr.agoto_at ? new Date(pr.agoto_at).toLocaleDateString('es-MX') : ''}</span>}
+                      {pr.revivio_at && <span style={{ marginLeft: 6, fontSize: 10, color: '#86efac' }}>↻ revivió</span>}
+                    </div>
+                    <div style={S.mini}>{pr.unidades_total} unidades{pr.precio_desde_mxn ? ` · desde ${fmtM(pr.precio_desde_mxn)}` : ''}</div>
+                    {coloc?.pct != null && <div style={S.mini}>🏁 Colocado: <b style={{ color: 'var(--cream)' }}>{coloc.vendidas}/{coloc.total} ({coloc.pct}%)</b></div>}
+                    {premMax?.premium_pct > 0 && <div style={S.mini}>📶 Premium por piso: hasta <b style={{ color: 'var(--cream)' }}>+{premMax.premium_pct}%</b> (piso {premMax.piso})</div>}
+                    {prog?.espacios_detalle?.length > 0 && <div style={{ ...S.mini, lineHeight: 1.5 }}>🚪 {prog.espacios_detalle.join(' · ')}</div>}
+                    {prog?.flex_visual && <span style={{ ...S.mini, color: '#d29922', fontWeight: 700 }}>⚡ recámara FLEX confirmada (la planta dibuja {prog.camas_dibujadas} camas)</span>}
+                    {verifs > 0 && <span style={{ ...S.mini, color: '#86efac' }}>✓ {verifs} dato(s) verificados lista⨯plano</span>}
+                    {contra && <span style={{ ...S.mini, color: '#d29922' }}>⚠ {contra.campo}: lista dice {String(contra.fuentes?.lista)} y el plano {String(contra.fuentes?.plano)}{contra.nota ? ` — ${contra.nota}` : ''}</span>}
+                    {pr.plano_amueblado_url && pr.floor_plan_url && <div style={S.mini}>planta amueblada + plano arquitectónico ✓</div>}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+
+        {/* ═══ 3b · POLÍTICA DE PRECIOS DEL DEV (su huella comercial, de la bitácora) ═══ */}
+        <div style={sec}>
+          <H>🧭 Política de precios del desarrollador</H>
+          {x.playbook?.regla
+            ? <span style={S.p}>Con {x.playbook.regla.n_ajustes} ajustes observados: <b style={{ color: 'var(--cream)' }}>{x.playbook.regla.humano}</b></span>
+            : <span style={S.p}>⚪ {x.playbook?.nota || 'sin datos aún'} · la bitácora ya guarda cada precio ({x.playbook?.n_eventos || 0} eventos)</span>}
         </div>
 
         {/* ═══ 4 · MULTIMEDIA: lo que el comprador VERÁ + el archivo completo ═══ */}
@@ -174,8 +207,14 @@ export default function SuperadminExpediente({ user, onLogout }) {
                 <div key={a.id} style={{ position: 'relative' }}>
                   <img src={`${API}${a.url}`} alt={a.caption || a.nombre} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, border: a.cover ? '2px solid #4ADE80' : '1px solid rgba(255,255,255,0.12)' }} />
                   {a.cover && <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 9.5, fontWeight: 800, padding: '2px 6px', borderRadius: 6, background: '#4ADE80', color: '#000' }}>PORTADA</span>}
+                  {a.concepto && <span style={{ position: 'absolute', bottom: 4, left: 4, fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,0,0,0.65)', color: '#fff' }}>{a.concepto}</span>}
                 </div>
               ))}
+            </div>
+          )}
+          {galeria.some((a) => a.concepto) && (
+            <div style={{ ...S.mini, marginTop: 8 }}>
+              📷 Evidencia visual por concepto: {Object.entries(galeria.reduce((m, a) => { if (a.concepto) m[a.concepto] = (m[a.concepto] || 0) + 1; return m; }, {})).map(([c, n]) => `${c} (${n})`).join(' · ')}
             </div>
           )}
           {planosPT.length > 0 && <div style={{ ...S.mini, marginTop: 8 }}>+ {planosPT.length} plantas oficiales (arriba, en Prototipos)</div>}

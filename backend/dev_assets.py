@@ -189,6 +189,27 @@ async def pedra_generate_360(image_bytes: bytes, room_type: Optional[str] = None
 
 
 # ─── Storage helpers ──────────────────────────────────────────────────────────
+CONCEPTOS_NOMBRE = {  # palabra en el nombre del archivo → concepto (etiqueta de galería)
+    "roof": "roof garden", "alberca": "alberca", "pool": "alberca", "gym": "gimnasio",
+    "gimnasio": "gimnasio", "lobby": "lobby", "fachada": "fachada", "facade": "fachada",
+    "cocina": "cocina", "kitchen": "cocina", "recamara": "recamara", "bedroom": "recamara",
+    "sala": "sala comedor", "living": "sala comedor", "comedor": "sala comedor",
+    "jardin": "areas verdes", "garden": "areas verdes", "terraza": "terraza",
+    "amenidad": "amenidades", "bano": "bano", "vestibulo": "lobby", "coworking": "coworking",
+    "cine": "cine", "salon": "salon de usos multiples", "juegos": "ludoteca",
+}
+
+
+def concepto_de_nombre(filename: str) -> str | None:
+    """Concepto de galería desde el nombre del archivo (la lectura visual en sesión
+    lo refina después — este es el primer pase, $0)."""
+    fn = (filename or "").lower()
+    for clave, concepto in CONCEPTOS_NOMBRE.items():
+        if clave in fn:
+            return concepto
+    return None
+
+
 def write_asset(asset_id: str, data: bytes, ext: str) -> str:
     p = ASSET_UPLOAD_DIR / f"{asset_id}.{ext}"
     p.write_bytes(data)

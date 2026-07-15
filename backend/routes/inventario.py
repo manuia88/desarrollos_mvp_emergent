@@ -119,6 +119,7 @@ async def expediente(request: Request, development_id: str):
         sp = a.get("storage_path") or ""
         locales.append({"id": a.get("id"), "tipo": a.get("asset_type"),
                         "nombre": a.get("filename"), "caption": a.get("ai_caption"),
+                        "concepto": a.get("concepto"),
                         "url": f"/api/assets-static/{sp.split('/')[-1]}" if sp else None,
                         "cover": a.get("role") == "cover"})
     drive_por_cat: Dict[str, Any] = {}
@@ -142,9 +143,23 @@ async def expediente(request: Request, development_id: str):
     from routes.dev_project_full import project_full, project_readiness
     readiness = project_readiness(await project_full(db, development_id))
 
+    # el dato fino del Catálogo de Moldes — todo en la MISMA llamada (orden founder:
+    # un solo espacio): métricas, programa arquitectónico, cotejo y playbook del dev
+    from molde_metrics import metricas_desarrollo
+    from playbook_precios import playbook_desarrollo
+    metricas = await metricas_desarrollo(db, development_id)
+    programas = await db.molde_programa.find({"development_id": development_id},
+                                             {"_id": 0}).to_list(200)
+    cotejo = await db.cotejo_datos.find_one({"development_id": development_id}, {"_id": 0})
+    playbook = await playbook_desarrollo(db, development_id)
+
     return {
         "desarrollo": d, "unidades": units, "n_unidades": len(units),
         "prototipos": protos,
+        "metricas_moldes": {m["prototype_id"]: m for m in metricas["moldes"]},
+        "programas": {p["prototype_id"]: p for p in programas},
+        "cotejo": cotejo,
+        "playbook": playbook,
         "multimedia": {"locales": locales, "drive": drive_por_cat},
         "pagos": pagos.get("schemes") or [],
         "avance": {"pct": avance.get("overall_percent"), "etapa": avance.get("current_stage")},
@@ -201,9 +216,15 @@ async def proyecto(request: Request, development_id: str):
     return {"proyecto": d, "unidades": units, "prototipos": protos, "n_unidades": len(units)}
 
 
+ORIENTACIONES = {"norte", "sur", "oriente", "poniente", "noreste", "noroeste",
+                 "sureste", "suroeste"}
+
+
 class UnidadPatch(BaseModel):
     status: Optional[str] = None
     price_mxn: Optional[float] = Field(default=None, ge=0)
+    orientacion: Optional[str] = None      # norte/sur/oriente/poniente/…
+    vista: Optional[str] = Field(default=None, max_length=80)   # calle/interior/parque…
 
 
 @router.patch("/unidad/{unit_id}")
@@ -225,6 +246,13 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
     if body.price_mxn is not None:
         cambios["price_mxn"] = float(body.price_mxn)
         cambios["price"] = float(body.price_mxn)
+    if body.orientacion is not None:
+        o = body.orientacion.strip().lower()
+        if o and o not in ORIENTACIONES:
+            raise HTTPException(400, f"Orientación inválida; usa una de {sorted(ORIENTACIONES)}")
+        cambios["orientacion"] = o or None
+    if body.vista is not None:
+        cambios["vista"] = body.vista.strip() or None
     if not cambios:
         raise HTTPException(400, "Nada que cambiar (manda status y/o price_mxn)")
     cambios["updated_at"] = _now_iso()
@@ -241,6 +269,13 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
     try:
         from market_timeline import disparar_snapshot_debounced
         disparar_snapshot_debounced(db, fuente="edicion_inventario")
+    except Exception:
+        pass
+    # conciliador de moldes: solo cuando algo cambió (event-driven, ya no hay cron)
+    try:
+        import asyncio as _aio
+        import prototype_engine as _pe
+        _aio.create_task(_pe.materializar(db, u["development_id"]))
     except Exception:
         pass
     return {"ok": True, "unidad": {**u, **cambios}}

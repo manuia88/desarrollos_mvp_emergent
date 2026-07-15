@@ -59,10 +59,33 @@ async def _comparables(db, *, zona: Optional[str] = None, estudio: Optional[str]
         q["clasificacion"] = clasificacion
     try:
         cur = db.market_comps_4s.find(q, {"_id": 0})
-        return [d async for d in cur]
+        comps = [d async for d in cur]
     except Exception as e:
         log.warning("[equilibrium] comparables fail-open: %s", e)
-        return []
+        comps = []
+    # FEED del Catálogo de Moldes (07-15): un molde con absorción MEDIDA (≥2 listas en la
+    # bitácora) entra a la curva como comparable real nivel-molde — más fino que el proyecto
+    # entero. Con 1 sola foto no aporta puntos (regla founder: flujo ≠ foto). Fail-open.
+    try:
+        from molde_metrics import metricas_desarrollo
+        qd: Dict[str, Any] = {"colonia": zona.strip().lower()} if zona else {}
+        async for d in db.developments.find(qd, {"_id": 0, "id": 1, "name": 1,
+                                                 "colonia": 1}).limit(50):
+            met = await metricas_desarrollo(db, d["id"])
+            for m in met["moldes"]:
+                upm = (m.get("absorcion") or {}).get("unidades_mes")
+                curva = m.get("curva_precio") or []
+                if upm is None or not curva:
+                    continue
+                comps.append({"proyecto": f"{d.get('name')} · {m.get('nombre')}",
+                              "precio_m2": curva[-1]["pm2"],
+                              "velocidad_mensual_real": upm,
+                              "unidades_inventario": (m.get("colocacion") or {}).get("total"),
+                              "zona_norm": d.get("colonia"), "clasificacion": clasificacion,
+                              "fuente": "molde_catalogo"})
+    except Exception as e:  # noqa: BLE001
+        log.warning("[equilibrium] feed moldes fail-open: %s", e)
+    return comps
 
 
 async def precio_equilibrio(db, *, zona: Optional[str] = None, estudio: Optional[str] = None,

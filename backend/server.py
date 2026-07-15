@@ -2541,17 +2541,15 @@ async def startup():
             _aio_tg.create_task(_tg_loop(db))
         except Exception as e:
             logging.warning(f"[telegram] no arrancó: {e}")
-        # El Vigía: ronda CADA HORA (metadata pura, $0) + refresco de prototipos (código, $0).
-        # La única acción que gasta (ingesta con IA) sigue detrás del clic de aprobación.
+        # El Vigía: ronda CADA HORA (metadata pura, $0). Los moldes ya NO se recalculan
+        # aquí: el conciliador corre solo cuando algo cambió (aprobar ingesta / editar
+        # unidad) — cero ciclos vacíos, cero ventanas donde se pierda un plano (07-15).
         try:
             from apscheduler.triggers.interval import IntervalTrigger
 
             async def _vigia_hourly():
                 import vigia_engine as _ve
-                import prototype_engine as _pe
-                r = await _ve.ronda(db)
-                if r.get("eventos"):
-                    await _pe.materializar_todos(db, bautizar=False)
+                await _ve.ronda(db)
 
             sched.add_job(_vigia_hourly, IntervalTrigger(minutes=60),
                           id="vigia_hourly", replace_existing=True, misfire_grace_time=600)

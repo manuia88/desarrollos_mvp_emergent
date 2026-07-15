@@ -199,15 +199,28 @@ async def _sec_demanda(db, desde: str) -> List[str]:
 
 
 async def _sec_moldes(db, desde: str) -> List[str]:
-    """Qué molde (prototipo) se vende más rápido — el análisis que pediste por m2/recámaras."""
+    """La vida del Catálogo de Moldes en el periodo: nació / se agotó / revivió (la
+    biografía del conciliador) + los más grandes del catálogo."""
     protos = await db.dmx_prototypes.find({}, {"_id": 0}).to_list(500)
     if not protos:
         return []
+    out = ["<b>📦 Los moldes del catálogo</b>"]
+    vida = []
+    for p in protos:
+        n = p.get("nombre")
+        if (p.get("agoto_at") or "") >= desde:
+            vida.append(f"🔴 Se AGOTÓ el molde {n} — dato de oro: qué producto vuela")
+        elif (p.get("revivio_at") or "") >= desde:
+            vida.append(f"🟢 Revivió {n} (el dev liberó más unidades)")
+        elif (p.get("nacio_at") or "") >= desde:
+            vida.append(f"✨ Nació {n}")
+    out += vida[:6]
     top = sorted(protos, key=lambda p: -(p.get("unidades_total") or 0))[:5]
-    return ["<b>📦 Los moldes del catálogo</b>"] + [
-        f"· {p.get('nombre')}: {p.get('unidades_total')}u"
-        + (f" desde {_fmt_precio(p.get('precio_desde_mxn'))}" if p.get("precio_desde_mxn") else "")
-        for p in top]
+    out += [f"· {p.get('nombre')}: {p.get('unidades_total')}u"
+            + (f" desde {_fmt_precio(p.get('precio_desde_mxn'))}" if p.get("precio_desde_mxn") else "")
+            + (" · AGOTADO" if p.get("estado") == "agotado" else "")
+            for p in top]
+    return out
 
 
 _SECCIONES = {"movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
