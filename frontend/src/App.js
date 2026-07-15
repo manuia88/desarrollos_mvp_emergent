@@ -1452,12 +1452,12 @@ function AtlaxHomeHero() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-export default function RedirectExpediente() {
+function RedirectExpediente() {
   const { projectId } = useParams();
   return <Navigate to={`/superadmin/expediente/${projectId}`} replace />;
 }
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <SkipToContent />
