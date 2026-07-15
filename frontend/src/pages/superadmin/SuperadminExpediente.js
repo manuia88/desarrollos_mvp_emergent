@@ -49,6 +49,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
   const [msg, setMsg] = useState('');
   const [confirmaPub, setConfirmaPub] = useState(false);
   const [salud, setSalud] = useState(null);
+  const [pedido, setPedido] = useState(null);
 
   const publicar = async (forzar, despublicar = false) => {
     try {
@@ -67,6 +68,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
   useEffect(() => {
     fetch(`${API}/api/superadmin/inventario/auditoria?development_id=${encodeURIComponent(devId)}`, { credentials: 'include' })
       .then((r) => r.json()).then(setSalud).catch(() => setSalud(null));
+    _get(`/pedidos/${encodeURIComponent(devId)}`).then(setPedido).catch(() => setPedido(null));
   }, [devId]);
 
   const guardar = async (campo, valor) => {
@@ -119,6 +121,32 @@ export default function SuperadminExpediente({ user, onLogout }) {
               <button style={{ ...S.btn, background: 'rgba(210,153,34,0.2)', border: '1px solid rgba(210,153,34,0.55)', color: '#d29922' }} onClick={() => publicar(true)}>Publicar de todos modos (queda con mi acuse)</button>
               <button style={S.btn} onClick={() => setConfirmaPub(false)}>Mejor no</button>
             </div>
+          </div>
+        )}
+
+        {/* 📋 LA LISTA DE PEDIDOS: lo que hay que pedirle al dev, redactado */}
+        {pedido && !pedido.al_dia && (
+          <div style={{ ...sec, border: '1px solid rgba(88,166,255,0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <H>📋 Lo que hay que pedirle a {pedido.dev} ({pedido.n_puntos} puntos)</H>
+              <span style={{ flex: 1 }} />
+              <button style={{ ...S.btn, background: 'rgba(88,166,255,0.12)', border: '1px solid rgba(88,166,255,0.45)', color: '#9ecbff' }}
+                onClick={() => { navigator.clipboard.writeText(pedido.texto); setMsg('Pedido copiado ✓ — pégalo en WhatsApp'); }}>
+                📋 Copiar mensaje listo para WhatsApp
+              </button>
+            </div>
+            {pedido.secciones.map((sec2) => (
+              <div key={sec2.titulo} style={{ marginTop: 8 }}>
+                <div style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 }}>{sec2.titulo}</div>
+                {sec2.puntos.map((p, i) => <div key={i} style={{ ...S.p, padding: '2px 0' }}>· {p}</div>)}
+              </div>
+            ))}
+            <p style={{ ...S.mini, marginTop: 8, opacity: 0.65 }}>Este pedido se regenera solo: cuando el dev mande algo, desaparece de la lista.</p>
+          </div>
+        )}
+        {pedido && pedido.al_dia && (
+          <div style={{ ...sec, border: '1px solid rgba(74,222,128,0.3)' }}>
+            <span style={{ ...S.p, color: '#86efac' }}>📋 Nada que pedirle a {pedido.dev} — la ficha está completa con lo que ha entregado 🎉</span>
           </div>
         )}
 

@@ -118,3 +118,44 @@ def test_regla_dev_basicos():
     completo = {"id": "d", "address_full": "x", "description": "y",
                 "delivery_estimate": "z"}
     assert AU.r_dev_basicos(completo, _ctx([_u()])) is None
+
+
+# ═══ EL PORTÓN (pre-auditoría del lote) + LA LISTA DE PEDIDOS ══════════════════
+def test_pre_auditoria_caza_el_lote_roto_antes_de_aprobar():
+    extracted = {"project_name": "Torre X", "units": [
+        {"unit_number": "A-101", "price_mxn": 5_000_000, "size_m2": 84.0,
+         "m2_interior": 84.0, "m2_total": 90.0, "m2_balcony": 6.0,
+         "bedrooms": 2, "bathrooms": 2, "status": "disponible"},
+        # el A-1505 del futuro: sin recámaras y con m² fantasma
+        {"unit_number": "PH-1", "price_mxn": 11_000_000, "size_m2": 130.0,
+         "m2_interior": 130.0, "m2_total": 282.0, "m2_balcony": 14.0,
+         "status": "disponible", "campo_marciano": "??"},
+    ]}
+    pre = AU.pre_auditar_extraccion(extracted)
+    reglas = {h["regla"] for h in pre["hallazgos"]}
+    assert "m2_coherencia" in reglas          # los m² fantasma, ANTES del clic
+    assert "campos_obligatorios" in reglas    # el PH sin recámaras, ANTES del clic
+    assert "campos_sin_colocar" in reglas     # L21: 'campo_marciano' capturado sin lugar
+    assert pre["resumen"]["error"] >= 1
+    assert any("roof" in p for p in pre["preguntas_al_dev"])   # pregunta ya redactada
+    # un lote limpio pasa en silencio
+    limpio = {"units": [{"unit_number": "B-1", "price_mxn": 5_000_000, "size_m2": 80.0,
+                         "m2_interior": 80.0, "m2_total": 80.0, "bedrooms": 2,
+                         "bathrooms": 2, "status": "disponible"}]}
+    assert AU.pre_auditar_extraccion(limpio)["resumen"] == {"error": 0, "alerta": 0,
+                                                            "aviso": 0}
+
+
+def test_lista_pedidos_redacta_y_al_dia():
+    from lista_pedidos import armar_pedido
+    p = armar_pedido("CLASS", ["Servicios (gas/agua/luz)"],
+                     ["¿El piso 15 tiene roof privado?"],
+                     [{"etiqueta": "3R·113", "fuentes": {"lista": 3, "plano": 2},
+                       "nota": "posible FLEX"}],
+                     [{"campo": "orientacion", "etiqueta": "orientación", "n": 80}])
+    assert p["n_puntos"] == 4 and not p["al_dia"]
+    assert "Hola equipo CLASS" in p["texto"] and "roof privado" in p["texto"]
+    assert "posible FLEX" in p["texto"] and "80 unidades" in p["texto"]
+    # dev al día = pedido vacío, sin texto fantasma
+    ok = armar_pedido("CLASS", [], [], [], [])
+    assert ok["al_dia"] and ok["texto"] == "" and ok["n_puntos"] == 0

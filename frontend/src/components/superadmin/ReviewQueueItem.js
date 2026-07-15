@@ -44,6 +44,7 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
   React.useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 2500); return () => clearTimeout(t); } }, [toast]);
 
   const e = useMemo(() => computeEffective(item), [item]);
+  const pre = item.pre_auditoria;
   const dedup = item.dedup || {};
   const matches = dedup.similar_matches || [];
   const lowConf = e._low_confidence || e._stub;
@@ -67,7 +68,18 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
     try { await onReject(item.id, reason); setShowReject(false); setReason(''); }
     finally { setBusy(false); }
   };
-  const doRecompute = async () => {
+  const doRecompute = async () =>
+      {pre && (pre.resumen.error > 0 || pre.resumen.alerta > 0 || pre.resumen.aviso > 0) && (
+        <div style={{ margin: '6px 0 8px', padding: '8px 12px', borderRadius: 10, background: 'rgba(210,153,34,0.07)', border: '1px solid rgba(210,153,34,0.4)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)' }}>
+          <b style={{ color: '#d29922' }}>🚦 Pre-auditoría del lote:</b> {pre.resumen.error || 0} errores · {pre.resumen.alerta || 0} alertas · {pre.resumen.aviso || 0} avisos
+          {(pre.hallazgos || []).slice(0, 3).map((h, i2) => (
+            <div key={i2} style={{ marginTop: 3, opacity: 0.9 }}>· [{h.severidad}] {h.ref}: {h.detalle.slice(0, 110)}</div>
+          ))}
+          {(pre.preguntas_al_dev || []).length > 0 && (
+            <div style={{ marginTop: 5, color: '#9ecbff' }}>💬 Pregunta lista para el dev: {pre.preguntas_al_dev[0]}</div>
+          )}
+        </div>
+      )} {
     if (!window.confirm('¿Re-ejecutar Claude sobre los archivos? Esto preserva el histórico y descarta tus ediciones inline.')) return;
     setRecomputing(true);
     try {

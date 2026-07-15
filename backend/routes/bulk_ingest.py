@@ -270,6 +270,12 @@ async def list_items(
                 it["punchlist"] = bie.review_punchlist(it)
             except Exception:  # noqa: BLE001
                 it["punchlist"] = []
+            # EL PORTÓN (07-15): el lote llega pre-auditado — apruebas sabiendo qué viene
+            try:
+                from auditor_catalogo import pre_auditar_extraccion
+                it["pre_auditoria"] = pre_auditar_extraccion(bie.effective_extracted(it))
+            except Exception:  # noqa: BLE001
+                it["pre_auditoria"] = None
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 

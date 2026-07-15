@@ -129,13 +129,13 @@ async def corte_universal(request: Request, por: str = "colonia",
         raise HTTPException(400, str(e))
 
 
-@router.get("/escalera")
-async def escalera(request: Request):
-    """La ESCALERA: el dato de moldes agregado en cada peldaño geográfico
-    (desarrollo → colonia → alcaldía → ciudad), en una llamada."""
+@router.get("/pedidos/{development_id}")
+async def pedidos(request: Request, development_id: str):
+    """LA LISTA DE PEDIDOS: todo lo que hay que pedirle a este dev, redactado y listo
+    para copiar/pegar (faltantes 80% + preguntas del auditor + contradicciones + huecos)."""
     await require_superadmin(request)
-    from molde_metrics import escalera_mercado
-    return await escalera_mercado(_db(request))
+    from lista_pedidos import pedido_desarrollo
+    return await pedido_desarrollo(_db(request), development_id)
 
 
 @router.get("/expediente/{development_id}")

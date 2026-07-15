@@ -382,3 +382,89 @@ async def ultima_auditoria(db, development_id: Optional[str] = None,
     if severidad:
         hs = [h for h in hs if h.get("severidad") == severidad]
     return {"ts": doc.get("ts"), "hallazgos": hs, "resumen": resumen_hallazgos(hs)}
+
+
+# ═══ PRE-AUDITORÍA: el portón de entrada (reglas sobre el LOTE, ANTES de aprobar) ═══
+# founder 07-15: "un renglón roto en 80 no se ve a ojo" — apruebas ya sabiendo qué viene.
+CAMPOS_CONOCIDOS_EXTRACCION = {
+    "unit_number", "price_mxn", "price", "status", "bedrooms", "bathrooms",
+    "size_m2", "m2_interior", "m2_total", "size_m2_total", "m2_privative",
+    "m2_balcony", "m2_terrace", "m2_roof_garden", "patio_m2", "level", "prototype",
+    "tower", "torre", "type", "parking", "parking_spots", "parking_type", "bodega",
+    "storage", "storage_count", "enganche_mxn", "enganche_pct", "credito_mxn",
+    "credito_pct", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn", "notas",
+    "amueblado", "cuarto_servicio", "orientacion", "vista", "acabados", "escritura_mxn",
+}
+# alias frecuentes de extracción → campo canónico (L22 a nivel unidad)
+ALIAS_UNIDAD = {"orientation": "orientacion", "banos": "bathrooms",
+                "recamaras": "bedrooms", "precio": "price_mxn", "piso": "level",
+                "estacionamientos": "parking_spots", "m2_habitable": "m2_privative"}
+
+
+def _adaptar_extraida(u: Dict[str, Any]) -> Dict[str, Any]:
+    """Unidad extraída → la forma que esperan las reglas (permisivo con alias)."""
+    return {"id": u.get("unit_number"), "unit_number": u.get("unit_number"),
+            "price_mxn": u.get("price_mxn") or u.get("price") or u.get("precio"),
+            "size_m2": u.get("size_m2") or u.get("m2_interior") or u.get("m2_habitable"),
+            "m2_privative": u.get("m2_privative") or u.get("m2_interior") or u.get("size_m2"),
+            "m2_total": u.get("m2_total") or u.get("size_m2_total"),
+            "m2_balcony": u.get("m2_balcony"), "m2_terrace": u.get("m2_terrace"),
+            "m2_roof_garden": u.get("m2_roof_garden"), "patio_m2": u.get("patio_m2"),
+            "bedrooms": u.get("bedrooms") if u.get("bedrooms") is not None else u.get("recamaras"),
+            "bathrooms": u.get("bathrooms") if u.get("bathrooms") is not None else u.get("banos"),
+            "status": u.get("status") or "disponible",
+            "prototype_id": "pre", "level": u.get("level")}
+
+
+def campos_sin_colocar(units: List[Dict[str, Any]]) -> List[str]:
+    """L21: lo capturado que la plataforma NO sabe dónde poner = trabajo tirado."""
+    vistos = {k for u in units for k in u}
+    return sorted(vistos - CAMPOS_CONOCIDOS_EXTRACCION - set(ALIAS_UNIDAD))
+
+
+def pre_auditar_extraccion(extracted: Dict[str, Any]) -> Dict[str, Any]:
+    """El veredicto del lote antes del clic: hallazgos + resumen + preguntas al dev."""
+    units = (extracted or {}).get("units") or []
+    hallazgos: List[Dict[str, Any]] = []
+    for u in units:
+        a = _adaptar_extraida(u)
+        for regla in (r_m2_coherencia, r_campos_obligatorios, r_precio_rango,
+                      r_estatus_valido):
+            try:
+                h = regla(a, {})
+                if h:
+                    hallazgos.append(h)
+            except Exception:  # noqa: BLE001
+                pass
+    # duplicados dentro del lote
+    d_falso = {"id": "lote", "name": extracted.get("project_name") or "el lote"}
+    dup = r_duplicados(d_falso, {"units": [_adaptar_extraida(u) for u in units]})
+    if dup:
+        hallazgos.append(dup)
+    sin = campos_sin_colocar(units)
+    if sin:
+        hallazgos.append(_h("campos_sin_colocar", "lote", AVISO, "extracción",
+                            f"campos capturados que la plataforma no sabe colocar: "
+                            f"{', '.join(sin[:8])} — o se mapean o se descartan a propósito",
+                            campos=sin))
+    return {"hallazgos": hallazgos, "resumen": resumen_hallazgos(hallazgos),
+            "preguntas_al_dev": preguntas_de_hallazgos(hallazgos)}
+
+
+# ═══ hallazgo → PREGUNTA lista para mandarle al dev ═══════════════════════════
+def preguntas_de_hallazgos(hallazgos: List[Dict[str, Any]]) -> List[str]:
+    out: List[str] = []
+    m2s = [h for h in hallazgos if h["regla"] == "m2_coherencia"]
+    if m2s:
+        refs = [str(h.get("ref")) for h in m2s[:8]]
+        out.append(f"Los totales de {len(m2s)} unidades ({', '.join(refs[:4])}"
+                   f"{'…' if len(refs) > 4 else ''}) traen m² sin desglosar — "
+                   f"¿tienen roof/terraza privada? ¿nos comparten los m² por concepto?")
+    incompletas = [h for h in hallazgos if h["regla"] == "campos_obligatorios"]
+    if incompletas:
+        out.append(f"{len(incompletas)} unidad(es) sin datos base "
+                   f"({', '.join(str(h.get('ref')) for h in incompletas[:4])}): "
+                   f"¿nos pasan recámaras/baños/m² de esas?")
+    if any(h["regla"] == "unidades_duplicadas" for h in hallazgos):
+        out.append("Hay números de unidad repetidos en la lista — ¿cuál es el correcto?")
+    return out

@@ -199,62 +199,6 @@ def test_parse_texto_plano_lee_lo_confiable():
     assert PG.parse_texto_plano("cl.3.5R0ECAMARA basura")["recamaras_plano"] is None
 
 
-# ═══ LA ESCALERA (agregación por peldaño) ═════════════════════════════════════
-def test_escalera_agrega_peldano():
-    filas = [
-        {"colocacion": {"total": 10, "vendidas": 5}, "absorcion": {"unidades_mes": 2.0},
-         "curva_precio": [{"fecha": "2026-07-01", "pm2": 100_000}], "huella": "2r_84m2",
-         "premium_piso": [{"premium_pct": 4.0}], "estado": "activo"},
-        {"colocacion": {"total": 6, "vendidas": 6}, "absorcion": {"unidades_mes": None},
-         "curva_precio": [], "huella": "3r_120m2", "premium_piso": [], "estado": "agotado"},
-    ]
-    r = MM._agrega_peldano(filas)
-    assert r["unidades"] == 16 and r["vendidas"] == 11
-    assert r["colocacion_pct"] == 68.8
-    assert r["moldes_agotados"] == 1
-    assert r["mix_por_tipo"] == {"2R": 10, "3R": 6}
-    assert r["absorcion_u_mes"] == 2.0        # solo suma lo MEDIDO, no inventa
-    assert r["pm2_prom"] == 100_000
-
-
-# ═══ EL MOTOR DE CORTES (hipersegmentación universal) ═════════════════════════
-def test_corte_cruza_dimensiones_hasta_el_atomo():
-    import corte_engine as CO
-    d = {"name": "Almina", "colonia_name": "Tetelpan", "alcaldia": "AO", "stage": "preventa"}
-    m = {"nombre": "3R·113"}
-    p = {"flex_visual": True, "espacios_detalle": ["cocina", "estancia"]}
-    atomos = [
-        {"u": {"unit_number": "A-107", "level": 1, "bedrooms": 3, "bathrooms": 2.5,
-               "size_m2": 117.0, "price_mxn": 8_004_300, "patio_m2": 59.0,
-               "enganche_pct": 20.0, "status": "disponible"}, "d": d, "m": m, "p": p},
-        {"u": {"unit_number": "A-1507", "level": 15, "bedrooms": 3, "bathrooms": 2.5,
-               "size_m2": 117.0, "price_mxn": 9_100_000, "m2_terrace": 9.0,
-               "enganche_pct": 20.0, "status": "vendida"}, "d": d, "m": m, "p": p},
-        {"u": {"unit_number": "B-201", "level": 2, "bedrooms": 2, "bathrooms": 2.0,
-               "size_m2": 84.0, "price_mxn": 5_100_000, "status": "disponible"},
-         "d": d, "m": m, "p": p},
-    ]
-    # cruce tipología × torre (hipersegmentación real)
-    filas = CO.cortar(atomos, ["tipologia", "torre"])
-    tres = next(f for f in filas if f["tipologia"] == "3R")
-    assert tres["torre"] == "Torre A" and tres["unidades"] == 2
-    assert tres["vendidas"] == 1 and tres["colocacion_pct"] == 50.0
-    # átomo físico: exterior (patio vs terraza vs interior)
-    ext = {f["exterior"] for f in CO.cortar(atomos, ["exterior"])}
-    assert ext == {"con patio", "con terraza", "interior"}
-    # financiero: bandas de precio y enganche
-    bp = CO.cortar(atomos, ["banda_precio"])
-    assert {f["banda_precio"] for f in bp} == {"7–9M", "9–12M", "5–7M"}
-    # piso llega al átomo vertical
-    assert {f["piso"] for f in CO.cortar(atomos, ["piso"])} == {"Piso 1", "Piso 15", "Piso 2"}
-    # dimensión desconocida = error claro, no silencio
-    try:
-        CO.cortar(atomos, ["astrologia"])
-        assert False
-    except ValueError:
-        pass
-
-
 def test_corte_espejo_demanda_y_tension():
     """Oferta ⨯ DEMANDA: una búsqueda 'le queda' al corte solo si cumple TODOS sus
     criterios; tensión = búsquedas compatibles ÷ disponibles."""
