@@ -33,27 +33,6 @@ Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
 - Audit trail 5 years
 - No PII in API responses (k-anon + suppression)
 
-## Desarrollos disponibles (obra nueva · CDMX)
-
-- **Altavista Polanco** — Polanco, Miguel Hidalgo · desde $14,800,000 MXN · 2–3 rec · Preventa. https://desarrollosmx.io/desarrollo/altavista-polanco
-- **Lomas Signature** — Lomas de Chapultepec, Miguel Hidalgo · desde $22,800,000 MXN · 3–4 rec · en_construccion. https://desarrollosmx.io/desarrollo/lomas-signature
-- **Pedregal Brutalist** — Jardines del Pedregal, Álvaro Obregón · desde $19,800,000 MXN · 3–5 rec · Preventa. https://desarrollosmx.io/desarrollo/pedregal-brutalist
-- **Tamaulipas 89** — Condesa, Cuauhtémoc · desde $6,500,000 MXN · 1–3 rec · en_construccion. https://desarrollosmx.io/desarrollo/tamaulipas-89
-- **Roma Norte 85** — Roma Norte, Cuauhtémoc · desde $5,800,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/roma-norte-85
-- **Juárez Boutique** — Juárez, Cuauhtémoc · desde $3,650,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/juarez-boutique
-- **Del Valle Garden** — Del Valle Centro, Benito Juárez · desde $4,900,000 MXN · 2–3 rec · en_construccion. https://desarrollosmx.io/desarrollo/del-valle-garden
-- **Narvarte 32** — Narvarte Poniente, Benito Juárez · desde $3,250,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/narvarte-32
-- **Anzures Classic** — Anzures, Miguel Hidalgo · desde $5,400,000 MXN · 2–3 rec · Entrega inmediata. https://desarrollosmx.io/desarrollo/anzures-classic
-- **Santa Fe Tower** — Santa Fe, Cuajimalpa · desde $7,400,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/santa-fe-tower
-- **Doctores Loft** — Doctores, Cuauhtémoc · desde $2,450,000 MXN · 1–2 rec · Preventa. https://desarrollosmx.io/desarrollo/doctores-loft
-- **Roma Sur 52** — Roma Sur, Cuauhtémoc · desde $4,200,000 MXN · 1–3 rec · en_construccion. https://desarrollosmx.io/desarrollo/roma-sur-52
-- **Coyoacán Reserve** — Coyoacán Centro, Coyoacán · desde $9,800,000 MXN · 3–5 rec · exclusiva. https://desarrollosmx.io/desarrollo/coyoacan-reserve
-- **Nápoles WTC** — Nápoles, Benito Juárez · desde $3,780,000 MXN · 1–3 rec · en_construccion. https://desarrollosmx.io/desarrollo/napoles-wtc
-- **Cuauhtémoc Central** — Cuauhtémoc, Cuauhtémoc · desde $2,850,000 MXN · 1–2 rec · Entrega inmediata. https://desarrollosmx.io/desarrollo/cuauhtemoc-central
-- **Polanco Moderno** — Polanco, Miguel Hidalgo · desde $12,100,000 MXN · 2–3 rec · en_construccion. https://desarrollosmx.io/desarrollo/polanco-moderno
-- **Orquídea Roma** — Roma Norte, Cuauhtémoc · desde $4,950,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/roma-norte-orquidea
-- **Terraza Condesa** — Condesa, Cuauhtémoc · desde $6,200,000 MXN · 1–3 rec · Preventa. https://desarrollosmx.io/desarrollo/condesa-terraza
-
 ## Contact
 
 founder@desarrollosmx.io · https://desarrollosmx.io
