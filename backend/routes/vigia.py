@@ -292,5 +292,17 @@ async def rederivar(request: Request, body: RederivarIn):
     await require_superadmin(request)
     db = _db(request)
     if body.development_id:
-        return await PE.materializar(db, body.development_id, bautizar=body.bautizar_ia)
-    return await PE.materializar_todos(db, bautizar=body.bautizar_ia)
+        r = await PE.materializar(db, body.development_id, bautizar=body.bautizar_ia)
+        try:
+            import cotejo_engine as CE
+            await CE.cotejar_desarrollo(db, body.development_id)
+        except Exception:  # noqa: BLE001
+            pass
+        return r
+    r = await PE.materializar_todos(db, bautizar=body.bautizar_ia)
+    try:
+        import cotejo_engine as CE
+        await CE.cotejar_todos(db)
+    except Exception:  # noqa: BLE001
+        pass
+    return r

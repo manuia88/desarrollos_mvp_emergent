@@ -310,11 +310,23 @@ async def approve_item(item_id: str, request: Request):
     # fire-and-forget para no bloquear la respuesta). El marketplace recibe dmx_prototypes frescos.
     try:
         import asyncio as _aio
-        import prototype_engine as _pe
-        _aio.create_task(_pe.materializar_todos(db))
+        _aio.create_task(_materializa_y_coteja(db))
     except Exception as _e:
         log.warning("[prototipos] rederivar post-approve falló: %s", _e)
     return {"ok": True, "dev_id": dev_id}
+
+
+
+async def _materializa_y_coteja(db):
+    """Conciliar moldes y re-cotejar fuentes tras aprobar — el orden importa
+    (el cotejo lee los moldes recién conciliados). Fail-soft: nada bloquea la ingesta."""
+    import prototype_engine as _pe
+    await _pe.materializar_todos(db)
+    try:
+        import cotejo_engine as _ce
+        await _ce.cotejar_todos(db)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ─── 6) POST /items/{item_id}/reject ──────────────────────────────────────────
@@ -431,8 +443,7 @@ async def bulk_approve(
     # PROTOTIPOS v2: catálogo cambió en lote → re-derivar prototipos (código puro, $0)
     try:
         import asyncio as _aio
-        import prototype_engine as _pe
-        _aio.create_task(_pe.materializar_todos(db))
+        _aio.create_task(_materializa_y_coteja(db))
     except Exception as _e:
         log.warning("[prototipos] rederivar post-bulk-approve falló: %s", _e)
     return {"approved_count": approved, "skipped_count": skipped}

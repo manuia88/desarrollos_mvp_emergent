@@ -1981,6 +1981,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "filename": f.get("name"),
             "mime": f.get("mime"),
             "image_kind": _kinds.get(f.get("name")),
+            "concepto": __import__("dev_assets").concepto_de_nombre(f.get("name") or ""),
             "captured_at": now,               # fecha de extracción (avance de obra la muestra)
             "source": "bulk_ingest",
             "created_at": now,

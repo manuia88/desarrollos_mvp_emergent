@@ -47,6 +47,7 @@ from auto_sync_engine import (
     get_overlay as sync_get_overlay,
 )
 from dev_assets import (
+    concepto_de_nombre,
     ASSET_TYPES, ALLOWED_IMG_EXT, ASSET_MAX_BATCH, ASSET_MAX_FILE_BYTES,
     watermark_image, ai_categorize, pedra_generate_360,
     write_asset, sha256_bytes as asset_sha256, sanitize_asset, regenerate_plano_thumbnails,
@@ -721,6 +722,7 @@ async def assets_upload(
             "order_index": base_order + i,
             "ai_category": None,
             "ai_caption": None,
+            "concepto": concepto_de_nombre(name),
             "pedra_render_id": None,
             "tour_url": None,
             "watermarked": True,

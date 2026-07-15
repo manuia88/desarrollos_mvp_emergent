@@ -117,3 +117,18 @@ async def cotejar_desarrollo(db, development_id: str) -> Dict[str, Any]:
     await db.cotejo_datos.update_one({"development_id": development_id},
                                      {"$set": doc}, upsert=True)
     return doc
+
+
+async def cotejar_todos(db) -> Dict[str, Any]:
+    """Re-coteja todos los desarrollos con moldes (corre tras cada conciliación)."""
+    dev_ids = await db.dmx_prototypes.distinct("development_id")
+    out = {"desarrollos": 0}
+    for did in dev_ids:
+        if not did:
+            continue
+        try:
+            await cotejar_desarrollo(db, did)
+            out["desarrollos"] += 1
+        except Exception:  # noqa: BLE001 — un dev sin datos no rompe el barrido
+            pass
+    return out

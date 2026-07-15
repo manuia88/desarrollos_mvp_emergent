@@ -245,6 +245,8 @@ async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[
                 set_["revivio_at"] = ahora
                 resumen["revividos"] += 1
             set_["estado"] = "activo"
+            if not molde.get("nacio_at"):      # moldes pre-v3: la biografía se auto-sana
+                set_["nacio_at"] = molde.get("derivado_at") or ahora
             if bautizar and nombres_ia.get(i):
                 set_["nombre"] = nombres_ia[i]
             if not molde.get("floor_plan_url"):

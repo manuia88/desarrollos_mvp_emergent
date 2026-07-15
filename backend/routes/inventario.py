@@ -275,7 +275,12 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
     try:
         import asyncio as _aio
         import prototype_engine as _pe
-        _aio.create_task(_pe.materializar(db, u["development_id"]))
+        import cotejo_engine as _ce
+
+        async def _concilia_y_coteja():
+            await _pe.materializar(db, u["development_id"])
+            await _ce.cotejar_desarrollo(db, u["development_id"])
+        _aio.create_task(_concilia_y_coteja())
     except Exception:
         pass
     return {"ok": True, "unidad": {**u, **cambios}}

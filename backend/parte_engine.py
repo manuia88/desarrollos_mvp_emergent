@@ -17,10 +17,10 @@ log = logging.getLogger("dmx.parte")
 
 # ─── el registro de cadencias (universal) ─────────────────────────────────────
 CADENCIAS: Dict[str, Dict[str, Any]] = {
-    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion"]},
-    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura"]},
-    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura"]},
-    "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda"]},
+    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes"]},
+    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes"]},
+    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes"]},
+    "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "trimestral": {"dias": 91,  "titulo": "📈 Parte trimestral",    "secciones": ["catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "semestral":  {"dias": 182, "titulo": "📈 Parte semestral",     "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
     "anual":      {"dias": 365, "titulo": "🏆 Parte anual",         "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
