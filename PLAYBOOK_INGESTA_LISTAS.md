@@ -122,3 +122,13 @@
 - **L25 · Los registros son la universalidad.** DIMENSIONES (corte), REGLAS (auditor),
   CONTRATO (marketplace), SECCIONES (ficha), CADENCIAS (parte): 5 registros donde "agregar
   algo" = 1 renglón. Cuando algo nuevo pida código por-dev o por-campo, está mal diseñado.
+
+## 7 · EL MODELO DE EXTRACCIÓN v2 (post-prueba NUA/Nupol, 2026-07-15 · 99.6%)
+- **L26 · Familias de layout**: la IA solo toca layouts nunca vistos; familia conocida =
+  parser determinista ($0, instantáneo, reproducible). Registro en extractores_layout.py.
+- **L27 · Totales de proyecto repetidos por renglón se toman por MODA, jamás se suman**
+  (el caso 516→258 que cazó el founder preguntando "¿de dónde sale el 516?").
+- **L28 · Merge, jamás reemplazo**: toda carga pasa por merge_into_dev con identidad
+  canónica de unidad — cada lista nueva apila deltas, nunca pisa historia.
+- **L29 · El juez integrado**: 20 campos con semilla fija por lote, visibles en la bandeja
+  ANTES de aprobar — el gate del 98% es parte del producto.

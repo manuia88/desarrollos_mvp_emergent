@@ -106,6 +106,14 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
           {(pre.preguntas_al_dev || []).length > 0 && (
             <div style={{ marginTop: 5, color: '#9ecbff' }}>💬 Pregunta lista para el dev: {pre.preguntas_al_dev[0]}</div>
           )}
+          {(pre.muestra_juez || []).length > 0 && (
+            <details style={{ marginTop: 5 }}>
+              <summary style={{ cursor: 'pointer', color: '#86efac', fontWeight: 700 }}>⚖️ Tus {pre.muestra_juez.length} campos de juez (verifica contra el PDF antes de aprobar)</summary>
+              {pre.muestra_juez.map((m, i3) => (
+                <div key={i3} style={{ opacity: 0.85, marginTop: 2 }}>· {m.unidad} — {m.campo}: <b>{typeof m.valor === 'number' ? m.valor.toLocaleString('en-US') : String(m.valor)}</b></div>
+              ))}
+            </details>
+          )}
         </div>
       )}
 

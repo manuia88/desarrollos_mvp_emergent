@@ -2008,6 +2008,18 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
         existing = await db.units.find_one(
             {"development_id": target_dev_id, "unit_number": unit_no}, {"_id": 0},
         )
+        if not existing:
+            # identidad CANÓNICA (07-15): 'T2 - 1901' debe encontrar a 'T2-1901'
+            try:
+                from identidad_unidad import norm_unidad
+                objetivo = norm_unidad(unit_no)
+                async for cand in db.units.find({"development_id": target_dev_id},
+                                                {"_id": 0}):
+                    if norm_unidad(cand.get("unit_number")) == objetivo:
+                        existing = cand
+                        break
+            except Exception:  # noqa: BLE001
+                pass
         _sm2 = u.get("size_m2")
         _price = u.get("price_mxn")
         _new_st = _ST.get((u.get("status") or "").lower().strip())  # None = la lista no trae estatus → no tocar

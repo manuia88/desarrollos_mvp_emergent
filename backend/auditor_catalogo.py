@@ -474,7 +474,26 @@ def pre_auditar_extraccion(extracted: Dict[str, Any]) -> Dict[str, Any]:
                             f"{', '.join(sin[:8])} — o se mapean o se descartan a propósito",
                             campos=sin))
     return {"hallazgos": hallazgos, "resumen": resumen_hallazgos(hallazgos),
-            "preguntas_al_dev": preguntas_de_hallazgos(hallazgos)}
+            "preguntas_al_dev": preguntas_de_hallazgos(hallazgos),
+            "muestra_juez": muestra_juez(units)}
+
+
+def muestra_juez(units: List[Dict[str, Any]], n: int = 20,
+                 semilla: int = 42) -> List[Dict[str, Any]]:
+    """EL JUEZ INTEGRADO (gate del 98%): n campos al azar (semilla fija = reproducible)
+    para que el founder los verifique contra el PDF/Excel ANTES de aprobar el lote."""
+    import random
+    CAMPOS = ("price_mxn", "size_m2", "m2_total", "bedrooms", "bathrooms",
+              "parking_spots", "enganche_mxn", "credito_mxn")
+    candidatos = []
+    for u in units:
+        for c in CAMPOS:
+            v = u.get(c) or (u.get("precio") if c == "price_mxn" else None) or                 (u.get("m2_habitable") if c == "size_m2" else None)
+            if v not in (None, ""):
+                candidatos.append({"unidad": u.get("unit_number") or u.get("unidad"),
+                                   "campo": c, "valor": v})
+    rng = random.Random(semilla)
+    return rng.sample(candidatos, min(n, len(candidatos)))
 
 
 # ═══ hallazgo → PREGUNTA lista para mandarle al dev ═══════════════════════════

@@ -124,3 +124,48 @@ def test_kg_molde_noop_sin_neo4j():
         assert asyncio.run(KG.kg_sync.upsert_molde_node(None, {"prototype_id": "p1"})) is None
     finally:
         KG.KG_AVAILABLE = prev
+
+
+# ═══ EL MODELO DE EXTRACCIÓN v2 (los 5 upgrades de la prueba, 07-15) ═══════════
+def test_identidad_canonica_de_unidad():
+    from identidad_unidad import norm_unidad, son_la_misma
+    assert norm_unidad("T2 - 1901") == norm_unidad("T2-1901") == "T2-1901"
+    assert norm_unidad("Almina A - Unidad A - 1002") == "A-1002"
+    assert norm_unidad("  b 304 ") == "B-304"
+    assert son_la_misma("A-107", "107")            # torre implícita
+    assert not son_la_misma("A-107", "A-108")
+
+
+def test_fusion_spec_politicas_y_discrepancias():
+    from fusion_fuentes import fusionar_unidad, moda_proyecto
+    # granular gana m² (el maestro mide por unidad; la lista repite el tipo)
+    r = fusionar_unidad("m2_privative", [
+        (101.75, {"fuente": "lista", "valores_del_campo": [101.75, 101.75, 101.75]}),
+        (97.849, {"fuente": "maestro", "valores_del_campo": [97.849, 97.179, 100.39]})])
+    assert r["valor"] == 97.849 and r["fuente"] == "maestro"
+    assert len(r["discrepancia"]) == 2             # la pelea queda documentada
+    # fresco gana precio
+    r2 = fusionar_unidad("price_mxn", [
+        (5_000_000, {"fuente": "lista_junio", "fecha": "2026-06-01"}),
+        (5_100_000, {"fuente": "lista_julio", "fecha": "2026-07-13"})])
+    assert r2["valor"] == 5_100_000
+    # la regla del 516→258: moda, jamás suma
+    assert moda_proyecto([258, 258, 258, 258]) == 258
+
+
+def test_extractor_familia_vp_detecta():
+    from extractores_layout import detecta_vp, extraer_deterministico
+    assert detecta_vp("VP_Lista_de_Precios NUA T1 SF.pdf")
+    assert not detecta_vp("brochure_almina.pdf")
+    # familia desconocida → None → el pipeline cae a IA (fail-open)
+    assert extraer_deterministico("foto.jpg", b"") is None
+
+
+def test_muestra_juez_reproducible():
+    import auditor_catalogo as AU2
+    units = [{"unit_number": f"A-{i}", "price_mxn": 5_000_000 + i, "size_m2": 80 + i,
+              "bedrooms": 2, "bathrooms": 2, "m2_total": 86 + i} for i in range(10)]
+    m1 = AU2.muestra_juez(units, n=10)
+    m2 = AU2.muestra_juez(units, n=10)
+    assert m1 == m2 and len(m1) == 10              # misma semilla = mismo juez
+    assert all(x["valor"] not in (None, "") for x in m1)
