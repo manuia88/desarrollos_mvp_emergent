@@ -200,3 +200,16 @@ def test_yield_bruto_rieles_de_renta():
     # con renta: 25k×12 ÷ 5M = 6% bruto
     y = yield_bruto([{"price_mxn": 5_000_000, "renta_mxn": 25_000}])
     assert y["yield_bruto_pct"] == 6.0 and y["renta_prom"] == 25_000
+
+
+def test_reglas_de_la_prueba_2proyectos():
+    """Las 2 reglas que nacieron de la prueba NUA/Nupol (07-15)."""
+    # crédito+enganche≠precio → error (columna corrida)
+    u = _u(credito_mxn=4_000_000, enganche_mxn=500_000)   # 4.5M ≠ 5M
+    assert AU.r_dinero_coherencia(u, {})["severidad"] == "error"
+    assert AU.r_dinero_coherencia(_u(credito_mxn=4_000_000, enganche_mxn=1_000_000), {}) is None
+    # el caso 516: más unidades vivas que el total declarado del edificio
+    d = {"id": "d1", "name": "NUA", "total_units_project": 100}
+    ctx = _ctx([_u(id=f"u{i}", unit_number=f"A-{i}") for i in range(120)])
+    assert AU.r_total_edificio(d, ctx)["severidad"] == "error"
+    assert AU.r_total_edificio({"id": "d", "total_units_project": 258}, _ctx([_u()])) is None

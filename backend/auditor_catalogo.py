@@ -86,6 +86,16 @@ def r_precio_rango(u, ctx):
     return None
 
 
+def r_dinero_coherencia(u, ctx):
+    """crédito + enganche debe = precio (la validación que salvó la prueba NUA/Nupol)."""
+    pr, cr, en = (u.get("price_mxn") or u.get("price")), u.get("credito_mxn"), u.get("enganche_mxn")
+    if pr and cr and en and abs((cr + en) - pr) > 2:
+        return _h("dinero_coherencia", "unidad", ERROR, u.get("unit_number") or u.get("id"),
+                  f"crédito ${cr:,.0f} + enganche ${en:,.0f} ≠ precio ${pr:,.0f} — "
+                  f"columna corrida o dato mal extraído", unit_id=u.get("id"))
+    return None
+
+
 def r_molde_asignado(u, ctx):
     if not u.get("prototype_id") and not u.get("prototype_cuarentena"):
         return _h("molde_asignado", "unidad", ALERTA, u.get("unit_number") or u.get("id"),
@@ -166,6 +176,19 @@ def r_duplicados(d, ctx):
     if dups:
         return _h("unidades_duplicadas", "desarrollo", ERROR, d.get("name") or d.get("id"),
                   f"números de unidad repetidos: {dict(list(dups.items())[:5])}",
+                  development_id=d.get("id"))
+    return None
+
+
+def r_total_edificio(d, ctx):
+    """disponibles ≤ total del edificio, y colocación plausible (la regla del 516→258:
+    los totales repetidos por renglón se toman UNA vez, jamás se suman)."""
+    tot = d.get("total_units_project")
+    n = len(ctx["units"])
+    if tot and n > tot:
+        return _h("total_edificio", "desarrollo", ERROR, d.get("name") or d.get("id"),
+                  f"{n} unidades vivas pero el edificio declara {tot} totales — "
+                  f"¿total sumado dos veces o unidades duplicadas?",
                   development_id=d.get("id"))
     return None
 
@@ -260,6 +283,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "m2_coherencia", "nivel": "unidad", "fn": r_m2_coherencia},
     {"key": "campos_obligatorios", "nivel": "unidad", "fn": r_campos_obligatorios},
     {"key": "precio_rango", "nivel": "unidad", "fn": r_precio_rango},
+    {"key": "dinero_coherencia", "nivel": "unidad", "fn": r_dinero_coherencia},
     {"key": "molde_asignado", "nivel": "unidad", "fn": r_molde_asignado},
     {"key": "estatus_valido", "nivel": "unidad", "fn": r_estatus_valido},
     {"key": "molde_estado", "nivel": "molde", "fn": r_molde_estado_coherente},
@@ -268,6 +292,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "huella_duplicada", "nivel": "molde", "fn": r_huella_duplicada},
     {"key": "biografia", "nivel": "molde", "fn": r_biografia},
     {"key": "unidades_duplicadas", "nivel": "desarrollo", "fn": r_duplicados},
+    {"key": "total_edificio", "nivel": "desarrollo", "fn": r_total_edificio},
     {"key": "price_from", "nivel": "desarrollo", "fn": r_price_from},
     {"key": "cotejo_fresco", "nivel": "desarrollo", "fn": r_cotejo_fresco},
     {"key": "bitacora_cubre", "nivel": "desarrollo", "fn": r_bitacora_cubre},
