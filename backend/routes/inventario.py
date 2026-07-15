@@ -97,6 +97,15 @@ async def arbol(request: Request):
             "revision_pendientes": revision_n}
 
 
+@router.get("/escalera")
+async def escalera(request: Request):
+    """La ESCALERA: el dato de moldes agregado en cada peldaño geográfico
+    (desarrollo → colonia → alcaldía → ciudad), en una llamada."""
+    await require_superadmin(request)
+    from molde_metrics import escalera_mercado
+    return await escalera_mercado(_db(request))
+
+
 @router.get("/expediente/{development_id}")
 async def expediente(request: Request, development_id: str):
     """EL EXPEDIENTE (orden founder 07-14: 'todo en un mismo espacio, no regado por media
@@ -134,6 +143,9 @@ async def expediente(request: Request, development_id: str):
         if len(c["muestra"]) < 3:
             c["muestra"].append(a.get("filename"))
 
+    ult_ev = await db.oferta_timeline.find({"dev_id": development_id}, {"_id": 0, "ts": 1}) \
+        .sort("ts", -1).to_list(1)
+    n_eventos = await db.oferta_timeline.count_documents({"dev_id": development_id})
     pagos = await db.dev_payment_schemes.find_one({"project_id": development_id}, {"_id": 0}) or {}
     avance = await db.project_construction_progress.find_one({"project_id": development_id}, {"_id": 0}) or {}
     comm = await db.project_commercialization.find_one({"project_id": development_id}, {"_id": 0}) or {}
@@ -160,6 +172,8 @@ async def expediente(request: Request, development_id: str):
         "programas": {p["prototype_id"]: p for p in programas},
         "cotejo": cotejo,
         "playbook": playbook,
+        "bitacora": {"eventos": n_eventos,
+                     "ultima_foto": str(ult_ev[0]["ts"]) if ult_ev else None},
         "multimedia": {"locales": locales, "drive": drive_por_cat},
         "pagos": pagos.get("schemes") or [],
         "avance": {"pct": avance.get("overall_percent"), "etapa": avance.get("current_stage")},

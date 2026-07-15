@@ -54,6 +54,10 @@ CATALOG: List[Dict[str, Any]] = [
     E("por_cobrar_mxn", "Inventario por cobrar", "oferta", "¿Cuánto dinero queda en el aire?", _ALL_GEO, ["actual"], "cube_olap_engine._aggregate_units", fmt="pesos"),
     E("conversion_rate", "Conversión", "oferta", "¿Qué tan rápido convierte interés en venta?", _ALL_GEO, ["actual", "30d"], "cube_olap_engine._aggregate_units", fmt="pct", direction="higher"),
     E("absorcion_curva", "Curva de absorción por cohorte", "oferta", "¿A qué ritmo vende cada etapa?", _ZONE, ["actual"], "absorcion_engine", lineage="units_history por etapa", fmt="serie"),
+    # ── MOLDE (Catálogo de Moldes 07-15 · baja al tipo del arquitecto) ────────
+    E("colocacion_molde", "Colocación por molde", "oferta", "¿Qué TIPO de depa se vende más?", _ALL_GEO, ["actual"], "molde_metrics.colocacion", dims="molde·recámaras·m²", lineage="units.prototype_id → dmx_prototypes", fmt="pct", direction="higher"),
+    E("absorcion_molde", "Absorción por molde (u/mes)", "oferta", "¿Qué tipo vuela y qué tipo se atora?", _ALL_GEO, ["dia", "semana", "mes"], "molde_metrics.absorcion", dims="molde", lineage="oferta_timeline (≥2 listas)", fmt="numero", direction="higher", status="espera_2a_lista"),
+    E("premium_piso", "Premium por piso (dentro del molde)", "oferta", "¿Cuánto vale subir un piso, aislado?", _ALL_GEO, ["actual"], "molde_metrics.premium_por_piso", dims="molde·piso", lineage="mismo plano ⇒ delta = altura pura", fmt="pct"),
     # ── DEMANDA (comportamiento del comprador · k-anon ≥3 al bajar) ───────────
     E("demand_interactions", "Interacciones de demanda", "demanda", "¿Cuánta actividad genera la zona?", ["desarrollo", "colonia", "alcaldia", "ciudad"], ["dia", "semana", "quincena", "mes"], "cube_olap_engine.materialize_buyer_signals_to_cube", dims="feature·segmento", lineage="buyer_signals (ponderado _INTEREST_WEIGHTS)", kanon=True, fmt="conteo"),
     E("demand_visitors", "Visitantes únicos", "demanda", "¿Cuánta gente distinta la mira?", ["desarrollo", "colonia", "alcaldia", "ciudad"], ["dia", "semana", "quincena", "mes"], "cube_olap_engine · distinct visitor_id", lineage="buyer_signals", kanon=True, fmt="conteo"),

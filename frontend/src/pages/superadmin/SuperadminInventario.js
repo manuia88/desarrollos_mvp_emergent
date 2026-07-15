@@ -160,6 +160,44 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
   );
 }
 
+function Escalera() {
+  const [data, setData] = useState(null);
+  const [nivel, setNivel] = useState('colonia');
+  useEffect(() => { _get('/escalera').then(setData).catch(() => setData(null)); }, []);
+  if (!data) return null;
+  const filas = data.niveles?.[nivel] || [];
+  if (!filas.length) return null;
+  return (
+    <div style={{ ...S.card, margin: '4px 0 10px' }} data-testid="escalera">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+        <b style={{ ...S.h, fontSize: 14 }}>🪜 La escalera del mercado</b>
+        <span style={S.mini}>el dato de moldes agregado por peldaño · series finas en Mercado</span>
+        <span style={{ flex: 1 }} />
+        {['desarrollo', 'colonia', 'alcaldia', 'ciudad'].map((n) => (
+          <button key={n} onClick={() => setNivel(n)}
+            style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, cursor: 'pointer', fontWeight: nivel === n ? 800 : 600,
+              background: nivel === n ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${nivel === n ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`,
+              color: nivel === n ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{n}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gap: 4 }}>
+        {filas.map((r) => (
+          <div key={r.nombre} style={{ ...S.mini, display: 'flex', gap: 12, flexWrap: 'wrap', padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <b style={{ color: 'var(--cream)', minWidth: 160 }}>{r.nombre}</b>
+            <span>{r.unidades} unidades · {r.moldes} moldes{r.moldes_agotados ? ` (${r.moldes_agotados} agotados)` : ''}</span>
+            {r.colocacion_pct != null && <span>🏁 {r.colocacion_pct}% colocado</span>}
+            {r.pm2_prom && <span>💲 ${r.pm2_prom.toLocaleString()}/m²</span>}
+            {r.premium_piso_prom_pct != null && <span>📶 premium piso ~{r.premium_piso_prom_pct}%</span>}
+            {r.absorcion_u_mes != null ? <span>🔥 {r.absorcion_u_mes} u/mes</span> : <span style={{ opacity: 0.55 }}>absorción: con la 2ª lista</span>}
+            <span style={{ opacity: 0.7 }}>mix: {Object.entries(r.mix_por_tipo || {}).map(([k, v]) => `${k}:${v}u`).join(' · ')}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SuperadminInventario({ user, onLogout }) {
   const nav = useNavigate();
   const loc = useLocation();
@@ -217,6 +255,9 @@ export default function SuperadminInventario({ user, onLogout }) {
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.85)' }}>{l}</button>
           ))}
         </div>
+
+        {/* 🪜 LA ESCALERA: el dato de moldes en cada peldaño (solo en la raíz) */}
+        {!devSel && <Escalera />}
 
         {/* breadcrumb del drill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0 16px', flexWrap: 'wrap' }}>

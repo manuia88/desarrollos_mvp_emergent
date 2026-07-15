@@ -115,6 +115,8 @@ export default function SuperadminExpediente({ user, onLogout }) {
             <Dato l="Unidades vivas" v={x.n_unidades} />
             <Dato l="Total del desarrollo" v={d.total_units_project || d.units_total} />
             <Dato l="Colonia (inteligencia de zona)" v={d.colonia_id ? '✓ conectada' : null} />
+            <Dato l="Bitácora (historia total)" v={x.bitacora?.eventos ? `${x.bitacora.eventos} eventos` : null} />
+            <Dato l="Última foto de lista" v={x.bitacora?.ultima_foto ? new Date(x.bitacora.ultima_foto).toLocaleString('es-MX') : null} />
             <Dato l="Fondo mant." v={d.fondo_mantenimiento_mxn ? `$${Number(d.fondo_mantenimiento_mxn).toLocaleString()}` : null} />
             <Dato l="Cuota equip." v={d.cuota_equipamiento_mxn ? `$${Number(d.cuota_equipamiento_mxn).toLocaleString()}` : null} />
           </div>
@@ -180,6 +182,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
                     {premMax?.premium_pct > 0 && <div style={S.mini}>📶 Premium por piso: hasta <b style={{ color: 'var(--cream)' }}>+{premMax.premium_pct}%</b> (piso {premMax.piso})</div>}
                     {prog?.espacios_detalle?.length > 0 && <div style={{ ...S.mini, lineHeight: 1.5 }}>🚪 {prog.espacios_detalle.join(' · ')}</div>}
                     {prog?.flex_visual && <span style={{ ...S.mini, color: '#d29922', fontWeight: 700 }}>⚡ recámara FLEX confirmada (la planta dibuja {prog.camas_dibujadas} camas)</span>}
+                    {(met?.curva_precio || []).length > 0 && <div style={S.mini}>💲 curva: {met.curva_precio.slice(-3).map((c) => `${c.fecha.slice(5)} $${Math.round(c.pm2 / 1000)}k/m²`).join(' → ')}{met.curva_precio.length > 1 ? '' : ' (1ª foto)'}</div>}
                     {verifs > 0 && <span style={{ ...S.mini, color: '#86efac' }}>✓ {verifs} dato(s) verificados lista⨯plano</span>}
                     {contra && <span style={{ ...S.mini, color: '#d29922' }}>⚠ {contra.campo}: lista dice {String(contra.fuentes?.lista)} y el plano {String(contra.fuentes?.plano)}{contra.nota ? ` — ${contra.nota}` : ''}</span>}
                     {pr.plano_amueblado_url && pr.floor_plan_url && <div style={S.mini}>planta amueblada + plano arquitectónico ✓</div>}

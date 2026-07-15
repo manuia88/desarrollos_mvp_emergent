@@ -34,6 +34,7 @@ FAMILIAS: List[Dict[str, Any]] = [
     F("financiero", "Financiero + hipotecario", "producto", "el pago individual de la corrida (mes × banco)", "vivo", "dmx_finance_atom (F1) · payment_schemes · tasa Banxico"),
     F("fiscal", "Fiscal", "producto", "concepto × año × régimen del comprador", "vivo", "tax_projector_engine"),
     F("velocidad", "Velocidad de mercado", "producto", "evento de precio / oferta recibida", "vivo", "price_events + dias_en_mercado"),
+    F("molde", "Catálogo de Moldes (el tipo del arquitecto)", "producto", "el molde con biografía (nace/agota/revive) + programa de espacios", "vivo", "dmx_prototypes + molde_programa + cotejo_datos (conciliador 07-15)"),
     # ── COMPRADOR (cada familia tiene espejo) ──
     F("intencion", "Intención", "comprador", "motivo por feature (texto literal)", "vivo", "buyer_signals + intent split"),
     F("capacidad", "Capacidad financiera", "comprador", "estructura completa de UNA persona + evolución", "vivo", "marketplace_searches"),

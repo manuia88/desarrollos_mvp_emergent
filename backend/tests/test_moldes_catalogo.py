@@ -197,3 +197,21 @@ def test_parse_texto_plano_lee_lo_confiable():
     assert p["torres_plano"] == ["B"]
     # el texto encimado del esquemático NO engaña al parser ("0RECAMARA" pegado)
     assert PG.parse_texto_plano("cl.3.5R0ECAMARA basura")["recamaras_plano"] is None
+
+
+# ═══ LA ESCALERA (agregación por peldaño) ═════════════════════════════════════
+def test_escalera_agrega_peldano():
+    filas = [
+        {"colocacion": {"total": 10, "vendidas": 5}, "absorcion": {"unidades_mes": 2.0},
+         "curva_precio": [{"fecha": "2026-07-01", "pm2": 100_000}], "huella": "2r_84m2",
+         "premium_piso": [{"premium_pct": 4.0}], "estado": "activo"},
+        {"colocacion": {"total": 6, "vendidas": 6}, "absorcion": {"unidades_mes": None},
+         "curva_precio": [], "huella": "3r_120m2", "premium_piso": [], "estado": "agotado"},
+    ]
+    r = MM._agrega_peldano(filas)
+    assert r["unidades"] == 16 and r["vendidas"] == 11
+    assert r["colocacion_pct"] == 68.8
+    assert r["moldes_agotados"] == 1
+    assert r["mix_por_tipo"] == {"2R": 10, "3R": 6}
+    assert r["absorcion_u_mes"] == 2.0        # solo suma lo MEDIDO, no inventa
+    assert r["pm2_prom"] == 100_000

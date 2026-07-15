@@ -93,6 +93,34 @@ function Manifiesto({ pendientes, fuentes, onChanged }) {
   );
 }
 
+/* ── EL PARTE: el reporte también EN la plataforma (no solo Telegram/correo) ── */
+function ParteCard() {
+  const [periodo, setPeriodo] = useState('diario');
+  const [texto, setTexto] = useState('');
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback((p) => _get(`/parte/${p}`).then((r) => setTexto(r.texto)).catch((e) => setTexto(String(e.message))), []);
+  useEffect(() => { cargar(periodo); }, [periodo, cargar]);
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={h3}>📄 El parte</div>
+        {['diario', 'semanal', 'quincenal', 'mensual', 'trimestral', 'semestral', 'anual'].map((p) => (
+          <button key={p} onClick={() => setPeriodo(p)}
+            style={{ ...mini, padding: '3px 9px', borderRadius: 9999, cursor: 'pointer', fontWeight: periodo === p ? 800 : 600,
+              background: periodo === p ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${periodo === p ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`,
+              color: periodo === p ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{p}</button>
+        ))}
+        <span style={{ flex: 1 }} />
+        <button style={btn('ok')} onClick={() => _post(`/parte/${periodo}/enviar`).then(() => setMsg('Enviado a Telegram + correo ✓')).catch((e) => setMsg(String(e.message)))}>Enviar ahora</button>
+      </div>
+      {msg && <p style={{ ...p13, marginTop: 6, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
+      <div style={{ ...p13, marginTop: 10, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}
+        dangerouslySetInnerHTML={{ __html: (texto || 'Generando…').replace(/</g, '&lt;').replace(/&lt;b>/g, '<b>').replace(/&lt;\/b>/g, '</b>') }} />
+    </div>
+  );
+}
+
 /* ── Telegram: tarjetas de decisión en el celular ── */
 function TelegramCard() {
   const [tg, setTg] = useState(null);
@@ -174,6 +202,7 @@ export function VigiaTab() {
       </div>
 
       <TelegramCard />
+        <ParteCard />
 
       {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}
 
