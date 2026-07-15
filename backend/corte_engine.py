@@ -83,6 +83,8 @@ DIMENSIONES: Dict[str, Callable[..., Optional[str]]] = {
         if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total")) else None,
         [45, 55, 65, 80], "k/m²"),
     "banda_enganche": lambda u, d, m, p: _banda(u.get("enganche_pct"), [10, 20, 30], "%"),
+    # ── fuente del dato (el catálogo propio vs el mercado real minado 4S) ──
+    "fuente":     lambda u, d, m, p: u.get("_fuente") or "catálogo",
     # ── cohorte (edad del inventario: mes en que la unidad entró a la bitácora) ──
     "cohorte":    lambda u, d, m, p: (u.get("_primera_foto") or "")[:7] or None,
     # ── elemento (lo que la lista del dev declara por unidad) ──
@@ -265,6 +267,36 @@ async def corte(db, por: List[str], development_id: Optional[str] = None,
              "_colonia_id": u.get("colonia_id") or d.get("colonia_id") or ""}
         atomos.append({"u": u, "d": d, "m": moldes.get(u.get("prototype_id")) or {},
                        "p": programas.get(u.get("prototype_id")) or {}})
+
+    # EL MERCADO 4S (founder 07-15 "avanza con lista_snapshots"): 24 desarrollos REALES
+    # minados (varios ya cerrados) entran al corte como átomos con fuente="mercado 4S".
+    # Dato flaco pero verdadero: número, precio, estatus, colonia, fecha — ilumina
+    # colocación y bandas de precio por colonia a través de los años. Sin development_id
+    # de catálogo: no arrastra demanda/leads (atribución honesta) ni abre ficha.
+    if not development_id:
+        try:
+            ultimo_por_dev: Dict[str, Dict[str, Any]] = {}
+            async for sn in db.lista_snapshots.find({}, {"_id": 0}):
+                k = sn.get("dev_name") or ""
+                if k and (k not in ultimo_por_dev
+                          or str(sn.get("fecha")) > str(ultimo_por_dev[k].get("fecha"))):
+                    ultimo_por_dev[k] = sn
+            for sn in ultimo_por_dev.values():
+                d4 = {"id": f"4s_{sn.get('dev_name')}", "name": sn.get("dev_name"),
+                      "colonia_name": sn.get("colonia_geo") or sn.get("colonia_id"),
+                      "colonia": sn.get("colonia_geo"), "colonia_id": sn.get("colonia_id"),
+                      "stage": "cerrado" if sn.get("cerrado") else None}
+                fecha = str(sn.get("fecha") or "")
+                for uu in (sn.get("units") or []):
+                    u4 = {"unit_number": uu.get("unit_number"),
+                          "price_mxn": uu.get("price"),
+                          "status": uu.get("status") or "disponible",
+                          "development_id": d4["id"], "_fuente": "mercado 4S",
+                          "_colonia_id": sn.get("colonia_id") or "",
+                          "_primera_foto": fecha, "_edad_dias": _edad(fecha)}
+                    atomos.append({"u": u4, "d": d4, "m": {}, "p": {}})
+        except Exception:  # noqa: BLE001 — el mercado 4S nunca rompe el corte del catálogo
+            pass
     ctx = {"busquedas": busquedas, "senales_por_dev": senales_por_dev,
            "leads_por_dev": leads_por_dev}
     return {"por": por, "n_atomos": len(atomos), "filtros": filtros or {},

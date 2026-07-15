@@ -285,6 +285,7 @@ const EJES_CORTE = [
   ['Producto', ['tipologia', 'banos', 'estacionamientos', 'banda_m2', 'etapa', 'estatus', 'orientacion', 'vista', 'amueblado', 'cuarto_servicio']],
   ['Dinero', ['banda_precio', 'banda_pm2', 'banda_enganche']],
   ['Tiempo', ['cohorte']],
+  ['Fuente', ['fuente']],
 ];
 const NOMBRE_DIM = { banda_m2: 'tamaño', banda_precio: 'precio', banda_pm2: '$/m²', banda_enganche: 'enganche', tipologia: 'recámaras', banos: 'baños', estacionamientos: 'cajones', cuarto_servicio: 'cto. servicio', orientacion: 'orientación' };
 
@@ -407,8 +408,8 @@ function Corte() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 5 }}>
                     {r.atomos.map((a) => (
-                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => setFichaId(a)}
-                        title={`Ficha completa del ${a.unidad}`}
+                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => a.id && setFichaId(a)}
+                        title={a.id ? `Ficha completa del ${a.unidad}` : `${a.unidad} · dato de mercado 4S (sin ficha propia)`}
                         style={{ textAlign: 'left', cursor: 'pointer', padding: '6px 10px', borderRadius: 8,
                           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
                         <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 800, color: 'var(--cream)' }}>{a.unidad}</span>

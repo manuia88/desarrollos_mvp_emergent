@@ -344,3 +344,18 @@ def test_cotejo_avisa_solo_contradicciones_nuevas():
     assert len(nuevas) == 1 and nuevas[0]["campo"] == "m2"
     # primera corrida (sin cotejo previo): todas las contradicciones son nuevas
     assert len(CE.contradicciones_nuevas([], ahora)) == 2
+
+
+def test_corte_dimension_fuente_separa_catalogo_de_mercado():
+    """Los átomos 4S entran al corte con fuente='mercado 4S' — nunca se mezclan callados."""
+    import corte_engine as CO
+    d = {"name": "Alba", "colonia_name": "Del Valle"}
+    propio = {"unit_number": "A-1", "price_mxn": 5_000_000, "size_m2": 80.0,
+              "status": "disponible", "bedrooms": 2}
+    minado = {"unit_number": "CASA 1", "price_mxn": 6_117_391, "status": "vendido",
+              "_fuente": "mercado 4S"}
+    filas = CO.cortar([{"u": propio, "d": d, "m": {}, "p": {}},
+                       {"u": minado, "d": d, "m": {}, "p": {}}], ["fuente"])
+    por = {f["fuente"]: f for f in filas}
+    assert por["catálogo"]["unidades"] == 1
+    assert por["mercado 4S"]["vendidas"] == 1 and por["mercado 4S"]["colocacion_pct"] == 100.0
