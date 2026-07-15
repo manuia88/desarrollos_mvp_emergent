@@ -68,18 +68,7 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
     try { await onReject(item.id, reason); setShowReject(false); setReason(''); }
     finally { setBusy(false); }
   };
-  const doRecompute = async () =>
-      {pre && (pre.resumen.error > 0 || pre.resumen.alerta > 0 || pre.resumen.aviso > 0) && (
-        <div style={{ margin: '6px 0 8px', padding: '8px 12px', borderRadius: 10, background: 'rgba(210,153,34,0.07)', border: '1px solid rgba(210,153,34,0.4)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)' }}>
-          <b style={{ color: '#d29922' }}>🚦 Pre-auditoría del lote:</b> {pre.resumen.error || 0} errores · {pre.resumen.alerta || 0} alertas · {pre.resumen.aviso || 0} avisos
-          {(pre.hallazgos || []).slice(0, 3).map((h, i2) => (
-            <div key={i2} style={{ marginTop: 3, opacity: 0.9 }}>· [{h.severidad}] {h.ref}: {h.detalle.slice(0, 110)}</div>
-          ))}
-          {(pre.preguntas_al_dev || []).length > 0 && (
-            <div style={{ marginTop: 5, color: '#9ecbff' }}>💬 Pregunta lista para el dev: {pre.preguntas_al_dev[0]}</div>
-          )}
-        </div>
-      )} {
+  const doRecompute = async () => {
     if (!window.confirm('¿Re-ejecutar Claude sobre los archivos? Esto preserva el histórico y descarta tus ediciones inline.')) return;
     setRecomputing(true);
     try {
@@ -104,6 +93,19 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
       {toast && (
         <div data-testid={`review-toast-${item.id}`} style={{ alignSelf: 'flex-end', padding: '4px 10px', borderRadius: 9999, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.30)', color: '#4ADE80', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700 }}>
           {toast}
+        </div>
+      )}
+
+      {/* 🚦 EL PORTÓN: el lote llega pre-auditado — apruebas sabiendo qué viene */}
+      {pre && ((pre.resumen?.error || 0) + (pre.resumen?.alerta || 0) + (pre.resumen?.aviso || 0)) > 0 && (
+        <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(210,153,34,0.07)', border: '1px solid rgba(210,153,34,0.4)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)' }}>
+          <b style={{ color: '#d29922' }}>🚦 Pre-auditoría del lote:</b> {pre.resumen.error || 0} errores · {pre.resumen.alerta || 0} alertas · {pre.resumen.aviso || 0} avisos
+          {(pre.hallazgos || []).slice(0, 3).map((h, i2) => (
+            <div key={i2} style={{ marginTop: 3, opacity: 0.9 }}>· [{h.severidad}] {h.ref}: {(h.detalle || '').slice(0, 110)}</div>
+          ))}
+          {(pre.preguntas_al_dev || []).length > 0 && (
+            <div style={{ marginTop: 5, color: '#9ecbff' }}>💬 Pregunta lista para el dev: {pre.preguntas_al_dev[0]}</div>
+          )}
         </div>
       )}
 
