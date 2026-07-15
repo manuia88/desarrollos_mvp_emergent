@@ -279,3 +279,34 @@ def test_regla_cobertura_planos():
     assert AU4.r_cobertura_planos(d, ctx)["severidad"] == "alerta"     # 0% ligado
     con = [{**u, "plano_url": "/x.jpg"} for u in sin[:7]] + sin[7:]
     assert AU4.r_cobertura_planos(d, {"units": con}) is None           # 70% ✓
+
+
+# ═══ ML v0 + COTAS ═════════════════════════════════════════════════════════════
+def test_hedonico_v0_coeficientes_y_residuales():
+    from ml_precios import entrenar_hedonico
+    import random
+    rng = random.Random(1)
+    units = []
+    for i in range(120):   # precio = 60k·m² + 50k·piso + ruido — el modelo debe recuperarlo
+        m2 = 60 + rng.random() * 80
+        piso = rng.randint(1, 20)
+        units.append({"id": f"u{i}", "price_mxn": 60_000 * m2 + 50_000 * piso + rng.gauss(0, 30_000),
+                      "m2_privative": m2, "size_m2": m2, "level": piso,
+                      "bedrooms": 2, "bathrooms": 2, "_colonia": "x"})
+    m = entrenar_hedonico(units)
+    assert m["r2"] > 0.95
+    assert abs(m["coeficientes"]["m2"] - 60_000) < 6_000
+    assert abs(m["coeficientes"]["piso"] - 50_000) < 10_000
+    assert entrenar_hedonico(units[:10]) is None       # sin masa: honesto
+
+
+def test_cotas_extractor_y_validacion():
+    from cotas_engine import extraer_cotas, validar_contra_habitables
+    texto = "RECÁMARA PRINCIPAL 4.00 x 2.85\\nCOCINA\\n3.60 x 2.60\\nBAÑO 1.80x1.40\\nTERRAZA 2.00 x 1.50"
+    cotas = extraer_cotas(texto)
+    d = {c["espacio"]: c for c in cotas}
+    assert d["recamara principal"]["m2"] == 11.4
+    assert d["cocina"]["m2"] == 9.36            # cota en la línea siguiente ✓
+    v = validar_contra_habitables(cotas, m2_habitables=30.0)
+    assert v["valida"] is True and v["suma_interiores"] == 23.28   # terraza NO cuenta
+    assert extraer_cotas("SALA sin numeros") == []                 # no inventa

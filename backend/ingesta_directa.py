@@ -52,6 +52,11 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
             juez = await juzgar_desarrollo(db, target_dev_id, fuentes_pdf, fuente_excel)
         except Exception:  # noqa: BLE001 — el juez nunca bloquea la carga; su veredicto sí
             pass
+    try:
+        from ml_precios import entrenar_y_publicar
+        await entrenar_y_publicar(db)      # el hedónico madura con cada carga
+    except Exception:  # noqa: BLE001
+        pass
     resultado = {"development_id": target_dev_id, "unidades_antes": antes,
                  "unidades_despues": despues, "moldes": r.get("prototipos"),
                  "origen": origen, "acta_id": acta_id,
