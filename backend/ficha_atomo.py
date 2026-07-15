@@ -186,6 +186,7 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
     mismo_piso = [x for x in todas if x.get("level") == u.get("level")]
     busquedas = await db.marketplace_searches.find({}, {"_id": 0}).to_list(5000)
     eventos = await db.oferta_timeline.find({"unit_id": unit_id}, {"_id": 0}).to_list(500)
+    posicion = posiciones_por_molde(todas).get(unit_id)   # la MISMA lectura que la Torre
     u["_colonia_id"] = u.get("colonia_id") or dev.get("colonia_id") or ""
     return {
         "unidad": {"id": unit_id, "numero": u.get("unit_number"),
@@ -194,7 +195,10 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                    "plano_url": u.get("plano_url"),
                    "plano_amueblado_url": (molde or {}).get("plano_amueblado_url")},
         "secciones": armar_ficha(u, molde, programa),
-        "analisis": analisis_atomo(u, gemelas, mismo_piso, todas, busquedas, eventos),
+        "analisis": {**analisis_atomo(u, gemelas, mismo_piso, todas, busquedas, eventos),
+                     **({"vs_molde_ajustado_pct": posicion["vs_molde_pct"],
+                         "banda": posicion["banda"], "metodo_posicion": posicion["metodo"]}
+                        if posicion else {})},
         "molde": {"nombre": (molde or {}).get("nombre"),
                   "estado": (molde or {}).get("estado"),
                   "unidades_total": (molde or {}).get("unidades_total")} if molde else None,
@@ -206,29 +210,61 @@ UMBRAL_GANGA_PCT = -3.0     # ≤ −3% vs la mediana de su molde = ganga (verde
 UMBRAL_PREMIUM_PCT = 3.0    # ≥ +3% = premium (ámbar) — mismos umbrales que la ficha
 
 
+def _pm2_de(x) -> Optional[float]:
+    px, mx = x.get("price_mxn") or x.get("price"), x.get("size_m2") or x.get("m2_total")
+    return px / mx if px and mx else None
+
+
 def posiciones_por_molde(units: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    """{unit_id: {vs_molde_pct, banda}} — pura, misma matemática que analisis_atomo."""
-    def _pm2(x):
-        px, mx = x.get("price_mxn") or x.get("price"), x.get("size_m2") or x.get("m2_total")
-        return px / mx if px and mx else None
+    """{unit_id: {vs_molde_pct, banda, metodo}} — v2 (07-15): AJUSTADO POR PISO.
+    Dentro del molde el plano es idéntico pero subir de piso cuesta más: comparar contra
+    la mediana cruda hacía ver 'ganga' a un piso 3 que solo tenía su descuento natural.
+    v2 ajusta una recta $/m² ~ piso (mínimos cuadrados) y clasifica por el RESIDUO:
+    lo que la unidad cuesta vs lo que DEBERÍA costar en SU piso. Honesto: con <4 gemelas
+    o sin variación de pisos cae al método anterior (mediana), etiquetado en `metodo`."""
     por_molde: Dict[str, List[Dict[str, Any]]] = {}
     for u in units:
         if u.get("prototype_id"):
             por_molde.setdefault(u["prototype_id"], []).append(u)
     out: Dict[str, Dict[str, Any]] = {}
     for us in por_molde.values():
-        pm2s = sorted(v for v in (_pm2(u) for u in us) if v)
-        if len(pm2s) < 2:
+        con_dato = [(u, _pm2_de(u)) for u in us if _pm2_de(u)]
+        if len(con_dato) < 2:
             continue                      # sin gemelas no hay comparación honesta
+        con_piso = [(u, v) for u, v in con_dato if u.get("level") is not None]
+        pisos = {u.get("level") for u, _ in con_piso}
+        ajustar = len(con_piso) >= 4 and len(pisos) >= 3
+
+        def _recta_sin(uid):
+            """Recta $/m² ~ piso ajustada SIN la unidad juzgada (leave-one-out):
+            si la propia unidad entra al ajuste, su outlier se auto-diluye."""
+            pts = [(float(u["level"]), v) for u, v in con_piso if u.get("id") != uid]
+            if len(pts) < 3 or len({x for x, _ in pts}) < 2:
+                return None
+            n = len(pts)
+            mx = sum(x for x, _ in pts) / n
+            my = sum(y for _, y in pts) / n
+            sxx = sum((x - mx) ** 2 for x, _ in pts)
+            if sxx <= 0:
+                return None
+            b = sum((x - mx) * (y - my) for x, y in pts) / sxx
+            return lambda piso: (my - b * mx) + b * piso
+
+        pm2s = sorted(v for _, v in con_dato)
         med = pm2s[len(pm2s) // 2]
-        for u in us:
-            v = _pm2(u)
-            if not v or not med:
+        for u, v in con_dato:
+            recta = _recta_sin(u.get("id")) if ajustar and u.get("level") is not None else None
+            if recta is not None:
+                ref = recta(float(u["level"]))
+                metodo = "ajustado_piso"
+            else:
+                ref, metodo = med, "mediana"
+            if not ref or ref <= 0:
                 continue
-            pct = round((v - med) * 100 / med, 1)
+            pct = round((v - ref) * 100 / ref, 1)
             banda = ("ganga" if pct <= UMBRAL_GANGA_PCT
                      else "premium" if pct >= UMBRAL_PREMIUM_PCT else "normal")
-            out[u["id"]] = {"vs_molde_pct": pct, "banda": banda}
+            out[u["id"]] = {"vs_molde_pct": pct, "banda": banda, "metodo": metodo}
     return out
 
 

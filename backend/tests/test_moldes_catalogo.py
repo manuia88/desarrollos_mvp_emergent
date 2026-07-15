@@ -369,3 +369,34 @@ def test_semaforo_posiciones_y_gangas():
     assert pos["u4"]["banda"] == "premium"
     assert pos["u1"]["banda"] == "normal"
     assert "u5" not in pos
+
+
+def test_semaforo_v2_ajusta_por_piso():
+    """v2: una unidad de piso alto con precio de piso bajo es GANGA aunque la mediana
+    cruda diga 'normal' (el descuento de piso ya no engaña al semáforo)."""
+    import ficha_atomo as FA
+    mk = lambda uid, piso, pm2: {"id": uid, "prototype_id": "p0", "level": piso,
+                                 "size_m2": 100.0, "price_mxn": pm2 * 100}
+    # recta perfecta +1k/piso... excepto u5: piso 5 con precio de piso 1
+    units = [mk("u1", 1, 100_000), mk("u2", 2, 101_000), mk("u3", 3, 102_000),
+             mk("u4", 4, 103_000), mk("u5", 5, 100_000)]
+    pos = FA.posiciones_por_molde(units)
+    assert pos["u5"]["metodo"] == "ajustado_piso"
+    assert pos["u5"]["banda"] == "ganga"          # vs mediana cruda habría sido 'normal'
+    assert pos["u1"]["banda"] == "normal"          # el piso 1 barato es NORMAL, no ganga
+    # con 3 unidades o un solo piso → cae honesto a mediana
+    pos2 = FA.posiciones_por_molde([mk("a", 1, 100_000), mk("b", 1, 100_000),
+                                    mk("c", 1, 90_000)])
+    assert pos2["c"]["metodo"] == "mediana"
+
+
+def test_cotejo_avisa_solo_contradicciones_nuevas():
+    import cotejo_engine as CE
+    prev = [{"campo": "recamaras", "ref": "p0", "veredicto": "contradice"}]
+    ahora = [{"campo": "recamaras", "ref": "p0", "veredicto": "contradice"},   # ya avisada
+             {"campo": "m2", "ref": "p1", "veredicto": "contradice"},          # NUEVA
+             {"campo": "terraza_m2", "ref": "p2", "veredicto": "coincide"}]
+    nuevas = CE.contradicciones_nuevas(prev, ahora)
+    assert len(nuevas) == 1 and nuevas[0]["campo"] == "m2"
+    # primera corrida (sin cotejo previo): todas las contradicciones son nuevas
+    assert len(CE.contradicciones_nuevas([], ahora)) == 2

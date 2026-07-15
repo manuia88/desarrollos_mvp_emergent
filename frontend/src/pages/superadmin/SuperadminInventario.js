@@ -81,7 +81,7 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
                     : pos?.banda === 'premium' ? '0 0 0 2px rgba(210,153,34,0.7)' : undefined;
                   return (
                     <button key={u.id} data-testid={`unidad-${u.unit_number || u.id}`} onClick={() => onUnidad(u)}
-                      title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}${pos ? ` · ${pos.vs_molde_pct > 0 ? '+' : ''}${pos.vs_molde_pct}% vs sus gemelas` : ''}`}
+                      title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}${pos ? ` · ${pos.vs_molde_pct > 0 ? '+' : ''}${pos.vs_molde_pct}% vs sus gemelas${pos.metodo === 'ajustado_piso' ? ' (ajustado por piso)' : ''}` : ' · sin anillo: precio en línea o molde sin gemelas'}`}
                       style={{ minWidth: 52, padding: '7px 6px 5px', borderRadius: 6, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5,
                         background: `${col}${sel ? 'ee' : '33'}`, border: `${sel ? 2 : 1}px solid ${col}`, color: sel ? '#000' : 'var(--cream)',
                         opacity: apagada ? 0.18 : 1, transition: 'opacity .15s', boxShadow: halo,
@@ -142,8 +142,8 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
       color: tono === 'ok' ? '#86efac' : tono === 'alerta' ? '#d29922' : 'rgba(240,235,224,0.8)' }}>{txt}</span>
   );
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 300, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: 'min(880px, 96vw)', maxHeight: '92vh', overflowY: 'auto', border: '1px solid rgba(var(--theme-rgb),0.45)', padding: '20px 24px' }} data-testid="ficha-unidad">
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,10,0.88)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(880px, 96vw)', maxHeight: '92vh', overflowY: 'auto', background: '#14131c', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(var(--theme-rgb),0.45)', padding: '20px 24px' }} data-testid="ficha-unidad">
         {!x ? <p style={S.p}>{err || 'Abriendo la ficha…'}</p> : (<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0 }}>Depto {x.unidad.numero}</h2>
@@ -157,7 +157,9 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
           {/* EL ANÁLISIS del motor: la posición de este átomo contra su contexto */}
           <div style={{ margin: '10px 0 4px' }}>
             {a.pm2 != null && chip(`$${a.pm2.toLocaleString('en-US')}/m²`)}
-            {a.vs_molde_pct != null && chip(`${a.vs_molde_pct > 0 ? '+' : ''}${a.vs_molde_pct}% vs sus gemelas (mismo plano)`, a.vs_molde_pct > 3 ? 'alerta' : a.vs_molde_pct < -3 ? 'ok' : 'neutro')}
+            {a.vs_molde_ajustado_pct != null
+              ? chip(`${a.vs_molde_ajustado_pct > 0 ? '+' : ''}${a.vs_molde_ajustado_pct}% vs sus gemelas${a.metodo_posicion === 'ajustado_piso' ? ' (ajustado por piso)' : ''}`, a.banda === 'premium' ? 'alerta' : a.banda === 'ganga' ? 'ok' : 'neutro')
+              : a.vs_molde_pct != null && chip(`${a.vs_molde_pct > 0 ? '+' : ''}${a.vs_molde_pct}% vs sus gemelas (mismo plano)`, a.vs_molde_pct > 3 ? 'alerta' : a.vs_molde_pct < -3 ? 'ok' : 'neutro')}
             {a.vs_piso_pct != null && chip(`${a.vs_piso_pct > 0 ? '+' : ''}${a.vs_piso_pct}% vs su piso`, 'neutro')}
             {a.percentil_pm2 != null && chip(`percentil ${a.percentil_pm2} de $/m² en el desarrollo`)}
             {a.exterior_pct != null && chip(`${a.exterior_pct}% del total es exterior`)}
@@ -168,7 +170,7 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
 
           {/* EDITAR aquí mismo (un clic = todo: ver y corregir) */}
           {unidad && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', margin: '4px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', margin: '4px 0 10px', padding: '10px 12px', borderRadius: 10, background: '#1a1923', border: '1px solid rgba(255,255,255,0.08)' }}>
               <label style={{ ...S.mini }}>Estado
                 <select data-testid="unidad-status" style={{ ...S.inp, marginTop: 3, minWidth: 120 }} value={status} onChange={(e) => setStatus(e.target.value)}>
                   {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -202,7 +204,7 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
           {/* las SECCIONES del registro universal: dato o FALTA con quién lo llena */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
             {x.secciones.map((sec) => (
-              <div key={sec.titulo} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
+              <div key={sec.titulo} style={{ background: '#1a1923', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
                 <div style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>{sec.titulo}</div>
                 {sec.campos.map((c) => (
                   <div key={c.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '3px 0', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>

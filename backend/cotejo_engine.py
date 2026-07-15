@@ -114,9 +114,43 @@ async def cotejar_desarrollo(db, development_id: str) -> Dict[str, Any]:
 
     doc = {"development_id": development_id, "checks": checks,
            "resumen": resumen_cotejo(checks), "cotejado_at": _now_iso()}
+    prev = await db.cotejo_datos.find_one({"development_id": development_id}, {"_id": 0})
     await db.cotejo_datos.update_one({"development_id": development_id},
                                      {"$set": doc}, upsert=True)
+    # contradicción NUEVA = tarjeta a Telegram (igual que el Vigía) — fail-soft
+    nuevas = contradicciones_nuevas((prev or {}).get("checks") or [], checks)
+    if nuevas:
+        try:
+            d_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
+            await _avisar_contradicciones(db, (d_doc or {}).get("name") or development_id, nuevas)
+        except Exception:  # noqa: BLE001
+            pass
     return doc
+
+
+def contradicciones_nuevas(prev_checks: List[Dict[str, Any]],
+                           checks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Pura: las contradicciones que NO estaban en el cotejo anterior (por campo+ref)."""
+    viejas = {(c.get("campo"), c.get("ref")) for c in prev_checks
+              if c.get("veredicto") == CONTRADICE}
+    return [c for c in checks if c.get("veredicto") == CONTRADICE
+            and (c.get("campo"), c.get("ref")) not in viejas]
+
+
+async def _avisar_contradicciones(db, dev_nombre: str,
+                                  nuevas: List[Dict[str, Any]]) -> None:
+    from telegram_bot import get_config, _tg
+    cfg = await get_config(db)
+    if not cfg.get("chat_id"):
+        return
+    lineas = [f"⚖️ <b>Cotejo</b> — {len(nuevas)} contradicción(es) nueva(s) en {dev_nombre}:"]
+    for c in nuevas[:6]:
+        fuentes = " vs ".join(f"{k}: {v}" for k, v in (c.get("fuentes") or {}).items())
+        lineas.append(f"· {c.get('etiqueta')} — {c.get('campo')}: {fuentes}"
+                      + (f" ({c['nota'][:60]}…)" if c.get("nota") else ""))
+    lineas.append("Revísalas en el Expediente (sección moldes).")
+    await _tg("sendMessage", {"chat_id": cfg["chat_id"], "text": "\n".join(lineas),
+                              "parse_mode": "HTML"})
 
 
 async def cotejar_todos(db) -> Dict[str, Any]:
