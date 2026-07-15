@@ -53,6 +53,48 @@ def absorcion(eventos: List[Dict[str, Any]]) -> Dict[str, Any]:
             "ventana_dias": dias, "nota": None}
 
 
+def dias_para_vender(eventos: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """SUPERVIVENCIA (Kaplan-Meier): cuántos días tarda en venderse una unidad.
+    El promedio simple MIENTE (ignora a las que siguen sin venderse); aquí las
+    no-vendidas cuentan como censura, que es la forma honesta. Requiere ≥2 fotos."""
+    por_unidad: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    fechas = set()
+    for e in eventos:
+        if e.get("unit_id"):
+            por_unidad[e["unit_id"]].append(e)
+            fechas.add(str(e.get("ts"))[:10])
+    if len(fechas) < 2:
+        return {"mediana_dias": None, "vendidas": 0, "en_venta": len(por_unidad),
+                "nota": "se activa con la 2ª lista (necesita ver pasar el tiempo)"}
+    fin_ventana = max(fechas)
+    duraciones: List[Any] = []            # (días, se_vendió)
+    for evs in por_unidad.values():
+        evs.sort(key=lambda e: str(e.get("ts")))
+        inicio = str(evs[0].get("ts"))[:10]
+        vendida = None
+        for prev, act in zip(evs, evs[1:]):
+            if prev.get("disponible") and not act.get("disponible"):
+                vendida = str(act.get("ts"))[:10]
+                break
+        fin = vendida or fin_ventana
+        duraciones.append((max(_dias_entre(inicio, fin), 0), vendida is not None))
+    # Kaplan-Meier: la curva cae solo cuando hay venta, pesada por cuántas seguían
+    # "en riesgo" (sin vender) ese día
+    n_riesgo, s, mediana = len(duraciones), 1.0, None
+    for dias, se_vendio in sorted(duraciones):
+        if se_vendio:
+            s *= (1 - 1 / n_riesgo)
+            if s <= 0.5 and mediana is None:
+                mediana = dias
+        n_riesgo -= 1
+    vendidas = sum(1 for _, v in duraciones if v)
+    return {"mediana_dias": mediana, "vendidas": vendidas,
+            "en_venta": len(duraciones) - vendidas,
+            "nota": None if mediana is not None else
+            ("aún no se estima: más de la mitad sigue disponible"
+             if duraciones else "sin unidades observadas")}
+
+
 def curva_precio(eventos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Precio/m² promedio del molde por día (los puntos de la curva)."""
     por_dia: Dict[str, List[float]] = defaultdict(list)
@@ -109,6 +151,7 @@ def metricas_de_molde(molde: Dict[str, Any], units: List[Dict[str, Any]],
                       "revivio": molde.get("revivio_at")},
         "colocacion": colocacion(units),
         "absorcion": absorcion(eventos),
+        "dias_para_vender": dias_para_vender(eventos),
         "curva_precio": curva_precio(eventos),
         "premium_piso": premium_por_piso(units),
         "renta": yield_bruto(units),
@@ -133,4 +176,5 @@ async def metricas_desarrollo(db, development_id: str) -> Dict[str, Any]:
         us = [u for u in units if u.get("prototype_id") == m.get("prototype_id")]
         evs = [e for u in us for e in ev_por_unidad.get(u.get("id") or "", [])]
         out.append(metricas_de_molde(m, us, evs))
-    return {"development_id": development_id, "moldes": out, "n_moldes": len(out)}
+    return {"development_id": development_id, "moldes": out, "n_moldes": len(out),
+            "supervivencia": dias_para_vender(eventos)}   # el dev completo, no solo por molde

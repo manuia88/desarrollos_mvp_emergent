@@ -228,6 +228,14 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
             </div>
           )}
 
+          {/* 🎯 PRECIO ÓPTIMO v1: modelo × demanda observada — recomendación al dev */}
+          {x.precio_optimo && (
+            <div style={{ margin: '4px 0 8px', padding: '9px 13px', borderRadius: 10, background: x.precio_optimo.recomendacion === 'subir' ? 'rgba(74,222,128,0.06)' : x.precio_optimo.recomendacion === 'revisar' ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${x.precio_optimo.recomendacion === 'subir' ? 'rgba(74,222,128,0.35)' : x.precio_optimo.recomendacion === 'revisar' ? 'rgba(248,113,113,0.3)' : 'rgba(255,255,255,0.1)'}`, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)' }}>
+              <b style={{ color: 'var(--cream)' }}>🎯 Precio óptimo: {({ subir: `SUBIR ~${x.precio_optimo.delta_sugerido_pct}%`, revisar: `REVISAR (${x.precio_optimo.delta_sugerido_pct}%)`, gancho: 'GANCHO consciente', mantener: 'MANTENER' })[x.precio_optimo.recomendacion]}</b>
+              {' — '}{x.precio_optimo.porque}
+            </div>
+          )}
+
           {/* 🗡 EL ARGUMENTO DE VENTA (battle card del átomo) */}
           {(x.argumento || []).length > 0 && (
             <div style={{ margin: '4px 0 8px', padding: '9px 13px', borderRadius: 10, background: 'rgba(88,166,255,0.05)', border: '1px solid rgba(88,166,255,0.3)' }}>

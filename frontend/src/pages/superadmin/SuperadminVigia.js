@@ -126,6 +126,11 @@ function FabricaCard() {
           {fx.modelo_ml.cobertura_rango_pct != null && (
             <span style={mini}>banda 80% cubre de verdad: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.cobertura_rango_pct}%</b></span>
           )}
+          {fx.examen_modelo && (fx.examen_modelo.n > 0 ? (
+            <span style={mini}>📝 examen vs futuro: <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.n}</b> precios movidos · error <b style={{ color: 'var(--cream)' }}>±{fx.examen_modelo.error_medio_pct}%</b> · dirección acertada <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.direccion_acertada_pct}%</b></span>
+          ) : (
+            <span style={mini}>📝 examen vs futuro: {fx.examen_modelo.nota}</span>
+          ))}
         </div>
       )}
     </div>

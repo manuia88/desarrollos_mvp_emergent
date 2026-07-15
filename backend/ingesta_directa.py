@@ -23,6 +23,12 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     acta_id = await abrir_acta(db, target_dev_id, origen, fuentes_meta)
     item = {"extracted": {"units": unidades}, "job_id": None, "id": f"directa_{origen}"}
     antes = await db.units.count_documents({"development_id": target_dev_id})
+    # el examen del modelo: foto de sus predicciones ANTES de conocer la lista nueva
+    try:
+        from pronostico_real import snapshot_previo
+        previos_modelo = await snapshot_previo(db, target_dev_id)
+    except Exception:  # noqa: BLE001
+        previos_modelo = {}
     await bie.merge_into_dev(db, item, target_dev_id)
     despues = await db.units.count_documents({"development_id": target_dev_id})
     # el circuito automático (mismo orden que aprobar en la bandeja)
@@ -45,6 +51,13 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         await kg_sync.sync_moldes(db)
     except Exception:  # noqa: BLE001
         pass
+    # el examen: ¿el modelo había anticipado los precios que llegaron?
+    examen = None
+    try:
+        from pronostico_real import registrar
+        examen = await registrar(db, target_dev_id, previos_modelo, unidades, origen)
+    except Exception:  # noqa: BLE001
+        pass
     juez = None
     if fuentes_pdf:
         try:
@@ -60,6 +73,7 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     resultado = {"development_id": target_dev_id, "unidades_antes": antes,
                  "unidades_despues": despues, "moldes": r.get("prototipos"),
                  "origen": origen, "acta_id": acta_id,
+                 "examen_modelo": examen,
                  "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}
     await cerrar_acta(db, acta_id, {k: v for k, v in resultado.items()
                                     if k != "development_id"})

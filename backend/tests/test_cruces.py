@@ -323,6 +323,58 @@ def test_hedonico_validacion_honesta():
     assert "edificio_nuevo" not in entrenar_hedonico(dos)["validacion"]
 
 
+def test_dias_para_vender_kaplan_meier():
+    from molde_metrics import dias_para_vender
+    # 1 sola fecha → honesto: se activa con la 2ª
+    ev1 = [{"unit_id": "a", "ts": "2026-07-01", "disponible": True}]
+    assert "2ª lista" in dias_para_vender(ev1)["nota"]
+    # 4 unidades: 3 se venden (10, 20, 30 días), 1 sigue viva (censura a 30 días)
+    evs = []
+    for uid, vendida_en in [("a", "2026-07-11"), ("b", "2026-07-21"), ("c", "2026-07-31")]:
+        evs += [{"unit_id": uid, "ts": "2026-07-01", "disponible": True},
+                {"unit_id": uid, "ts": vendida_en, "disponible": False}]
+    evs += [{"unit_id": "d", "ts": "2026-07-01", "disponible": True},
+            {"unit_id": "d", "ts": "2026-07-31", "disponible": True}]
+    r = dias_para_vender(evs)
+    assert r["vendidas"] == 3 and r["en_venta"] == 1
+    assert r["mediana_dias"] == 20        # S cae 0.75→0.50 exactamente en la 2ª venta
+    # si la mayoría sigue viva, la mediana NO se inventa
+    solo1 = evs[:2] + [{"unit_id": u, "ts": t, "disponible": True}
+                       for u in ("x", "y", "z") for t in ("2026-07-01", "2026-07-31")]
+    r2 = dias_para_vender(solo1)
+    assert r2["mediana_dias"] is None and "mitad" in r2["nota"]
+
+
+def test_precio_optimo_reglas():
+    from precio_optimo import recomendar
+    assert recomendar(None, 50) is None                       # sin modelo no se inventa
+    assert recomendar(2.0, 90)["recomendacion"] == "mantener"
+    s = recomendar(-9.0, 75)                                  # barata + molde volando
+    assert s["recomendacion"] == "subir" and s["delta_sugerido_pct"] == 8.0  # techo 8%
+    assert recomendar(-9.0, 20)["recomendacion"] == "gancho"
+    r = recomendar(12.0, 25)                                  # cara + molde lento
+    assert r["recomendacion"] == "revisar" and r["delta_sugerido_pct"] == -8.0
+    assert recomendar(12.0, 80)["recomendacion"] == "mantener"  # cara pero se paga
+
+
+def test_pronostico_vs_real_examen():
+    from pronostico_real import comparar, resumen
+    previos = {"T1-101": {"precio": 5_000_000, "valor_modelo": 5_400_000,
+                          "rango_bajo": 5_100_000, "rango_alto": 5_700_000},
+               "T1-102": {"precio": 6_000_000, "valor_modelo": 5_900_000,
+                          "rango_bajo": 5_500_000, "rango_alto": 6_300_000}}
+    nuevos = [{"unit_number": "T1 - 101", "price_mxn": 5_300_000},   # subió (modelo decía barata ✓)
+              {"unit_number": "T1-102", "price_mxn": 6_000_000},     # sin movimiento: no examina
+              {"unit_number": "T1-999", "price_mxn": 4_000_000}]     # sin historia: no examina
+    ex = comparar(previos, nuevos)
+    assert len(ex) == 1
+    assert ex[0]["direccion_acertada"] is True and ex[0]["dentro_rango"] is True
+    assert ex[0]["error_pct"] == 1.9                     # (5.4M − 5.3M) / 5.3M
+    r = resumen(ex)
+    assert r["n"] == 1 and r["direccion_acertada_pct"] == 100.0
+    assert "2ª foto" in resumen([])["nota"]              # honesto sin datos
+
+
 def test_torneo_jerarquico_gana_con_efecto_de_edificio():
     """Datos con prima POR EDIFICIO que las features no ven → el jerárquico debe
     ganar el torneo y capturar la prima en sus residuales."""

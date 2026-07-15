@@ -226,7 +226,14 @@ async def fabrica(request: Request):
             "juicio_visual_pendiente": await db.cola_juicio_visual.count_documents(
                 {"estado": "pendiente"}),
             "modelo_ml": await db.ml_modelos.find_one(
-                {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)])}
+                {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)]),
+            "examen_modelo": _resumen_examen(
+                await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000))}
+
+
+def _resumen_examen(examenes):
+    from pronostico_real import resumen
+    return resumen(examenes)
 
 
 @router.get("/autopiloto")
