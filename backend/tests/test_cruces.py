@@ -183,6 +183,14 @@ def test_juez_comparadores_puros():
     paginas = ["2405 4.78 2 141.929 146.96 $ 10,881,200.00"]
     assert lineas_de_unidad(paginas, "T1 - 2405")
     assert not lineas_de_unidad(paginas, "T1 - 9999")
+    # NOB imprime dinero con espacios adentro — el juez debe leerlo igual (07-15)
+    assert 8_312_700.0 in numeros_de_linea("A101 131.86 11.82 $ 8 ,312,700.00 $ 5 0,000.00")
+    assert linea_confirma("A101 $ 8 ,312,700.00", 8_312_700, 2)
+    # torre numérica: '2-102' de la base encuentra la línea '102 ...' (Dessea, 07-15)
+    assert lineas_de_unidad(["102 0.00 1 186.95 186.95 $ 9,053,600.00"], "2- 102")
+    # …y también la línea REAL de Dessea, donde '2-' es un token separado
+    assert lineas_de_unidad(["2- 102 14.31 18.14 0.00 1 3 186.95 219.4 $ 10,350,000.00"],
+                            "2- 102")
 
 
 def test_juez_veredictos_y_discrepancia_fuentes():

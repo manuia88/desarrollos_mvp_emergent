@@ -41,8 +41,12 @@ COL_EXCEL = {"bedrooms": "RECAMARAS", "bathrooms": "BAÑOS",
 
 # ─── comparadores puros (testeables) ──────────────────────────────────────────
 def numeros_de_linea(linea: str) -> List[float]:
+    # NOB imprime el dinero con espacios adentro ('$ 8 ,312,700.00') — se pegan los
+    # espacios pegados a comas ANTES de tokenizar (cazado por el propio juez 07-15)
+    limpia = re.sub(r"(\d)\s+,", r"\1,", linea or "")
+    limpia = re.sub(r",\s+(\d)", r",\1", limpia)
     out = []
-    for tok in re.findall(r"[\d][\d,]*\.?\d*", linea or ""):
+    for tok in re.findall(r"[\d][\d,]*\.?\d*", limpia):
         try:
             out.append(float(tok.replace(",", "")))
         except ValueError:
@@ -60,7 +64,8 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
     ('T1 - 2405' de la base debe hallar la línea '2405 4.78 …' del PDF sin prefijo)."""
     objetivo = norm_unidad(unidad)
     solo_num = re.sub(r"^[A-Z]+\d?-", "", objetivo)
-    variantes = {objetivo, objetivo.replace("-", ""), solo_num}
+    solo_num2 = re.sub(r"^\d-", "", objetivo)      # torre numérica: '2-102' → '102'
+    variantes = {objetivo, objetivo.replace("-", ""), solo_num, solo_num2}
     out = []
     for texto in texto_paginas:
         for ln in (texto or "").split("\n"):
@@ -69,6 +74,9 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
                 continue
             cabeza = {toks[0], "".join(toks[:2]), "".join(toks[:3]).replace("-", ""),
                       toks[0].replace("-", "")}
+            # torre con guion como token propio: '2- 102 …' debe hallar a '102'/'2-102'
+            if len(toks) > 1 and re.fullmatch(r"([A-Z]{1,2}|T\d|\d{1,2})-?", toks[0]):
+                cabeza |= {toks[1], f"{toks[0].rstrip('-')}-{toks[1]}"}
             if variantes & cabeza:
                 out.append(ln)
     return out

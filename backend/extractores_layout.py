@@ -251,6 +251,7 @@ def extraer_maestro_class(xlsx_bytes: bytes) -> Dict[str, Any]:
         if not d.get("PRODUCTO") or not d.get("DESARROLLO"):
             continue
         unidades.append({"desarrollo": str(d["DESARROLLO"]).strip(),
+                         "_producto": str(d["PRODUCTO"]).strip(),
                          "unidad": norm_unidad(d["PRODUCTO"]),
                          "bedrooms": _num(d.get("RECAMARAS")),
                          "recamaras_opcion": _num(d.get("RECAMARAS OPCIONALES")),
@@ -258,6 +259,8 @@ def extraer_maestro_class(xlsx_bytes: bytes) -> Dict[str, Any]:
                          "estacionamientos": _num(d.get("ESTACIONAMIENTOS")),
                          "parking_type": str(d.get("TIPO DE ESTACIONAMIENTO") or "").strip().lower() or None,
                          "m2_habitable": _num(d.get("M2 HABITABLE")),
+                         "m2_balcones": _num(d.get("M2 BALCONES / TERRAZA  / PATIO- JARDIN")),
+                         "m2_roof": _num(d.get("M2 ROOF GARDEN")),
                          "m2_total": _num(d.get("M2 TOTAL")),
                          "precio": _num(d.get("PRECIO ACTUAL")),
                          "cuarto_servicio": str(d.get("CUARTO DE SERVICIO") or "").strip().lower() or None,
