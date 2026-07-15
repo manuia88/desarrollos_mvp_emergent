@@ -140,6 +140,16 @@ async def mi_pedido(request: Request):
     return {"pedidos": pedidos, "al_dia": not pedidos}
 
 
+@router.get("/mi-parte")
+async def mi_parte(request: Request, periodo: str = "semanal"):
+    """El parte del dev: su catálogo, su salud, su pedido — por audiencia."""
+    user = await require_dev_admin(request)
+    from tenant_scope import tenant_of
+    from parte_engine import generar_parte_dev
+    return {"periodo": periodo,
+            "texto": await generar_parte_dev(request.app.state.db, tenant_of(user), periodo)}
+
+
 @router.get("/elasticidad")
 async def dev_elasticidad(request: Request):
     """En qué TRANSIGE el comprador cuando no encuentra todo (lo que más relaja). Dato de oro para producto/precio del dev,

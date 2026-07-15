@@ -205,7 +205,39 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                                                   {"_id": 0}) or {}
     u["_pago_dev"] = (pagos.get("schemes") or [{}])[0]
     u["_colonia_id"] = u.get("colonia_id") or dev.get("colonia_id") or ""
+    # ═══ FICHA 720° (07-15): las capas de los 188 motores, apuntadas a ESTE átomo ═══
+    from cruces_atomo import (suelo_atomo, zona_atomo, finanzas_atomo, capacidad_genoma,
+                              score_dmx, argumento_venta, descomposicion_precio,
+                              mensualidades_del_genoma)
+    colonia_id = u.get("_colonia_id") or ""
+    pm2_u = None
+    precio_u = u.get("price_mxn") or u.get("price")
+    m2_u = u.get("size_m2") or u.get("m2_total")
+    if precio_u and m2_u:
+        pm2_u = precio_u / m2_u
+    suelo = await suelo_atomo(db, colonia_id, pm2_u)
+    zona = await zona_atomo(db, colonia_id)
+    finanzas = finanzas_atomo(u)
+    capacidad = capacidad_genoma((finanzas or {}).get("mensualidad"),
+                                 await mensualidades_del_genoma(db))
+    analisis_full = {**analisis_atomo(u, gemelas, mismo_piso, todas, busquedas, eventos),
+                     **({"vs_molde_ajustado_pct": posicion["vs_molde_pct"],
+                         "banda": posicion["banda"], "metodo_posicion": posicion["metodo"]}
+                        if posicion else {})}
+    cot = await db.cotejo_datos.find_one({"development_id": u.get("development_id")},
+                                         {"_id": 0, "checks": 1})
+    verificado = any(c.get("veredicto") == "coincide" and c.get("ref") == u.get("prototype_id")
+                     for c in ((cot or {}).get("checks") or []))
+    score = score_dmx(posicion, None, analisis_full.get("percentil_pm2"),
+                      (zona or {}).get("grade"), verificado)
     return {
+        "suelo": suelo, "zona": zona, "finanzas": finanzas, "capacidad": capacidad,
+        "score": score,
+        "argumento": argumento_venta(u.get("unit_number") or "", analisis_full,
+                                     finanzas, capacidad),
+        "ecuacion": descomposicion_precio(u, posicion, suelo),
+        "rieles_pendientes": ["costo de esperar · probabilidad de agotarse · elasticidad "
+                              "— se activan con la 2ª lista de precios"],
         "unidad": {"id": unit_id, "numero": u.get("unit_number"),
                    "estatus": (u.get("status") or "disponible").lower(),
                    "recamaras": u.get("bedrooms"), "banos": u.get("bathrooms"),
@@ -214,10 +246,7 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                    "plano_url": u.get("plano_url"),
                    "plano_amueblado_url": (molde or {}).get("plano_amueblado_url")},
         "secciones": armar_ficha(u, molde, programa),
-        "analisis": {**analisis_atomo(u, gemelas, mismo_piso, todas, busquedas, eventos),
-                     **({"vs_molde_ajustado_pct": posicion["vs_molde_pct"],
-                         "banda": posicion["banda"], "metodo_posicion": posicion["metodo"]}
-                        if posicion else {})},
+        "analisis": analisis_full,
         "molde": {"nombre": (molde or {}).get("nombre"),
                   "estado": (molde or {}).get("estado"),
                   "unidades_total": (molde or {}).get("unidades_total")} if molde else None,

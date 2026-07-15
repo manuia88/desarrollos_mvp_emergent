@@ -92,5 +92,21 @@ async def perfil_desarrollador(db, dev_org_id: str) -> Dict[str, Any]:
     org = await db.dev_orgs.find_one({"tenant_id": dev_org_id}, {"_id": 0, "name": 1}) or \
         await db.users.find_one({"tenant_id": dev_org_id, "role": "developer_admin"},
                                 {"_id": 0, "name": 1}) or {}
+    # ÍNDICE DEL DEV v1: $/m² ponderado del portafolio por foto (crece con cada lista)
+    from mercado_cruces import indice_dev
+    dev_ids = [p["id"] for p in proyectos]
+    eventos = await db.oferta_timeline.find({"dev_id": {"$in": dev_ids}},
+                                            {"_id": 0, "ts": 1, "pm2": 1}).to_list(50000)
+    indice = indice_dev(eventos)
+    # TEMPERATURA DEL DATO: qué tan fresco nos tiene el dev
+    ultima_lista = None
+    if mapeo:
+        foto = await db.vigia_fotos.find_one({}, {"_id": 0})
+        fd = ((foto or {}).get("devs") or {}).get(mapeo.get("dev_carpeta")) or {}
+        fechas = [a.get("modificado") for a in fd.get("archivos", []) if a.get("es_lista")]
+        ultima_lista = max(fechas) if fechas else None
     return {"dev_org_id": dev_org_id, "nombre": org.get("name") or dev_org_id,
-            "catalogo": proyectos, "radar": radar, "agregados": agregados(radar)}
+            "catalogo": proyectos, "radar": radar, "agregados": agregados(radar),
+            "indice": indice,
+            "temperatura_dato": {"ultima_lista": ultima_lista,
+                                 "listas_en_drive": sum(1 for p in radar if p["tiene_lista"])}}

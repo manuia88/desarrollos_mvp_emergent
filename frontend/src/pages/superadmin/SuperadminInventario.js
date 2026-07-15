@@ -181,6 +181,7 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
         {!x ? <p style={S.p}>{err || 'Abriendo la ficha…'}</p> : (<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0 }}>Depto {x.unidad.numero}</h2>
+            {x.score && <span title={(x.score.porque || []).join(' · ')} style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, padding: '3px 10px', borderRadius: 8, background: x.score.letra.startsWith('A') ? 'rgba(74,222,128,0.15)' : 'rgba(210,153,34,0.15)', border: `1px solid ${x.score.letra.startsWith('A') ? 'rgba(74,222,128,0.5)' : 'rgba(210,153,34,0.5)'}`, color: x.score.letra.startsWith('A') ? '#86efac' : '#d29922' }}>DMX {x.score.letra} · {x.score.puntos}pts</span>}
             <span style={{ ...S.mini, color: x.unidad.estatus === 'disponible' ? '#86efac' : '#fca5a5', fontWeight: 800, textTransform: 'uppercase' }}>{x.unidad.estatus}</span>
             <span style={{ ...S.mini, fontWeight: 700, color: 'var(--cream)' }}>
               {[x.unidad.recamaras != null ? `${x.unidad.recamaras} rec` : null, x.unidad.banos ? `${x.unidad.banos} baños` : null,
@@ -205,7 +206,35 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
             {a.busquedas_compatibles != null && chip(`${a.busquedas_compatibles} búsquedas reales le quedan`, a.busquedas_compatibles > 0 ? 'ok' : 'neutro')}
             {a.gemelas_disponibles != null && a.gemela_mas_barata && chip(`${a.gemelas_disponibles} gemelas disponibles · la más barata: ${a.gemela_mas_barata.unidad} $${(a.gemela_mas_barata.precio || 0).toLocaleString('en-US')} (p${a.gemela_mas_barata.piso})`)}
             {a.primera_foto && chip(`en bitácora desde ${a.primera_foto} · ${a.cambios_de_precio || 0} cambios de precio`)}
+            {x.zona && chip(`zona: ${x.zona.grade ? `calidad ${x.zona.grade}` : ''}${x.zona.riesgo ? ` · riesgo ${x.zona.riesgo}` : ''}`)}
+            {x.suelo?.premium_obra_nueva_pct != null && chip(`obra nueva: ${x.suelo.premium_obra_nueva_pct > 0 ? '+' : ''}${x.suelo.premium_obra_nueva_pct}% vs el AVM de la colonia ($${(x.suelo.avm_m2_colonia || 0).toLocaleString('en-US')}/m², 1.08M avalúos)`)}
+            {x.finanzas?.mensualidad && chip(`~$${x.finanzas.mensualidad.toLocaleString('en-US')}/mes (tasa ${(x.finanzas.tasa * 100).toFixed(1)}%, ${x.finanzas.plazo_anios}a) · ingreso req. $${(x.finanzas.ingreso_requerido || 0).toLocaleString('en-US')}`)}
+            {x.capacidad && chip(`${x.capacidad.alcanzan} de ${x.capacidad.de} perfiles del genoma pueden pagarla`, x.capacidad.alcanzan > 0 ? 'ok' : 'neutro')}
           </div>
+
+          {/* ⚖️ LA ECUACIÓN DEL PRECIO v1 */}
+          {x.ecuacion && (
+            <div style={{ margin: '4px 0 8px', padding: '9px 13px', borderRadius: 10, background: '#1a1923', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)' }}>
+              <b style={{ color: 'var(--cream)' }}>⚖️ De qué está hecho el precio:</b>{' '}
+              {x.ecuacion.factores.map((fa, i) => (
+                <span key={i}>{i > 0 ? ' ' : ''}{fa.factor}: <b style={{ color: 'var(--cream)' }}>${fa.monto.toLocaleString('en-US')}</b>{fa.pct != null ? ` (${fa.pct > 0 ? '+' : ''}${fa.pct}%)` : ''} ·</span>
+              ))}
+              {x.ecuacion.premium_obra_nueva_pct != null && <span> premium obra nueva vs colonia: <b style={{ color: 'var(--cream)' }}>{x.ecuacion.premium_obra_nueva_pct > 0 ? '+' : ''}{x.ecuacion.premium_obra_nueva_pct}%</b></span>}
+            </div>
+          )}
+
+          {/* 🗡 EL ARGUMENTO DE VENTA (battle card del átomo) */}
+          {(x.argumento || []).length > 0 && (
+            <div style={{ margin: '4px 0 8px', padding: '9px 13px', borderRadius: 10, background: 'rgba(88,166,255,0.05)', border: '1px solid rgba(88,166,255,0.3)' }}>
+              <b style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9ecbff' }}>🗡 Argumento de venta (auto-generado):</b>
+              {x.argumento.map((p, i) => <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.85)', marginTop: 3 }}>· {p}</div>)}
+              <button style={{ ...S.mini, marginTop: 6, padding: '3px 10px', borderRadius: 8, cursor: 'pointer', background: 'rgba(88,166,255,0.12)', border: '1px solid rgba(88,166,255,0.4)', color: '#9ecbff', fontWeight: 700 }}
+                onClick={() => { navigator.clipboard.writeText(x.argumento.join('\n')); }}>📋 Copiar para el asesor</button>
+            </div>
+          )}
+          {(x.rieles_pendientes || []).length > 0 && (
+            <div style={{ ...S.mini, opacity: 0.5, margin: '0 0 6px' }}>⏳ {x.rieles_pendientes[0]}</div>
+          )}
 
           {/* EDITAR aquí mismo (un clic = todo: ver y corregir) */}
           {unidad && (
@@ -446,6 +475,8 @@ function PerfilDev({ org }) {
         <b style={{ ...S.h, fontSize: 15 }}>🏢 El portafolio completo de {pf.nombre}</b>
         <span style={S.mini}>lo que el Vigía VE en su Drive · {ag.proyectos_drive} proyectos{ag.fuera_alcance ? ` (${ag.fuera_alcance} fuera de alcance)` : ''} · {ag.con_lista} con lista · <b style={{ color: '#d29922' }}>{ag.sin_ingerir} sin ingerir</b></span>
         <span style={{ flex: 1 }} />
+        {pf.temperatura_dato?.ultima_lista && <span style={{ ...S.mini, fontWeight: 700 }}>🌡 última lista: {String(pf.temperatura_dato.ultima_lista).slice(0, 10)}</span>}
+        {(pf.indice || []).length > 0 && <span style={{ ...S.mini, fontWeight: 700 }}>📈 índice del dev: ${pf.indice[pf.indice.length - 1].pm2_indice.toLocaleString('en-US')}/m² ({pf.indice.length} punto{pf.indice.length > 1 ? 's' : ''} — crece con cada lista)</span>}
         {Object.entries(ag.por_etapa || {}).map(([e, n]) => (
           <span key={e} style={{ ...S.mini, padding: '3px 9px', borderRadius: 9999, border: `1px solid ${ETAPA_COLOR[e] || '#888'}55`, color: ETAPA_COLOR[e] || '#ccc', fontWeight: 700 }}>{e.replace('_', ' ')}: {n}</span>
         ))}
@@ -464,6 +495,65 @@ function PerfilDev({ org }) {
             <div style={{ ...S.mini, opacity: 0.7 }}>{Object.entries(p.documentos || {}).filter(([t]) => t !== 'otro').map(([t, n]) => `${t}:${n}`).join(' · ')}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function BandejaUnica() {
+  const [b, setB] = useState(null);
+  const [eco, setEco] = useState(null);
+  const nav = useNavigate();
+  useEffect(() => {
+    _get('/bandeja').then(setB).catch(() => setB(null));
+    _get('/unit-economics').then(setEco).catch(() => setEco(null));
+  }, []);
+  if (!b) return null;
+  return (
+    <div style={{ ...S.card, margin: '4px 0 12px', border: b.al_dia ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(var(--theme-rgb),0.4)' }} data-testid="bandeja-unica">
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: b.al_dia ? 0 : 8 }}>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>📥 Tu bandeja de hoy {b.al_dia ? '— al día 🎉' : `(${b.n})`}</h2>
+        <span style={S.mini}>todo lo accionable, ordenado por valor — una sola lista</span>
+        {eco && <span style={{ ...S.mini, marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>economics del dato: {eco.proyectos} proyectos · {eco.unidades}u · API acumulado ${eco.costo_api_acumulado_mxn.toLocaleString('en-US')}</span>}
+      </div>
+      {(b.items || []).slice(0, 8).map((it, i) => (
+        <button key={i} onClick={() => nav(it.link)} style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', padding: '7px 10px', borderRadius: 9, cursor: 'pointer', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', marginTop: 4 }}>
+          <span>{it.icono}</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', fontWeight: 600 }}>{it.titulo}</span>
+          <span style={{ ...S.mini, marginLeft: 'auto', opacity: 0.5 }}>→</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MercadoCruces() {
+  const [mc, setMc] = useState(null);
+  useEffect(() => { _get('/mercado-cruces').then(setMc).catch(() => setMc(null)); }, []);
+  if (!mc || (!mc.gaps?.length && !mc.demanda_revelada?.length)) return null;
+  return (
+    <div style={{ ...S.card, margin: '4px 0 12px' }} data-testid="mercado-cruces">
+      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: '0 0 4px' }}>🕳 Gaps de producto y demanda revelada</h2>
+      <span style={S.mini}>{mc.nota}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 10 }}>
+        <div>
+          <div style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 5 }}>Qué falta construir/traer (el mercado lo agotó)</div>
+          {(mc.gaps || []).slice(0, 6).map((g, i) => (
+            <div key={i} style={{ ...S.mini, padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              🕳 <b style={{ color: 'var(--cream)' }}>{g.banda_precio}</b> en <b style={{ color: 'var(--cream)' }}>{g.colonia}</b> · {g.colocacion_observada_pct}% colocado observado ({g.unidades_observadas}u)
+            </div>
+          ))}
+          {!(mc.gaps || []).length && <span style={S.mini}>sin gaps detectables aún</span>}
+        </div>
+        <div>
+          <div style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 5 }}>Demanda revelada (lo que SÍ compró)</div>
+          {(mc.demanda_revelada || []).slice(0, 6).map((d, i) => (
+            <div key={i} style={{ ...S.mini, padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ width: `${Math.min(70, d.colocacion_pct * 0.7)}%`, maxWidth: '55%', height: 6, borderRadius: 3, background: 'linear-gradient(90deg, rgba(74,222,128,0.8), rgba(74,222,128,0.3))' }} />
+              <b style={{ color: 'var(--cream)' }}>{d.colonia}</b> {d.colocacion_pct}% ({d.unidades}u)
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -527,8 +617,10 @@ export default function SuperadminInventario({ user, onLogout }) {
           ))}
         </div>
 
-        {/* 🪜 LA ESCALERA: el dato de moldes en cada peldaño (solo en la raíz) */}
+        {/* 📥 LA BANDEJA ÚNICA + los cruces de mercado (solo en la raíz) */}
+        {!devSel && <BandejaUnica />}
         {!devSel && <Corte />}
+        {!devSel && <MercadoCruces />}
 
         {/* breadcrumb del drill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0 16px', flexWrap: 'wrap' }}>

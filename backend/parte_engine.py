@@ -258,6 +258,33 @@ _SECCIONES = {"movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo"
               "moldes": _sec_moldes, "gangas": _sec_gangas, "salud": _sec_salud}
 
 
+async def generar_parte_dev(db, dev_org_id: str, periodo: str = "semanal") -> str:
+    """EL PARTE DEL DEV (alertas por audiencia, 07-15): SU catálogo, SU salud, SU pedido —
+    el gancho de retención de su portal. Solo datos de SUS proyectos."""
+    devs = await db.developments.find({"developer_id": dev_org_id},
+                                      {"_id": 0, "id": 1, "name": 1,
+                                       "readiness_pct": 1}).to_list(100)
+    if not devs:
+        return "Aún no tienes proyectos en la plataforma."
+    lineas = [f"<b>📊 Tu resumen {periodo}</b>"]
+    from ficha_atomo import gangas_catalogo
+    gangas = [g for g in await gangas_catalogo(db, limite=50)
+              if g.get("development_id") in {d["id"] for d in devs}]
+    for d in devs:
+        pct = d.get("readiness_pct")
+        lineas.append(f"· {d.get('name')}: ficha al {pct}%"
+                      + (" — completa tus datos para destacar" if (pct or 0) < 80 else " ✓"))
+    if gangas:
+        lineas.append(f"💎 {len(gangas)} unidades tuyas están por DEBAJO de sus gemelas y "
+                      f"aún no se venden — ¿problema de visibilidad, no de precio?")
+    from lista_pedidos import pedido_desarrollo
+    for d in devs[:3]:
+        p = await pedido_desarrollo(db, d["id"])
+        if not p.get("al_dia"):
+            lineas.append(f"📋 {d.get('name')}: {p.get('n_puntos')} datos pendientes de tu lado")
+    return "\n".join(lineas)
+
+
 async def generar_parte(db, periodo: str = "diario") -> str:
     """El parte completo en HTML-telegram (también sirve para el correo)."""
     cfg = CADENCIAS.get(periodo) or CADENCIAS["diario"]

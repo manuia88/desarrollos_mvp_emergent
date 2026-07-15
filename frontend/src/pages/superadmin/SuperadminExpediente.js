@@ -116,6 +116,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
         {/* ═══ CABECERA: identidad + completitud + publicar — todo lo importante arriba ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
           <button onClick={() => nav('/superadmin/inventario')} style={{ ...S.btn, padding: '5px 10px' }}><ChevronLeft size={14} /> Inventario</button>
+          <button onClick={() => window.print()} style={{ ...S.btn }} title="El expediente como entregable para el dev — imprime o guarda PDF">🖨 Exportar</button>
           <button onClick={() => setCompletar(!completar)} style={{ ...S.btn, background: completar ? 'rgba(210,153,34,0.2)' : undefined, border: completar ? '1px solid rgba(210,153,34,0.5)' : undefined, color: completar ? '#d29922' : undefined }}>✏️ {completar ? 'Cerrar captura' : 'Completar datos'}</button>
           <Building2 size={22} color="var(--theme)" />
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 23, color: 'var(--cream)', margin: 0 }}>{d.name}</h1>

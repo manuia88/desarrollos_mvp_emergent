@@ -129,6 +129,39 @@ async def corte_universal(request: Request, por: str = "colonia",
         raise HTTPException(400, str(e))
 
 
+@router.get("/bandeja")
+async def bandeja_del_dia(request: Request):
+    """LA BANDEJA ÚNICA: todo lo accionable en una lista por prioridad (inbox cero)."""
+    await require_superadmin(request)
+    from bandeja_unica import bandeja
+    return await bandeja(_db(request))
+
+
+@router.get("/mercado-cruces")
+async def mercado_cruces_ep(request: Request):
+    """Gap de producto + demanda revelada: el catálogo vs el mercado real minado (4S)."""
+    await require_superadmin(request)
+    from mercado_cruces import cruces_mercado
+    return await cruces_mercado(_db(request))
+
+
+@router.get("/unit-economics")
+async def unit_economics(request: Request):
+    """La tesis del moat en números: qué costó cada proyecto ingerido."""
+    await require_superadmin(request)
+    db = _db(request)
+    n_devs = len([d async for d in db.developments.find({}, {"_id": 0, "id": 1})])
+    n_units = await db.units.count_documents({})
+    n_eventos = await db.oferta_timeline.count_documents({})
+    costo = 0.0
+    async for c in db.ai_cost_daily_snapshots.find({}, {"_id": 0}):
+        costo += c.get("total_mxn") or c.get("cost_mxn") or 0
+    return {"proyectos": n_devs, "unidades": n_units, "eventos_bitacora": n_eventos,
+            "costo_api_acumulado_mxn": round(costo, 2),
+            "costo_por_unidad_mxn": round(costo / n_units, 2) if n_units else 0,
+            "nota": "piloto en sesión = $0 API; esto medirá el costo real al escalar"}
+
+
 @router.get("/dev/{dev_org_id}/perfil")
 async def perfil_dev(request: Request, dev_org_id: str):
     """EL PERFIL DEL DESARROLLADOR: catálogo + radar del Drive (portafolio completo con
