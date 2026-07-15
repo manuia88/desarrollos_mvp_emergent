@@ -74,9 +74,14 @@ SECCIONES: List[Dict[str, Any]] = [
         ("$/m²", lambda u, m, p: _fmt_mxn(round((u.get("price_mxn") or u.get("price")) / (u.get("size_m2") or u.get("m2_total")))) if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total")) else None, "cálculo"),
         ("Enganche", lambda u, m, p: (_fmt_mxn(u.get("enganche_mxn")) or "") + (f" ({_fmt_pct(u.get('enganche_pct'))})" if u.get("enganche_pct") else "") or None, "lista de precios"),
         ("Crédito", lambda u, m, p: (_fmt_mxn(u.get("credito_mxn")) or "") + (f" ({_fmt_pct(u.get('credito_pct'))})" if u.get("credito_pct") else "") or None, "lista de precios"),
-        ("Reservación", lambda u, m, p: _fmt_mxn(u.get("reservacion_mxn")), "esquema del dev"),
-        ("A la firma / contrato", lambda u, m, p: _fmt_mxn(u.get("contrato_mxn")), "esquema del dev"),
-        ("A diferir", lambda u, m, p: _fmt_mxn(u.get("a_diferir_mxn")), "esquema del dev"),
+        ("Reservación", lambda u, m, p: _fmt_mxn(u.get("reservacion_mxn"))
+         or _del_esquema(u, "apartado_mxn", _fmt_mxn), "esquema del dev"),
+        ("A la firma / contrato", lambda u, m, p: _fmt_mxn(u.get("contrato_mxn"))
+         or _del_esquema(u, "firma_pct", _fmt_pct), "esquema del dev"),
+        ("A diferir (mensualidades)", lambda u, m, p: _fmt_mxn(u.get("a_diferir_mxn"))
+         or _del_esquema(u, "mensualidades_pct", _fmt_pct), "esquema del dev"),
+        ("Escritura", lambda u, m, p: _fmt_mxn(u.get("escritura_mxn"))
+         or _del_esquema(u, "escritura_pct", _fmt_pct), "esquema del dev"),
         ("Mantenimiento", lambda u, m, p: _fmt_mxn(u.get("mantenimiento_mxn")), "el desarrollador"),
     ]},
     {"titulo": "Acabados y extras", "campos": [
@@ -86,6 +91,12 @@ SECCIONES: List[Dict[str, Any]] = [
         ("Notas de la lista", lambda u, m, p: u.get("notas"), "lista de precios"),
     ]},
 ]
+
+
+def _del_esquema(u, campo, fmt):
+    """Si la unidad no trae el dato, hereda del ESQUEMA DE PAGO del desarrollo — etiquetado."""
+    v = (u.get("_pago_dev") or {}).get(campo)
+    return f"{fmt(v)} (esquema del desarrollo)" if v else None
 
 
 def armar_ficha(u: Dict[str, Any], molde: Optional[Dict[str, Any]],
@@ -187,10 +198,15 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
     busquedas = await db.marketplace_searches.find({}, {"_id": 0}).to_list(5000)
     eventos = await db.oferta_timeline.find({"unit_id": unit_id}, {"_id": 0}).to_list(500)
     posicion = posiciones_por_molde(todas).get(unit_id)   # la MISMA lectura que la Torre
+    pagos = await db.dev_payment_schemes.find_one({"project_id": u.get("development_id")},
+                                                  {"_id": 0}) or {}
+    u["_pago_dev"] = (pagos.get("schemes") or [{}])[0]
     u["_colonia_id"] = u.get("colonia_id") or dev.get("colonia_id") or ""
     return {
         "unidad": {"id": unit_id, "numero": u.get("unit_number"),
                    "estatus": (u.get("status") or "disponible").lower(),
+                   "recamaras": u.get("bedrooms"), "banos": u.get("bathrooms"),
+                   "m2": u.get("size_m2") or u.get("m2_total"), "piso": u.get("level"),
                    "desarrollo": dev.get("name"), "development_id": u.get("development_id"),
                    "plano_url": u.get("plano_url"),
                    "plano_amueblado_url": (molde or {}).get("plano_amueblado_url")},

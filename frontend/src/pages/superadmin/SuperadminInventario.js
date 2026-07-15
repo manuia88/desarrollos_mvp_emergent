@@ -110,6 +110,19 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
 /* panel de edición: aparece al clic en una unidad — SIN wizard */
 const ORIENTACIONES = ['', 'norte', 'sur', 'oriente', 'poniente', 'noreste', 'noroeste', 'sureste', 'suroeste'];
 
+const CAMPOS_EDITABLES = [
+  ['bedrooms', 'Recámaras', 'num'], ['bathrooms', 'Baños', 'num'],
+  ['size_m2', 'm² habitables', 'num'], ['m2_balcony', 'm² balcón', 'num'],
+  ['m2_terrace', 'm² terraza', 'num'], ['m2_roof_garden', 'm² roof', 'num'],
+  ['patio_m2', 'm² patio', 'num'], ['m2_total', 'm² totales', 'num'],
+  ['parking_spots', 'Cajones', 'num'], ['parking_type', 'Tipo de cajón', 'txt'],
+  ['bodega', 'Bodega', 'txt'], ['mantenimiento_mxn', 'Mantenimiento $', 'num'],
+  ['reservacion_mxn', 'Reservación $', 'num'], ['contrato_mxn', 'A la firma $', 'num'],
+  ['a_diferir_mxn', 'A diferir $', 'num'], ['escritura_mxn', 'Escritura $', 'num'],
+  ['acabados', 'Nivel de acabados', 'txt'], ['altura_techo_m', 'Altura techo (m)', 'num'],
+  ['notas', 'Notas', 'txt'],
+];
+
 export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
   const nav = useNavigate();
   const [x, setX] = useState(null);
@@ -121,6 +134,26 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
   const [msg, setMsg] = useState('');
   const cargarFicha = useCallback(() => _get(`/unidad/${unitId}/ficha`).then(setX).catch((e) => setErr(String(e.message))), [unitId]);
   useEffect(() => { setX(null); cargarFicha(); }, [cargarFicha]);
+  useEffect(() => {   // candado: la página de atrás NO scrollea mientras la ficha está abierta
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  const [editar, setEditar] = useState(false);
+  const [form, setForm] = useState({});
+  const guardarDatos = async () => {
+    try {
+      const body = {};
+      CAMPOS_EDITABLES.forEach(([campo, _l, tipo]) => {
+        const v = form[campo];
+        if (v !== undefined && v !== '') body[campo] = tipo === 'num' ? Number(v) : v;
+      });
+      if (!Object.keys(body).length) { setMsg('Sin cambios.'); return; }
+      await _patch(`/unidad/${unitId}`, body);
+      setMsg('Datos guardados ✓ (con auditoría)'); setEditar(false); setForm({});
+      cargarFicha(); onCambio && onCambio();
+    } catch (e) { setMsg(String(e.message)); }
+  };
   const guardar = async () => {
     try {
       const body = {};
@@ -142,14 +175,19 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
       color: tono === 'ok' ? '#86efac' : tono === 'alerta' ? '#d29922' : 'rgba(240,235,224,0.8)' }}>{txt}</span>
   );
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,10,0.88)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto' }}>
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,10,0.94)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(880px, 96vw)', maxHeight: '92vh', overflowY: 'auto', background: '#14131c', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(var(--theme-rgb),0.45)', padding: '20px 24px' }} data-testid="ficha-unidad">
         {!x ? <p style={S.p}>{err || 'Abriendo la ficha…'}</p> : (<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0 }}>Depto {x.unidad.numero}</h2>
             <span style={{ ...S.mini, color: x.unidad.estatus === 'disponible' ? '#86efac' : '#fca5a5', fontWeight: 800, textTransform: 'uppercase' }}>{x.unidad.estatus}</span>
+            <span style={{ ...S.mini, fontWeight: 700, color: 'var(--cream)' }}>
+              {[x.unidad.recamaras != null ? `${x.unidad.recamaras} rec` : null, x.unidad.banos ? `${x.unidad.banos} baños` : null,
+                x.unidad.m2 ? `${x.unidad.m2} m²` : null, x.unidad.piso != null ? `piso ${x.unidad.piso}` : null].filter(Boolean).join(' · ')}
+            </span>
             <span style={S.mini}>{x.unidad.desarrollo}{x.molde ? ` · molde ${x.molde.nombre}` : ''}</span>
             <span style={{ flex: 1 }} />
+            <button style={{ ...S.btn, background: editar ? 'rgba(210,153,34,0.2)' : undefined, border: editar ? '1px solid rgba(210,153,34,0.5)' : undefined, color: editar ? '#d29922' : undefined }} onClick={() => setEditar(!editar)}>✏️ {editar ? 'Cerrar edición' : 'Editar datos'}</button>
             <button style={S.btn} onClick={() => nav(`/superadmin/expediente/${x.unidad.development_id}`)}>Expediente del desarrollo</button>
             <button style={{ ...S.btn, padding: '5px 9px' }} onClick={onCerrar}><X size={14} /></button>
           </div>
@@ -190,6 +228,22 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
               </label>
               <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
               {msg && <span style={{ ...S.mini, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</span>}
+            </div>
+          )}
+
+          {/* ✏️ EDITAR DATOS: corregir cualquier campo de la ficha, con auditoría */}
+          {editar && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, margin: '4px 0 12px', padding: '12px', borderRadius: 10, background: '#1a1923', border: '1px solid rgba(210,153,34,0.35)' }}>
+              {CAMPOS_EDITABLES.map(([campo, label, tipo]) => (
+                <label key={campo} style={S.mini}>{label}
+                  <input style={{ ...S.inp, marginTop: 3 }} type={tipo === 'num' ? 'number' : 'text'}
+                    value={form[campo] ?? ''} placeholder="—"
+                    onChange={(e) => setForm({ ...form, [campo]: e.target.value })} />
+                </label>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+                <button style={S.btn} onClick={guardarDatos}>Guardar datos</button>
+              </div>
             </div>
           )}
 

@@ -11,7 +11,7 @@ la ingesta (transiciones detectan el cambio como cualquier otro).
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -286,6 +286,32 @@ class UnidadPatch(BaseModel):
     price_mxn: Optional[float] = Field(default=None, ge=0)
     orientacion: Optional[str] = None      # norte/sur/oriente/poniente/…
     vista: Optional[str] = Field(default=None, max_length=80)   # calle/interior/parque…
+    # corrección de datos desde la ficha (founder 07-15: "un botón que permita editar")
+    bedrooms: Optional[int] = Field(default=None, ge=0, le=10)
+    bathrooms: Optional[float] = Field(default=None, ge=0, le=10)
+    size_m2: Optional[float] = Field(default=None, gt=0)
+    m2_balcony: Optional[float] = Field(default=None, ge=0)
+    m2_terrace: Optional[float] = Field(default=None, ge=0)
+    m2_roof_garden: Optional[float] = Field(default=None, ge=0)
+    patio_m2: Optional[float] = Field(default=None, ge=0)
+    m2_total: Optional[float] = Field(default=None, gt=0)
+    parking_spots: Optional[int] = Field(default=None, ge=0, le=10)
+    parking_type: Optional[str] = Field(default=None, max_length=60)
+    bodega: Optional[str] = Field(default=None, max_length=60)
+    mantenimiento_mxn: Optional[float] = Field(default=None, ge=0)
+    reservacion_mxn: Optional[float] = Field(default=None, ge=0)
+    contrato_mxn: Optional[float] = Field(default=None, ge=0)
+    a_diferir_mxn: Optional[float] = Field(default=None, ge=0)
+    escritura_mxn: Optional[float] = Field(default=None, ge=0)
+    acabados: Optional[str] = Field(default=None, max_length=120)
+    altura_techo_m: Optional[float] = Field(default=None, gt=0, le=8)
+    notas: Optional[str] = Field(default=None, max_length=400)
+
+    CAMPOS_DIRECTOS: ClassVar[tuple] = ("bedrooms", "bathrooms", "size_m2", "m2_balcony", "m2_terrace",
+                       "m2_roof_garden", "patio_m2", "m2_total", "parking_spots",
+                       "parking_type", "bodega", "mantenimiento_mxn", "reservacion_mxn",
+                       "contrato_mxn", "a_diferir_mxn", "escritura_mxn", "acabados",
+                       "altura_techo_m", "notas")
 
 
 @router.patch("/unidad/{unit_id}")
@@ -314,6 +340,10 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
         cambios["orientacion"] = o or None
     if body.vista is not None:
         cambios["vista"] = body.vista.strip() or None
+    for campo in UnidadPatch.CAMPOS_DIRECTOS:
+        v = getattr(body, campo)
+        if v is not None:
+            cambios[campo] = (v.strip() or None) if isinstance(v, str) else v
     if not cambios:
         raise HTTPException(400, "Nada que cambiar (manda status y/o price_mxn)")
     cambios["updated_at"] = _now_iso()

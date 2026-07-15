@@ -1875,7 +1875,10 @@ async def list_developments(
                 "unit_number": u.get("unit_number"), "prototype": u.get("prototype"), "level": u.get("level"),
                 "bedrooms": u.get("bedrooms"), "bathrooms": u.get("bathrooms"), "parking_spots": u.get("parking_spots"),
                 "m2_total": u.get("m2_total") or u.get("m2_privative"), "price": u.get("price"),
-                "price_display": u.get("price_display"), "orientation": u.get("orientation"), "vista": u.get("vista"),
+                "price_display": u.get("price_display"),
+                "orientation": u.get("orientacion") or u.get("orientation"), "vista": u.get("vista"),
+                # el átomo completo fluye al marketplace (misma fuente que superadmin/dev)
+                "plano_url": u.get("plano_url"), "prototype_id": u.get("prototype_id"),
             }
             f = _unit_finance(u.get("price"), fin)
             if f:
