@@ -46,12 +46,23 @@ def test_lista_cambiada_por_huella_no_por_fecha():
 def test_proyecto_nuevo_y_acceso_roto():
     prev = _foto({"QC": {"folder_id": "f1", "ok": True, "proyectos": ["Torre A"], "archivos": []},
                   "Deca": {"folder_id": "f2", "ok": True, "proyectos": [], "archivos": []}})
+    # 2 STRIKES (founder 07-14: el token murió y alarmó a la primera): la 1ª falla es
+    # fallo_transitorio (solo linaje); la 2ª consecutiva sí dispara acceso_roto.
     nueva = _foto({"QC": {"folder_id": "f1", "ok": True,
                           "proyectos": ["Torre A", "Reforma 2"], "archivos": []},
-                   "Deca": {"folder_id": "f2", "ok": False, "proyectos": [], "archivos": []}})
+                   "Deca": {"folder_id": "f2", "ok": False, "fails": 1,
+                            "proyectos": [], "archivos": []}})
     tipos = sorted(e["tipo"] for e in VE.diff_fotos(prev, nueva))
-    assert tipos == ["acceso_roto", "proyecto_nuevo"]
-    # dev que desaparece de la foto también es acceso_roto
+    assert tipos == ["fallo_transitorio", "proyecto_nuevo"]
+    nueva2 = _foto({"QC": nueva["devs"]["QC"],
+                    "Deca": {**nueva["devs"]["Deca"], "fails": 2}})
+    evs2 = VE.diff_fotos(nueva, nueva2)
+    assert [e["tipo"] for e in evs2] == ["acceso_roto"] and evs2[0]["dev"] == "Deca"
+    # y en la 3ª falla NO re-alarma (ya avisó)
+    nueva3 = _foto({"QC": nueva["devs"]["QC"],
+                    "Deca": {**nueva["devs"]["Deca"], "fails": 3}})
+    assert all(e["tipo"] != "acceso_roto" for e in VE.diff_fotos(nueva2, nueva3))
+    # dev que desaparece de la foto también es acceso_roto (pérdida total, sin strikes)
     evs = VE.diff_fotos(prev, _foto({"QC": prev["devs"]["QC"]}))
     assert [e["tipo"] for e in evs] == ["acceso_roto"] and evs[0]["dev"] == "Deca"
 

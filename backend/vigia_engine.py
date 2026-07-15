@@ -98,8 +98,11 @@ def diff_fotos(prev: Optional[Dict[str, Any]], nueva: Dict[str, Any]) -> List[Di
                                         "n_archivos": len(d.get("archivos", []))}})
             continue
         if not d.get("ok"):
-            if pd.get("ok"):
+            # 2 strikes: la primera falla es solo linaje (fallo_transitorio); la segunda alarma
+            if int(d.get("fails") or 1) >= 2 and int(pd.get("fails") or 0) < 2:
                 eventos.append({"tipo": "acceso_roto", "dev": dev})
+            else:
+                eventos.append({"tipo": "fallo_transitorio", "dev": dev})
             continue
 
         for p in d.get("proyectos", []):
@@ -158,6 +161,12 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
             resumen["errores"].append({"fuente": fuente["id"], "error": str(e)[:200]})
             continue
         prev = await db.vigia_fotos.find_one({"fuente_id": fuente["id"]}, {"_id": 0})
+        # ANTI-FALSA-ALARMA (founder 07-14: el token OAuth murió y alarmó a la primera): un dev
+        # ilegible hereda el contador de fallas; acceso_roto solo se dispara en la 2ª consecutiva.
+        prev_devs = (prev or {}).get("devs", {}) or {}
+        for _dev, _d in (nueva.get("devs") or {}).items():
+            if not _d.get("ok"):
+                _d["fails"] = int((prev_devs.get(_dev) or {}).get("fails") or 0) + 1
         eventos = diff_fotos(prev, nueva)
 
         # persistir linaje (append-only, hipersegmentado)
@@ -188,6 +197,22 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
             })
             resumen["pendientes_nuevos"] += 1
 
+        # AUTO-RESOLUCIÓN: si un dev volvió a leerse bien, su pendiente de "perdí acceso"
+        # se cierra solo (y queda el evento acceso_restaurado en el linaje).
+        for _dev, _d in (nueva.get("devs") or {}).items():
+            if not _d.get("ok"):
+                continue
+            r = await db.vigia_pendientes.update_many(
+                {"clave": f"roto::{_dev}", "estado": "pendiente"},
+                {"$set": {"estado": "resuelto", "resuelto_at": _now_iso(),
+                          "resuelto_por": "vigia_auto", "razon": "acceso restaurado"}})
+            if r.modified_count:
+                await db.vigia_eventos.insert_one({
+                    "id": f"vev_{secrets.token_urlsafe(8)}", "fuente_id": fuente["id"],
+                    "ts": nueva["ts"], "tipo": "acceso_restaurado", "dev": _dev})
+                resumen["por_tipo"]["acceso_restaurado"] = \
+                    resumen["por_tipo"].get("acceso_restaurado", 0) + 1
+
         # la foto nueva reemplaza a la anterior (el linaje ya quedó en eventos)
         await db.vigia_fotos.update_one({"fuente_id": fuente["id"]},
                                         {"$set": nueva}, upsert=True)
@@ -198,6 +223,16 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
 
     if notificar and resumen["pendientes_nuevos"] > 0:
         await _notificar(db, resumen)
+    if notificar and resumen["por_tipo"].get("acceso_restaurado"):
+        # cerrar el ciclo de la alarma: si te avisé que perdí acceso, te aviso que volvió
+        try:
+            from telegram_bot import get_config, _tg
+            cfg = await get_config(db)
+            if cfg.get("chat_id"):
+                await _tg("sendMessage", {"chat_id": cfg["chat_id"],
+                                          "text": "✅ Acceso restaurado — vuelvo a ver las carpetas. El pendiente rojo se cerró solo."})
+        except Exception:  # noqa: BLE001 — avisar nunca tira la ronda
+            pass
     return resumen
 
 

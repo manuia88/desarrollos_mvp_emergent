@@ -160,6 +160,17 @@ export function VigiaTab() {
             👁 {f.nombre} · vigilada cada {f.cadencia_min} min · última ronda: {f.last_ronda_at ? new Date(f.last_ronda_at).toLocaleString('es-MX') : 'nunca (corre una ahora)'}
           </div>
         ))}
+        {estado?.salud_devs?.length > 0 && (
+          <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
+            <span style={{ ...mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 }}>Conexión por desarrollador</span>
+            {estado.salud_devs.map((d) => (
+              <span key={d.dev} style={{ ...mini, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.ok ? '#4ADE80' : (d.fails >= 2 ? '#f87171' : '#d29922'), display: 'inline-block' }} />
+                <b style={{ color: 'var(--cream)' }}>{d.dev}</b> · {d.ok ? `sincronizado (${d.archivos} archivos)` : d.fails >= 2 ? 'SIN ACCESO — revisar permiso' : 'falla transitoria, reintentando'} · foto: {d.ultima_foto ? new Date(d.ultima_foto).toLocaleString('es-MX') : '—'}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <TelegramCard />

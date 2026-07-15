@@ -151,13 +151,14 @@ export default function SuperadminExpediente({ user, onLogout }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
             {x.prototipos.map((pr) => (
               <div key={pr.prototype_id} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-                {pr.floor_plan_url
-                  ? <img src={`${API}${pr.floor_plan_url}`} alt={pr.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', background: '#fff' }} />
+                {(pr.plano_amueblado_url || pr.floor_plan_url)
+                  ? <img src={`${API}${pr.plano_amueblado_url || pr.floor_plan_url}`} alt={pr.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', background: '#fff' }} />
                   : <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Falta>plano de este molde</Falta></div>}
                 <div style={{ padding: 10 }}>
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>{pr.nombre}</div>
                   <div style={S.mini}>{pr.unidades_total} unidades{pr.precio_desde_mxn ? ` · desde ${fmtM(pr.precio_desde_mxn)}` : ''}</div>
                   {pr.nota && <div style={{ ...S.mini, color: '#d29922' }}>{pr.nota}</div>}
+                  {pr.plano_amueblado_url && pr.floor_plan_url && <div style={S.mini}>planta amueblada + plano arquitectónico ✓</div>}
                 </div>
               </div>
             ))}

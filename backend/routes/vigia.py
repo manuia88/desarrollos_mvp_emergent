@@ -43,7 +43,16 @@ async def estado(request: Request):
     db = _db(request)
     fuentes = await db.vigia_fuentes.find({}, {"_id": 0}).to_list(50)
     pendientes_n = await db.vigia_pendientes.count_documents({"estado": "pendiente"})
-    return {"fuentes": fuentes, "pendientes_n": pendientes_n}
+    # salud por dev (el visor que pidió el founder): de la última foto de cada fuente
+    salud = []
+    for fu in fuentes:
+        foto = await db.vigia_fotos.find_one({"fuente_id": fu["id"]}, {"_id": 0})
+        for dev, d in ((foto or {}).get("devs") or {}).items():
+            salud.append({"fuente": fu.get("nombre"), "dev": dev, "ok": bool(d.get("ok")),
+                          "fails": int(d.get("fails") or 0),
+                          "archivos": len(d.get("archivos") or []),
+                          "ultima_foto": (foto or {}).get("ts")})
+    return {"fuentes": fuentes, "pendientes_n": pendientes_n, "salud_devs": salud}
 
 
 # ─── EL PARTE: reportes periódicos (preview y envío manual) ───────────────────

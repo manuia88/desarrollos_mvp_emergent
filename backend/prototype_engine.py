@@ -178,10 +178,27 @@ async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[
         dev_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
         nombres_ia = await bautizar_ia(clusters, (dev_doc or {}).get("name") or development_id)
 
+    # PRESERVAR PLANOS (bug 07-14: el cron re-derivaba cada hora y borraba los planos ya
+    # asignados — "desaparecieron los renders"). Se heredan del prototipo anterior equivalente
+    # (misma recámara + mismos m² redondeados); el arquitectónico además puede venir de la unidad.
+    previos: Dict[Any, Dict[str, Any]] = {}
+    for pv in await db.dmx_prototypes.find({"development_id": development_id},
+                                           {"_id": 0, "recamaras": 1, "m2_construido": 1,
+                                            "floor_plan_url": 1,
+                                            "plano_amueblado_url": 1}).to_list(200):
+        previos[(pv.get("recamaras"), round(pv.get("m2_construido") or 0))] = pv
+
     await db.dmx_prototypes.delete_many({"development_id": development_id})
     asignadas = 0
     for i, c in enumerate(clusters):
         pid = f"{development_id}__p{i:02d}"
+        viejo = previos.get((c["recamaras"], round(c["m2_prom"] or 0))) or {}
+        plano_arq = viejo.get("floor_plan_url")
+        if not plano_arq:
+            u_con_plano = await db.units.find_one({"id": {"$in": c["unidades"]},
+                                                   "plano_url": {"$nin": [None, ""]}},
+                                                  {"_id": 0, "plano_url": 1})
+            plano_arq = (u_con_plano or {}).get("plano_url")
         await db.dmx_prototypes.insert_one({
             # campos del schema Prototype (dmx_unit_schema) — el contrato del marketplace
             "prototype_id": pid, "development_id": development_id,
@@ -190,7 +207,8 @@ async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[
             "recamaras": c["recamaras"], "banos": c["banos"],
             "estacionamientos": c["estacionamientos"],
             "precio_desde_mxn": c["precio_desde"], "unidades_total": c["n"],
-            "floor_plan_url": None,
+            "floor_plan_url": plano_arq,
+            "plano_amueblado_url": viejo.get("plano_amueblado_url"),
             # linaje/confianza (extra, para la bandeja y auditoría)
             "confianza": c["confianza"], "es_ph": c["es_ph"], "senales": c["senales"],
             "m2_min": c["m2_min"], "m2_max": c["m2_max"],
