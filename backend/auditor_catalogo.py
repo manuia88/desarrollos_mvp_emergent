@@ -394,6 +394,7 @@ CAMPOS_CONOCIDOS_EXTRACCION = {
     "storage", "storage_count", "enganche_mxn", "enganche_pct", "credito_mxn",
     "credito_pct", "reservacion_mxn", "contrato_mxn", "a_diferir_mxn", "notas",
     "amueblado", "cuarto_servicio", "orientacion", "vista", "acabados", "escritura_mxn",
+    "renta_mxn", "operacion", "mantenimiento_mxn",
 }
 # alias frecuentes de extracción → campo canónico (L22 a nivel unidad)
 ALIAS_UNIDAD = {"orientation": "orientacion", "banos": "bathrooms",

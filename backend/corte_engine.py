@@ -55,7 +55,7 @@ def _exterior(u, d, m, p):
 # programa) → valor humano (None = sin dato, se agrupa como "sin dato" solo si se pide).
 DIMENSIONES: Dict[str, Callable[..., Optional[str]]] = {
     # ── geográficas (la escalera) ──
-    "ciudad":     lambda u, d, m, p: "CDMX",
+    "ciudad":     lambda u, d, m, p: d.get("ciudad") or "CDMX",   # multi-ciudad (07-15)
     "alcaldia":   lambda u, d, m, p: d.get("alcaldia"),
     "colonia":    lambda u, d, m, p: d.get("colonia_name") or d.get("colonia"),
     "microzona":  lambda u, d, m, p: u.get("colonia_id") or d.get("colonia_id"),
@@ -83,6 +83,8 @@ DIMENSIONES: Dict[str, Callable[..., Optional[str]]] = {
         if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total")) else None,
         [45, 55, 65, 80], "k/m²"),
     "banda_enganche": lambda u, d, m, p: _banda(u.get("enganche_pct"), [10, 20, 30], "%"),
+    # ── operación (venta vs renta — los rieles del inventario de rentas de CLASS) ──
+    "operacion":  lambda u, d, m, p: u.get("operacion") or ("renta" if u.get("renta_mxn") else "venta"),
     # ── fuente del dato (el catálogo propio vs el mercado real minado 4S) ──
     "fuente":     lambda u, d, m, p: u.get("_fuente") or "catálogo",
     # ── cohorte (edad del inventario: mes en que la unidad entró a la bitácora) ──
@@ -165,6 +167,11 @@ def _medidas(unidades: List[Dict[str, Any]],
         # EDAD del inventario (días desde su primera foto en la bitácora)
         edades = [u.get("_edad_dias") for u in unidades if u.get("_edad_dias") is not None]
         out["dias_en_mercado_prom"] = round(sum(edades) / len(edades)) if edades else None
+        # yield real cuando haya rentas en el segmento (rieles: se prende solo)
+        from molde_metrics import yield_bruto
+        y = yield_bruto(unidades)
+        if y:
+            out["yield_bruto_pct"] = y["yield_bruto_pct"]
     return out
 
 

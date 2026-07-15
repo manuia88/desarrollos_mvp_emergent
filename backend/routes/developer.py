@@ -115,6 +115,31 @@ def _elasticidad_label(cedio: str) -> str:
     return M.get(c, c.replace("_", " ").capitalize())
 
 
+@router.get("/mi-pedido")
+async def mi_pedido(request: Request):
+    """SELF-SERVE (07-15): el dev ve SU lista de pedidos — lo que la plataforma necesita
+    de él por proyecto (los mismos puntos que el superadmin manda por WhatsApp, pero en
+    su propio portal, para que el pedido se llene desde su lado sin perseguirlo)."""
+    user = await require_dev_admin(request)
+    db = request.app.state.db
+    from tenant_scope import tenant_of
+    tenant = tenant_of(user)
+    devs = await db.developments.find({"developer_id": tenant},
+                                      {"_id": 0, "id": 1, "name": 1}).to_list(100)
+    from lista_pedidos import pedido_desarrollo
+    pedidos = []
+    for d in devs:
+        try:
+            p = await pedido_desarrollo(db, d["id"])
+            if not p.get("al_dia"):
+                pedidos.append({"proyecto": d.get("name"), "development_id": d["id"],
+                                "pct": p.get("pct"), "n_puntos": p.get("n_puntos"),
+                                "secciones": p.get("secciones")})
+        except Exception:  # noqa: BLE001 — un proyecto roto no tira el pedido
+            pass
+    return {"pedidos": pedidos, "al_dia": not pedidos}
+
+
 @router.get("/elasticidad")
 async def dev_elasticidad(request: Request):
     """En qué TRANSIGE el comprador cuando no encuentra todo (lo que más relaja). Dato de oro para producto/precio del dev,

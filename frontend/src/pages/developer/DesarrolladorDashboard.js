@@ -33,6 +33,37 @@ const cardLeave = (e) => { e.currentTarget.style.transform = 'none'; e.currentTa
 const CARD_TR = 'transform .16s, box-shadow .16s, border-color .16s';
 
 // ─── Weekly Brief Widget ──────────────────────────────────────────────────────
+function MiPedidoWidget() {
+  // SELF-SERVE (07-15): el dev ve lo que SU ficha necesita — el pedido se llena de su lado
+  const [pd, setPd] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/api/desarrollador/mi-pedido`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null)).then(setPd).catch(() => setPd(null));
+  }, []);
+  if (!pd || pd.al_dia) return null;
+  return (
+    <div data-testid="mi-pedido-widget" style={{ marginBottom: 18, borderRadius: 18, padding: '18px 22px', background: 'rgba(210,153,34,0.06)', border: '1px solid rgba(210,153,34,0.4)' }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 6 }}>
+        📋 Tu ficha está incompleta — esto es lo que falta para destacar en el marketplace
+      </div>
+      {pd.pedidos.map((p) => (
+        <div key={p.development_id} style={{ marginTop: 6 }}>
+          <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)' }}>{p.proyecto} · ficha al {p.pct}% · {p.n_puntos} pendientes</div>
+          {(p.secciones || []).slice(0, 2).map((sec) => (
+            <div key={sec.titulo} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.75)', marginTop: 2 }}>
+              {sec.titulo}: {sec.puntos.slice(0, 3).join(' · ')}{sec.puntos.length > 3 ? '…' : ''}
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 8 }}>
+        Manda estos datos a tu contacto DMX o cárgalos en Inventario — la ficha sube sola.
+      </div>
+    </div>
+  );
+}
+
+
 function WeeklyBriefWidget() {
   const [brief, setBrief] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -464,6 +495,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         <>
       {/* TU NEGOCIO HOY — estado del negocio (hero IA) */}
       <WeeklyBriefWidget />
+      <MiPedidoWidget />
 
       {err ? <ErrorState message="No pudimos cargar tu Inicio. Revisa tu conexión e intenta de nuevo." onRetry={load} />
         : !data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>

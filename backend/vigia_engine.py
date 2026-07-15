@@ -36,6 +36,37 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# la etapa comercial viene GRATIS en el nombre de la carpeta del dev (founder 07-15)
+_ETAPAS_NOMBRE = [("entrega inmediata", "entrega_inmediata"), ("entrega", "entrega_inmediata"),
+                  ("preventa", "preventa"), ("pre-venta", "preventa"),
+                  ("inversion", "inversion"), ("inversión", "inversion"),
+                  ("rentas", "rentas"), ("renta", "rentas")]
+
+
+def etapa_de_nombre(nombre_carpeta: str) -> Optional[str]:
+    n = (nombre_carpeta or "").lower()
+    for patron, etapa in _ETAPAS_NOMBRE:
+        if patron in n:
+            return etapa
+    return None
+
+
+# clasificador de documentos: cada archivo del Drive con su TIPO (el eje que faltaba:
+# 'Lista de Acabados.pdf' = fuente del nivel ELEMENTO que dábamos por inexistente)
+_TIPOS_DOC = [("acabados", r"acabado"), ("lista_precios", r"lista|precio|price|disponib|inventario|avail|stock"),
+              ("brochure", r"brochure|folleto|presentaci[oó]n"), ("plano", r"plano|arq|floor|planta"),
+              ("reglamento", r"reglamento|condominio"), ("render", r"render|foto|img|image"),
+              ("avance_obra", r"avance|obra|progreso")]
+
+
+def clasificar_documento(nombre: str) -> str:
+    n = (nombre or "").lower()
+    for tipo, patron in _TIPOS_DOC:
+        if re.search(patron, n):
+            return tipo
+    return "otro"
+
+
 def _es_lista(nombre: str, mime: str) -> bool:
     return bool(_LISTA_NOMBRE.search(nombre or "")) and any(m in (mime or "") for m in _LISTA_MIMES)
 
@@ -71,7 +102,10 @@ async def escanear_fuente(db, fuente: Dict[str, Any]) -> Dict[str, Any]:
                 "huella": bie._huella(f),
                 "modificado": f.get("modifiedTime") or "",
                 "es_lista": _es_lista(f.get("name") or "", f.get("mimeType") or ""),
+                "tipo_doc": clasificar_documento(f.get("name") or ""),
             } for f in files]
+            entrada["etapas"] = {p: etapa_de_nombre(p) for p in entrada["proyectos"]
+                                 if etapa_de_nombre(p)}
         except Exception as e:  # noqa: BLE001 — un dev roto no tira la ronda
             log.warning(f"[vigia] dev '{nombre_dev}' ilegible: {str(e)[:120]}")
             entrada["ok"] = False

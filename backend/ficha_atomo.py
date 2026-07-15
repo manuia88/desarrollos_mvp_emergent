@@ -83,6 +83,9 @@ SECCIONES: List[Dict[str, Any]] = [
         ("Escritura", lambda u, m, p: _fmt_mxn(u.get("escritura_mxn"))
          or _del_esquema(u, "escritura_pct", _fmt_pct), "esquema del dev"),
         ("Mantenimiento", lambda u, m, p: _fmt_mxn(u.get("mantenimiento_mxn")), "el desarrollador"),
+        ("Renta mensual", lambda u, m, p: _fmt_mxn(u.get("renta_mxn")), "inventario de rentas del dev"),
+        ("Yield bruto", lambda u, m, p: f"{u['renta_mxn'] * 12 / (u.get('price_mxn') or u.get('price')) * 100:.2f}%"
+         if u.get("renta_mxn") and (u.get("price_mxn") or u.get("price")) else None, "cálculo (renta ÷ precio)"),
     ]},
     {"titulo": "Acabados y extras", "campos": [
         ("Nivel de acabados", lambda u, m, p: u.get("acabados"), "el desarrollador"),

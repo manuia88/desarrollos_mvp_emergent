@@ -159,3 +159,44 @@ def test_lista_pedidos_redacta_y_al_dia():
     # dev al día = pedido vacío, sin texto fantasma
     ok = armar_pedido("CLASS", [], [], [], [])
     assert ok["al_dia"] and ok["texto"] == "" and ok["n_puntos"] == 0
+
+
+# ═══ PERFIL DEL DEV + CLASIFICADORES DEL VIGÍA (los puntos ciegos, cerrados) ═══
+def test_etapa_y_tipo_doc_desde_nombres():
+    from vigia_engine import etapa_de_nombre, clasificar_documento
+    assert etapa_de_nombre("Cordobanes - ENTREGA INMEDIATA Polanco") == "entrega_inmediata"
+    assert etapa_de_nombre("NUA Interlomas - Preventa") == "preventa"
+    assert etapa_de_nombre("Jai Reforma 36 - Inversion") == "inversion"
+    assert etapa_de_nombre("RENTAS INTERLOMAS") == "rentas"
+    assert etapa_de_nombre("Carpeta X") is None
+    assert clasificar_documento("Lista de Acabados.pdf") == "acabados"
+    assert clasificar_documento("VP_Lista_de_Precios NUA T1 SF.pdf") == "lista_precios"
+    assert clasificar_documento("Reglamento de condominio.pdf") == "reglamento"
+
+
+def test_radar_drive_marca_ingeridos_y_etapas():
+    from perfil_dev import radar_drive, agregados
+    foto = {"proyectos": ["Almina San Angel - ENTREGA INMEDIATA", "NUA Interlomas - Preventa"],
+            "archivos": [
+                {"proyecto": "Almina San Angel - ENTREGA INMEDIATA", "es_lista": True,
+                 "tipo_doc": "lista_precios"},
+                {"proyecto": "NUA Interlomas - Preventa", "es_lista": True,
+                 "tipo_doc": "lista_precios"},
+                {"proyecto": "NUA Interlomas - Preventa", "es_lista": False,
+                 "tipo_doc": "acabados"}]}
+    r = radar_drive(foto, ["Almina San Ángel"])
+    alm = next(p for p in r if "Almina" in p["proyecto"])
+    nua = next(p for p in r if "NUA" in p["proyecto"])
+    assert alm["ingerido"] and alm["etapa"] == "entrega_inmediata"
+    assert not nua["ingerido"] and nua["documentos"].get("acabados") == 1
+    ag = agregados(r)
+    assert ag["sin_ingerir"] == 1 and ag["por_etapa"]["preventa"] == 1
+
+
+def test_yield_bruto_rieles_de_renta():
+    from molde_metrics import yield_bruto
+    # sin rentas: None (no se inventa)
+    assert yield_bruto([{"price_mxn": 5_000_000}]) is None
+    # con renta: 25k×12 ÷ 5M = 6% bruto
+    y = yield_bruto([{"price_mxn": 5_000_000, "renta_mxn": 25_000}])
+    assert y["yield_bruto_pct"] == 6.0 and y["renta_prom"] == 25_000

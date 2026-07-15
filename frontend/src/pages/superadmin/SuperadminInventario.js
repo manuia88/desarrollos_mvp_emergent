@@ -434,6 +434,41 @@ function Corte() {
   );
 }
 
+function PerfilDev({ org }) {
+  const [pf, setPf] = useState(null);
+  useEffect(() => { _get(`/dev/${encodeURIComponent(org)}/perfil`).then(setPf).catch(() => setPf(null)); }, [org]);
+  if (!pf || !pf.radar?.length) return null;
+  const ag = pf.agregados || {};
+  const ETAPA_COLOR = { preventa: '#9ecbff', entrega_inmediata: '#86efac', inversion: '#d29922', rentas: '#f0abfc', 'sin etiqueta': 'rgba(240,235,224,0.5)' };
+  return (
+    <div style={{ ...S.card, marginBottom: 12 }} data-testid="perfil-dev">
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        <b style={{ ...S.h, fontSize: 15 }}>🏢 El portafolio completo de {pf.nombre}</b>
+        <span style={S.mini}>lo que el Vigía VE en su Drive · {ag.proyectos_drive} proyectos · {ag.con_lista} con lista de precios · <b style={{ color: '#d29922' }}>{ag.sin_ingerir} sin ingerir</b></span>
+        <span style={{ flex: 1 }} />
+        {Object.entries(ag.por_etapa || {}).map(([e, n]) => (
+          <span key={e} style={{ ...S.mini, padding: '3px 9px', borderRadius: 9999, border: `1px solid ${ETAPA_COLOR[e] || '#888'}55`, color: ETAPA_COLOR[e] || '#ccc', fontWeight: 700 }}>{e.replace('_', ' ')}: {n}</span>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 6 }}>
+        {pf.radar.map((p) => (
+          <div key={p.proyecto} style={{ padding: '8px 11px', borderRadius: 10, background: p.ingerido ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.025)', border: `1px solid ${p.ingerido ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.09)'}` }}>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: 'var(--cream)' }}>
+              {p.ingerido ? '✓ ' : ''}{p.proyecto.length > 42 ? p.proyecto.slice(0, 42) + '…' : p.proyecto}
+            </div>
+            <div style={{ ...S.mini, marginTop: 2 }}>
+              {p.etapa && <span style={{ color: ETAPA_COLOR[p.etapa] || '#ccc', fontWeight: 700 }}>{p.etapa.replace('_', ' ')} · </span>}
+              {p.n_archivos} archivos{p.tiene_lista ? ' · 📄 lista ✓' : ''}
+              {!p.ingerido && <span style={{ color: '#d29922', fontWeight: 700 }}> · sin ingerir</span>}
+            </div>
+            <div style={{ ...S.mini, opacity: 0.7 }}>{Object.entries(p.documentos || {}).filter(([t]) => t !== 'otro').map(([t, n]) => `${t}:${n}`).join(' · ')}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SuperadminInventario({ user, onLogout }) {
   const nav = useNavigate();
   const loc = useLocation();
@@ -575,6 +610,7 @@ export default function SuperadminInventario({ user, onLogout }) {
         )}
 
         {/* NIVEL 2 · expediente del dev */}
+        {arbol && dev && !proySel && <PerfilDev org={devSel} />}
         {arbol && dev && !proySel && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {dev.proyectos.length === 0 && <p style={S.p}>Este dev aún no tiene proyectos cargados. Usa «Cargar» o aprueba su carpeta en el Vigía.</p>}

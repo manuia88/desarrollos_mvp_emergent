@@ -88,6 +88,18 @@ def _dias_entre(iso_a: str, iso_b: str) -> int:
     return abs((b - a).days)
 
 
+def yield_bruto(units: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """RENTAS (rieles 07-15): cuando el catálogo traiga renta_mxn (el inventario de rentas
+    de CLASS ya existe en su Drive), el yield REAL nace solo: renta anual ÷ precio."""
+    pares = [(u.get("renta_mxn"), u.get("price_mxn") or u.get("price")) for u in units
+             if u.get("renta_mxn") and (u.get("price_mxn") or u.get("price"))]
+    if not pares:
+        return None
+    ys = [r * 12 / p * 100 for r, p in pares]
+    return {"n": len(pares), "yield_bruto_pct": round(sum(ys) / len(ys), 2),
+            "renta_prom": round(sum(r for r, _ in pares) / len(pares))}
+
+
 def metricas_de_molde(molde: Dict[str, Any], units: List[Dict[str, Any]],
                       eventos: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
@@ -99,6 +111,7 @@ def metricas_de_molde(molde: Dict[str, Any], units: List[Dict[str, Any]],
         "absorcion": absorcion(eventos),
         "curva_precio": curva_precio(eventos),
         "premium_piso": premium_por_piso(units),
+        "renta": yield_bruto(units),
     }
 
 

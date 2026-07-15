@@ -231,6 +231,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
             <CampoEditable label="Nombre" value={d.name} onSave={(v) => guardar('name', v)} />
             <CampoEditable label="Dirección" value={d.address_full || d.address} onSave={(v) => guardar('address_full', v)} />
             <CampoEditable label="Entrega" value={d.delivery_estimate} onSave={(v) => guardar('delivery_estimate', v)} />
+            <CampoEditable label="Ciudad" value={d.ciudad || 'CDMX'} onSave={(v) => guardar('ciudad', v)} />
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 12 }}>
             <Dato l="Precio desde" v={fmtM(d.price_from)} />

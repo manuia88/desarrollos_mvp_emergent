@@ -129,6 +129,15 @@ async def corte_universal(request: Request, por: str = "colonia",
         raise HTTPException(400, str(e))
 
 
+@router.get("/dev/{dev_org_id}/perfil")
+async def perfil_dev(request: Request, dev_org_id: str):
+    """EL PERFIL DEL DESARROLLADOR: catálogo + radar del Drive (portafolio completo con
+    etapa por carpeta) + agregados. La empresa entera, no solo lo ingerido."""
+    await require_superadmin(request)
+    from perfil_dev import perfil_desarrollador
+    return await perfil_desarrollador(_db(request), dev_org_id)
+
+
 @router.get("/pedidos/{development_id}")
 async def pedidos(request: Request, development_id: str):
     """LA LISTA DE PEDIDOS: todo lo que hay que pedirle a este dev, redactado y listo
@@ -283,6 +292,7 @@ class ExpedientePatch(BaseModel):
     address_full: Optional[str] = None
     stage: Optional[str] = None
     delivery_estimate: Optional[str] = None
+    ciudad: Optional[str] = Field(default=None, max_length=60)   # multi-ciudad (Mérida…)
     # ✏️ Completar datos (founder 07-15): capturar AQUÍ lo que el dev conteste al pedido
     fondo_mantenimiento_mxn: Optional[float] = Field(default=None, ge=0)
     cuota_equipamiento_mxn: Optional[float] = Field(default=None, ge=0)
@@ -412,12 +422,14 @@ class UnidadPatch(BaseModel):
     acabados: Optional[str] = Field(default=None, max_length=120)
     altura_techo_m: Optional[float] = Field(default=None, gt=0, le=8)
     notas: Optional[str] = Field(default=None, max_length=400)
+    renta_mxn: Optional[float] = Field(default=None, ge=0)      # rieles de RENTA
+    operacion: Optional[str] = Field(default=None, max_length=10)   # venta | renta
 
     CAMPOS_DIRECTOS: ClassVar[tuple] = ("bedrooms", "bathrooms", "size_m2", "m2_balcony", "m2_terrace",
                        "m2_roof_garden", "patio_m2", "m2_total", "parking_spots",
                        "parking_type", "bodega", "mantenimiento_mxn", "reservacion_mxn",
                        "contrato_mxn", "a_diferir_mxn", "escritura_mxn", "acabados",
-                       "altura_techo_m", "notas")
+                       "altura_techo_m", "notas", "renta_mxn", "operacion")
 
 
 @router.patch("/unidad/{unit_id}")
