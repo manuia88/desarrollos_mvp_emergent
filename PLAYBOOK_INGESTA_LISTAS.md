@@ -68,3 +68,38 @@
 
 80 unidades · 100% con esquema de pago · 99% con desglose exterior · 11 moldes auto-derivados ·
 0 choques de precio · 898 eventos de línea base · $0 de API · 1 clic del founder.
+
+## 5 · LECCIONES DEL PILOTO CLASS/ALMINA (2026-07-15 — post-auditoría completa)
+
+**De extracción:**
+- **L11 · Ninguna fuente es la verdad completa — cada una miente por omisión.** La lista dijo
+  3R donde el plano dice 2R+FLEX; el renglón del PH venía sin recámaras; el piso 15 esconde
+  ~120m² de roof en el "total". Regla: mínimo 2 fuentes por dato importante y cotejo
+  automático ANTES de dar el dato por bueno.
+- **L12 · Los totales agregados esconden datos.** Validar la ecuación de m² (habitables +
+  exteriores ≈ totales) EN la extracción; el delta no es error de captura — es un espacio
+  sin desglosar que se convierte en PREGUNTA al dev.
+- **L13 · Un renglón roto en 80 no se ve a ojo.** La revisión humana ve promedios; solo las
+  reglas invariantes ven átomos. Auditar el lote ANTES de aprobar, no después de publicar.
+- **L14 · Los nombres de archivo son datos** (Copia de A-1503 = unidad exacta · ARQ_N 4,6…
+  = línea×niveles · PT_112m2 = molde). El patrón de nombres del dev se declara en el
+  manifiesto desde la primera carpeta.
+
+**De colocación en plataforma:**
+- **L15 · La identidad estable precede a la métrica.** Nada se puede medir sobre entidades
+  que se demuelen (moldes v1). Toda entidad nueva nace con id estable + biografía.
+- **L16 · "Construido" ≠ "conectado".** Tres piezas quedaron sin disparador (cotejo,
+  conceptos, programa) hasta que la auditoría lo cazó. Nada existe sin trigger automático
+  + test que lo congele.
+- **L17 · Dato sin dueño = dato que nunca llega.** Cada campo faltante declara QUIÉN lo
+  llena (lista/plano/dev/founder) — eso convirtió huecos en tareas.
+
+**De distribución:**
+- **L18 · Una fuente, muchas vistas, UN contrato.** El portal dev escribía en una capa que
+  los motores no leían (overrides). Toda superficie lee del fusionador canónico
+  (unidades_efectivas); toda exposición pública pasa por contrato registrado + test.
+- **L19 · Atribución honesta o inflación.** 390 "búsquedas compatibles" eran 1 real: un
+  cruce sin criterios mínimos infla demanda. Todo cruce declara su nivel de atribución.
+- **L20 · El sistema debe auditarse a sí mismo en cada ciclo.** El Auditor cazó errores del
+  dev (roofs), del código (huella sin baños) y del propio proceso (cotejo caducado) en su
+  primera corrida. La auditoría de una vez caduca; la regla viva no.
