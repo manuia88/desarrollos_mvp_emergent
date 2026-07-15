@@ -21,6 +21,9 @@ from observability import init_sentry, init_posthog
 init_sentry()
 init_posthog()
 
+ARRANQUE_TS = __import__("datetime").datetime.now(
+    __import__("datetime").timezone.utc).isoformat()   # la Fábrica delata procesos viejos
+
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME   = os.environ.get("DB_NAME")
 JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))

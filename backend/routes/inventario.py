@@ -204,7 +204,18 @@ async def fabrica(request: Request):
     gates = [d async for d in db.developments.find({"juez_pct": {"$ne": None}},
                                                    {"_id": 0, "name": 1, "juez_pct": 1,
                                                     "juez_gate": 1})]
-    return {"vigia": {"ultima_ronda": (fuente or {}).get("last_ronda_at"),
+    import subprocess
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                                capture_output=True, text=True, timeout=3,
+                                cwd=__file__.rsplit("/backend/", 1)[0]).stdout.strip()
+    except Exception:  # noqa: BLE001
+        commit = None
+    import server as _srv
+    return {"proceso": {"corriendo_desde": getattr(_srv, "ARRANQUE_TS", None),
+                        "commit": commit,
+                        "nota": "si el commit del repo es más nuevo, el backend corre código VIEJO — reiniciar"},
+            "vigia": {"ultima_ronda": (fuente or {}).get("last_ronda_at"),
                       "activa": bool(fuente)},
             "lotes": {"pendientes": await db.bulk_ingest_items.count_documents(
                 {"decision": "pending_review"}), "actas": actas},

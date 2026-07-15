@@ -269,3 +269,13 @@ def test_falta_no_es_cero_en_ficha():
     u3 = {"m2_privative": 81.142, "size_m2": 81.142, "m2_total": 81.142, "price_mxn": 1}
     p3 = {c["label"]: c for s2 in FA2.armar_ficha(u3, None, None) for c in s2["campos"]}
     assert p3["m² habitables"]["valor"] == "81.14 m²"
+
+
+def test_regla_cobertura_planos():
+    import auditor_catalogo as AU4
+    d = {"id": "d1", "name": "NUA"}
+    sin = [{"id": f"u{i}", "unit_number": f"A-{i}"} for i in range(10)]
+    ctx = {"units": sin}
+    assert AU4.r_cobertura_planos(d, ctx)["severidad"] == "alerta"     # 0% ligado
+    con = [{**u, "plano_url": "/x.jpg"} for u in sin[:7]] + sin[7:]
+    assert AU4.r_cobertura_planos(d, {"units": con}) is None           # 70% ✓

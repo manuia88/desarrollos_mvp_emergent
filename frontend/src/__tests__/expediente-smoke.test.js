@@ -54,8 +54,10 @@ test('el Expediente renderiza completo sin errores de consola', async () => {
   expect(graves).toEqual([]);
 });
 
-test('el Expediente renderiza el payload REAL de NUA sin errores', async () => {
-  RESPUESTAS['/expediente/'] = REAL;
+const REAL_ALMINA = require('./fixtures_expediente_almina.json');
+
+test.each([['NUA', REAL], ['Almina', REAL_ALMINA]])('el Expediente renderiza el payload REAL de %s sin errores', async (_n, payload) => {
+  RESPUESTAS['/expediente/'] = payload;
   const errores = [];
   const orig = console.error;
   console.error = (...a) => { errores.push(a.map(String).join(' ')); orig(...a); };
@@ -64,7 +66,7 @@ test('el Expediente renderiza el payload REAL de NUA sin errores', async () => {
       <Routes><Route path="/superadmin/expediente/:devId" element={<SuperadminExpediente user={{}} onLogout={() => {}} />} /></Routes>
     </MemoryRouter>
   );
-  await findByText(/NUA Interlomas/);
+  await findByText(new RegExp(payload.desarrollo.name.split(' ')[0]));
   console.error = orig;
   const graves = errores.filter((e) => !e.includes('act') && !e.includes('Future Flag'));
   expect(graves).toEqual([]);

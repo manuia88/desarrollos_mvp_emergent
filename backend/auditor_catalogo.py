@@ -296,6 +296,21 @@ def r_dev_basicos(d, ctx):
     return None
 
 
+def r_cobertura_planos(d, ctx):
+    """≥60% de las unidades vivas deben tener SU plano ligado (el founder cazó el hueco
+    a ojo en NUA — ahora es métrica, no descubrimiento)."""
+    n = len(ctx["units"])
+    if n < 5:
+        return None
+    con = sum(1 for u in ctx["units"] if u.get("plano_url"))
+    if con / n < 0.6:
+        return _h("cobertura_planos", "desarrollo", ALERTA, d.get("name") or d.get("id"),
+                  f"solo {con}/{n} unidades tienen plano ligado ({con * 100 / n:.0f}%) — "
+                  f"correr el pase de planos o pedir los faltantes al dev",
+                  development_id=d.get("id"), con_plano=con, total=n)
+    return None
+
+
 def r_dueno(d, ctx):
     if ctx["units"] and not d.get("developer_id"):
         return _h("dueno", "desarrollo", ERROR, d.get("name") or d.get("id"),
@@ -327,6 +342,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "assets_en_disco", "nivel": "desarrollo", "fn": r_assets_en_disco},
     {"key": "alias_invisible", "nivel": "desarrollo", "fn": r_alias_invisible},
     {"key": "dev_basicos", "nivel": "desarrollo", "fn": r_dev_basicos},
+    {"key": "cobertura_planos", "nivel": "desarrollo", "fn": r_cobertura_planos},
     {"key": "dueno", "nivel": "desarrollo", "fn": r_dueno},
 ]
 
