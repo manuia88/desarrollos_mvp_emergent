@@ -79,9 +79,10 @@ def dias_para_vender(eventos: List[Dict[str, Any]]) -> Dict[str, Any]:
         fin = vendida or fin_ventana
         duraciones.append((max(_dias_entre(inicio, fin), 0), vendida is not None))
     # Kaplan-Meier: la curva cae solo cuando hay venta, pesada por cuántas seguían
-    # "en riesgo" (sin vender) ese día
+    # "en riesgo" (sin vender) ese día. En EMPATE de fecha las ventas se procesan
+    # ANTES que las censuras (convención KM — si no, la curva colapsa falsamente).
     n_riesgo, s, mediana = len(duraciones), 1.0, None
-    for dias, se_vendio in sorted(duraciones):
+    for dias, se_vendio in sorted(duraciones, key=lambda d: (d[0], not d[1])):
         if se_vendio:
             s *= (1 - 1 / n_riesgo)
             if s <= 0.5 and mediana is None:

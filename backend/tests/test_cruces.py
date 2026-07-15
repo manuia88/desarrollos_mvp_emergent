@@ -343,6 +343,15 @@ def test_dias_para_vender_kaplan_meier():
                        for u in ("x", "y", "z") for t in ("2026-07-01", "2026-07-31")]
     r2 = dias_para_vender(solo1)
     assert r2["mediana_dias"] is None and "mitad" in r2["nota"]
+    # EMPATE de fechas (bug real cazado con Almina): 1 venta y 84 vivas el mismo día
+    # NO puede dar mediana — la venta se procesa antes que las censuras
+    empate = [{"unit_id": "v", "ts": "2026-07-14", "disponible": True},
+              {"unit_id": "v", "ts": "2026-07-15", "disponible": False}]
+    for u in range(84):
+        empate += [{"unit_id": f"c{u}", "ts": "2026-07-14", "disponible": True},
+                   {"unit_id": f"c{u}", "ts": "2026-07-15", "disponible": True}]
+    r3 = dias_para_vender(empate)
+    assert r3["mediana_dias"] is None and r3["vendidas"] == 1
 
 
 def test_precio_optimo_reglas():
