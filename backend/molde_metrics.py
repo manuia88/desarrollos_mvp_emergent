@@ -108,7 +108,8 @@ async def metricas_desarrollo(db, development_id: str) -> Dict[str, Any]:
     Consumidores: Expediente (UI), Precio de Equilibrio (comps por molde), El Parte."""
     moldes = await db.dmx_prototypes.find({"development_id": development_id},
                                           {"_id": 0}).to_list(200)
-    units = await db.units.find({"development_id": development_id}, {"_id": 0}).to_list(2000)
+    from unidades_efectivas import unidades_efectivas
+    units = await unidades_efectivas(db, {"development_id": development_id})
     eventos = await db.oferta_timeline.find({"dev_id": development_id},
                                             {"_id": 0}).sort("ts", 1).to_list(20000)
     ev_por_unidad: Dict[str, List[Dict[str, Any]]] = defaultdict(list)

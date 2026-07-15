@@ -178,8 +178,9 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                                              {"_id": 0}) if u.get("prototype_id") else None
     programa = await db.molde_programa.find_one({"prototype_id": u.get("prototype_id")},
                                                 {"_id": 0}) if u.get("prototype_id") else None
-    todas = await db.units.find({"development_id": u.get("development_id")},
-                                {"_id": 0}).to_list(2000)
+    from unidades_efectivas import unidades_efectivas
+    todas = await unidades_efectivas(db, {"development_id": u.get("development_id")})
+    u = next((x for x in todas if x.get("id") == unit_id), u)   # la unidad, ya fusionada
     gemelas = [x for x in todas if x.get("prototype_id") == u.get("prototype_id")
                and x.get("id") != unit_id]
     mismo_piso = [x for x in todas if x.get("level") == u.get("level")]
@@ -234,7 +235,8 @@ def posiciones_por_molde(units: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any
 async def gangas_catalogo(db, solo_disponibles: bool = True,
                           limite: int = 10) -> List[Dict[str, Any]]:
     """Las mejores gangas del catálogo completo (para El Parte y el radar)."""
-    units = await db.units.find({}, {"_id": 0}).to_list(20000)
+    from unidades_efectivas import unidades_efectivas
+    units = await unidades_efectivas(db, {})
     pos = posiciones_por_molde(units)
     devs = {d["id"]: d.get("name") for d in await db.developments.find(
         {}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)}

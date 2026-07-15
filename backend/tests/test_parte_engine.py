@@ -22,14 +22,14 @@ def test_linea_vendida_con_specs_y_precio():
          "precio": 4_850_000, "dev_id": "Almina"}
     l = linea_movimiento(r)
     assert l.startswith("🔴 Vendida: 105")
-    assert "2R·2B·2E · 84m²" in l and "$4.85M" in l and "Almina" in l
+    assert "2R·2B·2E · 84m²" in l and "$4,850,000" in l and "Almina" in l
 
 
 def test_linea_cambio_precio_con_delta():
     r = {"tipo": "cambio", "campo": "precio", "unit_id": "d__402",
          "antes": 4_650_000, "despues": 4_850_000, "dev_id": "Torre Alba"}
     l = linea_movimiento(r)
-    assert "402" in l and "$4.65M → $4.85M" in l and "+4.3%" in l and l.startswith("💰")
+    assert "402" in l and "$4,650,000 → $4,850,000" in l and "+4.3%" in l and l.startswith("💰")
     # baja de precio → otro emoji
     r2 = {**r, "antes": 4_850_000, "despues": 4_650_000}
     assert linea_movimiento(r2).startswith("📉") and "-4.1%" in linea_movimiento(r2)
@@ -39,7 +39,7 @@ def test_linea_alta_nueva():
     r = {"tipo": "alta", "unit_id": "d__PH1", "recamaras": 3, "m2": 210,
          "precio": 12_000_000, "dev_id": "Reforma 2"}
     l = linea_movimiento(r)
-    assert l.startswith("🆕 Nueva: PH1") and "$12.00M" in l
+    assert l.startswith("🆕 Nueva: PH1") and "$12,000,000" in l
 
 
 def test_registro_de_cadencias_completo():

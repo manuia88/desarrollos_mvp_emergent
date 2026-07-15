@@ -26,7 +26,7 @@ export const S = {
   btn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', textDecoration: 'none' },
   inp: { padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, width: '100%' },
 };
-export const fmtM = (n) => (n === null || n === undefined) ? '—' : `$${(Number(n) / 1e6).toFixed(2)}M`;
+export const fmtM = (n) => (n === null || n === undefined) ? '—' : `$${Math.round(Number(n)).toLocaleString('en-US')}`;
 
 /* mini-torre: una franja por estado, proporcional (resumen de un proyecto en 1 vistazo) */
 function MiniTorre({ porEstado, total }) {
@@ -110,69 +110,30 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
 /* panel de edición: aparece al clic en una unidad — SIN wizard */
 const ORIENTACIONES = ['', 'norte', 'sur', 'oriente', 'poniente', 'noreste', 'noroeste', 'sureste', 'suroeste'];
 
-export function PanelUnidad({ u, onCerrar, onGuardado }) {
-  const [status, setStatus] = useState((u.status || 'disponible').toLowerCase());
-  const [precio, setPrecio] = useState(u.price_mxn || u.price || '');
-  const [orientacion, setOrientacion] = useState(u.orientacion || '');
-  const [vista, setVista] = useState(u.vista || '');
-  const [verFicha, setVerFicha] = useState(false);
-  const [msg, setMsg] = useState('');
-  const guardar = async () => {
-    try {
-      const body = {};
-      if (status !== (u.status || 'disponible').toLowerCase()) body.status = status;
-      const pNum = Number(precio);
-      if (precio !== '' && pNum !== (u.price_mxn || u.price)) body.price_mxn = pNum;
-      if (orientacion !== (u.orientacion || '')) body.orientacion = orientacion;
-      if (vista !== (u.vista || '')) body.vista = vista;
-      if (!Object.keys(body).length) { setMsg('Sin cambios.'); return; }
-      await _patch(`/unidad/${u.id}`, body);
-      setMsg('Guardado ✓ (queda en la bitácora)'); onGuardado();
-    } catch (e) { setMsg(String(e.message)); }
-  };
-  return (
-    <div style={{ ...S.card, border: '1px solid rgba(var(--theme-rgb),0.5)', position: 'sticky', top: 12 }} data-testid="panel-unidad">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <b style={{ ...S.h, fontSize: 16 }}>Depto {u.unit_number || u.id}</b>
-        <button onClick={onCerrar} style={{ ...S.btn, padding: '4px 8px' }}><X size={13} /></button>
-      </div>
-      <div style={{ ...S.mini, marginBottom: 10 }}>
-        {u.bedrooms != null ? `${u.bedrooms} rec · ` : ''}{u.bathrooms ? `${u.bathrooms} baños · ` : ''}
-        {u.size_m2 ? `${u.size_m2} m² · ` : ''}{u.level != null ? `piso ${u.level} · ` : ''}{u.prototype_id ? `molde ${u.prototype_id.split('__')[1]}` : ''}
-      </div>
-      <label style={{ ...S.mini, display: 'block', marginBottom: 8 }}>Estado
-        <select data-testid="unidad-status" style={{ ...S.inp, marginTop: 3 }} value={status} onChange={(e) => setStatus(e.target.value)}>
-          {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-      </label>
-      <label style={{ ...S.mini, display: 'block', marginBottom: 10 }}>Precio (MXN)
-        <input data-testid="unidad-precio" style={{ ...S.inp, marginTop: 3 }} type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} />
-      </label>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-        <label style={{ ...S.mini, flex: 1 }}>Orientación
-          <select data-testid="unidad-orientacion" style={{ ...S.inp, marginTop: 3 }} value={orientacion} onChange={(e) => setOrientacion(e.target.value)}>
-            {ORIENTACIONES.map((o) => <option key={o} value={o}>{o || '— sin dato —'}</option>)}
-          </select>
-        </label>
-        <label style={{ ...S.mini, flex: 1 }}>Vista
-          <input data-testid="unidad-vista" style={{ ...S.inp, marginTop: 3 }} placeholder="calle / interior / parque" value={vista} onChange={(e) => setVista(e.target.value)} />
-        </label>
-      </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
-        <button style={{ ...S.btn, background: 'rgba(255,255,255,0.05)' }} onClick={() => setVerFicha(true)}>📇 Ficha completa</button>
-      </div>
-      {verFicha && <FichaUnidad unitId={u.id} onCerrar={() => setVerFicha(false)} />}
-      {msg && <p style={{ ...S.p, marginTop: 8, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
-    </div>
-  );
-}
-
-export function FichaUnidad({ unitId, onCerrar }) {
+export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
   const nav = useNavigate();
   const [x, setX] = useState(null);
   const [err, setErr] = useState('');
-  useEffect(() => { setX(null); _get(`/unidad/${unitId}/ficha`).then(setX).catch((e) => setErr(String(e.message))); }, [unitId]);
+  const [status, setStatus] = useState((unidad?.status || 'disponible').toLowerCase());
+  const [precio, setPrecio] = useState(unidad?.price_mxn || unidad?.price || '');
+  const [orientacion, setOrientacion] = useState(unidad?.orientacion || '');
+  const [vista, setVista] = useState(unidad?.vista || '');
+  const [msg, setMsg] = useState('');
+  const cargarFicha = useCallback(() => _get(`/unidad/${unitId}/ficha`).then(setX).catch((e) => setErr(String(e.message))), [unitId]);
+  useEffect(() => { setX(null); cargarFicha(); }, [cargarFicha]);
+  const guardar = async () => {
+    try {
+      const body = {};
+      if (unidad && status !== (unidad.status || 'disponible').toLowerCase()) body.status = status;
+      const pNum = Number(String(precio).replace(/[^0-9.]/g, ''));
+      if (unidad && precio !== '' && pNum !== (unidad.price_mxn || unidad.price)) body.price_mxn = pNum;
+      if (unidad && orientacion !== (unidad.orientacion || '')) body.orientacion = orientacion;
+      if (unidad && vista !== (unidad.vista || '')) body.vista = vista;
+      if (!Object.keys(body).length) { setMsg('Sin cambios.'); return; }
+      await _patch(`/unidad/${unitId}`, body);
+      setMsg('Guardado ✓ (queda en la bitácora)'); cargarFicha(); onCambio && onCambio();
+    } catch (e) { setMsg(String(e.message)); }
+  };
   const a = x?.analisis || {};
   const chip = (txt, tono = 'neutro') => (
     <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, marginRight: 6, marginBottom: 6,
@@ -195,15 +156,40 @@ export function FichaUnidad({ unitId, onCerrar }) {
 
           {/* EL ANÁLISIS del motor: la posición de este átomo contra su contexto */}
           <div style={{ margin: '10px 0 4px' }}>
-            {a.pm2 != null && chip(`$${(a.pm2 / 1000).toFixed(1)}k/m²`)}
+            {a.pm2 != null && chip(`$${a.pm2.toLocaleString('en-US')}/m²`)}
             {a.vs_molde_pct != null && chip(`${a.vs_molde_pct > 0 ? '+' : ''}${a.vs_molde_pct}% vs sus gemelas (mismo plano)`, a.vs_molde_pct > 3 ? 'alerta' : a.vs_molde_pct < -3 ? 'ok' : 'neutro')}
             {a.vs_piso_pct != null && chip(`${a.vs_piso_pct > 0 ? '+' : ''}${a.vs_piso_pct}% vs su piso`, 'neutro')}
             {a.percentil_pm2 != null && chip(`percentil ${a.percentil_pm2} de $/m² en el desarrollo`)}
             {a.exterior_pct != null && chip(`${a.exterior_pct}% del total es exterior`)}
             {a.busquedas_compatibles != null && chip(`${a.busquedas_compatibles} búsquedas reales le quedan`, a.busquedas_compatibles > 0 ? 'ok' : 'neutro')}
-            {a.gemelas_disponibles != null && a.gemela_mas_barata && chip(`${a.gemelas_disponibles} gemelas disponibles · la más barata: ${a.gemela_mas_barata.unidad} $${((a.gemela_mas_barata.precio || 0) / 1e6).toFixed(2)}M (p${a.gemela_mas_barata.piso})`)}
+            {a.gemelas_disponibles != null && a.gemela_mas_barata && chip(`${a.gemelas_disponibles} gemelas disponibles · la más barata: ${a.gemela_mas_barata.unidad} $${(a.gemela_mas_barata.precio || 0).toLocaleString('en-US')} (p${a.gemela_mas_barata.piso})`)}
             {a.primera_foto && chip(`en bitácora desde ${a.primera_foto} · ${a.cambios_de_precio || 0} cambios de precio`)}
           </div>
+
+          {/* EDITAR aquí mismo (un clic = todo: ver y corregir) */}
+          {unidad && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', margin: '4px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <label style={{ ...S.mini }}>Estado
+                <select data-testid="unidad-status" style={{ ...S.inp, marginTop: 3, minWidth: 120 }} value={status} onChange={(e) => setStatus(e.target.value)}>
+                  {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </label>
+              <label style={{ ...S.mini }}>Precio (MXN)
+                <input data-testid="unidad-precio" style={{ ...S.inp, marginTop: 3, minWidth: 130 }} value={precio === '' ? '' : `$${Number(String(precio).replace(/[^0-9.]/g, '') || 0).toLocaleString('en-US')}`}
+                  onChange={(e) => setPrecio(e.target.value.replace(/[^0-9.]/g, ''))} />
+              </label>
+              <label style={{ ...S.mini }}>Orientación
+                <select data-testid="unidad-orientacion" style={{ ...S.inp, marginTop: 3 }} value={orientacion} onChange={(e) => setOrientacion(e.target.value)}>
+                  {ORIENTACIONES.map((o) => <option key={o} value={o}>{o || '— sin dato —'}</option>)}
+                </select>
+              </label>
+              <label style={{ ...S.mini, flex: 1, minWidth: 140 }}>Vista
+                <input data-testid="unidad-vista" style={{ ...S.inp, marginTop: 3 }} placeholder="calle / interior / parque" value={vista} onChange={(e) => setVista(e.target.value)} />
+              </label>
+              <button style={S.btn} data-testid="unidad-guardar" onClick={guardar}>Guardar</button>
+              {msg && <span style={{ ...S.mini, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</span>}
+            </div>
+          )}
 
           {/* planos del átomo */}
           {(x.unidad.plano_url || x.unidad.plano_amueblado_url) && (
@@ -351,26 +337,26 @@ function Corte() {
                   <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{r.unidades}</b>u · {r.disponibles} disp</span>
                 </span>
                 <span style={num}>{r.colocacion_pct != null && r.colocacion_pct > 0 ? `${r.colocacion_pct}%` : '—'}</span>
-                <span style={num} title={r.pm2_min ? `mediana $${(r.pm2_mediana / 1000).toFixed(1)}k · rango $${(r.pm2_min / 1000).toFixed(1)}k–$${(r.pm2_max / 1000).toFixed(1)}k` : ''}>{r.pm2_prom ? `$${(r.pm2_prom / 1000).toFixed(1)}k` : '—'}</span>
-                <span style={num}>{r.precio_min ? `$${(r.precio_min / 1e6).toFixed(1)}M` : '—'}</span>
+                <span style={num} title={r.pm2_min ? `mediana $${r.pm2_mediana.toLocaleString('en-US')} · rango $${r.pm2_min.toLocaleString('en-US')}–$${r.pm2_max.toLocaleString('en-US')}` : ''}>{r.pm2_prom ? `$${r.pm2_prom.toLocaleString('en-US')}` : '—'}</span>
+                <span style={num}>{r.precio_min ? `$${r.precio_min.toLocaleString('en-US')}` : '—'}</span>
                 <span style={{ ...num, color: r.demanda_busquedas ? 'var(--cream)' : 'rgba(240,235,224,0.4)' }}>{r.demanda_busquedas ?? '—'}{r.leads ? ` · ${r.leads} leads` : ''}</span>
                 <span style={{ textAlign: 'right' }}>{tension(r.tension) || <span style={{ ...S.mini, opacity: 0.4 }}>—</span>}</span>
               </div>
               {abierta === i && (r.atomos || []).length > 0 && (
                 <div style={{ padding: '8px 0 10px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.015)' }}>
                   <div style={{ ...S.mini, marginBottom: 6 }}>
-                    Las {r.atomos.length} unidades de este segmento{r.atomos_truncados ? ` (+${r.atomos_truncados} más)` : ''} · $/m² mediana <b style={{ color: 'var(--cream)' }}>${((r.pm2_mediana || 0) / 1000).toFixed(1)}k</b> · rango ${((r.pm2_min || 0) / 1000).toFixed(1)}k–${((r.pm2_max || 0) / 1000).toFixed(1)}k
+                    Las {r.atomos.length} unidades de este segmento{r.atomos_truncados ? ` (+${r.atomos_truncados} más)` : ''} · $/m² mediana <b style={{ color: 'var(--cream)' }}>${(r.pm2_mediana || 0).toLocaleString('en-US')}</b> · rango ${(r.pm2_min || 0).toLocaleString('en-US')}–${(r.pm2_max || 0).toLocaleString('en-US')}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 5 }}>
                     {r.atomos.map((a) => (
-                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => setFichaId(a.unit_id || a.id)}
+                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => setFichaId(a)}
                         title={`Ficha completa del ${a.unidad}`}
                         style={{ textAlign: 'left', cursor: 'pointer', padding: '6px 10px', borderRadius: 8,
                           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
                         <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 800, color: 'var(--cream)' }}>{a.unidad}</span>
                         <span style={{ ...S.mini, marginLeft: 6 }}>
-                          {a.piso != null ? `p${a.piso} · ` : ''}{a.m2 ? `${a.m2}m² · ` : ''}{a.precio ? `$${(a.precio / 1e6).toFixed(2)}M` : ''}
-                          {a.pm2 ? ` · $${(a.pm2 / 1000).toFixed(1)}k/m²` : ''}
+                          {a.piso != null ? `p${a.piso} · ` : ''}{a.m2 ? `${a.m2}m² · ` : ''}{a.precio ? `$${a.precio.toLocaleString('en-US')}` : ''}
+                          {a.pm2 ? ` · $${a.pm2.toLocaleString('en-US')}/m²` : ''}
                         </span>
                         <span style={{ ...S.mini, marginLeft: 6, color: a.estatus === 'disponible' ? '#86efac' : '#fca5a5' }}>{a.estatus}</span>
                       </button>
@@ -384,7 +370,7 @@ function Corte() {
           <p style={{ ...S.mini, marginTop: 8, opacity: 0.65 }}>Demanda = búsquedas reales del marketplace que le quedan al segmento (criterios completos) · señales y leads se atribuyen a nivel desarrollo · la serie en el tiempo vive en Mercado.</p>
         </div>
       )}
-      {fichaId && <FichaUnidad unitId={fichaId} onCerrar={() => setFichaId(null)} />}
+      {fichaId && <FichaUnidad unitId={fichaId.id} unidad={{ id: fichaId.id, status: fichaId.estatus, price_mxn: fichaId.precio }} onCerrar={() => setFichaId(null)} />}
     </div>
   );
 }
@@ -549,9 +535,9 @@ export default function SuperadminInventario({ user, onLogout }) {
           </div>
         )}
 
-        {/* NIVEL 3 · la torre clickeable + panel de edición */}
+        {/* NIVEL 3 · la torre clickeable — un clic en el depa = SU FICHA COMPLETA */}
         {proy && (
-          <div style={{ display: 'grid', gridTemplateColumns: unidadSel ? '1fr 290px' : '1fr', gap: 14, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, alignItems: 'start' }}>
             <div style={S.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                 <div>
@@ -579,8 +565,8 @@ export default function SuperadminInventario({ user, onLogout }) {
               <Torre unidades={proy.unidades} posicion={proy.posicion_unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
             </div>
             {unidadSel && (
-              <PanelUnidad u={unidadSel} onCerrar={() => setUnidadSel(null)}
-                onGuardado={() => { _get(`/proyecto/${encodeURIComponent(proySel)}`).then(setProy); cargarArbol(); }} />
+              <FichaUnidad unitId={unidadSel.id} unidad={unidadSel} onCerrar={() => setUnidadSel(null)}
+                onCambio={() => { _get(`/proyecto/${encodeURIComponent(proySel)}`).then(setProy); cargarArbol(); }} />
             )}
           </div>
         )}

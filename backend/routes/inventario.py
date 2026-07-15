@@ -146,8 +146,9 @@ async def expediente(request: Request, development_id: str):
     if not d:
         raise HTTPException(404, "Desarrollo no encontrado")
 
-    units = await db.units.find({"development_id": development_id}, {"_id": 0}) \
-        .sort("unit_number", 1).to_list(2000)
+    from unidades_efectivas import unidades_efectivas
+    units = sorted(await unidades_efectivas(db, {"development_id": development_id}),
+                   key=lambda u: u.get("unit_number") or "")
     protos = await db.dmx_prototypes.find({"development_id": development_id}, {"_id": 0}).to_list(200)
 
     # multimedia: locales (con URL servible) + referencias a Drive (agrupadas por categoría)
@@ -254,8 +255,9 @@ async def proyecto(request: Request, development_id: str):
     d = await db.developments.find_one({"id": development_id}, {"_id": 0})
     if not d:
         raise HTTPException(404, "Proyecto no encontrado")
-    units = await db.units.find({"development_id": development_id}, {"_id": 0}) \
-        .sort("unit_number", 1).to_list(2000)
+    from unidades_efectivas import unidades_efectivas
+    units = sorted(await unidades_efectivas(db, {"development_id": development_id}),
+                   key=lambda u: u.get("unit_number") or "")
     protos = await db.dmx_prototypes.find({"development_id": development_id}, {"_id": 0}).to_list(200)
     from ficha_atomo import posiciones_por_molde
     return {"proyecto": d, "unidades": units, "prototipos": protos, "n_unidades": len(units),

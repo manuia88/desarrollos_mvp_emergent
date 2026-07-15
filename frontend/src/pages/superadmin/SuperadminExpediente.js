@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Building2, ChevronLeft, Check, Globe } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { Torre, PanelUnidad, S, fmtM, PALETA_MOLDE } from './SuperadminInventario';
+import { Torre, FichaUnidad, S, fmtM, PALETA_MOLDE } from './SuperadminInventario';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const _j = async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.detail || `HTTP ${r.status}`); return r.json(); };
@@ -127,7 +127,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
 
         {/* ═══ 2 · LA TORRE (todas las unidades, clic = editar) ═══ */}
         <div style={sec}>
-          <H>🏢 La torre — {x.n_unidades} unidades <span style={S.mini}>· clic en un molde para ver su patrón · clic en una unidad para editarla · anillo <span style={{ color: '#4ADE80' }}>verde</span> = barata vs sus gemelas · <span style={{ color: '#d29922' }}>ámbar</span> = paga premium</span></H>
+          <H>🏢 La torre — {x.n_unidades} unidades <span style={S.mini}>· clic en un molde para ver su patrón · clic en un depa = su ficha completa · anillo <span style={{ color: '#4ADE80' }}>verde</span> = barata vs sus gemelas · <span style={{ color: '#d29922' }}>ámbar</span> = paga premium</span></H>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
             {x.prototipos.map((pr, i) => {
               const col = PALETA_MOLDE[i % PALETA_MOLDE.length];
@@ -141,9 +141,9 @@ export default function SuperadminExpediente({ user, onLogout }) {
               );
             })}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: unidadSel ? '1fr 290px' : '1fr', gap: 14, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, alignItems: 'start' }}>
             <Torre unidades={x.unidades} posicion={x.posicion_unidades} seleccionada={unidadSel?.id} onUnidad={setUnidadSel} colorDeMolde={colorDeMolde} moldeSel={moldeSel} />
-            {unidadSel && <PanelUnidad u={unidadSel} onCerrar={() => setUnidadSel(null)} onGuardado={cargar} />}
+            {unidadSel && <FichaUnidad unitId={unidadSel.id} unidad={unidadSel} onCerrar={() => setUnidadSel(null)} onCambio={cargar} />}
           </div>
         </div>
 

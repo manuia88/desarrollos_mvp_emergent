@@ -214,7 +214,8 @@ async def corte(db, por: List[str], development_id: Optional[str] = None,
                 filtros: Optional[Dict[str, str]] = None,
                 con_atomos: bool = False) -> Dict[str, Any]:
     q: Dict[str, Any] = {"development_id": development_id} if development_id else {}
-    units = await db.units.find(q, {"_id": 0}).to_list(20000)
+    from unidades_efectivas import unidades_efectivas
+    units = await unidades_efectivas(db, q)
     dev_ids = {u.get("development_id") for u in units}
     devs = {d["id"]: d for d in await db.developments.find(
         {"id": {"$in": list(dev_ids)}}, {"_id": 0}).to_list(1000)}

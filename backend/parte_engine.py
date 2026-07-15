@@ -34,9 +34,9 @@ def _now() -> datetime:
 
 
 def _fmt_precio(v) -> str:
+    """Regla founder: TODO dinero va $1,000,000 — sin abreviar."""
     try:
-        v = float(v)
-        return f"${v/1e6:.2f}M" if v >= 1e6 else f"${v:,.0f}"
+        return f"${float(v):,.0f}"
     except (TypeError, ValueError):
         return "$?"
 
