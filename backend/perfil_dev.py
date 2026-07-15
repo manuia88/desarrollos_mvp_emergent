@@ -25,9 +25,13 @@ def _norm(s: str) -> str:
 
 
 def radar_drive(foto_dev: Dict[str, Any],
-                proyectos_catalogo: List[str]) -> List[Dict[str, Any]]:
-    """Los proyectos del Drive con su etapa, sus documentos y si ya están en catálogo."""
+                proyectos_catalogo: List[str],
+                excluidos: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Los proyectos del Drive con su etapa, sus documentos y si ya están en catálogo.
+    `excluidos` (founder 07-15: 'Mérida y rentas no se aplica'): patrones de carpetas
+    FUERA del alcance de la plataforma — se marcan, no cuentan como pendientes."""
     cat_norm = [_norm(n) for n in proyectos_catalogo]
+    exc_norm = [_norm(e) for e in (excluidos or []) if e]
     out: List[Dict[str, Any]] = []
     archivos = foto_dev.get("archivos") or []
     for proyecto in (foto_dev.get("proyectos") or []):
@@ -40,7 +44,8 @@ def radar_drive(foto_dev: Dict[str, Any],
             tipos[t] = tipos.get(t, 0) + 1
         pn = _norm(proyecto)
         ingerido = any(c and (c in pn or pn in c) for c in cat_norm)
-        out.append({"proyecto": proyecto,
+        fuera = any(e and e in pn for e in exc_norm)
+        out.append({"proyecto": proyecto, "fuera_alcance": fuera,
                     "etapa": etapa_de_nombre(proyecto),
                     "n_archivos": len(del_proy),
                     "tiene_lista": any(a.get("es_lista") for a in del_proy),
@@ -54,9 +59,11 @@ def agregados(radar: List[Dict[str, Any]]) -> Dict[str, Any]:
     for p in radar:
         k = p.get("etapa") or "sin etiqueta"
         por_etapa[k] = por_etapa.get(k, 0) + 1
+    en_alcance = [p for p in radar if not p.get("fuera_alcance")]
     return {"proyectos_drive": len(radar),
-            "con_lista": sum(1 for p in radar if p["tiene_lista"]),
-            "sin_ingerir": sum(1 for p in radar if not p["ingerido"]),
+            "fuera_alcance": len(radar) - len(en_alcance),
+            "con_lista": sum(1 for p in en_alcance if p["tiene_lista"]),
+            "sin_ingerir": sum(1 for p in en_alcance if not p["ingerido"]),
             "por_etapa": por_etapa}
 
 
@@ -79,7 +86,8 @@ async def perfil_desarrollador(db, dev_org_id: str) -> Dict[str, Any]:
     if mapeo:
         foto = await db.vigia_fotos.find_one({}, {"_id": 0})
         foto_dev = ((foto or {}).get("devs") or {}).get(mapeo.get("dev_carpeta")) or {}
-        radar = radar_drive(foto_dev, [p.get("name") or "" for p in proyectos])
+        radar = radar_drive(foto_dev, [p.get("name") or "" for p in proyectos],
+                            excluidos=mapeo.get("excluir_proyectos") or [])
     # nombre humano del dev
     org = await db.dev_orgs.find_one({"tenant_id": dev_org_id}, {"_id": 0, "name": 1}) or \
         await db.users.find_one({"tenant_id": dev_org_id, "role": "developer_admin"},
