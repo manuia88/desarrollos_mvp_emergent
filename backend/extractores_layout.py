@@ -110,6 +110,10 @@ def extraer_vp(pdf_bytes: bytes) -> Dict[str, Any]:
                 ok_m2 = hab is not None and tot is not None and abs(hab + ext - tot) < 0.6
                 if not ok_m2:
                     ok_m2 = _resolver_m2(u, c)
+                # columna presente y vacía = CERO (la familia VP declara sus columnas)
+                for cero in ("bodegas", "m2_patio", "m2_roof"):
+                    if cero in [v for v in usar.values()] and u.get(cero) is None:
+                        u[cero] = 0
                 pr, cr, en = u.get("precio"), u.get("credito"), u.get("enganche")
                 u["_valida_m2"] = bool(ok_m2)
                 u["_valida_dinero"] = bool(pr and cr and en and abs((cr + en) - pr) < 2)

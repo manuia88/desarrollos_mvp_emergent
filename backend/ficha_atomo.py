@@ -26,7 +26,7 @@ from corte_engine import _busca_compatible
 
 
 def _fmt_m2(v):
-    return f"{v:g} m²" if v else None
+    return f"{round(v, 2):g} m²" if v else None
 
 
 def _fmt_mxn(v):
@@ -102,9 +102,19 @@ def _del_esquema(u, campo, fmt):
     return f"{fmt(v)} (esquema del desarrollo)" if v else None
 
 
+_EXTERIORES = {"m² balcón": "m2_balcony", "m² terraza": "m2_terrace",
+               "m² roof garden": "m2_roof_garden", "m² patio": "patio_m2"}
+
+
 def armar_ficha(u: Dict[str, Any], molde: Optional[Dict[str, Any]],
                 programa: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Registro → secciones pintables. Lo que no hay sale como FALTA con quién lo llena."""
+    """Registro → secciones pintables. Lo que no hay sale como FALTA con quién lo llena.
+    FALTA ≠ CERO (founder 07-15): si habitables + exteriores conocidos ≈ totales, los
+    exteriores ausentes son 0 DERIVADO — el depa no tiene, no es dato faltante."""
+    hab = u.get("m2_privative") or u.get("size_m2")
+    tot = u.get("m2_total") or u.get("size_m2_total")
+    ext_conocidos = sum(u.get(k) or 0 for k in _EXTERIORES.values())
+    exteriores_son_cero = bool(hab and tot and abs(hab + ext_conocidos - tot) < 0.6)
     out = []
     for sec in SECCIONES:
         campos = []
@@ -113,6 +123,8 @@ def armar_ficha(u: Dict[str, Any], molde: Optional[Dict[str, Any]],
                 v = fn(u, molde, programa)
             except Exception:  # noqa: BLE001 — un extractor roto no tira la ficha
                 v = None
+            if v in (None, "") and label in _EXTERIORES and exteriores_son_cero:
+                v = "0 m² (no tiene — derivado: habitables ≈ totales)"
             campos.append({"label": label, "valor": v if v not in (None, "") else None,
                            "quien_llena": quien if v in (None, "") else None})
         out.append({"titulo": sec["titulo"], "campos": campos})

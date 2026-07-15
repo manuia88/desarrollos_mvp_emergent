@@ -249,3 +249,23 @@ def test_regla_piso_vs_plano():
     assert AU3.r_piso_vs_plano(u_mal, ctx)["severidad"] == "aviso"
     u_ok = {"unit_number": "A-505", "level": 5, "prototype_id": "p0"}
     assert AU3.r_piso_vs_plano(u_ok, ctx) is None
+
+
+def test_falta_no_es_cero_en_ficha():
+    """Founder 07-15: si habitables ≈ totales, los exteriores son 0 DERIVADO, no FALTA."""
+    import ficha_atomo as FA2
+    u = {"m2_privative": 124.98, "size_m2": 124.98, "m2_total": 124.98,
+         "price_mxn": 10_812_800, "bedrooms": 2, "bathrooms": 2.5}
+    secs = FA2.armar_ficha(u, None, None)
+    plano = {c["label"]: c for s2 in secs for c in s2["campos"]}
+    assert plano["m² balcón"]["valor"].startswith("0 m²")        # derivado, no FALTA
+    assert plano["m² terraza"]["quien_llena"] is None
+    # pero si el total NO cuadra, sigue siendo FALTA honesto (caso PH 282.75)
+    u2 = {"m2_privative": 130.0, "size_m2": 130.0, "m2_total": 282.75, "price_mxn": 1}
+    secs2 = FA2.armar_ficha(u2, None, None)
+    plano2 = {c["label"]: c for s2 in secs2 for c in s2["campos"]}
+    assert plano2["m² roof garden"]["valor"] is None             # FALTA de verdad
+    # redondeo: 81.142 → 81.14
+    u3 = {"m2_privative": 81.142, "size_m2": 81.142, "m2_total": 81.142, "price_mxn": 1}
+    p3 = {c["label"]: c for s2 in FA2.armar_ficha(u3, None, None) for c in s2["campos"]}
+    assert p3["m² habitables"]["valor"] == "81.14 m²"

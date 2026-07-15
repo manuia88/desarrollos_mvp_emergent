@@ -80,13 +80,18 @@ export function Torre({ unidades, onUnidad, seleccionada, colorDeMolde, moldeSel
                   const pos = (posicion || {})[u.id];   // 💎 semáforo vs sus gemelas
                   const halo = pos?.banda === 'ganga' ? '0 0 0 2px rgba(74,222,128,0.75)'
                     : pos?.banda === 'premium' ? '0 0 0 2px rgba(210,153,34,0.7)' : undefined;
+                  const esDelMolde = moldeSel && u.prototype_id === moldeSel;
                   return (
                     <button key={u.id} data-testid={`unidad-${u.unit_number || u.id}`} onClick={() => onUnidad(u)}
                       title={`${u.unit_number || u.id} · ${u.status || 'disponible'} · ${fmtM(u.price_mxn || u.price)}${u.size_m2 ? ` · ${u.size_m2}m²` : ''}${pos ? ` · ${pos.vs_molde_pct > 0 ? '+' : ''}${pos.vs_molde_pct}% vs sus gemelas${pos.metodo === 'ajustado_piso' ? ' (ajustado por piso)' : ''}` : ' · sin anillo: precio en línea o molde sin gemelas'}`}
                       style={{ minWidth: 52, padding: '7px 6px 5px', borderRadius: 6, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5,
-                        background: `${col}${sel ? 'ee' : '33'}`, border: `${sel ? 2 : 1}px solid ${col}`, color: sel ? '#000' : 'var(--cream)',
-                        opacity: apagada ? 0.18 : 1, transition: 'opacity .15s', boxShadow: halo,
-                        borderBottom: molde ? `3px solid ${molde}` : undefined }}>
+                        // el MOLDE es la identidad visual: fondo teñido de su color siempre;
+                        // seleccionado el molde → color PLENO (founder: 'que se iluminen')
+                        background: esDelMolde ? molde : (molde ? `${molde}2e` : `${col}${sel ? 'ee' : '33'}`),
+                        border: `${sel ? 2 : 1}px solid ${sel ? col : (molde || col)}`,
+                        color: esDelMolde || sel ? '#000' : 'var(--cream)',
+                        opacity: apagada ? 0.15 : 1, transition: 'all .15s', boxShadow: halo,
+                        borderBottom: `3px solid ${col}` }}>
                       {u.unit_number || '·'}
                     </button>
                   );
