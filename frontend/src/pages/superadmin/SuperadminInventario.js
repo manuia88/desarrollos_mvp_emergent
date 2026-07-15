@@ -170,13 +170,25 @@ const EJES_CORTE = [
 const NOMBRE_DIM = { banda_m2: 'tamaño', banda_precio: 'precio', banda_pm2: '$/m²', banda_enganche: 'enganche', tipologia: 'recámaras', banos: 'baños', estacionamientos: 'cajones', cuarto_servicio: 'cto. servicio', orientacion: 'orientación' };
 
 function Corte() {
+  const nav = useNavigate();
   const [dims, setDims] = useState(['colonia', 'tipologia']);
+  const [pins, setPins] = useState({});          // 📌 segmentos anclados: {dim: valor}
+  const [abierta, setAbierta] = useState(null);  // fila expandida hasta el átomo
   const [data, setData] = useState(null);
   useEffect(() => {
-    if (!dims.length) { setData(null); return; }
-    _get(`/corte?por=${dims.join(',')}`).then(setData).catch(() => setData(null));
-  }, [dims]);
+    if (!dims.length && !Object.keys(pins).length) { setData(null); return; }
+    const qs = `por=${dims.join(',') || 'desarrollo'}&con_atomos=1` +
+      (Object.keys(pins).length ? `&filtros=${encodeURIComponent(JSON.stringify(pins))}` : '');
+    _get(`/corte?${qs}`).then(setData).catch(() => setData(null));
+    setAbierta(null);
+  }, [dims, pins]);
   const toggle = (d) => setDims(dims.includes(d) ? dims.filter((x) => x !== d) : [...dims, d].slice(-3));
+  const anclar = (r) => {   // clic en 📌: el segmento se vuelve filtro y sigues cortando más hondo
+    const nuevos = { ...pins };
+    dims.forEach((d) => { if (r[d] != null) nuevos[d] = String(r[d]); });
+    setPins(nuevos); setDims([]);
+  };
+  const soltar = (d) => { const p = { ...pins }; delete p[d]; setPins(p); };
   const filas = (data?.filas || []).slice(0, 25);
   const maxU = Math.max(1, ...filas.map((f) => f.unidades || 0));
   const tot = (data?.filas || []).reduce((a, f) => a + (f.unidades || 0), 0);
@@ -221,6 +233,21 @@ function Corte() {
         ))}
       </div>
 
+      {/* 📌 segmentos anclados (profundidad sin límite) */}
+      {Object.keys(pins).length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '8px 0 0' }}>
+          <span style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7, fontSize: 9.5 }}>📌 Anclado</span>
+          {Object.entries(pins).map(([d, v]) => (
+            <button key={d} onClick={() => soltar(d)} title="Quitar este ancla"
+              style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 8, cursor: 'pointer',
+                background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.5)', color: 'var(--theme)' }}>
+              {(NOMBRE_DIM[d] || d)}: {v} ✕
+            </button>
+          ))}
+          <span style={S.mini}>· ahora corta por otra dimensión dentro de este segmento</span>
+        </div>
+      )}
+
       {/* la tabla del corte */}
       {filas.length === 0 ? <p style={{ ...S.p, marginTop: 10 }}>Elige una dimensión con datos (o afloja el cruce).</p> : (
         <div style={{ marginTop: 12, overflowX: 'auto' }}>
@@ -234,20 +261,48 @@ function Corte() {
             <span style={th} title="Búsquedas compatibles ÷ unidades disponibles">Tensión</span>
           </div>
           {filas.map((r, i) => (
-            <div key={i} style={{ ...grid, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>
-                {dims.map((d) => r[d]).filter(Boolean).join('  ×  ')}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ height: 8, width: `${Math.max(3, (r.unidades / maxU) * 100)}%`, maxWidth: '70%', borderRadius: 4, background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.85), rgba(var(--theme-rgb),0.35))' }} />
-                <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{r.unidades}</b>u · {r.disponibles} disp</span>
-              </span>
-              <span style={num}>{r.colocacion_pct != null && r.colocacion_pct > 0 ? `${r.colocacion_pct}%` : '—'}</span>
-              <span style={num}>{r.pm2_prom ? `$${(r.pm2_prom / 1000).toFixed(1)}k` : '—'}</span>
-              <span style={num}>{r.precio_min ? `$${(r.precio_min / 1e6).toFixed(1)}M` : '—'}</span>
-              <span style={{ ...num, color: r.demanda_busquedas ? 'var(--cream)' : 'rgba(240,235,224,0.4)' }}>{r.demanda_busquedas ?? '—'}{r.leads ? ` · ${r.leads} leads` : ''}</span>
-              <span style={{ textAlign: 'right' }}>{tension(r.tension) || <span style={{ ...S.mini, opacity: 0.4 }}>—</span>}</span>
-            </div>
+            <React.Fragment key={i}>
+              <div style={{ ...grid, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                onClick={() => setAbierta(abierta === i ? null : i)} title="Clic: ver sus unidades (el átomo)">
+                <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ opacity: 0.5, fontSize: 10 }}>{abierta === i ? '▾' : '▸'}</span>
+                  {dims.map((d) => r[d]).filter(Boolean).join('  ×  ') || '(todo el segmento anclado)'}
+                  {dims.length > 0 && <button onClick={(e) => { e.stopPropagation(); anclar(r); }} title="Anclar este segmento y seguir cortando más hondo"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, opacity: 0.6, padding: '0 2px' }}>📌</button>}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ height: 8, width: `${Math.max(3, (r.unidades / maxU) * 100)}%`, maxWidth: '70%', borderRadius: 4, background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.85), rgba(var(--theme-rgb),0.35))' }} />
+                  <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{r.unidades}</b>u · {r.disponibles} disp</span>
+                </span>
+                <span style={num}>{r.colocacion_pct != null && r.colocacion_pct > 0 ? `${r.colocacion_pct}%` : '—'}</span>
+                <span style={num} title={r.pm2_min ? `mediana $${(r.pm2_mediana / 1000).toFixed(1)}k · rango $${(r.pm2_min / 1000).toFixed(1)}k–$${(r.pm2_max / 1000).toFixed(1)}k` : ''}>{r.pm2_prom ? `$${(r.pm2_prom / 1000).toFixed(1)}k` : '—'}</span>
+                <span style={num}>{r.precio_min ? `$${(r.precio_min / 1e6).toFixed(1)}M` : '—'}</span>
+                <span style={{ ...num, color: r.demanda_busquedas ? 'var(--cream)' : 'rgba(240,235,224,0.4)' }}>{r.demanda_busquedas ?? '—'}{r.leads ? ` · ${r.leads} leads` : ''}</span>
+                <span style={{ textAlign: 'right' }}>{tension(r.tension) || <span style={{ ...S.mini, opacity: 0.4 }}>—</span>}</span>
+              </div>
+              {abierta === i && (r.atomos || []).length > 0 && (
+                <div style={{ padding: '8px 0 10px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.015)' }}>
+                  <div style={{ ...S.mini, marginBottom: 6 }}>
+                    Las {r.atomos.length} unidades de este segmento{r.atomos_truncados ? ` (+${r.atomos_truncados} más)` : ''} · $/m² mediana <b style={{ color: 'var(--cream)' }}>${((r.pm2_mediana || 0) / 1000).toFixed(1)}k</b> · rango ${((r.pm2_min || 0) / 1000).toFixed(1)}k–${((r.pm2_max || 0) / 1000).toFixed(1)}k
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 5 }}>
+                    {r.atomos.map((a) => (
+                      <button key={`${a.development_id}-${a.unidad}`} onClick={() => nav(`/superadmin/expediente/${a.development_id}`)}
+                        title={`Abrir el expediente de ${a.desarrollo}`}
+                        style={{ textAlign: 'left', cursor: 'pointer', padding: '6px 10px', borderRadius: 8,
+                          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 800, color: 'var(--cream)' }}>{a.unidad}</span>
+                        <span style={{ ...S.mini, marginLeft: 6 }}>
+                          {a.piso != null ? `p${a.piso} · ` : ''}{a.m2 ? `${a.m2}m² · ` : ''}{a.precio ? `$${(a.precio / 1e6).toFixed(2)}M` : ''}
+                          {a.pm2 ? ` · $${(a.pm2 / 1000).toFixed(1)}k/m²` : ''}
+                        </span>
+                        <span style={{ ...S.mini, marginLeft: 6, color: a.estatus === 'disponible' ? '#86efac' : '#fca5a5' }}>{a.estatus}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
           ))}
           {(data?.filas || []).length > 25 && <p style={{ ...S.mini, marginTop: 6 }}>… {(data.filas.length - 25)} segmentos más — afina el cruce para verlos.</p>}
           <p style={{ ...S.mini, marginTop: 8, opacity: 0.65 }}>Demanda = búsquedas reales del marketplace que le quedan al segmento (criterios completos) · señales y leads se atribuyen a nivel desarrollo · la serie en el tiempo vive en Mercado.</p>

@@ -125,11 +125,15 @@ def _medidas(unidades: List[Dict[str, Any]],
             if (u.get("price_mxn") or u.get("price")) and (u.get("size_m2") or u.get("m2_total"))]
     m2s = [u.get("size_m2") or u.get("m2_total") for u in unidades
            if u.get("size_m2") or u.get("m2_total")]
+    pm2s_ord = sorted(pm2s)
     out = {"unidades": n, "vendidas": len(vend), "disponibles": n - len(vend),
            "colocacion_pct": round(len(vend) * 100 / n, 1) if n else None,
            "precio_prom": round(sum(precios) / len(precios)) if precios else None,
            "precio_min": round(min(precios)) if precios else None,
            "pm2_prom": round(sum(pm2s) / len(pm2s)) if pm2s else None,
+           "pm2_mediana": round(pm2s_ord[len(pm2s_ord) // 2]) if pm2s_ord else None,
+           "pm2_min": round(min(pm2s)) if pm2s else None,
+           "pm2_max": round(max(pm2s)) if pm2s else None,
            "m2_prom": round(sum(m2s) / len(m2s), 1) if m2s else None}
     if ctx:
         # DEMANDA REAL: búsquedas del marketplace que le quedan a ≥1 unidad del corte
@@ -156,27 +160,59 @@ def _medidas(unidades: List[Dict[str, Any]],
     return out
 
 
+def _atomo_humano(u: Dict[str, Any], m: Dict[str, Any], d: Dict[str, Any]) -> Dict[str, Any]:
+    """La unidad tal cual, lista para el drill (y para saltar a su Expediente)."""
+    precio = u.get("price_mxn") or u.get("price")
+    m2 = u.get("size_m2") or u.get("m2_total")
+    return {"unidad": u.get("unit_number"), "piso": u.get("level"),
+            "m2": m2, "precio": precio,
+            "pm2": round(precio / m2) if precio and m2 else None,
+            "estatus": (u.get("status") or "disponible").lower(),
+            "molde": m.get("nombre"), "desarrollo": d.get("name"),
+            "development_id": u.get("development_id"),
+            "edad_dias": u.get("_edad_dias")}
+
+
 def cortar(atomos: List[Dict[str, Any]], por: List[str],
            incluir_sin_dato: bool = False,
-           ctx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """El corte n-dimensional puro. `atomos` = [{u, d, m, p}]; `por` = dimensiones a cruzar.
-    Devuelve un renglón por combinación con las medidas estándar."""
-    for dim in por:
+           ctx: Optional[Dict[str, Any]] = None,
+           filtros: Optional[Dict[str, str]] = None,
+           con_atomos: bool = False) -> List[Dict[str, Any]]:
+    """El corte n-dimensional puro. `por` = dimensiones a cruzar; `filtros` = segmentos
+    ANCLADOS (hipersegmentación sin límite: anclas un valor y sigues cortando por otra
+    dimensión); `con_atomos` = cada fila trae sus UNIDADES (hipergranularidad: el drill
+    llega al átomo, no se queda en el promedio)."""
+    for dim in list(por) + list((filtros or {}).keys()):
         if dim not in DIMENSIONES:
             raise ValueError(f"dimensión desconocida '{dim}'; usa una de {sorted(DIMENSIONES)}")
+    if filtros:
+        atomos = [a for a in atomos
+                  if all(str(DIMENSIONES[k](a["u"], a["d"], a["m"], a["p"])) == str(v)
+                         for k, v in filtros.items())]
     grupos: Dict[tuple, List[Dict[str, Any]]] = {}
     for a in atomos:
         llave = tuple(DIMENSIONES[dim](a["u"], a["d"], a["m"], a["p"]) for dim in por)
         if not incluir_sin_dato and any(v is None for v in llave):
             continue
-        grupos.setdefault(llave, []).append(a["u"])
-    filas = [{**dict(zip(por, k)), **_medidas(us, ctx)} for k, us in grupos.items()]
+        grupos.setdefault(llave, []).append(a)
+    filas = []
+    for k, grupo in grupos.items():
+        fila = {**dict(zip(por, k)), **_medidas([a["u"] for a in grupo], ctx)}
+        if con_atomos:
+            orden = sorted(grupo, key=lambda a: ((a["u"].get("level") or 0),
+                                                 str(a["u"].get("unit_number") or "")))
+            fila["atomos"] = [_atomo_humano(a["u"], a["m"], a["d"]) for a in orden[:60]]
+            if len(orden) > 60:
+                fila["atomos_truncados"] = len(orden) - 60
+        filas.append(fila)
     return sorted(filas, key=lambda f: -(f["unidades"] or 0))
 
 
 # ─── acceso a datos (única función con Mongo) ─────────────────────────────────
 async def corte(db, por: List[str], development_id: Optional[str] = None,
-                incluir_sin_dato: bool = False) -> Dict[str, Any]:
+                incluir_sin_dato: bool = False,
+                filtros: Optional[Dict[str, str]] = None,
+                con_atomos: bool = False) -> Dict[str, Any]:
     q: Dict[str, Any] = {"development_id": development_id} if development_id else {}
     units = await db.units.find(q, {"_id": 0}).to_list(20000)
     dev_ids = {u.get("development_id") for u in units}
@@ -224,6 +260,6 @@ async def corte(db, por: List[str], development_id: Optional[str] = None,
                        "p": programas.get(u.get("prototype_id")) or {}})
     ctx = {"busquedas": busquedas, "senales_por_dev": senales_por_dev,
            "leads_por_dev": leads_por_dev}
-    return {"por": por, "n_atomos": len(atomos),
-            "filas": cortar(atomos, por, incluir_sin_dato, ctx),
+    return {"por": por, "n_atomos": len(atomos), "filtros": filtros or {},
+            "filas": cortar(atomos, por, incluir_sin_dato, ctx, filtros, con_atomos),
             "dimensiones_disponibles": sorted(DIMENSIONES)}

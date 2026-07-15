@@ -100,17 +100,28 @@ async def arbol(request: Request):
 @router.get("/corte")
 async def corte_universal(request: Request, por: str = "colonia",
                           development_id: Optional[str] = None,
-                          incluir_sin_dato: bool = False):
-    """EL CORTE n-dimensional: ?por=colonia,tipologia,piso (hasta 3 cruzadas).
-    Dimensiones = registro universal en corte_engine.DIMENSIONES."""
+                          incluir_sin_dato: bool = False,
+                          filtros: Optional[str] = None,
+                          con_atomos: bool = False):
+    """EL CORTE n-dimensional: ?por=a,b,c (hasta 3 cruzadas) + ?filtros={"dim":"valor"}
+    (segmentos ANCLADOS: profundidad sin límite) + ?con_atomos=1 (cada fila trae sus
+    unidades — el drill al átomo). Dimensiones = registro en corte_engine.DIMENSIONES."""
     await require_superadmin(request)
     dims = [d.strip() for d in por.split(",") if d.strip()][:3]
     if not dims:
         raise HTTPException(400, "Falta ?por=dimension[,dimension2[,dimension3]]")
+    f: Dict[str, str] = {}
+    if filtros:
+        import json as _json
+        try:
+            f = {str(k): str(v) for k, v in _json.loads(filtros).items()}
+        except Exception:
+            raise HTTPException(400, 'filtros debe ser JSON: {"colonia":"Del Valle"}')
     from corte_engine import corte
     try:
         return await corte(_db(request), dims, development_id=development_id,
-                           incluir_sin_dato=incluir_sin_dato)
+                           incluir_sin_dato=incluir_sin_dato, filtros=f,
+                           con_atomos=con_atomos)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

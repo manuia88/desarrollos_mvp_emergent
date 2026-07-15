@@ -285,3 +285,30 @@ def test_corte_espejo_demanda_y_tension():
     u1b = {**u1, "_primera_foto": "2026-07-14T09:00:00"}
     fc = CO.cortar([{"u": u1b, "d": d, "m": {}, "p": {}}], ["cohorte"], ctx=ctx)
     assert fc[0]["cohorte"] == "2026-07"
+
+
+def test_corte_ancla_y_baja_al_atomo():
+    """Hipersegmentación sin límite (filtros anclados) + hipergranularidad (el drill
+    devuelve las unidades del segmento, no solo el promedio)."""
+    import corte_engine as CO
+    d = {"name": "Alba"}
+    mk = lambda un, lvl, beds, m2, precio: {"u": {"unit_number": un, "level": lvl,
+        "development_id": "dev1", "bedrooms": beds, "size_m2": m2, "price_mxn": precio,
+        "status": "disponible"}, "d": d, "m": {"nombre": f"{beds}R"}, "p": {}}
+    atomos = [mk("A-101", 1, 2, 84, 5_000_000), mk("A-201", 2, 2, 84, 5_200_000),
+              mk("B-301", 3, 3, 120, 8_000_000)]
+    # ancla tipologia=2R y corta por piso: solo el segmento anclado, desglosado
+    filas = CO.cortar(atomos, ["piso"], filtros={"tipologia": "2R"}, con_atomos=True)
+    assert len(filas) == 2 and all(f["unidades"] == 1 for f in filas)
+    # el drill llega al átomo con salto al expediente
+    a = filas[0]["atomos"][0]
+    assert a["unidad"].startswith("A-") and a["development_id"] == "dev1" and a["pm2"]
+    # mediana y rango de $/m² (dispersión, no solo promedio)
+    todas = CO.cortar(atomos, ["desarrollo"], con_atomos=True)[0]
+    assert todas["pm2_min"] <= todas["pm2_mediana"] <= todas["pm2_max"]
+    # filtro con dimensión inválida = error claro
+    try:
+        CO.cortar(atomos, ["piso"], filtros={"marte": "x"})
+        assert False
+    except ValueError:
+        pass
