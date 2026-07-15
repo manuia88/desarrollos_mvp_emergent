@@ -160,40 +160,47 @@ export function PanelUnidad({ u, onCerrar, onGuardado }) {
   );
 }
 
+const DIMS_CORTE = ['ciudad', 'alcaldia', 'colonia', 'microzona', 'desarrollo', 'torre', 'piso', 'molde', 'tipologia', 'banos', 'estacionamientos', 'banda_m2', 'banda_precio', 'banda_pm2', 'banda_enganche', 'exterior', 'flex', 'etapa', 'estatus', 'orientacion', 'vista', 'espacios'];
+
 function Escalera() {
+  const [dims, setDims] = useState(['colonia']);
   const [data, setData] = useState(null);
-  const [nivel, setNivel] = useState('colonia');
-  useEffect(() => { _get('/escalera').then(setData).catch(() => setData(null)); }, []);
-  if (!data) return null;
-  const filas = data.niveles?.[nivel] || [];
-  if (!filas.length) return null;
+  useEffect(() => {
+    if (!dims.length) { setData(null); return; }
+    _get(`/corte?por=${dims.join(',')}`).then(setData).catch(() => setData(null));
+  }, [dims]);
+  const toggle = (d) => setDims(dims.includes(d) ? dims.filter((x) => x !== d) : [...dims, d].slice(-3));
+  const filas = (data?.filas || []).slice(0, 30);
   return (
     <div style={{ ...S.card, margin: '4px 0 10px' }} data-testid="escalera">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-        <b style={{ ...S.h, fontSize: 14 }}>🪜 La escalera del mercado</b>
-        <span style={S.mini}>el dato de moldes agregado por peldaño · series finas en Mercado</span>
-        <span style={{ flex: 1 }} />
-        {['desarrollo', 'colonia', 'alcaldia', 'ciudad'].map((n) => (
-          <button key={n} onClick={() => setNivel(n)}
-            style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, cursor: 'pointer', fontWeight: nivel === n ? 800 : 600,
-              background: nivel === n ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${nivel === n ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`,
-              color: nivel === n ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{n}</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+        <b style={{ ...S.h, fontSize: 14 }}>🔬 El corte del mercado</b>
+        <span style={S.mini}>elige hasta 3 dimensiones y se CRUZAN · de ciudad al átomo · series en el tiempo: Mercado</span>
+      </div>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+        {DIMS_CORTE.map((d) => (
+          <button key={d} onClick={() => toggle(d)}
+            style={{ ...S.mini, padding: '3px 10px', borderRadius: 9999, cursor: 'pointer', fontWeight: dims.includes(d) ? 800 : 600,
+              background: dims.includes(d) ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${dims.includes(d) ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`,
+              color: dims.includes(d) ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{d.replace('_', ' ')}</button>
         ))}
       </div>
-      <div style={{ display: 'grid', gap: 4 }}>
-        {filas.map((r) => (
-          <div key={r.nombre} style={{ ...S.mini, display: 'flex', gap: 12, flexWrap: 'wrap', padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <b style={{ color: 'var(--cream)', minWidth: 160 }}>{r.nombre}</b>
-            <span>{r.unidades} unidades · {r.moldes} moldes{r.moldes_agotados ? ` (${r.moldes_agotados} agotados)` : ''}</span>
-            {r.colocacion_pct != null && <span>🏁 {r.colocacion_pct}% colocado</span>}
-            {r.pm2_prom && <span>💲 ${r.pm2_prom.toLocaleString()}/m²</span>}
-            {r.premium_piso_prom_pct != null && <span>📶 premium piso ~{r.premium_piso_prom_pct}%</span>}
-            {r.absorcion_u_mes != null ? <span>🔥 {r.absorcion_u_mes} u/mes</span> : <span style={{ opacity: 0.55 }}>absorción: con la 2ª lista</span>}
-            <span style={{ opacity: 0.7 }}>mix: {Object.entries(r.mix_por_tipo || {}).map(([k, v]) => `${k}:${v}u`).join(' · ')}</span>
-          </div>
-        ))}
-      </div>
+      {filas.length === 0 ? <span style={S.mini}>Elige al menos una dimensión con datos.</span> : (
+        <div style={{ display: 'grid', gap: 3, maxHeight: 320, overflowY: 'auto' }}>
+          {filas.map((r, i) => (
+            <div key={i} style={{ ...S.mini, display: 'flex', gap: 12, flexWrap: 'wrap', padding: '5px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <b style={{ color: 'var(--cream)', minWidth: 180 }}>{dims.map((d) => r[d]).filter(Boolean).join(' × ')}</b>
+              <span>{r.unidades}u · {r.disponibles} disp</span>
+              {r.colocacion_pct != null && r.colocacion_pct > 0 && <span>🏁 {r.colocacion_pct}%</span>}
+              {r.pm2_prom && <span>💲 ${r.pm2_prom.toLocaleString()}/m²</span>}
+              {r.precio_min && <span>desde ${(r.precio_min / 1e6).toFixed(1)}M</span>}
+              {r.m2_prom && <span>{r.m2_prom}m² prom</span>}
+            </div>
+          ))}
+          {(data?.filas || []).length > 30 && <span style={S.mini}>… {(data.filas.length - 30)} combinaciones más (afina el cruce)</span>}
+        </div>
+      )}
     </div>
   );
 }

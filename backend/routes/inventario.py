@@ -97,6 +97,24 @@ async def arbol(request: Request):
             "revision_pendientes": revision_n}
 
 
+@router.get("/corte")
+async def corte_universal(request: Request, por: str = "colonia",
+                          development_id: Optional[str] = None,
+                          incluir_sin_dato: bool = False):
+    """EL CORTE n-dimensional: ?por=colonia,tipologia,piso (hasta 3 cruzadas).
+    Dimensiones = registro universal en corte_engine.DIMENSIONES."""
+    await require_superadmin(request)
+    dims = [d.strip() for d in por.split(",") if d.strip()][:3]
+    if not dims:
+        raise HTTPException(400, "Falta ?por=dimension[,dimension2[,dimension3]]")
+    from corte_engine import corte
+    try:
+        return await corte(_db(request), dims, development_id=development_id,
+                           incluir_sin_dato=incluir_sin_dato)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/escalera")
 async def escalera(request: Request):
     """La ESCALERA: el dato de moldes agregado en cada peldaño geográfico
