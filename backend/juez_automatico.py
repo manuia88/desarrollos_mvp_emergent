@@ -144,6 +144,11 @@ async def juzgar_desarrollo(db, development_id: str,
                 texto_pdf += [(p.extract_text() or "") for p in pdf.pages]
         except Exception:  # noqa: BLE001
             pass
+    # el Excel maestro trae TODOS los devs (582 renglones): filtrar por ESTE proyecto
+    # (colisión cazada por el propio juez: el '604' de otro desarrollo opinaba aquí)
+    dev_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
+    tokens = {t for t in re.split(r"\W+", (dev_doc or {}).get("name", "").upper())
+              if len(t) >= 4}
     filas_excel: Dict[str, Dict[str, Any]] = {}
     if excel_bytes:
         try:
@@ -153,8 +158,12 @@ async def juzgar_desarrollo(db, development_id: str,
             headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
             for r in ws.iter_rows(min_row=2, values_only=True):
                 d = dict(zip(headers, r))
-                if d.get("PRODUCTO"):
-                    filas_excel[norm_unidad(d["PRODUCTO"])] = d
+                if not d.get("PRODUCTO"):
+                    continue
+                des = str(d.get("DESARROLLO") or "").upper()
+                if tokens and not any(t in des for t in tokens):
+                    continue
+                filas_excel[norm_unidad(d["PRODUCTO"])] = d
         except Exception:  # noqa: BLE001
             pass
     v = juzgar_campos(muestra, texto_pdf, filas_excel)
