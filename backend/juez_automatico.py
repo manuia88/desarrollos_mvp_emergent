@@ -92,23 +92,24 @@ def juzgar_campos(muestra: List[Dict[str, Any]],
                 veredicto = "confirmado" if ok else "NO_COINCIDE"
                 evidencia = ("pdf_texto_crudo" if ok else
                              f"pdf: valor no hallado en {len(lineas)} línea(s) de {unidad}")
-        if veredicto != "confirmado" and campo in CAMPOS_EXCEL:
+        if campo in CAMPOS_EXCEL:
+            # el Excel SIEMPRE opina (segunda opinión aunque el PDF ya haya confirmado —
+            # así la pelea entre fuentes nunca pasa callada)
             fila = filas_excel.get(norm_unidad(unidad))
             if fila is not None:
                 crudo = fila.get(COL_EXCEL[campo])
                 try:
                     esperado = float(str(crudo).replace(",", ""))
-                    if isinstance(valor, (int, float)) and \
-                            abs(esperado - float(valor)) <= CAMPOS_EXCEL[campo]:
-                        veredicto, evidencia = "confirmado", "excel_celda_directa"
-                    elif veredicto == "NO_COINCIDE" or campo not in CAMPOS_PDF:
-                        veredicto = "NO_COINCIDE"
-                        evidencia = f"excel dice {crudo}, cargado {valor}"
-                    else:
-                        # el PDF ya lo había confirmado y el excel difiere → las FUENTES
-                        # pelean entre sí (capa 2), no es error de carga: va al cotejo
+                    excel_ok = isinstance(valor, (int, float)) and \
+                        abs(esperado - float(valor)) <= CAMPOS_EXCEL[campo]
+                    if veredicto == "confirmado" and not excel_ok:
                         veredicto = "discrepancia_fuentes"
                         evidencia = f"lista confirma {valor}, excel dice {crudo}"
+                    elif veredicto != "confirmado" and excel_ok:
+                        veredicto, evidencia = "confirmado", "excel_celda_directa"
+                    elif veredicto != "confirmado":
+                        veredicto = "NO_COINCIDE"
+                        evidencia = f"excel dice {crudo}, cargado {valor}"
                 except (TypeError, ValueError):
                     pass
         if campo == "unit_number":
