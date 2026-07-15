@@ -52,7 +52,8 @@ async def arbol(request: Request):
     devs: Dict[str, Dict[str, Any]] = {}
     async for d in db.developments.find({}, {"_id": 0, "id": 1, "name": 1, "developer_id": 1,
                                              "colonia": 1, "colonia_name": 1, "stage": 1,
-                                             "published": 1, "price_from": 1}).limit(2000):
+                                             "published": 1, "price_from": 1,
+                                             "readiness_pct": 1, "salud_dato": 1}).limit(2000):
         org = d.get("developer_id") or "sin_dev"
         dev = devs.setdefault(org, {"dev_org_id": org, "nombre": org, "proyectos": []})
         estados = por_dev_estado.get(d["id"], {})
@@ -63,6 +64,8 @@ async def arbol(request: Request):
             "precio_desde": d.get("price_from"),
             "unidades": sum(estados.values()), "por_estado": estados,
             "prototipos": protos.get(d["id"], 0),
+            "avance_pct": d.get("readiness_pct"),
+            "salud_dato": d.get("salud_dato"),
         })
 
     # nombres humanos de los dev orgs (users developer_admin ∪ dev_orgs ∪ manifiesto)
@@ -218,6 +221,62 @@ async def expediente(request: Request, development_id: str):
     }
 
 
+class PublicarIn(BaseModel):
+    forzar: bool = False          # publicar aunque no llegue al 80% (con acuse)
+    despublicar: bool = False
+
+
+@router.post("/expediente/{development_id}/publicar")
+async def publicar(request: Request, development_id: str, body: PublicarIn):
+    """Publicar al marketplace. <80% requiere forzar=true (override consciente del
+    founder): se registra en auditoría CON la lista de faltantes que el comprador verá."""
+    user = await require_superadmin(request)
+    db = _db(request)
+    d = await db.developments.find_one({"id": development_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    if body.despublicar:
+        await db.developments.update_one({"id": development_id},
+                                         {"$set": {"published": False,
+                                                   "marketplace_published": False}})
+        return {"ok": True, "published": False}
+    from routes.dev_project_full import project_full, project_readiness
+    rd = project_readiness(await project_full(db, development_id))
+    faltantes = [m.get("label") for m in (rd.get("missing") or [])]
+    if (rd.get("pct") or 0) < 80 and not body.forzar:
+        raise HTTPException(409, {"pct": rd.get("pct"), "faltantes": faltantes,
+                                  "detalle": "Bajo el 80%: manda forzar=true para "
+                                             "publicar de todos modos (queda con acuse)"})
+    await db.developments.update_one(
+        {"id": development_id},
+        {"$set": {"published": True, "marketplace_published": True,
+                  "published_at": _now_iso(),
+                  "published_override": (rd.get("pct") or 0) < 80}})
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "publish", "development", development_id,
+                           before={"pct": rd.get("pct")},
+                           after={"forzado": (rd.get("pct") or 0) < 80,
+                                  "faltantes_al_publicar": faltantes}, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "published": True, "pct": rd.get("pct"),
+            "override": (rd.get("pct") or 0) < 80, "faltantes": faltantes}
+
+
+@router.get("/auditoria")
+async def auditoria(request: Request, development_id: Optional[str] = None,
+                    nivel: Optional[str] = None, severidad: Optional[str] = None,
+                    correr: bool = False):
+    """La salud del dato (Auditor del Catálogo) — hipersegmentable. ?correr=1 = auditar YA."""
+    await require_superadmin(request)
+    from auditor_catalogo import auditar, ultima_auditoria
+    if correr:
+        await auditar(_db(request))
+    return await ultima_auditoria(_db(request), development_id=development_id,
+                                  nivel=nivel, severidad=severidad)
+
+
 class ExpedientePatch(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -371,6 +430,11 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
         async def _concilia_y_coteja():
             await _pe.materializar(db, u["development_id"])
             await _ce.cotejar_desarrollo(db, u["development_id"])
+            try:
+                from auditor_catalogo import auditar
+                await auditar(db, u["development_id"])
+            except Exception:  # noqa: BLE001
+                pass
         _aio.create_task(_concilia_y_coteja())
     except Exception:
         pass

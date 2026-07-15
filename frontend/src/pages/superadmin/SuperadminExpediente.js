@@ -47,9 +47,27 @@ export default function SuperadminExpediente({ user, onLogout }) {
   const [unidadSel, setUnidadSel] = useState(null);
   const [moldeSel, setMoldeSel] = useState(null);
   const [msg, setMsg] = useState('');
+  const [confirmaPub, setConfirmaPub] = useState(false);
+  const [salud, setSalud] = useState(null);
+
+  const publicar = async (forzar, despublicar = false) => {
+    try {
+      const r = await fetch(`${API}/api/superadmin/inventario/expediente/${encodeURIComponent(devId)}/publicar`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forzar, despublicar }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.detail?.detalle || JSON.stringify(j?.detail) || `HTTP ${r.status}`);
+      setMsg(despublicar ? 'Despublicado ✓' : `Publicado ✓${j.override ? ' (con tu acuse, al ' + j.pct + '%)' : ''}`);
+      setConfirmaPub(false); cargar();
+    } catch (e) { setMsg(String(e.message)); }
+  };
 
   const cargar = useCallback(() => _get(`/expediente/${encodeURIComponent(devId)}`).then(setX).catch((e) => setErr(String(e.message))), [devId]);
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    fetch(`${API}/api/superadmin/inventario/auditoria?development_id=${encodeURIComponent(devId)}`, { credentials: 'include' })
+      .then((r) => r.json()).then(setSalud).catch(() => setSalud(null));
+  }, [devId]);
 
   const guardar = async (campo, valor) => {
     try { await _patch(`/expediente/${encodeURIComponent(devId)}`, { [campo]: valor }); setMsg('Guardado ✓'); cargar(); }
@@ -80,12 +98,44 @@ export default function SuperadminExpediente({ user, onLogout }) {
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 23, color: 'var(--cream)', margin: 0 }}>{d.name}</h1>
           <span style={S.mini}>{d.colonia_name || d.colonia} · {d.alcaldia || ''} · {(d.stage || '').replace('_', ' ')}</span>
           <span style={{ flex: 1 }} />
-          <button disabled={!comp.publishable} title={comp.publishable ? 'Publicar al marketplace' : `Falta ${100 - comp.pct}% para poder publicar`}
-            style={{ ...S.btn, opacity: comp.publishable ? 1 : 0.45, background: comp.publishable ? 'rgba(74,222,128,0.15)' : undefined, border: comp.publishable ? '1px solid rgba(74,222,128,0.5)' : undefined, color: comp.publishable ? '#86efac' : undefined }}>
-            <Globe size={14} /> {comp.publishable ? 'Publicar al marketplace' : `Publicable al 80% (va ${comp.pct}%)`}
-          </button>
+          {d.published
+            ? <button onClick={() => publicar(false, true)} style={{ ...S.btn, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.4)', color: '#fca5a5' }}><Globe size={14} /> Publicado ✓ · despublicar</button>
+            : <button onClick={() => comp.publishable ? publicar(false) : setConfirmaPub(true)}
+                title={comp.publishable ? 'Publicar al marketplace' : 'Bajo el 80% — se puede publicar con tu acuse'}
+                style={{ ...S.btn, background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.5)', color: '#86efac' }}>
+                <Globe size={14} /> {comp.publishable ? 'Publicar al marketplace' : `Publicar (va ${comp.pct}%)`}
+              </button>}
         </div>
         {msg && <p style={{ ...S.p, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
+
+        {/* acuse: publicar ANTES del 80% — el founder ve exactamente qué saldrá incompleto */}
+        {confirmaPub && (
+          <div style={{ ...sec, border: '1px solid rgba(210,153,34,0.5)', background: 'rgba(210,153,34,0.06)' }}>
+            <H>⚠️ Vas a publicar al {comp.pct}% — el comprador verá esto incompleto:</H>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              {comp.missing.map((m) => <Falta key={m.label}>{m.label}</Falta>)}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={{ ...S.btn, background: 'rgba(210,153,34,0.2)', border: '1px solid rgba(210,153,34,0.55)', color: '#d29922' }} onClick={() => publicar(true)}>Publicar de todos modos (queda con mi acuse)</button>
+              <button style={S.btn} onClick={() => setConfirmaPub(false)}>Mejor no</button>
+            </div>
+          </div>
+        )}
+
+        {/* 🩺 salud del dato (Auditor del Catálogo) */}
+        {salud && salud.hallazgos.length > 0 && (
+          <div style={{ ...sec, border: '1px solid rgba(248,113,113,0.35)' }}>
+            <H>🩺 Salud del dato — {salud.resumen.error || 0} errores · {salud.resumen.alerta || 0} alertas · {salud.resumen.aviso || 0} avisos</H>
+            <div style={{ display: 'grid', gap: 4 }}>
+              {salud.hallazgos.slice(0, 8).map((h, i) => (
+                <span key={i} style={{ ...S.mini, color: h.severidad === 'error' ? '#fca5a5' : h.severidad === 'alerta' ? '#d29922' : undefined }}>
+                  [{h.severidad}] <b style={{ color: 'var(--cream)' }}>{h.ref}</b>: {h.detalle}
+                </span>
+              ))}
+              {salud.hallazgos.length > 8 && <span style={S.mini}>… {salud.hallazgos.length - 8} más</span>}
+            </div>
+          </div>
+        )}
 
         {/* completitud: la verdad arriba, en humano */}
         <div style={{ ...sec, background: comp.publishable ? 'rgba(74,222,128,0.05)' : 'rgba(210,153,34,0.05)' }}>

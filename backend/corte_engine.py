@@ -96,7 +96,13 @@ DIMENSIONES: Dict[str, Callable[..., Optional[str]]] = {
 
 # ─── el espejo de DEMANDA: ¿cuántas búsquedas reales le quedan a este corte? ──
 def _busca_compatible(b: Dict[str, Any], u: Dict[str, Any], colonia_u: str) -> bool:
-    """Una búsqueda del marketplace 'le queda' a una unidad si cumple TODOS sus criterios."""
+    """Una búsqueda 'le queda' a una unidad si cumple TODOS sus criterios — y solo cuenta
+    si declara AL MENOS UN criterio real (founder 07-15: una búsqueda vacía le 'quedaba'
+    a todo e inflaba la demanda; números honestos o nada)."""
+    if not any((b.get("colonias"), b.get("colonia_id"), b.get("precio_max"),
+                b.get("recamaras_min") is not None, b.get("banos_min") is not None,
+                b.get("m2_min"))):
+        return False
     cols = [c for c in (b.get("colonias") or ([b["colonia_id"]] if b.get("colonia_id") else []))]
     if cols and colonia_u not in cols:
         return False

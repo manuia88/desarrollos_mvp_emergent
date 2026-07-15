@@ -17,9 +17,9 @@ log = logging.getLogger("dmx.parte")
 
 # ─── el registro de cadencias (universal) ─────────────────────────────────────
 CADENCIAS: Dict[str, Dict[str, Any]] = {
-    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes", "gangas"]},
-    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas"]},
-    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas"]},
+    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes", "gangas", "salud"]},
+    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
+    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
     "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "trimestral": {"dias": 91,  "titulo": "📈 Parte trimestral",    "secciones": ["catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
     "semestral":  {"dias": 182, "titulo": "📈 Parte semestral",     "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
@@ -236,10 +236,26 @@ async def _sec_gangas(db, desde: str) -> List[str]:
         for g in gangas]
 
 
+async def _sec_salud(db, desde: str) -> List[str]:
+    """El Auditor del Catálogo: los datos rotos que hay que arreglar (con el átomo exacto)."""
+    from auditor_catalogo import ultima_auditoria
+    a = await ultima_auditoria(db)
+    hs = a.get("hallazgos") or []
+    if not hs:
+        return ["<b>🩺 Salud del dato</b>", "✅ 0 hallazgos — el catálogo está sano"]
+    r = a.get("resumen") or {}
+    out = [f"<b>🩺 Salud del dato</b> — {r.get('error', 0)} errores · "
+           f"{r.get('alerta', 0)} alertas · {r.get('aviso', 0)} avisos"]
+    graves = sorted(hs, key=lambda h: 0 if h["severidad"] == "error" else 1)[:5]
+    out += [f"· [{h['severidad'][:1].upper()}] {h.get('ref')}: {h['detalle'][:110]}"
+            for h in graves]
+    return out
+
+
 _SECCIONES = {"movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
               "absorcion": _sec_absorcion, "ritmo": _sec_ritmo, "frescura": _sec_frescura,
               "meses_inventario": _sec_meses_inventario, "demanda": _sec_demanda,
-              "moldes": _sec_moldes, "gangas": _sec_gangas}
+              "moldes": _sec_moldes, "gangas": _sec_gangas, "salud": _sec_salud}
 
 
 async def generar_parte(db, periodo: str = "diario") -> str:

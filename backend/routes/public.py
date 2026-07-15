@@ -1870,17 +1870,11 @@ async def list_developments(
             return True
 
         def _unit_card(u: dict, fin: dict = None) -> dict:
-            # Lo mínimo para NOMBRAR la unidad en el front + el enganche/mensualidad REAL (esquema del dev).
-            card = {
-                "unit_number": u.get("unit_number"), "prototype": u.get("prototype"), "level": u.get("level"),
-                "bedrooms": u.get("bedrooms"), "bathrooms": u.get("bathrooms"), "parking_spots": u.get("parking_spots"),
-                "m2_total": u.get("m2_total") or u.get("m2_privative"), "price": u.get("price"),
-                "price_display": u.get("price_display"),
-                "orientation": u.get("orientacion") or u.get("orientation"), "vista": u.get("vista"),
-                # el átomo completo fluye al marketplace (misma fuente que superadmin/dev)
-                "plano_url": u.get("plano_url"), "prototype_id": u.get("prototype_id"),
-            }
-            f = _unit_finance(u.get("price"), fin)
+            # EL CONTRATO (marketplace_contract): la tarjeta se construye desde el registro
+            # canónico — mismo mapeo que el test congelado. Campo nuevo = renglón allá.
+            from marketplace_contract import tarjeta_publica_unidad
+            card = tarjeta_publica_unidad(u)
+            f = _unit_finance(u.get("price") or u.get("price_mxn"), fin)
             if f:
                 card["enganche"] = f["enganche"]
                 card["mensualidad"] = f["mensualidad"]

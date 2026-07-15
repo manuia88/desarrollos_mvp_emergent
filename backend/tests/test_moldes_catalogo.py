@@ -91,7 +91,7 @@ def test_conciliador_molde_nuevo_nace_con_biografia():
     assert r["nuevos"] == 1
     doc = db.dmx_prototypes.inserted[0]
     assert doc["estado"] == "nuevo" and doc["nacio_at"] and doc["agoto_at"] is None
-    assert doc["huella"] == PE.huella_molde(2, 84.25)
+    assert doc["huella"] == PE.huella_molde(2, 84.25, 2.0) == "2r_2b_84m2"
 
 
 def test_conciliador_sin_unidades_agota_todo():

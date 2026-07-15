@@ -327,6 +327,11 @@ async def _materializa_y_coteja(db):
         await _ce.cotejar_todos(db)
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from auditor_catalogo import auditar
+        await auditar(db)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ─── 6) POST /items/{item_id}/reject ──────────────────────────────────────────

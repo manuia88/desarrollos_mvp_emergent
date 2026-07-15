@@ -186,9 +186,11 @@ def _match_molde(c: Dict[str, Any], existentes: List[Dict[str, Any]],
     return mejor
 
 
-def huella_molde(recamaras: Any, m2: Any) -> str:
-    """Identidad legible del molde (para linaje y cotejo entre proyectos)."""
-    return f"{recamaras if recamaras is not None else '?'}r_{round(m2 or 0)}m2"
+def huella_molde(recamaras: Any, m2: Any, banos: Any = None) -> str:
+    """Identidad legible del molde (linaje/cotejo). Incluye baños: 2R·2B·112 y 2R·2.5B·112
+    son moldes DISTINTOS (el auditor cazó la colisión en su primera corrida, 07-15)."""
+    b = f"_{banos:g}b" if banos else ""
+    return f"{recamaras if recamaras is not None else '?'}r{b}_{round(m2 or 0)}m2"
 
 
 async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[str, Any]:
@@ -234,7 +236,7 @@ async def materializar(db, development_id: str, bautizar: bool = False) -> Dict[
             "estacionamientos": c["estacionamientos"], "precio_desde_mxn": c["precio_desde"],
             "unidades_total": c["n"], "confianza": c["confianza"], "es_ph": c["es_ph"],
             "senales": c["senales"], "m2_min": c["m2_min"], "m2_max": c["m2_max"],
-            "huella": huella_molde(c["recamaras"], c["m2_prom"]),
+            "huella": huella_molde(c["recamaras"], c["m2_prom"], c["banos"]),
             "derivado_at": ahora, "metodo": "conciliador_moldes_v3",
         }
         if molde:  # molde conocido → actualizar SIN tocar identidad, nombre ni planos

@@ -7,6 +7,7 @@
  * La bandeja del vigía vive arriba. Deep-link: ?dev= & ?proyecto=. Editar dispara audit+bitácora.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, ChevronRight, Radar, FolderUp, UserPlus, X, Home } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
@@ -174,7 +175,7 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
       border: `1px solid ${tono === 'ok' ? 'rgba(74,222,128,0.4)' : tono === 'alerta' ? 'rgba(210,153,34,0.45)' : 'rgba(255,255,255,0.12)'}`,
       color: tono === 'ok' ? '#86efac' : tono === 'alerta' ? '#d29922' : 'rgba(240,235,224,0.8)' }}>{txt}</span>
   );
-  return (
+  return createPortal(
     <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,10,0.94)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '4vh 16px', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(880px, 96vw)', maxHeight: '92vh', overflowY: 'auto', background: '#14131c', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(var(--theme-rgb),0.45)', padding: '20px 24px' }} data-testid="ficha-unidad">
         {!x ? <p style={S.p}>{err || 'Abriendo la ficha…'}</p> : (<>
@@ -273,7 +274,8 @@ export function FichaUnidad({ unitId, onCerrar, onCambio, unidad }) {
           </div>
         </>)}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -585,6 +587,17 @@ export default function SuperadminInventario({ user, onLogout }) {
                   {p.publicado ? <span style={{ ...S.mini, color: '#86efac' }}>publicado</span> : <span style={S.mini}>borrador</span>}
                 </div>
                 <span style={S.mini}>{p.colonia}{p.etapa ? ` · ${p.etapa}` : ''} · {p.unidades} unidades · {p.prototipos} moldes {p.precio_desde ? `· desde ${fmtM(p.precio_desde)}` : ''}</span>
+                {p.avance_pct != null && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }} title={`Ficha completa al ${p.avance_pct}% · publicable al 80%`}>
+                    <span style={{ flex: 1, maxWidth: 160, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', display: 'inline-block' }}>
+                      <span style={{ display: 'block', height: '100%', width: `${p.avance_pct}%`, background: p.avance_pct >= 80 ? '#4ADE80' : '#d29922' }} />
+                    </span>
+                    <span style={{ ...S.mini, fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: p.avance_pct >= 80 ? '#86efac' : '#d29922' }}>{p.avance_pct}%</span>
+                    {p.salud_dato && (p.salud_dato.error > 0 || p.salud_dato.alerta > 0) && (
+                      <span style={{ ...S.mini, color: p.salud_dato.error ? '#fca5a5' : '#d29922' }}>🩺 {p.salud_dato.error || 0}E·{p.salud_dato.alerta || 0}A</span>
+                    )}
+                  </span>
+                )}
                 <MiniTorre porEstado={p.por_estado} total={p.unidades} />
               </button>
             ))}

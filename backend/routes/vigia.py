@@ -303,6 +303,8 @@ async def rederivar(request: Request, body: RederivarIn):
     try:
         import cotejo_engine as CE
         await CE.cotejar_todos(db)
+        from auditor_catalogo import auditar
+        await auditar(db)
     except Exception:  # noqa: BLE001
         pass
     return r
