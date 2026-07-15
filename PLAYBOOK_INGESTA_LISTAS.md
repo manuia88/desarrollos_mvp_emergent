@@ -132,3 +132,8 @@
   canónica de unidad — cada lista nueva apila deltas, nunca pisa historia.
 - **L29 · El juez integrado**: 20 campos con semilla fija por lote, visibles en la bandeja
   ANTES de aprobar — el gate del 98% es parte del producto.
+- **L30 · LAS 5 CAPAS, todas por sistema** (founder: "no puedo revisar 500 desarrollos
+  manualmente"): 1-aritmética en extracción · 2-cruce multi-fuente · 3-Portón pre-carga ·
+  4-auditor+cotejo post-carga · 5-JUEZ AUTOMÁTICO (muestra semilla fija re-leída desde los
+  bytes de la fuente por un camino independiente; ≥98% = gate; discrepancia entre fuentes
+  ≠ error de carga, va al cotejo). Verificado: NUA y Nupol 20/20 = 100% cada uno.

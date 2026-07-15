@@ -12,7 +12,9 @@ from typing import Any, Dict, List, Optional
 
 
 async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
-                      origen: str = "ingesta_directa") -> Dict[str, Any]:
+                      origen: str = "ingesta_directa",
+                      fuentes_pdf: Optional[List[bytes]] = None,
+                      fuente_excel: Optional[bytes] = None) -> Dict[str, Any]:
     """unidades en el vocabulario de extracción (unit_number, price_mxn, size_m2,
     bedrooms…). Pasa TODO por el merge canónico + dispara el circuito completo."""
     import bulk_ingest_engine as bie
@@ -40,6 +42,14 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         await kg_sync.sync_moldes(db)
     except Exception:  # noqa: BLE001
         pass
+    juez = None
+    if fuentes_pdf:
+        try:
+            from juez_automatico import juzgar_desarrollo
+            juez = await juzgar_desarrollo(db, target_dev_id, fuentes_pdf, fuente_excel)
+        except Exception:  # noqa: BLE001 — el juez nunca bloquea la carga; su veredicto sí
+            pass
     return {"development_id": target_dev_id, "unidades_antes": antes,
             "unidades_despues": despues, "moldes": r.get("prototipos"),
-            "origen": origen}
+            "origen": origen,
+            "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}

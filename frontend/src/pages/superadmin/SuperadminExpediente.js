@@ -241,6 +241,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
             <Dato l="Total del desarrollo" v={d.total_units_project || d.units_total} />
             <Dato l="Colonia (inteligencia de zona)" v={d.colonia_id ? '✓ conectada' : null} />
             <Dato l="Bitácora (historia total)" v={x.bitacora?.eventos ? `${x.bitacora.eventos} eventos` : null} />
+            <Dato l="⚖️ Juez automático" v={d.juez_pct != null ? `${d.juez_pct}% ${d.juez_gate ? '✅ gate 98 pasado' : '❌ bajo el gate'}` : null} />
             <Dato l="Última foto de lista" v={x.bitacora?.ultima_foto ? new Date(x.bitacora.ultima_foto).toLocaleString('es-MX') : null} />
             <Dato l="Fondo mant." v={d.fondo_mantenimiento_mxn ? `$${Number(d.fondo_mantenimiento_mxn).toLocaleString()}` : null} />
             <Dato l="Cuota equip." v={d.cuota_equipamiento_mxn ? `$${Number(d.cuota_equipamiento_mxn).toLocaleString()}` : null} />

@@ -169,3 +169,37 @@ def test_muestra_juez_reproducible():
     m2 = AU2.muestra_juez(units, n=10)
     assert m1 == m2 and len(m1) == 10              # misma semilla = mismo juez
     assert all(x["valor"] not in (None, "") for x in m1)
+
+
+# ═══ CAPA 5: EL JUEZ AUTOMÁTICO ════════════════════════════════════════════════
+def test_juez_comparadores_puros():
+    from juez_automatico import numeros_de_linea, linea_confirma, lineas_de_unidad
+    ln = "T2 - 2501 5.04 2 142.879 147.914 $ 12,125,800.00 $ 7,270,000.00"
+    assert 12_125_800.0 in numeros_de_linea(ln)
+    assert linea_confirma(ln, 12_125_800, 2)          # dinero exacto
+    assert linea_confirma(ln, 147.9, 0.6)             # m² con tolerancia
+    assert not linea_confirma(ln, 99_999_999, 2)
+    # 'T1 - 2405' de la base encuentra la línea '2405 ...' del PDF sin prefijo
+    paginas = ["2405 4.78 2 141.929 146.96 $ 10,881,200.00"]
+    assert lineas_de_unidad(paginas, "T1 - 2405")
+    assert not lineas_de_unidad(paginas, "T1 - 9999")
+
+
+def test_juez_veredictos_y_discrepancia_fuentes():
+    from juez_automatico import juzgar_campos
+    texto = ["701 2.40 0.00 2 102.26 104.66 $ 8,606,100.00 $ 6,020,000.00 $ 2,586,100.00"]
+    excel = {"701": {"RECAMARAS": 2, "BAÑOS": 2, "ESTACIONAMIENTOS": 1,
+                     "M2 HABITABLE": 102.26}}
+    muestra = [
+        {"unidad": "701", "campo": "price_mxn", "valor": 8_606_100.0},   # PDF ✓
+        {"unidad": "701", "campo": "bedrooms", "valor": 2},              # Excel ✓
+        {"unidad": "701", "campo": "parking_spots", "valor": 2},         # PDF ✓, Excel dice 1
+        {"unidad": "701", "campo": "price_mxn", "valor": 9_999_999.0},   # NO existe
+    ]
+    v = juzgar_campos(muestra, texto, excel)
+    por = {(d["campo"], d["valor"]): d["veredicto"] for d in v["detalles"]}
+    assert por[("price_mxn", 8_606_100.0)] == "confirmado"
+    assert por[("bedrooms", 2)] == "confirmado"
+    assert por[("parking_spots", 2)] == "discrepancia_fuentes"   # fuentes pelean ≠ error
+    assert por[("price_mxn", 9_999_999.0)] == "NO_COINCIDE"
+    assert v["confirmados"] == 3 and v["revisables"] == 4 and not v["gate_98"]
