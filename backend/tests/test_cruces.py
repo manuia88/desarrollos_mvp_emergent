@@ -300,6 +300,29 @@ def test_hedonico_v0_coeficientes_y_residuales():
     assert entrenar_hedonico(units[:10]) is None       # sin masa: honesto
 
 
+def test_hedonico_validacion_honesta():
+    """El r² que se reporta al founder incluye la prueba sobre datos NUNCA vistos —
+    por unidad (KFold) y por edificio completo (GroupKFold por development_id)."""
+    from ml_precios import entrenar_hedonico
+    import random
+    rng = random.Random(2)
+    units = []
+    for i in range(150):
+        m2 = 60 + rng.random() * 80
+        piso = rng.randint(1, 20)
+        units.append({"id": f"u{i}", "development_id": f"dev{i % 5}",
+                      "price_mxn": 60_000 * m2 + 50_000 * piso + rng.gauss(0, 30_000),
+                      "m2_privative": m2, "size_m2": m2, "level": piso,
+                      "bedrooms": 2, "bathrooms": 2, "_colonia": "x"})
+    v = entrenar_hedonico(units)["validacion"]
+    assert v["unidad_nueva"]["r2"] > 0.9                # generaliza a unidad nueva
+    assert v["edificio_nuevo"]["n_edificios"] == 5      # y se probó edificio-fuera
+    assert 0 < v["edificio_nuevo"]["error_pct"] < 10    # datos sintéticos sin sesgo por edificio
+    # con 2 edificios NO se puede probar edificio-fuera → el bloque no aparece (honesto)
+    dos = [dict(u, development_id=f"d{i % 2}") for i, u in enumerate(units)]
+    assert "edificio_nuevo" not in entrenar_hedonico(dos)["validacion"]
+
+
 def test_cotas_extractor_y_validacion():
     from cotas_engine import extraer_cotas, validar_contra_habitables
     texto = ("RECÁMARA PRINCIPAL 4.00 x 2.85\nCOCINA\n3.60 x 2.60\n"

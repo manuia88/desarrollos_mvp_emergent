@@ -224,7 +224,9 @@ async def fabrica(request: Request):
             "respaldo": {"ultimo": respaldos[-1].name if respaldos else "aún ninguno (corre 3:30am)",
                          "copias": len(respaldos)},
             "juicio_visual_pendiente": await db.cola_juicio_visual.count_documents(
-                {"estado": "pendiente"})}
+                {"estado": "pendiente"}),
+            "modelo_ml": await db.ml_modelos.find_one(
+                {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)])}
 
 
 class DeshacerIn(BaseModel):

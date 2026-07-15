@@ -111,6 +111,17 @@ function FabricaCard() {
         <span style={mini}>💾 respaldo: <b style={{ color: 'var(--cream)' }}>{fx.respaldo.ultimo}</b> ({fx.respaldo.copias} copias)</span>
         {fx.juicio_visual_pendiente > 0 && <span style={{ ...mini, color: '#d29922' }}>👁‍🗨 {fx.juicio_visual_pendiente} fuente(s) escaneadas esperando juicio visual</span>}
       </div>
+      {fx.modelo_ml && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+          <span style={mini}>🧠 modelo de precios: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.n} unidades</b></span>
+          {fx.modelo_ml.validacion?.unidad_nueva && (
+            <span style={mini}>depa nuevo de un edificio conocido: <b style={{ color: 'var(--cream)' }}>±{fx.modelo_ml.validacion.unidad_nueva.error_pct}%</b> de error</span>
+          )}
+          {fx.modelo_ml.validacion?.edificio_nuevo && (
+            <span style={mini}>edificio nunca visto: <b style={{ color: '#d29922' }}>±{fx.modelo_ml.validacion.edificio_nuevo.error_pct}%</b> (con {fx.modelo_ml.validacion.edificio_nuevo.n_edificios} edificios — mejora con cada proyecto que entra)</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
