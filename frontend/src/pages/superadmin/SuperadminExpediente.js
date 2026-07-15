@@ -156,7 +156,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
           <H>📋 Datos del desarrollo</H>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
             <CampoEditable label="Nombre" value={d.name} onSave={(v) => guardar('name', v)} />
-            <CampoEditable label="Dirección" value={d.address_full} onSave={(v) => guardar('address_full', v)} />
+            <CampoEditable label="Dirección" value={d.address_full || d.address} onSave={(v) => guardar('address_full', v)} />
             <CampoEditable label="Entrega" value={d.delivery_estimate} onSave={(v) => guardar('delivery_estimate', v)} />
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 12 }}>

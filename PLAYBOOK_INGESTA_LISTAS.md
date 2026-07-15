@@ -103,3 +103,22 @@
 - **L20 · El sistema debe auditarse a sí mismo en cada ciclo.** El Auditor cazó errores del
   dev (roofs), del código (huella sin baños) y del propio proceso (cotejo caducado) en su
   primera corrida. La auditoría de una vez caduca; la regla viva no.
+
+## 6 · LECCIONES DE VISIÓN AMPLIA (07-15, tras el reclamo del founder "te falta visión")
+
+- **L21 · Extraer ≠ colocar.** La sesión capturó tipo de estacionamiento, acabados, maps y
+  fecha de entrega — y nunca aterrizaron en la ficha. Toda extracción produce un manifiesto
+  de campos capturados y el sistema verifica que CADA uno aterrizó en su campo canónico o
+  fue descartado a propósito. Lo capturado que no se coloca es trabajo tirado.
+- **L22 · Un nombre canónico por dato, con registro de alias.** `address` vs `address_full`
+  dejó la dirección invisible 2 días. Regla alias_invisible del Auditor + todo campo nuevo
+  declara su nombre canónico UNA vez.
+- **L23 · Cada reclamo del founder = una REGLA permanente, no solo un fix.** A-1505 →
+  m2_coherencia · dirección → alias_invisible · 390 búsquedas → criterio mínimo · moldes
+  borrados → conciliador. El QA de campo del founder es la mejor fuente de invariantes:
+  institucionalizarlo.
+- **L24 · La FALTA visible vale más que el dato oculto.** Mostrar el hueco con su dueño
+  ("FALTA · el desarrollador") convirtió la UI en un gestor de tareas que se llena solo.
+- **L25 · Los registros son la universalidad.** DIMENSIONES (corte), REGLAS (auditor),
+  CONTRATO (marketplace), SECCIONES (ficha), CADENCIAS (parte): 5 registros donde "agregar
+  algo" = 1 renglón. Cuando algo nuevo pida código por-dev o por-campo, está mal diseñado.

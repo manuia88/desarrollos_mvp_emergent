@@ -214,6 +214,39 @@ def r_assets_en_disco(d, ctx):
     return None
 
 
+# alias conocidos: el dato EXISTE pero bajo un nombre que la ficha no lee (familia
+# cazada por el founder 07-15: address vs address_full — dirección invisible 2 días)
+ALIAS_DEV = [("address_full", ("address", "direccion", "ubicacion")),
+             ("delivery_estimate", ("delivery_date", "fecha_entrega")),
+             ("description", ("descripcion", "about")),
+             ("colonia_id", ("colonia_slug",))]
+
+
+def r_alias_invisible(d, ctx):
+    for canonico, alias in ALIAS_DEV:
+        if d.get(canonico):
+            continue
+        con_dato = [a for a in alias if d.get(a)]
+        if con_dato:
+            return _h("alias_invisible", "desarrollo", ALERTA, d.get("name") or d.get("id"),
+                      f"'{canonico}' está vacío pero el dato EXISTE bajo '{con_dato[0]}' "
+                      f"— la ficha lo muestra como FALTA siendo que ya lo tenemos",
+                      development_id=d.get("id"), canonico=canonico, alias=con_dato[0])
+    return None
+
+
+def r_dev_basicos(d, ctx):
+    if not ctx["units"]:
+        return None
+    faltan = [c for c in ("address_full", "description", "delivery_estimate")
+              if not d.get(c)]
+    if faltan:
+        return _h("dev_basicos", "desarrollo", ALERTA, d.get("name") or d.get("id"),
+                  f"campos base del desarrollo vacíos: {', '.join(faltan)} — el comprador "
+                  f"no sabrá ni dónde está", development_id=d.get("id"), faltan=faltan)
+    return None
+
+
 def r_dueno(d, ctx):
     if ctx["units"] and not d.get("developer_id"):
         return _h("dueno", "desarrollo", ERROR, d.get("name") or d.get("id"),
@@ -239,6 +272,8 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "cotejo_fresco", "nivel": "desarrollo", "fn": r_cotejo_fresco},
     {"key": "bitacora_cubre", "nivel": "desarrollo", "fn": r_bitacora_cubre},
     {"key": "assets_en_disco", "nivel": "desarrollo", "fn": r_assets_en_disco},
+    {"key": "alias_invisible", "nivel": "desarrollo", "fn": r_alias_invisible},
+    {"key": "dev_basicos", "nivel": "desarrollo", "fn": r_dev_basicos},
     {"key": "dueno", "nivel": "desarrollo", "fn": r_dueno},
 ]
 

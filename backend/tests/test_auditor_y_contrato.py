@@ -100,3 +100,21 @@ def test_contrato_nunca_publico_es_disjunto_del_contrato():
     """Nadie puede poner un campo prohibido en el contrato sin que truene aquí."""
     publicos = {campo for campo, _ in MC.CONTRATO_UNIDAD}
     assert not (publicos & MC.NUNCA_PUBLICO)
+
+
+def test_regla_alias_invisible_caza_direccion_perdida():
+    """El caso founder 07-15: address lleno, address_full vacío → la ficha decía FALTA."""
+    d = {"id": "dev1", "name": "Alba", "address": "Cam. Real de Minas 7"}
+    h = AU.r_alias_invisible(d, {})
+    assert h and h["canonico"] == "address_full" and h["alias"] == "address"
+    # con el canónico lleno, silencio
+    assert AU.r_alias_invisible({"id": "d", "address_full": "x", "address": "x"}, {}) is None
+
+
+def test_regla_dev_basicos():
+    d = {"id": "dev1", "name": "Alba"}
+    h = AU.r_dev_basicos(d, _ctx([_u()]))
+    assert h and "address_full" in h["faltan"]
+    completo = {"id": "d", "address_full": "x", "description": "y",
+                "delivery_estimate": "z"}
+    assert AU.r_dev_basicos(completo, _ctx([_u()])) is None
