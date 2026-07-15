@@ -302,7 +302,8 @@ def test_hedonico_v0_coeficientes_y_residuales():
 
 def test_cotas_extractor_y_validacion():
     from cotas_engine import extraer_cotas, validar_contra_habitables
-    texto = "RECÁMARA PRINCIPAL 4.00 x 2.85\\nCOCINA\\n3.60 x 2.60\\nBAÑO 1.80x1.40\\nTERRAZA 2.00 x 1.50"
+    texto = ("RECÁMARA PRINCIPAL 4.00 x 2.85\nCOCINA\n3.60 x 2.60\n"
+             "BAÑO 1.80x1.40\nTERRAZA 2.00 x 1.50")
     cotas = extraer_cotas(texto)
     d = {c["espacio"]: c for c in cotas}
     assert d["recamara principal"]["m2"] == 11.4
