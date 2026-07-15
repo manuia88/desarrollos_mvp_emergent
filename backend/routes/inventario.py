@@ -229,6 +229,27 @@ async def fabrica(request: Request):
                 {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)])}
 
 
+@router.get("/autopiloto")
+async def autopiloto_estado(request: Request):
+    """LA PÓLIZA + el log de decisiones: qué hace solo, qué escala y por qué."""
+    await require_superadmin(request)
+    db = _db(request)
+    import autopiloto_catalogo as ap
+    ultimas = await db.autopiloto_log.find({}, {"_id": 0}) \
+        .sort("ts", -1).to_list(50)
+    return {"encendido": ap.encendido(), "poliza": ap.POLIZA,
+            "pedidos_preparados": await db.pedidos_preparados.count_documents({}),
+            "ultimas_decisiones": ultimas}
+
+
+@router.post("/autopiloto/correr")
+async def autopiloto_correr(request: Request):
+    """Una pasada manual del autopiloto (también corre solo tras cada ronda del vigía)."""
+    await require_superadmin(request)
+    from autopiloto_catalogo import correr_autopiloto
+    return await correr_autopiloto(_db(request))
+
+
 class DeshacerIn(BaseModel):
     acta_id: str
 

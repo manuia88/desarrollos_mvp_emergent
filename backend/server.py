@@ -2553,6 +2553,16 @@ async def startup():
             async def _vigia_hourly():
                 import vigia_engine as _ve
                 await _ve.ronda(db)
+                # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
+                # aprueba portones limpios, publica con gates verdes, prepara pedidos
+                try:
+                    from autopiloto_catalogo import correr_autopiloto
+                    r = await correr_autopiloto(db)
+                    if r.get("acciones"):
+                        logging.info(f"[autopiloto] {r['acciones']} acción(es), "
+                                     f"{r.get('escaladas', 0)} escalada(s)")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[autopiloto] corrida falló: {e}")
 
             sched.add_job(_vigia_hourly, IntervalTrigger(minutes=60),
                           id="vigia_hourly", replace_existing=True, misfire_grace_time=600)

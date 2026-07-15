@@ -323,6 +323,43 @@ def test_hedonico_validacion_honesta():
     assert "edificio_nuevo" not in entrenar_hedonico(dos)["validacion"]
 
 
+def test_torneo_jerarquico_gana_con_efecto_de_edificio():
+    """Datos con prima POR EDIFICIO que las features no ven → el jerárquico debe
+    ganar el torneo y capturar la prima en sus residuales."""
+    from ml_precios import entrenar_hedonico
+    import random
+    rng = random.Random(3)
+    units, prima = [], {"d0": 400_000, "d1": -300_000, "d2": 0, "d3": 250_000}
+    for i in range(200):
+        dev = f"d{i % 4}"
+        m2 = 60 + rng.random() * 80
+        piso = rng.randint(1, 20)
+        units.append({"id": f"u{i}", "development_id": dev,
+                      "price_mxn": 60_000 * m2 + 50_000 * piso + prima[dev] + rng.gauss(0, 30_000),
+                      "m2_privative": m2, "size_m2": m2, "level": piso,
+                      "bedrooms": 2, "bathrooms": 2, "_colonia": "x"})
+    m = entrenar_hedonico(units)
+    assert m["version"] == "hedonico_v1_jerarquico"
+    assert "jerárquico" in m["torneo"]["campeon"]
+    assert m["torneo"]["jerarquico"]["error_pct"] < m["torneo"]["ridge"]["error_pct"]
+    # el rango 80% existe, viene ordenado y su cobertura real se midió fuera de muestra
+    r = next(iter(m["residuales"].values()))
+    assert r["rango_bajo"] < r["valor_modelo"] < r["rango_alto"] * 1.05
+    assert 55 <= m["cobertura_rango_pct"] <= 98
+
+
+def test_drift_modelo_regla_catalogo():
+    """El auditor alerta si el modelo empeora de golpe tras una carga."""
+    from auditor_catalogo import drift_modelo
+    v = lambda err: {"validacion": {"unidad_nueva": {"error_pct": err}}, "r2": 0.94}  # noqa: E731
+    assert drift_modelo(v(4.7), v(5.5)) is None            # ruido normal: no alerta
+    h = drift_modelo(v(4.7), v(9.0))                       # +4.3 pts: alerta
+    assert h and h["severidad"] == "alerta" and "±4.7%" in h["detalle"]
+    h2 = drift_modelo({"r2": 0.94, "validacion": {}}, {"r2": 0.85, "validacion": {}})
+    assert h2 and "r²=0.94" in h2["detalle"]               # caída de ajuste: alerta
+    assert drift_modelo(None, v(5.0)) is None              # primer modelo: sin base
+
+
 def test_cotas_extractor_y_validacion():
     from cotas_engine import extraer_cotas, validar_contra_habitables
     texto = ("RECÁMARA PRINCIPAL 4.00 x 2.85\nCOCINA\n3.60 x 2.60\n"

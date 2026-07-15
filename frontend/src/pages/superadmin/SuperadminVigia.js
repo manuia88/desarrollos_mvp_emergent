@@ -120,6 +120,51 @@ function FabricaCard() {
           {fx.modelo_ml.validacion?.edificio_nuevo && (
             <span style={mini}>edificio nunca visto: <b style={{ color: '#d29922' }}>±{fx.modelo_ml.validacion.edificio_nuevo.error_pct}%</b> (con {fx.modelo_ml.validacion.edificio_nuevo.n_edificios} edificios — mejora con cada proyecto que entra)</span>
           )}
+          {fx.modelo_ml.torneo?.campeon && (
+            <span style={mini}>🏆 campeón del torneo: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.torneo.campeon}</b></span>
+          )}
+          {fx.modelo_ml.cobertura_rango_pct != null && (
+            <span style={mini}>banda 80% cubre de verdad: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.cobertura_rango_pct}%</b></span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 🛞 EL AUTOPILOTO: la línea de ensamble se recorre sola, bajo póliza ── */
+function AutopilotoCard() {
+  const [ap, setAp] = useState(null);
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback(() => _get('/inventario/autopiloto').then(setAp).catch(() => setAp(null)), []);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (!ap) return null;
+  const correr = async () => {
+    setMsg('corriendo…');
+    try { const r = await _post('/inventario/autopiloto/correr'); setMsg(`listo: ${r.acciones} acción(es), ${r.escaladas} escalada(s)`); cargar(); } catch (e) { setMsg(String(e.message)); }
+  };
+  const ICONO = { aprobar_lote: '✅', publicar: '📣', preparar_pedido: '📨', escalar: '🖐' };
+  return (
+    <div style={card} data-testid="autopiloto">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={h3}>🛞 El Autopiloto {ap.encendido ? '· encendido' : '· APAGADO'}</div>
+        <button type="button" style={btn()} onClick={correr}><RefreshCw size={13} /> Correr ahora</button>
+        {msg && <span style={mini}>{msg}</span>}
+      </div>
+      <p style={p13}>La plataforma opera sola lo que su póliza permite; todo lo demás te lo escala con el porqué. Cada decisión queda registrada.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
+        {ap.poliza.map((r) => (
+          <span key={r.regla} style={mini}><b style={{ color: 'var(--theme)' }}>{r.regla}</b> · {r.accion} — solo si {r.solo_si}</span>
+        ))}
+      </div>
+      {(ap.ultimas_decisiones || []).length > 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 180, overflowY: 'auto' }}>
+          {ap.ultimas_decisiones.slice(0, 12).map((d, i) => (
+            <span key={i} style={mini}>
+              {ICONO[d.accion] || '•'} <b style={{ color: 'var(--cream)' }}>{d.objetivo}</b> — {d.evidencia} → {d.resultado}
+              <span style={{ opacity: 0.6 }}> · regla {d.regla} · {new Date(d.ts).toLocaleString('es-MX')}</span>
+            </span>
+          ))}
         </div>
       )}
     </div>
@@ -236,6 +281,7 @@ export function VigiaTab() {
 
       <TelegramCard />
         <FabricaCard />
+        <AutopilotoCard />
         <ParteCard />
 
       {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}

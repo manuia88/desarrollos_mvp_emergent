@@ -382,6 +382,27 @@ def resumen_hallazgos(hallazgos: List[Dict[str, Any]]) -> Dict[str, int]:
 
 
 # ═══ CORRIDA COMPLETA (Mongo solo aquí) ════════════════════════════════════════
+def drift_modelo(previo: Optional[Dict[str, Any]],
+                 actual: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Regla de CATÁLOGO (pura): si tras una carga el modelo de precios empeora de
+    golpe, algo entró mal (datos sucios que las otras capas no cazaron) o el mercado
+    cambió — ambas ameritan ojos. Umbral: +3 puntos de error o −0.05 de r²."""
+    if not previo or not actual:
+        return None
+    e_prev = ((previo.get("validacion") or {}).get("unidad_nueva") or {}).get("error_pct")
+    e_act = ((actual.get("validacion") or {}).get("unidad_nueva") or {}).get("error_pct")
+    if e_prev is not None and e_act is not None and e_act - e_prev > 3:
+        return _h("ml_drift", "catalogo", ALERTA, "modelo de precios",
+                  f"el error del modelo brincó de ±{e_prev}% a ±{e_act}% tras la última "
+                  f"carga — revisar qué entró (¿datos sucios o cambio real de mercado?)")
+    r_prev, r_act = previo.get("r2"), actual.get("r2")
+    if r_prev is not None and r_act is not None and r_prev - r_act > 0.05:
+        return _h("ml_drift", "catalogo", ALERTA, "modelo de precios",
+                  f"el ajuste del modelo cayó de r²={r_prev} a r²={r_act} — "
+                  f"la última carga trae algo que el modelo no explica")
+    return None
+
+
 async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
     from unidades_efectivas import unidades_efectivas
     q = {"id": development_id} if development_id else {}
@@ -432,6 +453,16 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
                                 f"está dormido (¿laptop cerrada?)"))
         except ValueError:
             pass
+    # nivel CATÁLOGO: ¿el modelo de precios se degradó tras la última carga?
+    try:
+        ult = await db.ml_modelos.find({}, {"_id": 0, "r2": 1, "validacion": 1}) \
+            .sort("ts", -1).to_list(2)
+        h_drift = drift_modelo(ult[1] if len(ult) > 1 else None,
+                               ult[0] if ult else None)
+        if h_drift:
+            todos.append(h_drift)
+    except Exception:  # noqa: BLE001
+        pass
     doc = {"ts": ts, "development_id": development_id,
            "hallazgos": todos, "resumen": resumen_hallazgos(todos),
            "reglas_evaluadas": len(REGLAS)}
