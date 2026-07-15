@@ -338,6 +338,11 @@ async def _materializa_y_coteja(db):
         await auditar(db)
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from knowledge_graph_engine import kg_sync
+        await kg_sync.sync_moldes(db)      # no-op sin Neo4j
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ─── 6) POST /items/{item_id}/reject ──────────────────────────────────────────

@@ -77,3 +77,50 @@ def test_bandeja_prioriza_y_temperatura():
     assert [i["tipo"] for i in BU.priorizar(items)] == ["dato_roto", "vigia", "pedido"]
     assert BU.temperatura_lead({"budget_mxn": 5_000_000, "interactions": 3}, gangas_dev=2) == 100
     assert BU.temperatura_lead({}, 0) == 0
+
+
+def test_pulse_bitacora_fuente_primaria():
+    """La bitácora propia alimenta el Live Pulse: ≥2 días con $/m² → delta real conf 0.9;
+    con 1 día → None (cae a DRPI, sin romper el contrato del motor)."""
+    import asyncio
+    import live_pulse_engine as LP
+
+    class _Cur:
+        def __init__(s, rows): s.rows = rows
+        def limit(s, n): return s
+        def __aiter__(s):
+            s._i = iter(s.rows); return s
+        async def __anext__(s):
+            try: return next(s._i)
+            except StopIteration: raise StopAsyncIteration
+
+    class _DB:
+        def __init__(s, rows): s.rows = rows
+        @property
+        def oferta_timeline(s): return s
+        def find(s, q, p): return _Cur(s.rows)
+
+    # 5 unidades emparejadas, +5% cada una, ventana 30 días → real, conf 0.9
+    rows = []
+    for i in range(5):
+        rows += [{"unit_id": f"u{i}", "ts": "2026-06-01T09:00", "pm2": 60_000},
+                 {"unit_id": f"u{i}", "ts": "2026-07-01T09:00", "pm2": 63_000}]
+    r = asyncio.run(LP._price_movement_bitacora(_DB(rows), "tetelpan"))
+    assert r["source"] == "real" and r["confidence"] == 0.9 and abs(r["value"] - 5.0) < 0.01
+    # 2 unidades editadas el mismo día (ruido de edición) → None (anti sesgo de composición)
+    ruido = [{"unit_id": "a", "ts": "2026-07-14T09:00", "pm2": 60_000},
+             {"unit_id": "a", "ts": "2026-07-14T18:00", "pm2": 50_000}]
+    assert asyncio.run(LP._price_movement_bitacora(_DB(ruido), "x")) is None
+
+
+def test_kg_molde_noop_sin_neo4j():
+    """Sin Neo4j el sync de moldes es no-op limpio (mismo contrato que todo el KG)."""
+    import asyncio
+    import knowledge_graph_engine as KG
+    assert "Molde" in KG.NODE_TYPES and "HAS_MOLDE" in KG.EDGE_TYPES
+    prev = KG.KG_AVAILABLE
+    KG.KG_AVAILABLE = False
+    try:
+        assert asyncio.run(KG.kg_sync.upsert_molde_node(None, {"prototype_id": "p1"})) is None
+    finally:
+        KG.KG_AVAILABLE = prev

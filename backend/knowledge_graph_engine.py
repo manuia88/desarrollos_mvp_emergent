@@ -26,13 +26,13 @@ log = logging.getLogger("dmx.kg")
 
 NODE_TYPES: List[str] = [
     "Project", "Unit", "DevOrg", "Zone", "Comparable",
-    "Lead", "BehavioralSession", "IEScore",
+    "Lead", "BehavioralSession", "IEScore", "Molde",
 ]
 
 EDGE_TYPES: List[str] = [
     "OWNED_BY", "LOCATED_IN", "HAS_UNIT", "INTERESTED_IN",
     "REPRESENTS", "VIEWED", "SCORED_BY", "COMPARABLE_TO",
-    "IN_SAME_ZONE_AS", "DUPLICATE_OF",
+    "IN_SAME_ZONE_AS", "DUPLICATE_OF", "HAS_MOLDE", "MOLDE_IN_ZONE",
 ]
 
 # Global availability flag — set during startup via health_check()
@@ -384,6 +384,70 @@ class _KGSync:
 
 
 # Singleton expuesto
+    async def upsert_molde_node(self, db, molde_doc: Dict[str, Any],
+                                zone_slug: Optional[str] = None) -> Optional[str]:
+        """MERGE Molde + edges (Project)-[:HAS_MOLDE]->(Molde)-[:MOLDE_IN_ZONE]->(Zone).
+        El Catálogo de Moldes (07-15) entra al grafo: dev↔proyecto↔molde↔zona navegable.
+        Idempotente · no-op sin Neo4j (mismo contrato que el resto del sync)."""
+        if not KG_AVAILABLE:
+            log.debug("[KG sync] upsert_molde_node skipped · KG_AVAILABLE=False")
+            return None
+        pid = molde_doc.get("prototype_id")
+        if not pid:
+            return None
+        cypher = """
+        MERGE (m:Molde {id: $id})
+        SET m.nombre = $nombre,
+            m.huella = $huella,
+            m.estado = $estado,
+            m.recamaras = $recamaras,
+            m.banos = $banos,
+            m.m2 = $m2,
+            m.unidades_total = $unidades_total,
+            m.nacio_at = $nacio_at,
+            m.agoto_at = $agoto_at
+        WITH m, $project_id AS pid
+        WHERE pid IS NOT NULL AND pid <> ''
+        MERGE (p:Project {id: pid})
+        MERGE (p)-[:HAS_MOLDE]->(m)
+        WITH m, $zone_slug AS zs
+        WHERE zs IS NOT NULL AND zs <> ''
+        MERGE (z:Zone {slug: zs})
+        MERGE (m)-[:MOLDE_IN_ZONE]->(z)
+        RETURN m.id AS molde_id
+        """
+        params = {
+            "id": pid, "nombre": molde_doc.get("nombre"),
+            "huella": molde_doc.get("huella"), "estado": molde_doc.get("estado"),
+            "recamaras": molde_doc.get("recamaras"), "banos": molde_doc.get("banos"),
+            "m2": molde_doc.get("m2_construido"),
+            "unidades_total": molde_doc.get("unidades_total"),
+            "nacio_at": molde_doc.get("nacio_at"), "agoto_at": molde_doc.get("agoto_at"),
+            "project_id": molde_doc.get("development_id"), "zone_slug": zone_slug,
+        }
+        try:
+            drv = await KGDriver.get()
+            await drv.run(cypher, params, retries=2)
+            await _audit(db, action="kg_molde_upsert", entity_id=pid,
+                         payload={"project_id": molde_doc.get("development_id")})
+            return pid
+        except Exception as exc:
+            log.warning(f"[KG sync] upsert_molde_node failed · id={pid}: {exc}")
+            return None
+
+    async def sync_moldes(self, db) -> int:
+        """Barrido idempotente del Catálogo de Moldes completo al grafo (post-conciliación)."""
+        if not KG_AVAILABLE:
+            return 0
+        n = 0
+        zonas = {d["id"]: d.get("colonia_id") for d in await db.developments.find(
+            {}, {"_id": 0, "id": 1, "colonia_id": 1}).to_list(500)}
+        async for m in db.dmx_prototypes.find({}, {"_id": 0}):
+            if await self.upsert_molde_node(db, m, zonas.get(m.get("development_id"))):
+                n += 1
+        return n
+
+
 kg_sync = _KGSync()
 
 

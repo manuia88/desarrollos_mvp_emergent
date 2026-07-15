@@ -236,8 +236,48 @@ async def compute_lead_intent_velocity(
 
 # ─── Signal 5: price movement (forecast_engine DRPI) ─────────────────────────
 
+async def _price_movement_bitacora(db, zone_slug: str) -> Optional[Dict[str, Any]]:
+    """FUENTE PRIMARIA (07-15): la bitácora del catálogo propio (oferta_timeline).
+    Si la zona tiene ≥2 días de fotos con $/m², el movimiento de precio sale de NUESTRO
+    dato (confianza 0.9) antes que de cualquier índice derivado. Fail-soft → None."""
+    try:
+        # POR UNIDAD EMPAREJADA (anti sesgo de composición): la misma unidad al inicio
+        # y al final — jamás promedios de subconjuntos distintos. Mínimos honestos:
+        # ≥5 unidades emparejadas y ≥7 días de ventana (las ediciones sueltas no son mercado).
+        from collections import defaultdict
+        from datetime import date
+        por_unidad: Dict[str, list] = defaultdict(list)
+        async for e in db.oferta_timeline.find({"colonia": zone_slug, "pm2": {"$gt": 0}},
+                                               {"_id": 0, "ts": 1, "pm2": 1,
+                                                "unit_id": 1}).limit(20000):
+            if e.get("unit_id"):
+                por_unidad[e["unit_id"]].append((str(e["ts"])[:10], float(e["pm2"])))
+        deltas, fechas = [], set()
+        for evs in por_unidad.values():
+            evs.sort()
+            if len(evs) >= 2 and evs[0][1] > 0:
+                deltas.append((evs[-1][1] - evs[0][1]) * 100 / evs[0][1])
+                fechas.add(evs[0][0]); fechas.add(evs[-1][0])
+        if len(deltas) < 5 or len(fechas) < 2:
+            return None
+        dias = sorted(fechas)
+        ventana = abs((date.fromisoformat(dias[-1]) - date.fromisoformat(dias[0])).days)
+        if ventana < 7:
+            return None
+        delta = sum(deltas) / len(deltas)
+        return {"value": round(delta, 2), "baseline": len(deltas),
+                "delta_pct": _cap_delta(delta), "source": "real",
+                "confidence": 0.9}
+    except Exception as exc:  # noqa: BLE001
+        log.debug(f"[live_pulse] bitacora price_movement soft-fail {zone_slug}: {exc}")
+        return None
+
+
 async def compute_price_movement(db, zone_slug: str) -> Dict[str, Any]:
     try:
+        propio = await _price_movement_bitacora(db, zone_slug)
+        if propio is not None:
+            return propio
         try:
             import forecast_engine  # type: ignore
             get_drpi_delta = getattr(forecast_engine, "get_drpi_delta", None)

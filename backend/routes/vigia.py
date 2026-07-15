@@ -305,6 +305,8 @@ async def rederivar(request: Request, body: RederivarIn):
         await CE.cotejar_todos(db)
         from auditor_catalogo import auditar
         await auditar(db)
+        from knowledge_graph_engine import kg_sync
+        await kg_sync.sync_moldes(db)      # no-op sin Neo4j
     except Exception:  # noqa: BLE001
         pass
     return r

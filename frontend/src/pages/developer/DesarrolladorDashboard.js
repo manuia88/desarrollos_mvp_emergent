@@ -64,6 +64,23 @@ function MiPedidoWidget() {
 }
 
 
+function MiParteWidget() {
+  // EL PARTE del dev (por audiencia): su catálogo, sus gangas, su pedido — en SU casa
+  const [pt, setPt] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/api/desarrollador/mi-parte`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null)).then(setPt).catch(() => setPt(null));
+  }, []);
+  if (!pt?.texto || pt.texto.startsWith('Aún no')) return null;
+  return (
+    <div data-testid="mi-parte-widget" style={{ marginBottom: 18, borderRadius: 18, padding: '16px 20px', background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid rgba(var(--cream-rgb),0.12)' }}>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.8, color: 'rgba(240,235,224,0.85)', whiteSpace: 'pre-wrap' }}
+        dangerouslySetInnerHTML={{ __html: pt.texto.replace(/</g, '&lt;').replace(/&lt;b>/g, '<b>').replace(/&lt;\/b>/g, '</b>') }} />
+    </div>
+  );
+}
+
+
 function WeeklyBriefWidget() {
   const [brief, setBrief] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -496,6 +513,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* TU NEGOCIO HOY — estado del negocio (hero IA) */}
       <WeeklyBriefWidget />
       <MiPedidoWidget />
+      <MiParteWidget />
 
       {err ? <ErrorState message="No pudimos cargar tu Inicio. Revisa tu conexión e intenta de nuevo." onRetry={load} />
         : !data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
