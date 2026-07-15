@@ -145,6 +145,16 @@ def _medidas(unidades: List[Dict[str, Any]],
            "pm2_min": round(min(pm2s)) if pm2s else None,
            "pm2_max": round(max(pm2s)) if pm2s else None,
            "m2_prom": round(sum(m2s) / len(m2s), 1) if m2s else None}
+    # pm² PONDERADO (estándar industria: exteriores ~50%) — compara justo al PH con patio
+    pond = []
+    for u in unidades:
+        p = u.get("price_mxn") or u.get("price")
+        hab = u.get("m2_privative") or u.get("size_m2")
+        ext = sum(u.get(k) or 0 for k in ("m2_balcony", "m2_terrace",
+                                          "m2_roof_garden", "patio_m2"))
+        if p and hab:
+            pond.append(p / (hab + 0.5 * ext))
+    out["pm2_ponderado"] = round(sum(pond) / len(pond)) if pond else None
     if ctx:
         # DEMANDA REAL: búsquedas del marketplace que le quedan a ≥1 unidad del corte
         compat = set()

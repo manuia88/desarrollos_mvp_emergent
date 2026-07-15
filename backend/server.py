@@ -2555,6 +2555,39 @@ async def startup():
                           id="vigia_hourly", replace_existing=True, misfire_grace_time=600)
         except Exception as e:
             logging.warning(f"[vigia] cron register failed: {e}")
+        # RESPALDO AUTOMÁTICO (founder 07-15: "no puedo perder el catálogo"): JSON diario
+        # de TODAS las colecciones de negocio a ~/dmx_backups, rotación de 7. Hasta que
+        # haya deploy, la laptop es el datacenter — esto es el cinturón de seguridad.
+        try:
+            from apscheduler.triggers.cron import CronTrigger as _CT
+
+            async def _respaldo_diario():
+                import json as _json
+                import pathlib
+                import shutil
+                from datetime import datetime as _dt
+                base = pathlib.Path.home() / "dmx_backups"
+                hoy = base / f"auto_{_dt.now().strftime('%Y%m%d')}"
+                hoy.mkdir(parents=True, exist_ok=True)
+                n = 0
+                for c in await db.list_collection_names():
+                    docs = [d async for d in db[c].find({}, {"_id": 0}).limit(200000)]
+                    if docs:
+                        (hoy / f"{c}.json").write_text(
+                            _json.dumps(docs, ensure_ascii=False, default=str))
+                        n += len(docs)
+                # rotación: solo los 7 más recientes
+                autos = sorted(p for p in base.glob("auto_*") if p.is_dir())
+                for viejo in autos[:-7]:
+                    shutil.rmtree(viejo, ignore_errors=True)
+                logging.info(f"[respaldo] {n} docs → {hoy}")
+
+            sched.add_job(_respaldo_diario, _CT(hour=9, minute=30),   # 3:30am MX
+                          id="respaldo_diario", replace_existing=True,
+                          misfire_grace_time=3600)
+        except Exception as e:
+            logging.warning(f"[respaldo] cron register failed: {e}")
+
         # EL PARTE: reportes periódicos (diario 8am MX ≈ 14:00 UTC; el engine decide qué
         # cadencias tocan hoy: semanal/quincenal/mensual/trimestral/semestral/anual)
         try:

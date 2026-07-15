@@ -193,6 +193,20 @@ def r_total_edificio(d, ctx):
     return None
 
 
+def r_conteo_consistente(d, ctx):
+    """sum(unidades por molde activo) debe = unidades vivas (fugas silenciosas del conciliador)."""
+    activos = [m for m in ctx["moldes"] if m.get("estado") != "agotado"]
+    if not activos:
+        return None
+    suma = sum(m.get("unidades_total") or 0 for m in activos)
+    con_molde = sum(1 for u in ctx["units"] if u.get("prototype_id"))
+    if abs(suma - con_molde) > 0:
+        return _h("conteo_consistente", "desarrollo", ALERTA, d.get("name") or d.get("id"),
+                  f"los moldes suman {suma} unidades pero hay {con_molde} con molde — "
+                  f"conciliador desincronizado", development_id=d.get("id"))
+    return None
+
+
 def r_price_from(d, ctx):
     precios = [u.get("price_mxn") or u.get("price") for u in ctx["units"]
                if u.get("price_mxn") or u.get("price")]
@@ -293,6 +307,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "biografia", "nivel": "molde", "fn": r_biografia},
     {"key": "unidades_duplicadas", "nivel": "desarrollo", "fn": r_duplicados},
     {"key": "total_edificio", "nivel": "desarrollo", "fn": r_total_edificio},
+    {"key": "conteo_consistente", "nivel": "desarrollo", "fn": r_conteo_consistente},
     {"key": "price_from", "nivel": "desarrollo", "fn": r_price_from},
     {"key": "cotejo_fresco", "nivel": "desarrollo", "fn": r_cotejo_fresco},
     {"key": "bitacora_cubre", "nivel": "desarrollo", "fn": r_bitacora_cubre},

@@ -132,6 +132,22 @@ export default function SuperadminExpediente({ user, onLogout }) {
         </div>
         {msg && <p style={{ ...S.p, color: msg.includes('✓') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
 
+        {/* 🏷 EL SELLO DE LAS 5 CAPAS — la etiqueta nutricional del dato */}
+        {x.sello_capas && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '2px 0 10px' }}>
+            <span style={{ ...S.mini, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7 }}>🏷 Calidad del dato ({x.sello_capas.completas}/5 capas)</span>
+            {[['aritmetica', '1·Aritmética'], ['cruce', '2·Cruce fuentes'], ['porton', '3·Portón'], ['auditor', '4·Auditor'], ['juez', '5·Juez ≥98%']].map(([k, l]) => (
+              <span key={k} title={x.sello_capas[k] ? 'verificada' : 'pendiente o con hallazgos'}
+                style={{ ...S.mini, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 9999,
+                  background: x.sello_capas[k] ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${x.sello_capas[k] ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                  color: x.sello_capas[k] ? '#86efac' : 'rgba(240,235,224,0.5)' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: x.sello_capas[k] ? '#4ADE80' : 'rgba(255,255,255,0.2)' }} />{l}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* acuse: publicar ANTES del 80% — el founder ve exactamente qué saldrá incompleto */}
         {confirmaPub && (
           <div style={{ ...sec, border: '1px solid rgba(210,153,34,0.5)', background: 'rgba(210,153,34,0.06)' }}>

@@ -240,8 +240,26 @@ async def expediente(request: Request, development_id: str):
     cotejo = await db.cotejo_datos.find_one({"development_id": development_id}, {"_id": 0})
     playbook = await playbook_desarrollo(db, development_id)
 
+    # ═══ EL SELLO DE LAS 5 CAPAS (la etiqueta nutricional del dato) ═══
+    cruce_doc = await db.cotejo_cruce_fuentes.find_one({"development_id": development_id},
+                                                       {"_id": 0})
+    juez_doc = await db.veredictos_juez.find_one({"development_id": development_id},
+                                                 {"_id": 0}, sort=[("ts", -1)])
+    errores_dev = [h for h in ((await __import__("auditor_catalogo").ultima_auditoria(
+        db, development_id=development_id)).get("hallazgos") or [])
+        if h.get("severidad") == "error"]
+    sello = {
+        "aritmetica": bool(units),                       # capa 1: validada al extraer (gate)
+        "cruce": bool(cruce_doc) or bool(cotejo),        # capa 2: multi-fuente corrida
+        "porton": bool(units),                           # capa 3: pre-auditoría del lote
+        "auditor": len(errores_dev) == 0,                # capa 4: 0 errores vivos
+        "juez": bool((juez_doc or {}).get("gate_98")),   # capa 5: gate ≥98%
+    }
+    sello["completas"] = sum(1 for v in sello.values() if v is True)
+
     return {
         "desarrollo": d, "unidades": units, "n_unidades": len(units),
+        "sello_capas": sello,
         "prototipos": protos,
         "metricas_moldes": {m["prototype_id"]: m for m in metricas["moldes"]},
         "programas": {p["prototype_id"]: p for p in programas},

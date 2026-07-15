@@ -50,6 +50,7 @@ NUNCA_PUBLICO = {
     "a_diferir_mxn",         # el dinero fino va por _unit_finance (esquema), no crudo
     "plano_archivo", "plano_fuente", "plano_mime",  # linaje interno
     "source", "created_at", "developer_id",
+    "default_commission_pct", "comision", "commission",   # SENSIBLE entre devs (founder 07-15)
     "_editado_por_dev", "_pago_dev", "_colonia_id", "_primera_foto", "_edad_dias",
 }
 

@@ -126,10 +126,61 @@ def detecta_vp(nombre_archivo: str, primer_texto: str = "") -> bool:
     return "vp_lista" in n.replace(" ", "_") or "lista de precios" in (primer_texto or "").lower()[:200]
 
 
+def extraer_maestro_class(xlsx_bytes: bytes) -> Dict[str, Any]:
+    """Familia #2: el Inventario maestro de CLASS (Excel multi-dev, hoja CDMX).
+    Devuelve unidades AGRUPADAS por DESARROLLO — el masivo toma su proyecto."""
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
+    unidades: List[Dict[str, Any]] = []
+    for r in ws.iter_rows(min_row=2, values_only=True):
+        d = dict(zip(headers, r))
+        if not d.get("PRODUCTO") or not d.get("DESARROLLO"):
+            continue
+        unidades.append({"desarrollo": str(d["DESARROLLO"]).strip(),
+                         "unidad": norm_unidad(d["PRODUCTO"]),
+                         "bedrooms": _num(d.get("RECAMARAS")),
+                         "recamaras_opcion": _num(d.get("RECAMARAS OPCIONALES")),
+                         "bathrooms": _num(d.get("BAÑOS")),
+                         "estacionamientos": _num(d.get("ESTACIONAMIENTOS")),
+                         "parking_type": str(d.get("TIPO DE ESTACIONAMIENTO") or "").strip().lower() or None,
+                         "m2_habitable": _num(d.get("M2 HABITABLE")),
+                         "m2_total": _num(d.get("M2 TOTAL")),
+                         "precio": _num(d.get("PRECIO ACTUAL")),
+                         "cuarto_servicio": str(d.get("CUARTO DE SERVICIO") or "").strip().lower() or None,
+                         "amueblado": str(d.get("AMUEBLADO") or "").strip().lower() or None})
+    return {"familia": "maestro_class", "unidades": unidades,
+            "validacion": {"total": len(unidades)}}
+
+
+def detecta_maestro(nombre_archivo: str, primer_texto: str = "") -> bool:
+    n = (nombre_archivo or "").lower()
+    return "inventario" in n and n.endswith((".xlsx", ".xls"))
+
+
+UMBRAL_DRIFT = 0.90   # si una familia conocida valida <90%, el layout CAMBIÓ — alerta
+
+
+def drift_de_familia(resultado: Dict[str, Any]) -> Optional[str]:
+    """El detector de drift: la familia dejó de ajustar → alerta explícita, no fallo callado."""
+    v = resultado.get("validacion") or {}
+    total = v.get("total") or 0
+    if not total or "m2" not in v:
+        return None
+    peor = min(v.get("m2", total), v.get("dinero", total)) / total
+    if peor < UMBRAL_DRIFT:
+        return (f"⚠ DRIFT de layout en familia '{resultado.get('familia')}': solo "
+                f"{peor * 100:.0f}% valida — el dev cambió el formato; revisar antes de cargar")
+    return None
+
+
 # ─── EL REGISTRO (familia nueva = una entrada; la IA solo toca lo desconocido) ─
 FAMILIAS: List[Dict[str, Any]] = [
     {"key": "vp_class", "detecta": detecta_vp, "extraer": extraer_vp,
      "nota": "VP_Lista de CLASS · probada 160/160 con doble validación (07-15)"},
+    {"key": "maestro_class", "detecta": detecta_maestro, "extraer": extraer_maestro_class,
+     "nota": "Inventario maestro multi-dev de CLASS (Excel, hoja CDMX) · 582 renglones"},
 ]
 
 

@@ -203,3 +203,31 @@ def test_juez_veredictos_y_discrepancia_fuentes():
     assert por[("parking_spots", 2)] == "discrepancia_fuentes"   # fuentes pelean ≠ error
     assert por[("price_mxn", 9_999_999.0)] == "NO_COINCIDE"
     assert v["confirmados"] == 3 and v["revisables"] == 4 and not v["gate_98"]
+
+
+def test_familia_maestro_y_drift():
+    from extractores_layout import detecta_maestro, drift_de_familia
+    assert detecta_maestro("Inventario 13 de julio de 2026.xlsx")
+    assert not detecta_maestro("VP_Lista_de_Precios NUA T1 SF.pdf")
+    # drift: la familia dejó de ajustar → alerta explícita
+    assert drift_de_familia({"familia": "vp_class",
+                             "validacion": {"total": 100, "m2": 60, "dinero": 100}})
+    assert drift_de_familia({"familia": "vp_class",
+                             "validacion": {"total": 100, "m2": 99, "dinero": 100}}) is None
+
+
+def test_comision_jamas_publica():
+    import marketplace_contract as MC2
+    assert "default_commission_pct" in MC2.NUNCA_PUBLICO
+    fuga = {"unit_number": "A-1", "default_commission_pct": 3.5}
+    assert any("INTERNO" in v for v in MC2.violaciones_contrato({"unit_number": "A-1"}, fuga))
+
+
+def test_pm2_ponderado_en_corte():
+    import corte_engine as CO2
+    filas = CO2.cortar([{"u": {"unit_number": "PH", "price_mxn": 10_000_000,
+                               "m2_privative": 100.0, "size_m2": 100.0, "patio_m2": 100.0,
+                               "bedrooms": 3, "status": "disponible"},
+                         "d": {"name": "X"}, "m": {}, "p": {}}], ["desarrollo"])
+    # crudo: 100k/m² sobre habitables · ponderado: 10M/(100+50)=66.7k — el PH comparable
+    assert filas[0]["pm2_ponderado"] == 66_667

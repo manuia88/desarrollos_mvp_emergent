@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { UndoProvider } from './components/shared/UndoSnackbar';
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams as useReactRouterParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useParams as useReactRouterParams } from 'react-router-dom';
 import { PresentationModeProvider } from './hooks/usePresentationMode';
 import SkipToContent from './components/a11y/SkipToContent';
 import TourLauncher from './components/onboarding/TourLauncher';
@@ -912,7 +912,9 @@ function AppRouter() {
       <Route path="/superadmin/expediente/:devId" element={<SuperadminRoute Page={SuperadminExpediente} />} />
       <Route path="/superadmin/alta" element={<SuperadminRoute Page={SuperadminAltaDesarrolladores} />} />
       <Route path="/superadmin/alta/dev/:devOrgId" element={<SuperadminRoute Page={SuperadminDesarrolladorFicha} />} />
-      <Route path="/superadmin/alta/proyecto/:projectId" element={<SuperadminRoute Page={SuperadminProyectoFicha} />} />
+      {/* CONSOLIDACIÓN UX (founder, 6ª vez): el proyecto tiene UNA sola página — el Expediente.
+          La ficha vieja (9 tabs, dato duplicado y desconectado) redirige para siempre. */}
+      <Route path="/superadmin/alta/proyecto/:projectId" element={<RedirectExpediente />} />
 
       {/* Superadmin — IE Engine Phase A */}
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
@@ -1450,7 +1452,12 @@ function AtlaxHomeHero() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-export default function App() {
+export default function RedirectExpediente() {
+  const { projectId } = useParams();
+  return <Navigate to={`/superadmin/expediente/${projectId}`} replace />;
+}
+
+function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <SkipToContent />
