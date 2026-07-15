@@ -129,6 +129,112 @@ async def corte_universal(request: Request, por: str = "colonia",
         raise HTTPException(400, str(e))
 
 
+@router.get("/pins")
+async def pins_catalogo(request: Request):
+    """Los proyectos del catálogo para el MAPA (pin + colocación + avance + sello)."""
+    await require_superadmin(request)
+    db = _db(request)
+    out = []
+    async for d in db.developments.find({"lat": {"$ne": None}},
+                                        {"_id": 0, "id": 1, "name": 1, "lat": 1, "lng": 1,
+                                         "readiness_pct": 1, "total_units_project": 1,
+                                         "published": 1, "juez_pct": 1}).limit(500):
+        n = await db.units.count_documents({"development_id": d["id"]})
+        if not n:
+            continue
+        vend = await db.units.count_documents({"development_id": d["id"],
+                                               "status": {"$in": ["vendida", "vendido", "sold"]}})
+        tot = d.get("total_units_project")
+        coloc = round((1 - n / tot) * 100, 1) if tot and tot >= n else             (round(vend * 100 / n, 1) if n else None)
+        out.append({**d, "unidades": n, "colocacion_pct": coloc})
+    return {"pins": out}
+
+
+@router.get("/diff-listas/{development_id}")
+async def diff_listas(request: Request, development_id: str):
+    """QUÉ CAMBIÓ entre las últimas 2 fotos de la bitácora (el git-diff humano).
+    Con 1 sola foto responde honesto: esperando la 2ª lista."""
+    await require_superadmin(request)
+    db = _db(request)
+    fechas = sorted({str(e["ts"])[:10] async for e in db.oferta_timeline.find(
+        {"dev_id": development_id}, {"_id": 0, "ts": 1})})
+    if len(fechas) < 2:
+        return {"listo": False, "fotos": len(fechas),
+                "nota": "se activa con la 2ª lista (hoy hay " + str(len(fechas)) + " foto)"}
+    f1, f2 = fechas[-2], fechas[-1]
+    async def foto(dia):
+        out = {}
+        async for e in db.oferta_timeline.find(
+                {"dev_id": development_id, "ts": {"$regex": f"^{dia}"}}, {"_id": 0}):
+            out[e.get("unit_id")] = e
+        return out
+    a, b = await foto(f1), await foto(f2)
+    unidades = {u["id"]: u.get("unit_number") for u in await db.units.find(
+        {"development_id": development_id}, {"_id": 0, "id": 1, "unit_number": 1}).to_list(3000)}
+    cambios = {"subieron": [], "bajaron": [], "salieron": [], "nuevas": [], "estatus": []}
+    for uid, e2 in b.items():
+        e1 = a.get(uid)
+        num = unidades.get(uid, uid)
+        if not e1:
+            cambios["nuevas"].append({"unidad": num, "precio": e2.get("precio")})
+            continue
+        p1, p2 = e1.get("precio"), e2.get("precio")
+        if p1 and p2 and p2 != p1:
+            (cambios["subieron"] if p2 > p1 else cambios["bajaron"]).append(
+                {"unidad": num, "antes": p1, "ahora": p2,
+                 "pct": round((p2 - p1) * 100 / p1, 1)})
+        if e1.get("disponible") and not e2.get("disponible"):
+            cambios["estatus"].append({"unidad": num, "cambio": "salió de la lista (venta probable)"})
+    for uid, e1 in a.items():
+        if uid not in b and e1.get("disponible"):
+            cambios["salieron"].append({"unidad": unidades.get(uid, uid)})
+    return {"listo": True, "de": f1, "a": f2, "cambios": cambios,
+            "resumen": {k: len(v) for k, v in cambios.items()}}
+
+
+@router.get("/fabrica")
+async def fabrica(request: Request):
+    """OBSERVABILIDAD: la salud de la fábrica de datos en un vistazo."""
+    await require_superadmin(request)
+    db = _db(request)
+    import pathlib
+    fuente = await db.vigia_fuentes.find_one({"activa": True}, {"_id": 0})
+    respaldos = sorted((pathlib.Path.home() / "dmx_backups").glob("auto_*"))
+    actas = await db.actas_ingesta.count_documents({})
+    gates = [d async for d in db.developments.find({"juez_pct": {"$ne": None}},
+                                                   {"_id": 0, "name": 1, "juez_pct": 1,
+                                                    "juez_gate": 1})]
+    return {"vigia": {"ultima_ronda": (fuente or {}).get("last_ronda_at"),
+                      "activa": bool(fuente)},
+            "lotes": {"pendientes": await db.bulk_ingest_items.count_documents(
+                {"decision": "pending_review"}), "actas": actas},
+            "juez": {"con_gate": sum(1 for g in gates if g.get("juez_gate")),
+                     "total_juzgados": len(gates)},
+            "respaldo": {"ultimo": respaldos[-1].name if respaldos else "aún ninguno (corre 3:30am)",
+                         "copias": len(respaldos)},
+            "juicio_visual_pendiente": await db.cola_juicio_visual.count_documents(
+                {"estado": "pendiente"})}
+
+
+class DeshacerIn(BaseModel):
+    acta_id: str
+
+
+@router.post("/deshacer-lote")
+async def deshacer(request: Request, body: DeshacerIn):
+    """LA REVERSA: restaura el estado previo a una carga (auditado)."""
+    user = await require_superadmin(request)
+    from actas_ingesta import deshacer_lote
+    r = await deshacer_lote(_db(request), body.acta_id)
+    try:
+        from audit_log import log_mutation
+        await log_mutation(_db(request), user, "rollback", "acta_ingesta", body.acta_id,
+                           before=None, after=r, request=request)
+    except Exception:
+        pass
+    return r
+
+
 @router.get("/bandeja")
 async def bandeja_del_dia(request: Request):
     """LA BANDEJA ÚNICA: todo lo accionable en una lista por prioridad (inbox cero)."""
@@ -371,7 +477,8 @@ async def editar_expediente(request: Request, development_id: str, body: Expedie
         if todo.get("servicios") is not None:
             set_a["servicios"] = {k: v for k, v in todo.pop("servicios").items() if v}
         if todo.get("amenidades") is not None:
-            set_a["amenities"] = [str(x).strip() for x in todo.pop("amenidades") if str(x).strip()]
+            from amenidades_canon import canonizar_lista
+            set_a["amenities"] = canonizar_lista(todo.pop("amenidades"))
         await db.project_amenities.update_one({"project_id": development_id},
                                               {"$set": set_a}, upsert=True)
     if any(k in todo for k in ("sistema_constructivo", "avance_pct", "etapa_obra")):

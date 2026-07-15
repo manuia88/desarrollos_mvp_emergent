@@ -135,6 +135,29 @@ function JobDetailDrawer({ jobId, onClose, onBulkApprove }) {
   );
 }
 
+function AprobarVerdesBtn({ onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/superadmin/bulk-ingest/aprobar-verdes`, { method: 'POST', credentials: 'include' });
+      const j = await r.json();
+      setMsg(`✓ ${j.aprobados} aprobados · ${(j.saltados || []).length} con errores se quedaron para ti`);
+      onDone && onDone();
+    } catch (e) { setMsg(String(e.message)); } finally { setBusy(false); }
+  };
+  return (
+    <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+      <button onClick={go} disabled={busy}
+        style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, padding: '7px 14px', borderRadius: 9, cursor: 'pointer', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac' }}>
+        ⚡ Aprobar todos los verdes (portón limpio)
+      </button>
+      {msg && <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.7)' }}>{msg}</span>}
+    </span>
+  );
+}
+
 export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState({ items: [], total: 0 });
@@ -384,6 +407,7 @@ export default function SuperadminBulkIngest({ user, onLogout, embedded }) {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <AprobarVerdesBtn onDone={() => window.location.reload()} />
                 {reviewItems.items.map(it => (
                   <ReviewQueueItem key={it.id} item={it}
                     onApprove={handleApprove} onReject={handleReject} onMerge={handleMerge} />

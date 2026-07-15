@@ -345,6 +345,35 @@ async def _materializa_y_coteja(db):
         pass
 
 
+@router.post(PREFIX + "/aprobar-verdes")
+async def aprobar_verdes(request: Request):
+    """MODO LOTE (masivo seguro): aprueba de un clic TODOS los pendientes cuyo Portón
+    esté limpio (0 errores en pre-auditoría). Los que traen errores se quedan para ti."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    from auditor_catalogo import pre_auditar_extraccion
+    aprobados, saltados = [], []
+    async for item in db.bulk_ingest_items.find({"decision": "pending_review"}, {"_id": 0}):
+        try:
+            pre = pre_auditar_extraccion(bie.effective_extracted(item))
+            if (pre["resumen"].get("error") or 0) > 0:
+                saltados.append({"id": item["id"], "errores": pre["resumen"]["error"]})
+                continue
+            dev_id = await bie.insert_extracted_project(db, item)
+            await db.bulk_ingest_items.update_one(
+                {"id": item["id"]},
+                {"$set": {"decision": "approved", "inserted_dev_id": dev_id,
+                          "reviewer_user_id": user.user_id, "decision_at": _now_iso(),
+                          "aprobado_via": "modo_lote_gates"}})
+            aprobados.append({"id": item["id"], "dev_id": dev_id})
+        except Exception as e:  # noqa: BLE001 — un item roto no frena el lote
+            saltados.append({"id": item.get("id"), "error": str(e)[:100]})
+    if aprobados:
+        import asyncio as _aio
+        _aio.create_task(_materializa_y_coteja(db))
+    return {"aprobados": len(aprobados), "saltados": saltados}
+
+
 # ─── 6) POST /items/{item_id}/reject ──────────────────────────────────────────
 
 @router.post(PREFIX + "/items/{item_id}/reject")

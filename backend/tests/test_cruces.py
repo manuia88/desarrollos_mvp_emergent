@@ -231,3 +231,21 @@ def test_pm2_ponderado_en_corte():
                          "d": {"name": "X"}, "m": {}, "p": {}}], ["desarrollo"])
     # crudo: 100k/m² sobre habitables · ponderado: 10M/(100+50)=66.7k — el PH comparable
     assert filas[0]["pm2_ponderado"] == 66_667
+
+
+# ═══ CERO DEUDA: los últimos del lote de 20 ═══════════════════════════════════
+def test_amenidades_canonicas():
+    from amenidades_canon import canonizar, canonizar_lista
+    assert canonizar("ALBERCA") == canonizar("Pool") == canonizar("alberca de nado") == "alberca"
+    assert canonizar("Área para Mascota") == "pet friendly"
+    assert canonizar("Observatorio") == "observatorio"        # desconocida no se pierde
+    assert canonizar_lista(["Alberca", "POOL", "Gym"]) == ["alberca", "gimnasio"]
+
+
+def test_regla_piso_vs_plano():
+    import auditor_catalogo as AU3
+    ctx = {"programas_docs": {"p0": {"niveles_plano": [3, 5, 7, 9, 11, 13]}}}
+    u_mal = {"unit_number": "A-405", "level": 4, "prototype_id": "p0"}
+    assert AU3.r_piso_vs_plano(u_mal, ctx)["severidad"] == "aviso"
+    u_ok = {"unit_number": "A-505", "level": 5, "prototype_id": "p0"}
+    assert AU3.r_piso_vs_plano(u_ok, ctx) is None

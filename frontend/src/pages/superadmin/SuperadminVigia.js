@@ -93,6 +93,28 @@ function Manifiesto({ pendientes, fuentes, onChanged }) {
   );
 }
 
+/* ── 🏭 LA FÁBRICA: observabilidad del pipeline en un vistazo ── */
+function FabricaCard() {
+  const [fx, setFx] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/api/superadmin/inventario/fabrica`, { credentials: 'include' })
+      .then((r) => r.json()).then(setFx).catch(() => setFx(null));
+  }, []);
+  if (!fx) return null;
+  return (
+    <div style={card} data-testid="fabrica">
+      <div style={h3}>🏭 La fábrica de datos</div>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6 }}>
+        <span style={mini}>👁 última ronda: <b style={{ color: 'var(--cream)' }}>{fx.vigia.ultima_ronda ? new Date(fx.vigia.ultima_ronda).toLocaleString('es-MX') : '—'}</b></span>
+        <span style={mini}>🚦 lotes pendientes: <b style={{ color: 'var(--cream)' }}>{fx.lotes.pendientes}</b> · actas: <b style={{ color: 'var(--cream)' }}>{fx.lotes.actas}</b></span>
+        <span style={mini}>⚖️ juez: <b style={{ color: 'var(--cream)' }}>{fx.juez.con_gate}/{fx.juez.total_juzgados}</b> con gate</span>
+        <span style={mini}>💾 respaldo: <b style={{ color: 'var(--cream)' }}>{fx.respaldo.ultimo}</b> ({fx.respaldo.copias} copias)</span>
+        {fx.juicio_visual_pendiente > 0 && <span style={{ ...mini, color: '#d29922' }}>👁‍🗨 {fx.juicio_visual_pendiente} fuente(s) escaneadas esperando juicio visual</span>}
+      </div>
+    </div>
+  );
+}
+
 /* ── EL PARTE: el reporte también EN la plataforma (no solo Telegram/correo) ── */
 function ParteCard() {
   const [periodo, setPeriodo] = useState('diario');
@@ -202,6 +224,7 @@ export function VigiaTab() {
       </div>
 
       <TelegramCard />
+        <FabricaCard />
         <ParteCard />
 
       {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}

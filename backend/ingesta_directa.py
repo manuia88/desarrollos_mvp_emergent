@@ -14,10 +14,13 @@ from typing import Any, Dict, List, Optional
 async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
                       origen: str = "ingesta_directa",
                       fuentes_pdf: Optional[List[bytes]] = None,
-                      fuente_excel: Optional[bytes] = None) -> Dict[str, Any]:
+                      fuente_excel: Optional[bytes] = None,
+                      fuentes_meta: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """unidades en el vocabulario de extracción (unit_number, price_mxn, size_m2,
     bedrooms…). Pasa TODO por el merge canónico + dispara el circuito completo."""
     import bulk_ingest_engine as bie
+    from actas_ingesta import abrir_acta, cerrar_acta
+    acta_id = await abrir_acta(db, target_dev_id, origen, fuentes_meta)
     item = {"extracted": {"units": unidades}, "job_id": None, "id": f"directa_{origen}"}
     antes = await db.units.count_documents({"development_id": target_dev_id})
     await bie.merge_into_dev(db, item, target_dev_id)
@@ -49,7 +52,10 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
             juez = await juzgar_desarrollo(db, target_dev_id, fuentes_pdf, fuente_excel)
         except Exception:  # noqa: BLE001 — el juez nunca bloquea la carga; su veredicto sí
             pass
-    return {"development_id": target_dev_id, "unidades_antes": antes,
-            "unidades_despues": despues, "moldes": r.get("prototipos"),
-            "origen": origen,
-            "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}
+    resultado = {"development_id": target_dev_id, "unidades_antes": antes,
+                 "unidades_despues": despues, "moldes": r.get("prototipos"),
+                 "origen": origen, "acta_id": acta_id,
+                 "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}
+    await cerrar_acta(db, acta_id, {k: v for k, v in resultado.items()
+                                    if k != "development_id"})
+    return resultado

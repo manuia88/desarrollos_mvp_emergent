@@ -166,6 +166,13 @@ async def juzgar_desarrollo(db, development_id: str,
                 filas_excel[norm_unidad(d["PRODUCTO"])] = d
         except Exception:  # noqa: BLE001
             pass
+    if pdf_bytes_list and not any(t.strip() for t in texto_pdf):
+        # fuente ESCANEADA (sin texto): el juez de texto no aplica → cola de juicio visual
+        await db.cola_juicio_visual.update_one(
+            {"development_id": development_id},
+            {"$set": {"development_id": development_id, "motivo": "pdf_sin_texto",
+                      "ts": datetime.now(timezone.utc).isoformat(), "estado": "pendiente"}},
+            upsert=True)
     v = juzgar_campos(muestra, texto_pdf, filas_excel)
     doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(),
            "n_muestra": len(muestra), "semilla": semilla, **v}

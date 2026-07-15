@@ -6,7 +6,7 @@
  *   Nivel 3 · El proyecto = LA TORRE clickeable: clic en unidad → editar estado/precio ahí mismo.
  * La bandeja del vigía vive arriba. Deep-link: ?dev= & ?proyecto=. Editar dispara audit+bitácora.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, ChevronRight, Radar, FolderUp, UserPlus, X, Home } from 'lucide-react';
@@ -481,6 +481,18 @@ function PerfilDev({ org }) {
           <span key={e} style={{ ...S.mini, padding: '3px 9px', borderRadius: 9999, border: `1px solid ${ETAPA_COLOR[e] || '#888'}55`, color: ETAPA_COLOR[e] || '#ccc', fontWeight: 700 }}>{e.replace('_', ' ')}: {n}</span>
         ))}
       </div>
+      {(pf.catalogo || []).length > 1 && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', margin: '4px 0 10px' }}>
+          {pf.catalogo.map((c) => (
+            <div key={c.id} style={{ minWidth: 170 }}>
+              <div style={{ ...S.mini, fontWeight: 700, color: 'var(--cream)' }}>{c.name} · {c.unidades}u{c.colocacion_pct != null ? ` · ${c.colocacion_pct}%` : ''}</div>
+              <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 3 }}>
+                <div style={{ height: '100%', width: `${c.readiness_pct || 0}%`, background: (c.readiness_pct || 0) >= 80 ? '#4ADE80' : '#d29922' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 6 }}>
         {pf.radar.map((p) => (
           <div key={p.proyecto} style={{ padding: '8px 11px', borderRadius: 10, opacity: p.fuera_alcance ? 0.4 : 1, background: p.ingerido ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.025)', border: `1px solid ${p.ingerido ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.09)'}` }}>
@@ -496,6 +508,44 @@ function PerfilDev({ org }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function MapaCatalogo() {
+  const [pins, setPins] = useState(null);
+  const nav = useNavigate();
+  const mapRef = useRef(null);
+  const contRef = useRef(null);
+  useEffect(() => { _get('/pins').then((r) => setPins(r.pins)).catch(() => setPins(null)); }, []);
+  useEffect(() => {
+    if (!pins || !pins.length || !contRef.current || mapRef.current) return;
+    let mapboxgl;
+    try { mapboxgl = require('mapbox-gl'); } catch (e) { return; }
+    const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
+    if (!TOKEN) return;
+    mapboxgl.accessToken = TOKEN;
+    const centro = [pins.reduce((a, p) => a + p.lng, 0) / pins.length, pins.reduce((a, p) => a + p.lat, 0) / pins.length];
+    const map = new mapboxgl.Map({ container: contRef.current, style: 'mapbox://styles/mapbox/dark-v11', center: centro, zoom: 10.5 });
+    mapRef.current = map;
+    pins.forEach((p) => {
+      const el = document.createElement('div');
+      const ok = (p.readiness_pct || 0) >= 80;
+      el.style.cssText = `width:16px;height:16px;border-radius:50%;cursor:pointer;background:${ok ? '#4ADE80' : '#d29922'};border:2px solid rgba(0,0,0,0.6);box-shadow:0 0 8px ${ok ? 'rgba(74,222,128,0.6)' : 'rgba(210,153,34,0.5)'}`;
+      el.title = `${p.name} · ${p.unidades}u${p.colocacion_pct != null ? ` · ${p.colocacion_pct}% colocado` : ''} · ficha ${p.readiness_pct || 0}%`;
+      el.onclick = () => nav(`/superadmin/expediente/${p.id}`);
+      new mapboxgl.Marker(el).setLngLat([p.lng, p.lat]).addTo(map);
+    });
+    return () => { map.remove(); mapRef.current = null; };
+  }, [pins, nav]);
+  if (!pins || !pins.length || !process.env.REACT_APP_MAPBOX_TOKEN) return null;
+  return (
+    <div style={{ ...S.card, margin: '4px 0 12px', padding: 0, overflow: 'hidden' }} data-testid="mapa-catalogo">
+      <div style={{ padding: '12px 18px 8px', display: 'flex', gap: 10, alignItems: 'baseline' }}>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>🗺 El catálogo en el mapa</h2>
+        <span style={S.mini}>{pins.length} proyectos · verde = publicable · clic en el pin = Expediente</span>
+      </div>
+      <div ref={contRef} style={{ height: 260, width: '100%' }} />
     </div>
   );
 }
@@ -619,6 +669,7 @@ export default function SuperadminInventario({ user, onLogout }) {
 
         {/* 📥 LA BANDEJA ÚNICA + los cruces de mercado (solo en la raíz) */}
         {!devSel && <BandejaUnica />}
+        {!devSel && <MapaCatalogo />}
         {!devSel && <Corte />}
         {!devSel && <MercadoCruces />}
 

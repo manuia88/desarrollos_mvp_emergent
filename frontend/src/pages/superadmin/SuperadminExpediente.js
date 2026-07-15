@@ -50,6 +50,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
   const [confirmaPub, setConfirmaPub] = useState(false);
   const [salud, setSalud] = useState(null);
   const [pedido, setPedido] = useState(null);
+  const [diff, setDiff] = useState(null);
   const [completar, setCompletar] = useState(false);
   const [cap, setCap] = useState({});
 
@@ -89,6 +90,7 @@ export default function SuperadminExpediente({ user, onLogout }) {
     fetch(`${API}/api/superadmin/inventario/auditoria?development_id=${encodeURIComponent(devId)}`, { credentials: 'include' })
       .then((r) => r.json()).then(setSalud).catch(() => setSalud(null));
     _get(`/pedidos/${encodeURIComponent(devId)}`).then(setPedido).catch(() => setPedido(null));
+    _get(`/diff-listas/${encodeURIComponent(devId)}`).then(setDiff).catch(() => setDiff(null));
   }, [devId]);
 
   const guardar = async (campo, valor) => {
@@ -209,6 +211,28 @@ export default function SuperadminExpediente({ user, onLogout }) {
         {pedido && pedido.al_dia && (
           <div style={{ ...sec, border: '1px solid rgba(74,222,128,0.3)' }}>
             <span style={{ ...S.p, color: '#86efac' }}>📋 Nada que pedirle a {pedido.dev} — la ficha está completa con lo que ha entregado 🎉</span>
+          </div>
+        )}
+
+        {/* 🔀 QUÉ CAMBIÓ entre las últimas 2 listas (el git-diff humano) */}
+        {diff && (
+          <div style={sec}>
+            <H>🔀 Qué cambió {diff.listo ? `(${diff.de} → ${diff.a})` : ''}</H>
+            {!diff.listo ? <span style={S.p}>⏳ {diff.nota}</span> : (
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {[['subieron', '📈 Subieron', '#d29922'], ['bajaron', '📉 Bajaron', '#86efac'], ['estatus', '🔴 Salieron (venta probable)', '#fca5a5'], ['nuevas', '✨ Nuevas', '#9ecbff'], ['salieron', '👻 Desaparecieron', '#fca5a5']].map(([k, titulo, color]) => (
+                  (diff.cambios[k] || []).length > 0 && (
+                    <div key={k} style={{ minWidth: 200 }}>
+                      <div style={{ ...S.mini, fontWeight: 800, color }}>{titulo} ({diff.cambios[k].length})</div>
+                      {diff.cambios[k].slice(0, 6).map((c, i) => (
+                        <div key={i} style={S.mini}>· {c.unidad}{c.pct != null ? ` ${c.pct > 0 ? '+' : ''}${c.pct}% ($${(c.antes / 1e6).toFixed(2)}M → $${(c.ahora / 1e6).toFixed(2)}M)` : ''}{c.cambio ? ` — ${c.cambio}` : ''}</div>
+                      ))}
+                    </div>
+                  )
+                ))}
+                {Object.values(diff.resumen).every((n) => n === 0) && <span style={S.p}>Sin cambios entre las últimas dos fotos.</span>}
+              </div>
+            )}
           </div>
         )}
 

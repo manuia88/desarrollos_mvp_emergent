@@ -2588,6 +2588,47 @@ async def startup():
         except Exception as e:
             logging.warning(f"[respaldo] cron register failed: {e}")
 
+        # JUEZ PERIÓDICO (auditoría continua): cada domingo re-juzga el catálogo contra
+        # las fuentes VIVAS del Drive (las actas guardan los file_ids). Drift del dato
+        # vs la fuente = se detecta solo, no cuando alguien se queja.
+        try:
+            from apscheduler.triggers.cron import CronTrigger as _CTJ
+
+            async def _juez_periodico():
+                import bulk_ingest_engine as _bie
+                from juez_automatico import juzgar_desarrollo
+                conn = await _bie._resolve_drive_conn(db, None)
+                if not conn:
+                    return
+                vistos = set()
+                async for acta in db.actas_ingesta.find(
+                        {"estado": "cerrada", "fuentes.0": {"$exists": True}},
+                        {"_id": 0}).sort("ts", -1):
+                    dev = acta["development_id"]
+                    if dev in vistos:
+                        continue
+                    vistos.add(dev)
+                    pdfs, excel = [], None
+                    for fmeta in acta.get("fuentes", []):
+                        try:
+                            data, _m = await _bie._download_file_bytes(
+                                conn, fmeta.get("file_id"), fmeta.get("mime") or "")
+                            if (fmeta.get("nombre") or "").lower().endswith(".pdf"):
+                                pdfs.append(data)
+                            else:
+                                excel = data
+                        except Exception:  # noqa: BLE001
+                            pass
+                    if pdfs or excel:
+                        await juzgar_desarrollo(db, dev, pdfs, excel)
+                logging.info(f"[juez_periodico] re-juzgados {len(vistos)} devs")
+
+            sched.add_job(_juez_periodico, _CTJ(day_of_week="sun", hour=10),
+                          id="juez_periodico", replace_existing=True,
+                          misfire_grace_time=3600)
+        except Exception as e:
+            logging.warning(f"[juez_periodico] cron register failed: {e}")
+
         # EL PARTE: reportes periódicos (diario 8am MX ≈ 14:00 UTC; el engine decide qué
         # cadencias tocan hoy: semanal/quincenal/mensual/trimestral/semestral/anual)
         try:

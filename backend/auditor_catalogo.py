@@ -137,6 +137,18 @@ def r_molde_planos(m, ctx):
     return None
 
 
+def r_piso_vs_plano(u, ctx):
+    """El piso derivado debe existir en los niveles que el PLANO declara para su molde."""
+    prog = ctx.get("programas_docs", {}).get(u.get("prototype_id"))
+    niveles = (prog or {}).get("niveles_plano") or []
+    if niveles and u.get("level") is not None and int(u["level"]) not in niveles             and len(niveles) >= 3:
+        return _h("piso_vs_plano", "unidad", AVISO, u.get("unit_number") or u.get("id"),
+                  f"piso {u['level']} no está en los niveles del plano de su molde "
+                  f"({niveles[:6]}…) — ¿molde mal asignado o plano de otra línea?",
+                  unit_id=u.get("id"))
+    return None
+
+
 def r_molde_programa(m, ctx):
     if m.get("estado") != "agotado" and m.get("prototype_id") not in ctx["programas"]:
         return _h("molde_programa", "molde", AVISO, m.get("nombre") or m.get("prototype_id"),
@@ -300,6 +312,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "dinero_coherencia", "nivel": "unidad", "fn": r_dinero_coherencia},
     {"key": "molde_asignado", "nivel": "unidad", "fn": r_molde_asignado},
     {"key": "estatus_valido", "nivel": "unidad", "fn": r_estatus_valido},
+    {"key": "piso_vs_plano", "nivel": "unidad", "fn": r_piso_vs_plano},
     {"key": "molde_estado", "nivel": "molde", "fn": r_molde_estado_coherente},
     {"key": "molde_planos", "nivel": "molde", "fn": r_molde_planos},
     {"key": "molde_programa", "nivel": "molde", "fn": r_molde_programa},
@@ -365,8 +378,9 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
             continue
         moldes = await db.dmx_prototypes.find({"development_id": d["id"]},
                                               {"_id": 0}).to_list(200)
-        programas = {p["prototype_id"] for p in await db.molde_programa.find(
-            {"development_id": d["id"]}, {"_id": 0, "prototype_id": 1}).to_list(200)}
+        progs_docs = {p["prototype_id"]: p for p in await db.molde_programa.find(
+            {"development_id": d["id"]}, {"_id": 0}).to_list(200)}
+        programas = set(progs_docs)
         cotejo = await db.cotejo_datos.find_one({"development_id": d["id"]}, {"_id": 0})
         assets = await db.dev_assets.find({"development_id": d["id"]},
                                           {"_id": 0, "filename": 1,
@@ -374,6 +388,7 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
         en_bitacora = set(await db.oferta_timeline.distinct(
             "unit_id", {"dev_id": d["id"]}))
         ctx = {"units": units, "moldes": moldes, "programas": programas,
+               "programas_docs": progs_docs,
                "cotejo": cotejo, "assets": assets, "unidades_en_bitacora": en_bitacora}
         hs = auditar_desarrollo_puro(d, ctx)
         todos.extend(hs)
