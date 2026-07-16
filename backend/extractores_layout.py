@@ -290,11 +290,130 @@ def drift_de_familia(resultado: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+# ─── FAMILIA GDC — lista header-driven (columnas bailan entre proyectos) ───────
+# GDC no tiene Excel maestro (07-16): la lista PDF es la única fuente de unidad. Sus
+# columnas cambian de orden/cantidad entre proyectos, así que se mapea por NOMBRE de
+# encabezado, no por posición. El precio vive en columnas de esquema de pago
+# ("10% 90%", "30% 20% 50%"…); el estatus va DENTRO de esa celda (VENDIDO/APARTADO/$).
+_GDC_COL = {
+    "NIVEL": "level", "DEPTO": "unit_number", "DEPTO.": "unit_number",
+    "DEPARTAMENTO": "unit_number",
+    "BALCON": "m2_balcony", "BALCÓN": "m2_balcony", "JARDIN/BALCON": "m2_balcony",
+    "JARDÍN/BALCON": "m2_balcony",
+    "TERRAZA": "m2_terrace", "ROOF O JARDIN": "m2_roof", "ROOF": "m2_roof",
+    "M2 TOTALES": "m2_total", "M2TOTALES": "m2_total", "M2": "m2_total",
+    "CAJONES": "parking_spots",
+    "RECAMARAS": "bedrooms", "RECÁMARAS": "bedrooms",
+    "BANOS": "bathrooms", "BAÑOS": "bathrooms",
+}
+_GDC_ESQUEMA_RE = re.compile(r"^\s*\d{1,3}\s*%(\s+\d{1,3}\s*%)+\s*$")   # "10% 90%" · "30% 20% 50%"
+_ESTATUS_TXT = {"VENDIDO": "vendido", "APARTADO": "reservado",
+                "DISPONIBLE": "disponible", "BLOQUEADO": "bloqueado"}
+
+
+def _dinero_gdc(s: str) -> Optional[float]:
+    """'$ 1 4,310,848.82' → 14310848.82 (GDC mete espacios adentro del monto)."""
+    t = re.sub(r"[^\d.]", "", str(s or ""))
+    try:
+        return float(t) if t else None
+    except ValueError:
+        return None
+
+
+def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
+    """Familia GDC: header-driven. Mapea columnas por nombre, deriva interior =
+    total − exteriores (M2 Totales incluye balcón/terraza, confirmado 07-16), lee el
+    estatus de la celda de precio y guarda TODOS los esquemas de pago del encabezado."""
+    import pdfplumber
+    unidades: Dict[str, Dict[str, Any]] = {}
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            tbl = page.extract_table()
+            if not tbl:
+                continue
+            # 1· hallar la fila de encabezado (trae DEPTO y M2)
+            hdr_i, mapa, esquemas = None, {}, []
+            for i, row in enumerate(tbl[:4]):
+                cs = [_norm_h(c) for c in row]
+                if any("DEPTO" in c or "DEPARTAMENTO" in c for c in cs) and \
+                        any("M2" in c for c in cs):
+                    hdr_i = i
+                    for j, c in enumerate(cs):
+                        if c in _GDC_COL:
+                            mapa[j] = _GDC_COL[c]
+                        elif _GDC_ESQUEMA_RE.match((row[j] or "").strip()):
+                            esquemas.append({"col": j, "nombre": (row[j] or "").strip()})
+                    break
+            if hdr_i is None or "unit_number" not in mapa.values():
+                continue
+            # 2· filas de datos
+            for row in tbl[hdr_i + 1:]:
+                c = [str(x).replace("\n", " ").strip() if x else "" for x in row]
+                u: Dict[str, Any] = {}
+                for j, campo in mapa.items():
+                    if j < len(c) and c[j]:
+                        v = c[j]
+                        if campo in ("unit_number",):
+                            u[campo] = v
+                        elif campo == "level":
+                            u[campo] = _num(v)
+                        elif v.upper() not in ("NA", "N/A", "-"):
+                            u[campo] = _num(v)
+                num = str(u.get("unit_number") or "").strip()
+                if not num or not re.search(r"\d", num):
+                    continue
+                es_local = "LOCAL" in num.upper()
+                u["tipo"] = "local" if es_local else "departamento"
+                # 3· esquemas de pago + estatus (la celda de precio manda)
+                precios_scheme = []
+                estatus = None
+                for e in esquemas:
+                    val = c[e["col"]] if e["col"] < len(c) else ""
+                    up = val.upper().strip()
+                    if any(k in up for k in _ESTATUS_TXT):
+                        estatus = next(st for k, st in _ESTATUS_TXT.items() if k in up)
+                    monto = _dinero_gdc(val)
+                    if monto and monto > 10000:
+                        precios_scheme.append({"esquema": e["nombre"], "precio": monto})
+                if precios_scheme:
+                    u["price_mxn"] = precios_scheme[0]["precio"]   # el 1er esquema = base
+                    u["esquemas_pago"] = precios_scheme
+                    u["status"] = "disponible"
+                    # 10%/90% → enganche/crédito derivados del 1er esquema
+                    pct = re.findall(r"\d{1,3}", precios_scheme[0]["esquema"])
+                    if len(pct) == 2:
+                        u["enganche_mxn"] = round(u["price_mxn"] * int(pct[0]) / 100)
+                        u["credito_mxn"] = round(u["price_mxn"] * int(pct[1]) / 100)
+                else:
+                    u["status"] = estatus or "no_disponible"
+                # 4· interior derivado (total incluye exteriores) + validación
+                tot = u.get("m2_total")
+                ext = sum(u.get(k) or 0 for k in ("m2_balcony", "m2_terrace", "m2_roof"))
+                if tot:
+                    u["size_m2"] = round(tot - ext, 2) if tot - ext > 0 else tot
+                u["_valida_m2"] = bool(tot and tot > 0)
+                unidades[norm_unidad(num)] = u
+    us = list(unidades.values())
+    return {"familia": "gdc", "unidades": us,
+            "validacion": {"m2": sum(1 for u in us if u.get("_valida_m2")),
+                           "dinero": sum(1 for u in us if u.get("price_mxn")),
+                           "total": len(us),
+                           "vendidas": sum(1 for u in us if u.get("status") == "vendido")}}
+
+
+def detecta_gdc(nombre_archivo: str, primer_texto: str = "") -> bool:
+    n = (nombre_archivo or "").upper()
+    return "_LP" in n or "ESQUEMA DE PAGO" in (primer_texto or "").upper()[:300]
+
+
 # ─── EL REGISTRO (familia nueva = una entrada; la IA solo toca lo desconocido) ─
 FAMILIAS: List[Dict[str, Any]] = [
     {"key": "vp_class", "detecta": detecta_vp, "extraer": extraer_vp_mejor,
      "nota": "VP_Lista de CLASS (tabla + texto posición-independiente, gana la "
              "extracción con más unidades válidas) · 160/160 (07-15) + masivo (07-15)"},
+    {"key": "gdc", "detecta": detecta_gdc, "extraer": extraer_gdc,
+     "nota": "Lista GDC header-driven (columnas variables · esquemas de pago · estatus "
+             "en celda de precio · M2 Totales incluye exteriores) · 07-16"},
     {"key": "maestro_class", "detecta": detecta_maestro, "extraer": extraer_maestro_class,
      "nota": "Inventario maestro multi-dev de CLASS (Excel, hoja CDMX) · 582 renglones"},
 ]
