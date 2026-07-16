@@ -132,18 +132,24 @@ def fusionar_con_maestro(unidades: List[Dict[str, Any]],
     baños, estacionamientos, amueblado…), documenta discrepancias y devuelve las
     filas del Maestro que la lista no trae (inventario real → se cargan con nota)."""
     from fusion_fuentes import fusionar_unidad
-    indice: Dict[str, Dict[str, Any]] = {}
+    # identidad por PRIORIDAD y sin ambigüedad (lección censo 07-15: 'A 103' y
+    # 'B 103' comparten dígitos — un empate ambiguo NO empareja)
+    from censo_total import AMBIGUA, buscar, llaves_ordenadas
+    indice: Dict[str, Any] = {}
     for f in filas:
-        for k in _nucleos(sufijo_producto(f.get("_producto") or f.get("unidad") or ""),
-                          torre):
-            indice[k] = f
+        base = sufijo_producto(f.get("_producto") or f.get("unidad") or "")
+        variantes = list(llaves_ordenadas(base))
+        if torre:
+            variantes += [k for k in llaves_ordenadas(f"{torre}-{base}")
+                          if k not in variantes]
+        for k in variantes:
+            if k in indice and indice[k] is not f:
+                indice[k] = AMBIGUA
+            else:
+                indice[k] = f
     usadas, discrepancias = set(), []
     for u in unidades:
-        fila = None
-        for k in _nucleos(u.get("unit_number") or "", torre):
-            if k in indice:
-                fila = indice[k]
-                break
+        fila = buscar(indice, u.get("unit_number") or "")
         if not fila:
             discrepancias.append(f"{u.get('unit_number')}: en la lista pero no en el "
                                  f"Maestro — ¿se vendió después de la foto del Maestro?")

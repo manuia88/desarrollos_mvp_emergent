@@ -228,7 +228,23 @@ async def fabrica(request: Request):
             "modelo_ml": await db.ml_modelos.find_one(
                 {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)]),
             "examen_modelo": _resumen_examen(
-                await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000))}
+                await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000)),
+            "censo": await _resumen_censo_global(db)}
+
+
+async def _resumen_censo_global(db):
+    """El Censo (capa 6) en un vistazo: % de campos verificados contra fuente."""
+    docs = await db.censo_verificacion.find({}, {"_id": 0, "pct": 1, "discrepa": 1,
+                                                 "comparados": 1}).to_list(100)
+    if not docs:
+        return None
+    comparados = sum(d.get("comparados") or 0 for d in docs)
+    discrepa = sum(d.get("discrepa") or 0 for d in docs)
+    cargas_rotas = await db.censo_post_carga.count_documents({"ok": False})
+    return {"devs_censados": len(docs), "campos": comparados,
+            "pct": round((comparados - discrepa) * 100 / comparados, 2)
+            if comparados else None,
+            "discrepa": discrepa, "cargas_con_perdida": cargas_rotas}
 
 
 def _resumen_examen(examenes):

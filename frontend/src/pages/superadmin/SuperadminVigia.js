@@ -126,6 +126,9 @@ function FabricaCard() {
           {fx.modelo_ml.cobertura_rango_pct != null && (
             <span style={mini}>banda 80% cubre de verdad: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.cobertura_rango_pct}%</b></span>
           )}
+          {fx.censo && (
+            <span style={mini}>🧾 censo (capa 6): <b style={{ color: fx.censo.discrepa === 0 ? '#86efac' : '#d29922' }}>{fx.censo.pct}%</b> de {fx.censo.campos.toLocaleString('en-US')} campos verificados contra fuente en {fx.censo.devs_censados} devs{fx.censo.cargas_con_perdida > 0 && <b style={{ color: '#fca5a5' }}> · ⚠ {fx.censo.cargas_con_perdida} carga(s) con pérdida</b>}</span>
+          )}
           {fx.examen_modelo && (fx.examen_modelo.n > 0 ? (
             <span style={mini}>📝 examen vs futuro: <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.n}</b> precios movidos · error <b style={{ color: 'var(--cream)' }}>±{fx.examen_modelo.error_medio_pct}%</b> · dirección acertada <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.direccion_acertada_pct}%</b></span>
           ) : (

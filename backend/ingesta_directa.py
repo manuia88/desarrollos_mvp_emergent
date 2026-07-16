@@ -51,6 +51,18 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         await kg_sync.sync_moldes(db)
     except Exception:  # noqa: BLE001
         pass
+    # EL CANDADO (lección Dessea 102): escribe-lee-compara — si la carga mutiló un
+    # solo campo del payload, se sabe AQUÍ, no semanas después
+    censo = None
+    try:
+        from censo_total import censar_post_carga
+        censo = await censar_post_carga(db, target_dev_id, unidades)
+        if not censo.get("ok"):
+            import logging
+            logging.error(f"[censo_post_carga] {target_dev_id}: la carga PERDIÓ "
+                          f"{len(censo['perdidos'])} campo(s): {censo['perdidos'][:5]}")
+    except Exception:  # noqa: BLE001
+        pass
     # el examen: ¿el modelo había anticipado los precios que llegaron?
     examen = None
     try:
@@ -73,6 +85,10 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     resultado = {"development_id": target_dev_id, "unidades_antes": antes,
                  "unidades_despues": despues, "moldes": r.get("prototipos"),
                  "origen": origen, "acta_id": acta_id,
+                 "censo_post_carga": ({"ok": censo["ok"],
+                                       "campos": censo["n_campos"],
+                                       "perdidos": len(censo["perdidos"])}
+                                      if censo else None),
                  "examen_modelo": examen,
                  "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}
     await cerrar_acta(db, acta_id, {k: v for k, v in resultado.items()
