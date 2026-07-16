@@ -183,15 +183,21 @@ def _list_root_folders_sync(conn: Dict[str, Any], page_size: int = 100) -> List[
     return resp.get("files", []) or []
 
 
-def _list_folder_contents_sync(conn: Dict[str, Any], folder_id: str) -> List[Dict[str, Any]]:
+def _list_folder_contents_sync(conn: Dict[str, Any], folder_id: str,
+                               incluir_carpetas: bool = False) -> List[Dict[str, Any]]:
     svc = _drive_service(conn)
-    q = f"'{folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-    fields = "files(id,name,mimeType,modifiedTime,md5Checksum,size)"
+    q = f"'{folder_id}' in parents and trashed = false"
+    if not incluir_carpetas:
+        q += " and mimeType != 'application/vnd.google-apps.folder'"
+    fields = "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,size)"
     files: List[Dict[str, Any]] = []
     page_token = None
     while True:
+        # allDrives: sin estos flags un folder en Drive COMPARTIDO devuelve casi nada
+        # (bug 07-16: los archivos de Icon quedaban ocultos → se creyó carpeta vacía)
         resp = svc.files().list(
-            q=q, fields=fields, pageSize=200, pageToken=page_token
+            q=q, fields=fields, pageSize=200, pageToken=page_token,
+            supportsAllDrives=True, includeItemsFromAllDrives=True,
         ).execute()
         files.extend(resp.get("files", []) or [])
         page_token = resp.get("nextPageToken")

@@ -1,6 +1,23 @@
 """Presentación GDC: nivel de página/unidad + discrepancias documentadas (lista manda)."""
-from presentacion_gdc import (discrepancias_presentacion, nivel_de_pagina,
-                              nivel_de_unidad)
+from presentacion_gdc import (deptos_de_pagina, discrepancias_presentacion,
+                              nivel_de_pagina, nivel_de_unidad)
+
+
+def test_deptos_de_pagina():
+    # rango = unidades gemelas (mismo plano en pisos distintos)
+    assert deptos_de_pagina("Depto 201 - 301 Gutiérrez Zamora 167") == ["201", "301"]
+    assert deptos_de_pagina("Depto 103 Gutiérrez Zamora 167") == ["103"]
+    assert deptos_de_pagina("Plantas Arquitectónicas") == []
+
+
+def test_estatus_carpeta_manda_sobre_presentacion():
+    # REGLA founder: la carpeta manda. Via está en 'entrega inmediata' aunque el deck
+    # diga preventa → vale entrega inmediata.
+    d = discrepancias_presentacion(
+        {"estatus_presentacion": "preventa"},
+        {"estatus_carpeta": "entrega inmediata"})
+    est = next(h for h in d if h["campo"] == "estatus")
+    assert est["resolucion"] == "carpeta_manda" and est["valor"] == "entrega inmediata"
 
 
 def test_nivel_de_pagina():
@@ -25,7 +42,7 @@ def test_discrepancias_lista_manda():
         {"total_units_lista": 87, "estatus_carpeta": "entrega inmediata"})
     campos = {h["campo"]: h for h in d}
     assert campos["total_units"]["resolucion"] == "lista"
-    assert campos["estatus"]["resolucion"] == "verificar_carpeta"
+    assert campos["estatus"]["resolucion"] == "carpeta_manda"
     # sin pelea → sin hallazgos
     assert discrepancias_presentacion(
         {"total_units_presentacion": 87}, {"total_units_lista": 87}) == []

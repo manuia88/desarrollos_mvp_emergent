@@ -32,6 +32,15 @@ def nivel_de_pagina(texto_pagina: str) -> Optional[int]:
     return int(m.group(1)) if m else None
 
 
+def deptos_de_pagina(texto_pagina: str) -> List[str]:
+    """'Depto 201 - 301 Gutiérrez Zamora 167' → ['201','301'] · 'Depto 103 ...' → ['103'].
+    Los rangos revelan unidades gemelas (mismo plano en pisos distintos = molde)."""
+    m = re.search(r"DEPTO\.?\s+([\d\s\-–,]+?)\s+[A-Za-zÁÉÍÓÚÑ]", (texto_pagina or "").upper())
+    if not m:
+        return []
+    return re.findall(r"\d{2,4}", m.group(1))
+
+
 def nivel_de_unidad(unit_number: str, level: Any = None) -> Optional[int]:
     """Nivel de una unidad: el campo `level` si viene; si no, los dígitos de piso del
     número ('402'→4, '1201'→12, 'PH-2'→None)."""
@@ -58,9 +67,12 @@ def discrepancias_presentacion(datos: Dict[str, Any], lista: Dict[str, Any]) -> 
     ep = (datos.get("estatus_presentacion") or "").lower()
     el = (lista.get("estatus_carpeta") or "").lower()
     if ep and el and ep != el:
+        # REGLA founder (07-16): la CARPETA manda sobre la presentación. La portada del
+        # deck se queda vieja; la carpeta refleja el estatus actual del proyecto.
         out.append({"campo": "estatus", "presentacion": ep, "carpeta": el,
-                    "resolucion": "verificar_carpeta",
-                    "nota": f"portada dice '{ep}', la carpeta padre dice '{el}'"})
+                    "resolucion": "carpeta_manda", "valor": el,
+                    "nota": f"la portada dice '{ep}' pero la carpeta dice '{el}' → vale "
+                            f"'{el}' (la carpeta manda; el deck quedó viejo)"})
     return out
 
 
@@ -182,6 +194,90 @@ async def ingerir_renders(db, dev_id: str, pres_pdf_path: str,
     except Exception:  # noqa: BLE001
         pass
     return {"renders": n, "estado": "ingeridos"}
+
+
+async def ingerir_renders_archivos(db, dev_id: str, rutas: List[str],
+                                   maximo: int = 20) -> Dict[str, Any]:
+    """Renders que ya vienen como ARCHIVOS de imagen (carpeta RENDERS estándar de GDC) →
+    dev_assets (1 hero + resto galería). El nombre 'Fachada' se prioriza como hero."""
+    import secrets
+
+    from dev_assets import ASSET_UPLOAD_DIR
+    updir = pathlib.Path(ASSET_UPLOAD_DIR)
+    ya = await db.dev_assets.count_documents(
+        {"development_id": dev_id, "asset_type": {"$in": ["foto_galeria", "foto_hero"]},
+         "source": {"$in": ["presentacion_gdc", "renders_gdc"]}})
+    if ya:
+        return {"renders": ya, "estado": "ya_estaban"}
+    # el hero preferente es la fachada del edificio
+    orden = sorted(rutas, key=lambda r: 0 if "fachad" in pathlib.Path(r).name.lower() else 1)
+    n = 0
+    for i, ruta in enumerate(orden[:maximo]):
+        p = pathlib.Path(ruta)
+        if not p.exists():
+            continue
+        ext = p.suffix.lstrip(".").lower() or "png"
+        aid = f"ast_{secrets.token_urlsafe(8)}"
+        destino = updir / f"{aid}.{ext}"
+        destino.write_bytes(p.read_bytes())
+        await db.dev_assets.insert_one({
+            "id": aid, "development_id": dev_id,
+            "asset_type": "foto_hero" if i == 0 else "foto_galeria",
+            "mime_type": f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}",
+            "filename": p.name, "storage_path": str(destino), "order_index": i,
+            "source": "renders_gdc"})
+        n += 1
+    return {"renders": n, "estado": "ingeridos"}
+
+
+async def ingerir_deptos(db, dev_id: str, deptos_pdf_path: str) -> Dict[str, Any]:
+    """Plano POR DEPTO (deptos.pdf de GDC): cada página 'Depto NNN[ - MMM]' → PNG y se
+    ata a ESAS unidades exactas (plano_url por unidad, recorte YA hecho por GDC). Las
+    páginas con rango atan a unidades gemelas (mismo plano en pisos distintos)."""
+    import secrets
+
+    import pdfplumber
+
+    from dev_assets import ASSET_UPLOAD_DIR
+    from identidad_unidad import norm_unidad
+    updir = pathlib.Path(ASSET_UPLOAD_DIR)
+    if not pathlib.Path(deptos_pdf_path).exists():
+        return {"estado": "sin_archivo"}
+    with pdfplumber.open(deptos_pdf_path) as pdf:
+        textos = [(i + 1, p.extract_text() or "") for i, p in enumerate(pdf.pages)]
+    # índice de unidades del dev por número normalizado
+    idx = {}
+    async for u in db.units.find({"development_id": dev_id},
+                                 {"_id": 0, "id": 1, "unit_number": 1}):
+        idx[norm_unidad(str(u.get("unit_number") or ""))] = u["id"]
+    n_pag = n_u = 0
+    for pagina, texto in textos:
+        deptos = deptos_de_pagina(texto)
+        objetivo = [idx[norm_unidad(d)] for d in deptos if norm_unidad(d) in idx]
+        if not objetivo:
+            continue
+        aid = f"ast_{secrets.token_urlsafe(8)}"
+        destino = updir / f"{aid}.png"
+        try:
+            subprocess.run(
+                ["pdftoppm", "-png", "-singlefile", "-r", "130",
+                 "-f", str(pagina), "-l", str(pagina), deptos_pdf_path, str(updir / aid)],
+                capture_output=True, timeout=90, check=True)
+        except Exception:  # noqa: BLE001
+            continue
+        if not destino.exists():
+            continue
+        url = f"/api/assets-static/{destino.name}"
+        await db.dev_assets.insert_one({
+            "id": aid, "development_id": dev_id, "asset_type": "plano_unidad",
+            "mime_type": "image/png", "filename": f"depto_{'_'.join(deptos)}.png",
+            "storage_path": str(destino), "deptos": deptos, "source": "deptos_gdc"})
+        for uid in objetivo:
+            await db.units.update_one(
+                {"id": uid}, {"$set": {"plano_url": url, "plano_recorte_pendiente": False}})
+        n_pag += 1
+        n_u += len(objetivo)
+    return {"paginas": n_pag, "unidades_con_plano": n_u, "estado": "ingeridos"}
 
 
 # ─── 3· plantas por nivel → visibles + por unidad ─────────────────────────────
