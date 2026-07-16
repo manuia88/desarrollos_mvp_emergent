@@ -185,10 +185,15 @@ async def ingerir_renders(db, dev_id: str, pres_pdf_path: str,
 
 
 # ─── 3· plantas por nivel → visibles + por unidad ─────────────────────────────
-async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str) -> Dict[str, Any]:
+async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str,
+                          nivel_por_pagina: bool = False) -> Dict[str, Any]:
     """Cada página 'Nivel N' → PNG (plano_nivel) y cada unidad de ese piso recibe la
-    lámina como plano_url (VISIBLE). El recorte a un solo depto queda pendiente y anotado."""
-    import io
+    lámina como plano_url (VISIBLE). El recorte a un solo depto queda pendiente y anotado.
+
+    `nivel_por_pagina`: para plantas SOLO-IMAGEN (el 'Nivel N' está rasterizado y no se
+    extrae como texto, p.ej. Via Insurgentes) el nivel = número de página (pág 2 = Nivel 2,
+    confirmado por los números de unidad de cada lámina). La pág 1 (portada) se ignora."""
+    import io  # noqa: F401
     import secrets
 
     import pdfplumber
@@ -202,7 +207,7 @@ async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str) -> Dict[str, An
         textos = [(i + 1, p.extract_text() or "") for i, p in enumerate(pdf.pages)]
     nivel_png: Dict[int, str] = {}
     for pagina, texto in textos:
-        niv = nivel_de_pagina(texto)
+        niv = pagina if (nivel_por_pagina and pagina >= 2) else nivel_de_pagina(texto)
         if niv is None or niv in nivel_png:
             continue
         aid = f"ast_{secrets.token_urlsafe(8)}"
