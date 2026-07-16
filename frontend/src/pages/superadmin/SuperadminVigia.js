@@ -103,6 +103,11 @@ function FabricaCard() {
   if (!fx) return null;
   return (
     <div style={card} data-testid="fabrica">
+      {fx.proceso?.codigo_viejo && (
+        <div data-testid="codigo-viejo" style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.55)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700 }}>
+          🛑 El backend corre CÓDIGO VIEJO — {fx.proceso.n_archivos_nuevos} archivo(s) cambiaron después de arrancar (el más nuevo: {fx.proceso.mas_nuevo}). Lo que ves puede estar desactualizado. Reinicia el backend (run_dev.sh) para ver lo último.
+        </div>
+      )}
       <div style={h3}>🏭 La fábrica de datos</div>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6 }}>
         <span style={mini}>👁 última ronda: <b style={{ color: 'var(--cream)' }}>{fx.vigia.ultima_ronda ? new Date(fx.vigia.ultima_ronda).toLocaleString('es-MX') : '—'}</b></span>
@@ -111,6 +116,82 @@ function FabricaCard() {
         <span style={mini}>💾 respaldo: <b style={{ color: 'var(--cream)' }}>{fx.respaldo.ultimo}</b> ({fx.respaldo.copias} copias)</span>
         {fx.juicio_visual_pendiente > 0 && <span style={{ ...mini, color: '#d29922' }}>👁‍🗨 {fx.juicio_visual_pendiente} fuente(s) escaneadas esperando juicio visual</span>}
       </div>
+      {fx.modelo_ml && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+          <span style={mini}>🧠 modelo de precios: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.n} unidades</b></span>
+          {fx.modelo_ml.validacion?.unidad_nueva && (
+            <span style={mini}>depa nuevo de un edificio conocido: <b style={{ color: 'var(--cream)' }}>±{fx.modelo_ml.validacion.unidad_nueva.error_pct}%</b> de error</span>
+          )}
+          {fx.modelo_ml.validacion?.edificio_nuevo && (
+            <span style={mini}>edificio nunca visto: <b style={{ color: '#d29922' }}>±{fx.modelo_ml.validacion.edificio_nuevo.error_pct}%</b> (con {fx.modelo_ml.validacion.edificio_nuevo.n_edificios} edificios — mejora con cada proyecto que entra)</span>
+          )}
+          {fx.modelo_ml.torneo?.campeon && (
+            <span style={mini}>🏆 campeón del torneo: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.torneo.campeon}</b></span>
+          )}
+          {fx.modelo_ml.cobertura_rango_pct != null && (
+            <span style={mini}>banda 80% cubre de verdad: <b style={{ color: 'var(--cream)' }}>{fx.modelo_ml.cobertura_rango_pct}%</b></span>
+          )}
+          {fx.censo && (
+            <span style={mini}>🧾 censo (capa 6): <b style={{ color: fx.censo.discrepa === 0 ? '#86efac' : '#d29922' }}>{fx.censo.pct}%</b> de {fx.censo.campos.toLocaleString('en-US')} campos verificados contra fuente en {fx.censo.devs_censados} devs{fx.censo.cargas_con_perdida > 0 && <b style={{ color: '#fca5a5' }}> · ⚠ {fx.censo.cargas_con_perdida} carga(s) con pérdida</b>}</span>
+          )}
+          {fx.cobertura && (
+            <span style={mini}>📥 cobertura (capa 7): capturamos <b style={{ color: fx.cobertura.pct >= 97 ? '#86efac' : '#d29922' }}>{fx.cobertura.pct}%</b> de lo que el Maestro trae ({fx.cobertura.capturadas}/{fx.cobertura.campos_fuente} campos){fx.cobertura.devs_con_hueco > 0 && <> · <b style={{ color: '#d29922' }}>{fx.cobertura.devs_con_hueco} dev(s) con huecos</b></>}</span>
+          )}
+          {fx.auditoria_drive && (
+            <span style={mini}>🔎 auditoría del Drive (completo + correcto): <b style={{ color: fx.auditoria_drive.auditables_100 === fx.auditoria_drive.devs ? '#86efac' : '#d29922' }}>{fx.auditoria_drive.auditables_100}/{fx.auditoria_drive.devs}</b> devs 100% auditables{fx.auditoria_drive.con_discrepancia_fuentes > 0 && <> · <b style={{ color: '#d29922' }}>{fx.auditoria_drive.con_discrepancia_fuentes} con lista≠maestro (pregunta a CLASS)</b></>}</span>
+          )}
+          {fx.estado_historico?.estado && (
+            <span style={mini}>📸 estado (con historia): <b style={{ color: 'var(--cream)' }}>{fx.estado_historico.fotos_en_historia}</b> fotos en el tiempo · última: {fx.estado_historico.estado.desarrollos} devs · {fx.estado_historico.estado.unidades} unid · censo {fx.estado_historico.estado.censo_pct}%
+              {fx.estado_historico.comparativo?.cambios && Object.keys(fx.estado_historico.comparativo.cambios).length > 0 && (
+                <> · Δ vs foto previa: {Object.entries(fx.estado_historico.comparativo.cambios).slice(0, 3).map(([k, v]) => `${k} ${v.delta > 0 ? '+' : ''}${v.delta}`).join(', ')}</>
+              )}</span>
+          )}
+          {fx.examen_modelo && (fx.examen_modelo.n > 0 ? (
+            <span style={mini}>📝 examen vs futuro: <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.n}</b> precios movidos · error <b style={{ color: 'var(--cream)' }}>±{fx.examen_modelo.error_medio_pct}%</b> · dirección acertada <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.direccion_acertada_pct}%</b></span>
+          ) : (
+            <span style={mini}>📝 examen vs futuro: {fx.examen_modelo.nota}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 🛞 EL AUTOPILOTO: la línea de ensamble se recorre sola, bajo póliza ── */
+function AutopilotoCard() {
+  const [ap, setAp] = useState(null);
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback(() => _get('/inventario/autopiloto').then(setAp).catch(() => setAp(null)), []);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (!ap) return null;
+  const correr = async () => {
+    setMsg('corriendo…');
+    try { const r = await _post('/inventario/autopiloto/correr'); setMsg(`listo: ${r.acciones} acción(es), ${r.escaladas} escalada(s)`); cargar(); } catch (e) { setMsg(String(e.message)); }
+  };
+  const ICONO = { aprobar_lote: '✅', publicar: '📣', preparar_pedido: '📨', escalar: '🖐' };
+  return (
+    <div style={card} data-testid="autopiloto">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={h3}>🛞 El Autopiloto {ap.encendido ? '· encendido' : '· APAGADO'}</div>
+        <button type="button" style={btn()} onClick={correr}><RefreshCw size={13} /> Correr ahora</button>
+        {msg && <span style={mini}>{msg}</span>}
+      </div>
+      <p style={p13}>La plataforma opera sola lo que su póliza permite; todo lo demás te lo escala con el porqué. Cada decisión queda registrada.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
+        {ap.poliza.map((r) => (
+          <span key={r.regla} style={mini}><b style={{ color: 'var(--theme)' }}>{r.regla}</b> · {r.accion} — solo si {r.solo_si}</span>
+        ))}
+      </div>
+      {(ap.ultimas_decisiones || []).length > 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 180, overflowY: 'auto' }}>
+          {ap.ultimas_decisiones.slice(0, 12).map((d, i) => (
+            <span key={i} style={mini}>
+              {ICONO[d.accion] || '•'} <b style={{ color: 'var(--cream)' }}>{d.objetivo}</b> — {d.evidencia} → {d.resultado}
+              <span style={{ opacity: 0.6 }}> · regla {d.regla} · {new Date(d.ts).toLocaleString('es-MX')}</span>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -225,6 +306,7 @@ export function VigiaTab() {
 
       <TelegramCard />
         <FabricaCard />
+        <AutopilotoCard />
         <ParteCard />
 
       {pend?.length > 0 && <Manifiesto pendientes={pend} fuentes={estado?.fuentes} onChanged={cargar} />}

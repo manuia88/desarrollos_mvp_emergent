@@ -204,17 +204,9 @@ async def fabrica(request: Request):
     gates = [d async for d in db.developments.find({"juez_pct": {"$ne": None}},
                                                    {"_id": 0, "name": 1, "juez_pct": 1,
                                                     "juez_gate": 1})]
-    import subprocess
-    try:
-        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                                capture_output=True, text=True, timeout=3,
-                                cwd=__file__.rsplit("/backend/", 1)[0]).stdout.strip()
-    except Exception:  # noqa: BLE001
-        commit = None
-    import server as _srv
-    return {"proceso": {"corriendo_desde": getattr(_srv, "ARRANQUE_TS", None),
-                        "commit": commit,
-                        "nota": "si el commit del repo es más nuevo, el backend corre código VIEJO — reiniciar"},
+    from salud_proceso import estado_proceso
+    proceso = await estado_proceso(db)   # detecta código viejo (incidente 07-15)
+    return {"proceso": proceso,
             "vigia": {"ultima_ronda": (fuente or {}).get("last_ronda_at"),
                       "activa": bool(fuente)},
             "lotes": {"pendientes": await db.bulk_ingest_items.count_documents(
@@ -224,7 +216,85 @@ async def fabrica(request: Request):
             "respaldo": {"ultimo": respaldos[-1].name if respaldos else "aún ninguno (corre 3:30am)",
                          "copias": len(respaldos)},
             "juicio_visual_pendiente": await db.cola_juicio_visual.count_documents(
-                {"estado": "pendiente"})}
+                {"estado": "pendiente"}),
+            "modelo_ml": await db.ml_modelos.find_one(
+                {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)]),
+            "examen_modelo": _resumen_examen(
+                await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000)),
+            "censo": await _resumen_censo_global(db),
+            "cobertura": await _resumen_cobertura(db),
+            "estado_historico": await _estado_historico(db),
+            "auditoria_drive": await _resumen_auditoria_drive(db)}
+
+
+async def _resumen_auditoria_drive(db):
+    """Auditoría del Drive (completo+correcto): cuántos devs 100% auditables."""
+    docs = await db.auditoria_drive.find(
+        {}, {"_id": 0, "auditable_ok": 1, "discrepancias_fuentes": 1}).to_list(100)
+    if not docs:
+        return None
+    return {"devs": len(docs),
+            "auditables_100": sum(1 for d in docs if d.get("auditable_ok")),
+            "con_discrepancia_fuentes": sum(1 for d in docs if d.get("discrepancias_fuentes"))}
+
+
+async def _estado_historico(db):
+    from estado_catalogo import estado_con_comparativo
+    return await estado_con_comparativo(db)
+
+
+async def _resumen_cobertura(db):
+    """Cobertura de fuente (capa 7): ¿qué % de lo que el Maestro trae capturamos?"""
+    docs = await db.cobertura_fuente.find(
+        {}, {"_id": 0, "capturadas": 1, "columnas_con_fuente": 1, "huecos": 1}).to_list(100)
+    if not docs:
+        return None
+    cap = sum(d.get("capturadas") or 0 for d in docs)
+    con = sum(d.get("columnas_con_fuente") or 0 for d in docs)
+    return {"devs": len(docs), "capturadas": cap, "campos_fuente": con,
+            "pct": round(cap * 100 / con, 1) if con else None,
+            "devs_con_hueco": sum(1 for d in docs if d.get("huecos"))}
+
+
+async def _resumen_censo_global(db):
+    """El Censo (capa 6) en un vistazo: % de campos verificados contra fuente."""
+    docs = await db.censo_verificacion.find({}, {"_id": 0, "pct": 1, "discrepa": 1,
+                                                 "comparados": 1}).to_list(100)
+    if not docs:
+        return None
+    comparados = sum(d.get("comparados") or 0 for d in docs)
+    discrepa = sum(d.get("discrepa") or 0 for d in docs)
+    cargas_rotas = await db.censo_post_carga.count_documents({"ok": False})
+    return {"devs_censados": len(docs), "campos": comparados,
+            "pct": round((comparados - discrepa) * 100 / comparados, 2)
+            if comparados else None,
+            "discrepa": discrepa, "cargas_con_perdida": cargas_rotas}
+
+
+def _resumen_examen(examenes):
+    from pronostico_real import resumen
+    return resumen(examenes)
+
+
+@router.get("/autopiloto")
+async def autopiloto_estado(request: Request):
+    """LA PÓLIZA + el log de decisiones: qué hace solo, qué escala y por qué."""
+    await require_superadmin(request)
+    db = _db(request)
+    import autopiloto_catalogo as ap
+    ultimas = await db.autopiloto_log.find({}, {"_id": 0}) \
+        .sort("ts", -1).to_list(50)
+    return {"encendido": ap.encendido(), "poliza": ap.POLIZA,
+            "pedidos_preparados": await db.pedidos_preparados.count_documents({}),
+            "ultimas_decisiones": ultimas}
+
+
+@router.post("/autopiloto/correr")
+async def autopiloto_correr(request: Request):
+    """Una pasada manual del autopiloto (también corre solo tras cada ronda del vigía)."""
+    await require_superadmin(request)
+    from autopiloto_catalogo import correr_autopiloto
+    return await correr_autopiloto(_db(request))
 
 
 class DeshacerIn(BaseModel):

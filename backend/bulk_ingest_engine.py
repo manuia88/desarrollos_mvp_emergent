@@ -2031,8 +2031,11 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "updated_at": now,
             }
             if _sm2:
+                # el total viaja como size_m2_total (IA) O m2_total (masivo/extractores) —
+                # aceptar ambos; caer a hab SOLO si ninguno viene (bug Dessea 102: el
+                # total 219.4 se pisaba con 186.95 y la terraza se perdía, 07-15)
                 upd.update({"m2_privative": u.get("m2_interior") or _sm2, "size_m2": _sm2,
-                            "m2_total": u.get("size_m2_total") or _sm2})
+                            "m2_total": u.get("size_m2_total") or u.get("m2_total") or _sm2})
             # DESGLOSE de m² (del pase de planos) + campos finos — solo si la extracción los trae (no borrar lo que hay)
             for _k in ("m2_balcony", "m2_terrace", "m2_roof_garden", "patio_m2", "level",
                        "parking_type", "vista"):
@@ -2044,9 +2047,13 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 _pd = None  # (conteo real vía _parking_count)
                 upd["parking_spots"] = int(_pd) if _pd else (1 if u.get("parking") else 0)
                 upd["parking"] = u.get("parking")
+            if u.get("parking_spots") is not None:      # el masivo trae el conteo directo
+                upd["parking_spots"] = u.get("parking_spots")
             # BODEGA: la lista nueva es la verdad — se escribe SIEMPRE (antes el condicional dejaba vivo un
             # bodega=True inventado por una ingesta vieja; el gate dorado lo cachó en las 5 unidades de BM571).
             _bod_n = _num(u.get("storage_count"))
+            if _bod_n is None:
+                _bod_n = _num(u.get("bodega"))          # el masivo manda el conteo como 'bodega'
             upd["bodega"] = bool(_bod_n and _bod_n > 0) or bool(u.get("storage"))
             upd["storage_count"] = int(_bod_n) if (_bod_n and _bod_n > 0) else None
             # forma de pago por unidad (montos + % sobre el precio vigente)
@@ -2095,16 +2102,26 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 "type": u.get("type") or "depto", "prototype": u.get("prototype") or u.get("type") or "depto",
                 "bedrooms": u.get("bedrooms"),
                 "bathrooms": u.get("bathrooms"),
-                "m2_privative": u.get("m2_interior") or _sm2, "m2_total": u.get("size_m2_total") or _sm2,
+                "m2_privative": u.get("m2_interior") or _sm2,
+                # total: acepta ambas llaves (bug Dessea 102: total pisado + terraza tirada)
+                "m2_total": u.get("size_m2_total") or u.get("m2_total") or _sm2,
                 "m2_balcony": u.get("m2_balcony"), "m2_terrace": u.get("m2_terrace"),
-                "m2_roof_garden": u.get("m2_roof_garden"),
-                "parking_spots": _parking_count(u.get("parking")),
-                "bodega": bool(u.get("storage")), "storage": u.get("storage"), "parking": u.get("parking"),
+                "m2_roof_garden": u.get("m2_roof_garden"), "patio_m2": u.get("patio_m2"),
+                "level": u.get("level"), "parking_type": u.get("parking_type"),
+                "vista": u.get("vista"), "cuarto_servicio": u.get("cuarto_servicio"),
+                "notas": u.get("notas"), "amueblado": u.get("amueblado"),
+                "parking_spots": (u.get("parking_spots")
+                                  if u.get("parking_spots") is not None
+                                  else _parking_count(u.get("parking"))),
+                "bodega": u.get("bodega") if u.get("bodega") is not None else bool(u.get("storage")),
+                "storage": u.get("storage"), "parking": u.get("parking"),
                 "size_m2": _sm2, "price": _price, "price_mxn": _price,
                 "price_display": (f"${int(_price):,}" if _price else None),
                 "status": _new_st or "disponible",
                 "source": "bulk_ingest_merge",
                 "created_at": now,
+                # dinero fino (crédito/enganche/reservación/contrato/a diferir) + %
+                **{k: v for k, v in _payment_fields(u, _price).items() if v is not None},
             })
     # HECHOS DEL DEV (edificio/etapa/entrega): el re-ingest también refresca el doc del proyecto.
     try:

@@ -7,12 +7,21 @@ brochure), cada campo se resuelve por SU política — y toda pelea queda docume
   · primero_no_nulo → el primero que lo traiga (campos que solo una fuente tiene)
   · moda_proyecto → valores de proyecto repetidos por renglón: la MODA, jamás la suma
     (la regla del 516→258 de la prueba NUA).
+REGLA DE PRIORIDAD (founder 07-15): cuando las fuentes PELEAN, el PLANO y la LISTA
+DE PRECIOS mandan sobre el Maestro/Excel — el catálogo se queda con ellas y la pelea
+solo se anota. Si una lista futura empata con el Maestro, la pelea desaparece sola
+(nada es pegajoso: cada corrida recalcula). Los callers deben pasar los candidatos
+en ese orden: (plano, lista, maestro).
+
 Puro y testeable. El masivo lo usa vía fusionar_unidad().
 """
+
 from __future__ import annotations
 
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
+
+PRIORIDAD_FUENTES = ("plano", "lista", "maestro")   # la doctrina, consultable
 
 POLITICAS: Dict[str, str] = {
     "price_mxn": "mas_fresco", "status": "mas_fresco",
@@ -27,6 +36,28 @@ POLITICAS: Dict[str, str] = {
     "reservacion_mxn": "mas_fresco", "contrato_mxn": "mas_fresco",
     "a_diferir_mxn": "mas_fresco",
 }
+
+
+def conciliar_m2(valor_a: Optional[float], valor_b: Optional[float],
+                 exteriores: Dict[str, Any],
+                 tolerancia: float = 0.06) -> Optional[str]:
+    """CONCILIADOR DE DEFINICIONES (lección Dessea 102, founder 07-15): cuando dos
+    fuentes 'pelean' en un m², probar las identidades aritméticas conocidas ANTES de
+    declararla pelea — muchas veces ambas dicen lo mismo con definición distinta
+    (el Maestro decía 'habitable 205.09' = 186.95 hab + 18.14 terraza de la lista).
+    Devuelve la explicación humana si alguna identidad cuadra; None = pelea real."""
+    if not valor_a or not valor_b:
+        return None
+    ext = {k: float(v) for k, v in (exteriores or {}).items() if v}
+    combos = [(v, k) for k, v in ext.items()]
+    if len(ext) > 1:
+        combos.append((sum(ext.values()), " + ".join(ext)))
+    chico, grande = sorted([float(valor_a), float(valor_b)])
+    for suma, etiqueta in combos:
+        if abs(chico + suma - grande) <= tolerancia:
+            return (f"no es pelea: {grande} = {chico} + {etiqueta} ({round(suma, 2)}) — "
+                    f"una fuente incluye ese exterior en su 'habitable'")
+    return None
 
 
 def moda_proyecto(valores: List[Any]) -> Optional[Any]:

@@ -85,7 +85,11 @@ SECCIONES: List[Dict[str, Any]] = [
         ("Mantenimiento", lambda u, m, p: _fmt_mxn(u.get("mantenimiento_mxn")), "el desarrollador"),
         ("Valor según modelo de mercado", lambda u, m, p:
          f"{_fmt_mxn(u.get('ml_valor_modelo'))} ({u.get('ml_residual_pct'):+.1f}% real vs modelo)"
-         if u.get("ml_valor_modelo") else None, "hedónico v0 (se entrena con cada carga)"),
+         if u.get("ml_valor_modelo") else None, "hedónico (se entrena con cada carga)"),
+        ("Rango de valor (banda 80%)", lambda u, m, p:
+         f"entre {_fmt_mxn(u.get('ml_rango_bajo'))} y {_fmt_mxn(u.get('ml_rango_alto'))}"
+         if u.get("ml_rango_bajo") and u.get("ml_rango_alto") else None,
+         "regresión por cuantiles (cobertura medida en la Fábrica)"),
         ("Renta mensual", lambda u, m, p: _fmt_mxn(u.get("renta_mxn")), "inventario de rentas del dev"),
         ("Yield bruto", lambda u, m, p: f"{u['renta_mxn'] * 12 / (u.get('price_mxn') or u.get('price')) * 100:.2f}%"
          if u.get("renta_mxn") and (u.get("price_mxn") or u.get("price")) else None, "cálculo (renta ÷ precio)"),
@@ -245,9 +249,16 @@ async def ficha_unidad(db, unit_id: str) -> Optional[Dict[str, Any]]:
                      for c in ((cot or {}).get("checks") or []))
     score = score_dmx(posicion, None, analisis_full.get("percentil_pm2"),
                       (zona or {}).get("grade"), verificado)
+    # PRECIO ÓPTIMO v1: modelo (residual) × demanda observada (colocación del molde)
+    from molde_metrics import colocacion as _coloc
+    from precio_optimo import recomendar
+    gemelas_molde = gemelas + [u]
+    optimo = recomendar(u.get("ml_residual_pct"),
+                        _coloc(gemelas_molde).get("pct") if gemelas_molde else None)
     return {
         "suelo": suelo, "zona": zona, "finanzas": finanzas, "capacidad": capacidad,
         "score": score,
+        "precio_optimo": optimo,
         "argumento": argumento_venta(u.get("unit_number") or "", analisis_full,
                                      finanzas, capacidad),
         "ecuacion": descomposicion_precio(u, posicion, suelo),

@@ -23,8 +23,29 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     acta_id = await abrir_acta(db, target_dev_id, origen, fuentes_meta)
     item = {"extracted": {"units": unidades}, "job_id": None, "id": f"directa_{origen}"}
     antes = await db.units.count_documents({"development_id": target_dev_id})
+    # el examen del modelo: foto de sus predicciones ANTES de conocer la lista nueva
+    try:
+        from pronostico_real import snapshot_previo
+        previos_modelo = await snapshot_previo(db, target_dev_id)
+    except Exception:  # noqa: BLE001
+        previos_modelo = {}
     await bie.merge_into_dev(db, item, target_dev_id)
     despues = await db.units.count_documents({"development_id": target_dev_id})
+    # RENGLÓN CRUDO DE LA LISTA por unidad (cero deuda 07-16): así el censo/auditoría
+    # se auto-verifican sin re-abrir el PDF; junto a fuente_maestro = 100% autocontenido
+    try:
+        from identidad_unidad import norm_unidad
+        idx_plat = {}
+        async for u in db.units.find({"development_id": target_dev_id},
+                                     {"_id": 0, "id": 1, "unit_number": 1}):
+            idx_plat[norm_unidad(u.get("unit_number") or "")] = u["id"]
+        for uni in unidades:
+            uid = idx_plat.get(norm_unidad(str(uni.get("unit_number") or "")))
+            if uid:
+                fila = {k: v for k, v in uni.items() if not str(k).startswith("_")}
+                await db.units.update_one({"id": uid}, {"$set": {"fuente_lista": fila}})
+    except Exception:  # noqa: BLE001
+        pass
     # el circuito automático (mismo orden que aprobar en la bandeja)
     try:
         from market_timeline import snapshot_oferta
@@ -45,6 +66,25 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         await kg_sync.sync_moldes(db)
     except Exception:  # noqa: BLE001
         pass
+    # EL CANDADO (lección Dessea 102): escribe-lee-compara — si la carga mutiló un
+    # solo campo del payload, se sabe AQUÍ, no semanas después
+    censo = None
+    try:
+        from censo_total import censar_post_carga
+        censo = await censar_post_carga(db, target_dev_id, unidades)
+        if not censo.get("ok"):
+            import logging
+            logging.error(f"[censo_post_carga] {target_dev_id}: la carga PERDIÓ "
+                          f"{len(censo['perdidos'])} campo(s): {censo['perdidos'][:5]}")
+    except Exception:  # noqa: BLE001
+        pass
+    # el examen: ¿el modelo había anticipado los precios que llegaron?
+    examen = None
+    try:
+        from pronostico_real import registrar
+        examen = await registrar(db, target_dev_id, previos_modelo, unidades, origen)
+    except Exception:  # noqa: BLE001
+        pass
     juez = None
     if fuentes_pdf:
         try:
@@ -53,13 +93,43 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         except Exception:  # noqa: BLE001 — el juez nunca bloquea la carga; su veredicto sí
             pass
     try:
+        from plano_preview import previsualizar_planos
+        await previsualizar_planos(db)     # planos PDF → PNG para que SE VEAN (07-16)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from plano_lectura import cotejar_planos_contra_lista
+        await cotejar_planos_contra_lista(db, target_dev_id)   # plano confirma m² lista
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         from ml_precios import entrenar_y_publicar
         await entrenar_y_publicar(db)      # el hedónico madura con cada carga
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from cobertura_fuente import registrar_cobertura_dev
+        await registrar_cobertura_dev(db, target_dev_id)   # capa 7: ¿capturamos todo?
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from auditoria_drive import auditar_dev
+        await auditar_dev(db, target_dev_id)   # completo + correcto por dimensión
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from estado_catalogo import snapshot_estado
+        await snapshot_estado(db, origen=f"carga:{origen}")  # foto para comparativos
     except Exception:  # noqa: BLE001
         pass
     resultado = {"development_id": target_dev_id, "unidades_antes": antes,
                  "unidades_despues": despues, "moldes": r.get("prototipos"),
                  "origen": origen, "acta_id": acta_id,
+                 "censo_post_carga": ({"ok": censo["ok"],
+                                       "campos": censo["n_campos"],
+                                       "perdidos": len(censo["perdidos"])}
+                                      if censo else None),
+                 "examen_modelo": examen,
                  "juez": {"pct": juez.get("pct"), "gate_98": juez.get("gate_98")} if juez else None}
     await cerrar_acta(db, acta_id, {k: v for k, v in resultado.items()
                                     if k != "development_id"})

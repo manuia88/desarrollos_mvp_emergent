@@ -1,23 +1,32 @@
-"""DESCARGA SEGURA — backoff exponencial + caché local (Google nos frenó a ~130 descargas).
+"""DESCARGA SEGURA — backoff + caché + modo PACIENTE (Google frena los masivos largos).
 
-El masivo de 13 proyectos moriría contra el throttle. Reglas:
+Reglas:
   · CACHÉ por file_id en ~/dmx_data/drive_cache — lo ya bajado JAMÁS se re-baja
     (el juez periódico dominical dejaba de ser una tormenta de descargas).
-  · Espaciado de 0.5s entre descargas reales + backoff 3-15-60s ante 403/429.
+  · Espaciado configurable entre descargas (env DMX_DESCARGA_ESPACIO, default 0.5s).
+  · Backoff 3-15-60s ante 403/429.
+  · MODO PACIENTE (paciente=True, para masivos): tras agotar el backoff corto espera
+    enfriamientos LARGOS (5 min, hasta ~1h por archivo) — el bloqueo anti-abuso de
+    Google se libera solo y el masivo TERMINA en vez de morir (cazado 07-15: ~350
+    descargas → 403 'Sorry...' sostenido).
 $0. Lo usan: juez periódico, extractor de cotas y el masivo.
 """
 from __future__ import annotations
 
 import asyncio
+import os
 import pathlib
 from typing import Optional, Tuple
 
 CACHE = pathlib.Path.home() / "dmx_data" / "drive_cache"
 _ultimo_hit = 0.0
+ENFRIAMIENTO_S = 300          # pausa larga del modo paciente
+MAX_ENFRIAMIENTOS = 12        # ≈1h de paciencia máxima por archivo
 
 
 async def descargar(conn, file_id: str, mime: str = "",
-                    usar_cache: bool = True) -> Tuple[bytes, str]:
+                    usar_cache: bool = True,
+                    paciente: bool = False) -> Tuple[bytes, str]:
     CACHE.mkdir(parents=True, exist_ok=True)
     ruta = CACHE / f"{file_id}.bin"
     if usar_cache and ruta.exists() and ruta.stat().st_size > 0:
@@ -25,11 +34,13 @@ async def descargar(conn, file_id: str, mime: str = "",
     import bulk_ingest_engine as bie
     global _ultimo_hit
     loop = asyncio.get_event_loop()
-    espera = max(0.0, 0.5 - (loop.time() - _ultimo_hit))
+    espacio = float(os.environ.get("DMX_DESCARGA_ESPACIO", "0.5"))
+    espera = max(0.0, espacio - (loop.time() - _ultimo_hit))
     if espera:
         await asyncio.sleep(espera)
     ultimo_error: Optional[Exception] = None
-    for intento, pausa in enumerate((0, 3, 15, 60)):
+    pausas = [0, 3, 15, 60] + ([ENFRIAMIENTO_S] * MAX_ENFRIAMIENTOS if paciente else [])
+    for pausa in pausas:
         if pausa:
             await asyncio.sleep(pausa)
         try:

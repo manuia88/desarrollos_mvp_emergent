@@ -41,8 +41,12 @@ COL_EXCEL = {"bedrooms": "RECAMARAS", "bathrooms": "BAÑOS",
 
 # ─── comparadores puros (testeables) ──────────────────────────────────────────
 def numeros_de_linea(linea: str) -> List[float]:
+    # NOB imprime el dinero con espacios adentro ('$ 8 ,312,700.00') — se pegan los
+    # espacios pegados a comas ANTES de tokenizar (cazado por el propio juez 07-15)
+    limpia = re.sub(r"(\d)\s+,", r"\1,", linea or "")
+    limpia = re.sub(r",\s+(\d)", r",\1", limpia)
     out = []
-    for tok in re.findall(r"[\d][\d,]*\.?\d*", linea or ""):
+    for tok in re.findall(r"[\d][\d,]*\.?\d*", limpia):
         try:
             out.append(float(tok.replace(",", "")))
         except ValueError:
@@ -55,12 +59,26 @@ def linea_confirma(linea: str, valor: float, tolerancia: float) -> bool:
     return any(abs(n - valor) <= tolerancia for n in numeros_de_linea(linea))
 
 
+def _confirma_total(linea: str, valor: float, tolerancia: float) -> bool:
+    """El m²-TOTAL debe estar en la línea Y no ser 'pisado' por un ÁREA mayor con decimales
+    (Dessea 102: un total que coincide con los habitables cuando existe un total mayor está
+    mal). PERO el total puede ser ENTERO (Casa Roma 222: 'M2 Totales' = 124, sin decimales)
+    mientras los exteriores (roof/balcón 25.77) traen decimales — no exigir que el total
+    sea el mayor DECIMAL; basta que esté en la línea y no sea menor que el mayor exterior."""
+    if not linea_confirma(linea, valor, tolerancia):
+        return False
+    decimales = [n for n in numeros_de_linea(linea)
+                 if 20 <= n <= 600 and abs(n - round(n)) > 1e-9]
+    return not decimales or valor >= max(decimales) - tolerancia
+
+
 def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
     """Las líneas del PDF que hablan de ESTA unidad — por TOKENS del inicio de línea
     ('T1 - 2405' de la base debe hallar la línea '2405 4.78 …' del PDF sin prefijo)."""
     objetivo = norm_unidad(unidad)
     solo_num = re.sub(r"^[A-Z]+\d?-", "", objetivo)
-    variantes = {objetivo, objetivo.replace("-", ""), solo_num}
+    solo_num2 = re.sub(r"^\d-", "", objetivo)      # torre numérica: '2-102' → '102'
+    variantes = {objetivo, objetivo.replace("-", ""), solo_num, solo_num2}
     out = []
     for texto in texto_paginas:
         for ln in (texto or "").split("\n"):
@@ -69,7 +87,14 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
                 continue
             cabeza = {toks[0], "".join(toks[:2]), "".join(toks[:3]).replace("-", ""),
                       toks[0].replace("-", "")}
-            if variantes & cabeza:
+            # torre con guion como token propio: '2- 102 …' debe hallar a '102'/'2-102'
+            if len(toks) > 1 and re.fullmatch(r"([A-Z]{1,2}|T\d|\d{1,2})-?", toks[0]):
+                cabeza |= {toks[1], f"{toks[0].rstrip('-')}-{toks[1]}"}
+            # formato GDC con columna de NÚMERO DE FILA: la unidad va a media línea
+            # ('1 NIVEL 1 EXT 101 41 $9,805,081') — matchear el número de depto (≥3
+            # dígitos, seguro: no confunde con el índice de fila) como token propio
+            medio = {t for t in toks[1:] if t.isdigit() and len(t) >= 3}
+            if variantes & (cabeza | medio):
                 out.append(ln)
     return out
 
@@ -77,18 +102,35 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
 # ─── el juez sobre un lote (bytes de fuente + valores cargados) ───────────────
 def juzgar_campos(muestra: List[Dict[str, Any]],
                   texto_pdf: List[str],
-                  filas_excel: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+                  filas_excel: Dict[str, Dict[str, Any]],
+                  campos_derivados: Optional[List[str]] = None) -> Dict[str, Any]:
     """Cada campo de la muestra se re-verifica contra SU fuente por el camino
-    independiente. Devuelve el veredicto con el detalle campo por campo."""
+    independiente. Devuelve el veredicto con el detalle campo por campo.
+    `campos_derivados`: campos CALCULADOS por el extractor (no impresos en la fuente,
+    p.ej. el interior de GDC = total − exteriores, o enganche/crédito del % de esquema).
+    El juez no puede hallarlos en el PDF por diseño → los marca 'derivado' (los cubre la
+    capa 1 aritmética), NO 'NO_COINCIDE'. Así el gate no castiga lo que no existe imprimir."""
+    derivados = set(campos_derivados or [])
     detalles = []
     for m in muestra:
         campo, unidad, valor = m["campo"], m["unidad"], m["valor"]
         veredicto, evidencia = "sin_fuente", None
+        if campo in derivados:
+            detalles.append({**m, "veredicto": "derivado",
+                             "evidencia": "calculado por el extractor (no impreso en la fuente)"})
+            continue
         if campo in CAMPOS_PDF and isinstance(valor, (int, float)):
             lineas = lineas_de_unidad(texto_pdf, unidad)
             if lineas:
-                ok = any(linea_confirma(ln, float(valor), CAMPOS_PDF[campo])
-                         for ln in lineas)
+                if campo == "m2_total":
+                    # el TOTAL debe ser el MAYOR m² de la línea — si solo coincide con
+                    # otro número (p.ej. los habitables) es un total PISADO, no un
+                    # total confirmado (lección Dessea 102, founder 07-15)
+                    ok = any(_confirma_total(ln, float(valor), CAMPOS_PDF[campo])
+                             for ln in lineas)
+                else:
+                    ok = any(linea_confirma(ln, float(valor), CAMPOS_PDF[campo])
+                             for ln in lineas)
                 veredicto = "confirmado" if ok else "NO_COINCIDE"
                 evidencia = ("pdf_texto_crudo" if ok else
                              f"pdf: valor no hallado en {len(lineas)} línea(s) de {unidad}")
@@ -120,7 +162,10 @@ def juzgar_campos(muestra: List[Dict[str, Any]],
     # la discrepancia entre fuentes NO cuenta contra el gate (es hallazgo de capa 2)
     confirmados = sum(1 for d in detalles
                       if d["veredicto"] in ("confirmado", "discrepancia_fuentes"))
-    revisables = sum(1 for d in detalles if d["veredicto"] != "sin_fuente")
+    # sin_fuente (no verificable) y derivado (no impreso) quedan fuera del denominador:
+    # el gate solo mide lo que el juez SÍ pudo confrontar contra la fuente
+    revisables = sum(1 for d in detalles
+                     if d["veredicto"] not in ("sin_fuente", "derivado"))
     return {"detalles": detalles, "confirmados": confirmados,
             "revisables": revisables,
             "pct": round(confirmados * 100 / revisables, 1) if revisables else None,
@@ -146,9 +191,11 @@ async def juzgar_desarrollo(db, development_id: str,
             pass
     # el Excel maestro trae TODOS los devs (582 renglones): filtrar por ESTE proyecto
     # (colisión cazada por el propio juez: el '604' de otro desarrollo opinaba aquí)
-    dev_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
+    dev_doc = await db.developments.find_one(
+        {"id": development_id}, {"_id": 0, "name": 1, "campos_derivados": 1})
     tokens = {t for t in re.split(r"\W+", (dev_doc or {}).get("name", "").upper())
               if len(t) >= 4}
+    campos_derivados = (dev_doc or {}).get("campos_derivados") or []
     filas_excel: Dict[str, Dict[str, Any]] = {}
     if excel_bytes:
         try:
@@ -173,7 +220,7 @@ async def juzgar_desarrollo(db, development_id: str,
             {"$set": {"development_id": development_id, "motivo": "pdf_sin_texto",
                       "ts": datetime.now(timezone.utc).isoformat(), "estado": "pendiente"}},
             upsert=True)
-    v = juzgar_campos(muestra, texto_pdf, filas_excel)
+    v = juzgar_campos(muestra, texto_pdf, filas_excel, campos_derivados)
     doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(),
            "n_muestra": len(muestra), "semilla": semilla, **v}
     await db.veredictos_juez.insert_one(dict(doc))

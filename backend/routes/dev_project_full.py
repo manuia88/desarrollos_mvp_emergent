@@ -80,6 +80,31 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
     psd = await _find("dev_payment_schemes", {"project_id": pid}) or {}
     con = await _find("project_construction_progress", {"project_id": pid}) or {}
 
+    # DERIVAR de las unidades (la fuente de verdad) lo que el masivo guardó AHÍ y no en
+    # el doc del dev — así el expediente refleja lo que la lista de precios trae, sin
+    # depender de una materialización aparte que se desincroniza (incidente 07-16):
+    #   · price_from/price_to = min/max de precios de unidad
+    #   · forma de pago = el desglose crédito/enganche por unidad ES la forma de pago
+    precios, con_desglose = [], 0
+    try:
+        async for u in db.units.find({"development_id": pid},
+                                     {"_id": 0, "price_mxn": 1, "price": 1,
+                                      "credito_mxn": 1, "enganche_mxn": 1}):
+            p = u.get("price_mxn") or u.get("price")
+            if p:
+                precios.append(float(p))
+            if u.get("credito_mxn") and u.get("enganche_mxn"):
+                con_desglose += 1
+    except Exception:  # noqa: BLE001
+        pass
+    price_from = dev.get("price_from") or (min(precios) if precios else None)
+    price_to = dev.get("price_to") or (max(precios) if precios else None)
+    schemes = psd.get("schemes") or []
+    if not schemes and con_desglose:
+        schemes = [{"nombre": "Según lista de precios",
+                    "origen": "desglose por unidad (crédito/enganche/reservación)",
+                    "unidades_con_desglose": con_desglose}]
+
     try:
         n_assets = await db.dev_assets.count_documents({"development_id": pid})
     except Exception:
@@ -105,7 +130,7 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
     center = center or [None, None]
     return {
         "project_id": pid, "nombre": dev.get("name"), "stage": dev.get("stage"),
-        "price_from": dev.get("price_from"), "price_to": dev.get("price_to"),
+        "price_from": price_from, "price_to": price_to,
         "units_total": len(dev.get("units") or []) or dev.get("units_total"),
         "delivery_estimate": dev.get("delivery_estimate"),
         "ubicacion": {
@@ -114,6 +139,7 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
         },
         "amenidades": {
             "amenities": am.get("amenities") or dev.get("amenities") or [],
+            "confirmado_ninguna": bool(am.get("amenities_confirmado_ninguna")),
             "servicios": am.get("servicios") or {}, "amenity_scope": am.get("amenity_scope") or {},
         },
         "comercializacion": {
@@ -124,9 +150,18 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
             "broker_policy": (comm or {}).get("broker_policy") or {},
             "sales_policy": (comm or {}).get("sales_policy") or {},
         },
-        "pagos": {"schemes": psd.get("schemes") or [], "fecha_inicio": psd.get("fecha_inicio"), "fecha_entrega": psd.get("fecha_entrega")},
+        "pagos": {"schemes": schemes, "fecha_inicio": psd.get("fecha_inicio"), "fecha_entrega": psd.get("fecha_entrega")},
         "construccion": {
-            "overall_percent": con.get("overall_percent"), "current_stage": con.get("current_stage"),
+            # entrega inmediata = el edificio YA está terminado → avance 100% (dato del
+            # Maestro/estatus; antes se marcaba FALTA aunque la fuente lo dijera, 07-16)
+            "overall_percent": (con.get("overall_percent")
+                                if con.get("overall_percent") is not None
+                                else (100 if "inmediata" in str(
+                                    dev.get("stage") or dev.get("etapa_comercial") or "").lower()
+                                    else None)),
+            "current_stage": con.get("current_stage")
+            or ("Entregado" if "inmediata" in str(
+                dev.get("stage") or dev.get("etapa_comercial") or "").lower() else None),
             "sistema_constructivo": con.get("sistema_constructivo") or {},
         },
         "contenido": {"photos": len(photos), "assets": n_assets, "video": bool(dev.get("video_url")), "tour": bool(dev.get("tour360_url"))},
@@ -148,7 +183,9 @@ def project_readiness(full: Dict[str, Any]) -> Dict[str, Any]:
     checks = [
         ("Datos básicos", bool(full.get("nombre") and full.get("price_from")), "inicio"),
         ("Ubicación en el mapa", bool(loc.get("lat") and loc.get("colonia")), "ubicacion"),
-        ("Amenidades", len(a.get("amenities") or []) >= 3, "amenidades"),
+        # amenidades del Maestro (autoritativo): tener su lista —aunque sean pocas— o
+        # confirmar "sin amenidades" ES estar completo (FALTA≠CERO, founder 07-16)
+        ("Amenidades", len(a.get("amenities") or []) >= 1 or a.get("confirmado_ninguna"), "amenidades"),
         ("Servicios del desarrollo", len(a.get("servicios") or {}) >= 1, "amenidades"),
         ("Sistema constructivo", bool((con.get("sistema_constructivo") or {}).get("cimentacion")), "avance"),
         ("Formas de pago", len(pay.get("schemes") or []) >= 1, "comercializacion"),
@@ -272,7 +309,10 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     sis = (full.get("construccion") or {}).get("sistema_constructivo") or {}
     leg = full.get("legal") or {}
     sello_leg = legal_seal(leg.get("estado"), leg.get("docs") or 0, leg.get("verificados") or 0)
-    has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis or sello_leg["configured"])
+    # incluir amenities en la condición: un proyecto con SOLO amenidades (sin servicios/
+    # pagos/sistema/legal) igual debe mostrarlas en la ficha (bug 07-16 cazado en Playwright)
+    has_any = bool(am.get("amenities") or am.get("servicios") or am.get("amenity_scope")
+                   or pagos.get("schemes") or sis or sello_leg["configured"])
     if not has_any:
         return {}
     # Sello de confianza en lenguaje del comprador (fuente única en dev_batch2)

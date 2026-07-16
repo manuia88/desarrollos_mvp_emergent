@@ -27,11 +27,13 @@ ASSET_UPLOAD_DIR = dir_or_tmp(Path(os.environ.get("ASSET_UPLOAD_DIR", "/app/back
 ASSET_MAX_FILE_BYTES = 12 * 1024 * 1024  # 12 MB per image
 ASSET_MAX_BATCH = 20
 
-ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "plano_thumbnail", "tour_360", "video", "brochure", "foto_avance"}
+ASSET_TYPES = {"foto_hero", "foto_render", "foto_galeria", "foto_unidad_modelo", "plano_thumbnail", "tour_360", "video", "brochure", "foto_avance"}
 # Allow-list de tipos SEGUROS para el comprador (marketing). Lo que no esté aquí (planos
 # técnicos, futuros tipos internos) NUNCA se expone al público. Candado del lado servidor:
 # no se confía en que el front pida el tipo correcto.
-PUBLIC_ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "tour_360", "video", "brochure", "foto_avance"}
+# foto_galeria = fotos/renders de galería (marketing): 647 en CLASS + GDC se mostraban SOLO
+# como '1 Foto' porque faltaba aquí — bug global cazado en Playwright (Drive vs ficha, 07-16).
+PUBLIC_ASSET_TYPES = {"foto_hero", "foto_render", "foto_galeria", "foto_unidad_modelo", "tour_360", "video", "brochure", "foto_avance"}
 # Orden de preferencia para elegir la foto de portada (hero) que se muestra en los listados.
 HERO_PREFERENCE = ("foto_hero", "foto_render", "foto_unidad_modelo", "foto_avance")
 AI_CATEGORIES = {"sala", "cocina", "recamara", "bano", "fachada", "exterior", "amenidad", "plano"}

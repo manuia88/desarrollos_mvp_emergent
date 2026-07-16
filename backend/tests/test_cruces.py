@@ -183,6 +183,20 @@ def test_juez_comparadores_puros():
     paginas = ["2405 4.78 2 141.929 146.96 $ 10,881,200.00"]
     assert lineas_de_unidad(paginas, "T1 - 2405")
     assert not lineas_de_unidad(paginas, "T1 - 9999")
+    # NOB imprime dinero con espacios adentro — el juez debe leerlo igual (07-15)
+    assert 8_312_700.0 in numeros_de_linea("A101 131.86 11.82 $ 8 ,312,700.00 $ 5 0,000.00")
+    assert linea_confirma("A101 $ 8 ,312,700.00", 8_312_700, 2)
+    # el TOTAL pisado NO pasa: la línea de Dessea 102 trae 186.95 (hab) y 219.4 (total);
+    # un m2_total guardado como 186.95 debe REPROBAR aunque el número esté en la línea
+    from juez_automatico import _confirma_total
+    ln_dessea = "2- 102 14.31 18.14 0.00 1 3 186.95 219.4 $ 10,350,000.00"
+    assert not _confirma_total(ln_dessea, 186.95, 0.6)    # pisado → NO confirma
+    assert _confirma_total(ln_dessea, 219.4, 0.6)         # el mayor m² sí
+    # torre numérica: '2-102' de la base encuentra la línea '102 ...' (Dessea, 07-15)
+    assert lineas_de_unidad(["102 0.00 1 186.95 186.95 $ 9,053,600.00"], "2- 102")
+    # …y también la línea REAL de Dessea, donde '2-' es un token separado
+    assert lineas_de_unidad(["2- 102 14.31 18.14 0.00 1 3 186.95 219.4 $ 10,350,000.00"],
+                            "2- 102")
 
 
 def test_juez_veredictos_y_discrepancia_fuentes():
@@ -203,6 +217,28 @@ def test_juez_veredictos_y_discrepancia_fuentes():
     assert por[("parking_spots", 2)] == "discrepancia_fuentes"   # fuentes pelean ≠ error
     assert por[("price_mxn", 9_999_999.0)] == "NO_COINCIDE"
     assert v["confirmados"] == 3 and v["revisables"] == 4 and not v["gate_98"]
+
+
+def test_juez_no_castiga_campos_derivados():
+    """GDC no imprime interior ni enganche/crédito (los calcula del total y del % de
+    esquema). El juez debe marcarlos 'derivado' y dejarlos FUERA del denominador del
+    gate — si no, castigaría lo que por diseño no existe imprimir."""
+    from juez_automatico import juzgar_campos
+    texto = ["101 43 235 2 3 2.5 $ 18,760,326.40"]     # sólo total (235) y precio impresos
+    muestra = [
+        {"unidad": "101", "campo": "price_mxn", "valor": 18_760_326.40},  # PDF ✓
+        {"unidad": "101", "campo": "m2_total", "valor": 235.0},           # PDF ✓
+        {"unidad": "101", "campo": "size_m2", "valor": 192.0},            # DERIVADO (235−43)
+        {"unidad": "101", "campo": "enganche_mxn", "valor": 1_876_032},   # DERIVADO (10%)
+        {"unidad": "101", "campo": "credito_mxn", "valor": 16_884_294},   # DERIVADO (90%)
+    ]
+    v = juzgar_campos(muestra, texto, {},
+                      campos_derivados=["size_m2", "enganche_mxn", "credito_mxn"])
+    por = {d["campo"]: d["veredicto"] for d in v["detalles"]}
+    assert por["price_mxn"] == "confirmado" and por["m2_total"] == "confirmado"
+    assert por["size_m2"] == por["enganche_mxn"] == por["credito_mxn"] == "derivado"
+    # sólo cuentan los 2 confrontables → gate 100%, no 40%
+    assert v["confirmados"] == 2 and v["revisables"] == 2 and v["gate_98"]
 
 
 def test_familia_maestro_y_drift():
@@ -298,6 +334,127 @@ def test_hedonico_v0_coeficientes_y_residuales():
     assert abs(m["coeficientes"]["m2"] - 60_000) < 6_000
     assert abs(m["coeficientes"]["piso"] - 50_000) < 10_000
     assert entrenar_hedonico(units[:10]) is None       # sin masa: honesto
+
+
+def test_hedonico_validacion_honesta():
+    """El r² que se reporta al founder incluye la prueba sobre datos NUNCA vistos —
+    por unidad (KFold) y por edificio completo (GroupKFold por development_id)."""
+    from ml_precios import entrenar_hedonico
+    import random
+    rng = random.Random(2)
+    units = []
+    for i in range(150):
+        m2 = 60 + rng.random() * 80
+        piso = rng.randint(1, 20)
+        units.append({"id": f"u{i}", "development_id": f"dev{i % 5}",
+                      "price_mxn": 60_000 * m2 + 50_000 * piso + rng.gauss(0, 30_000),
+                      "m2_privative": m2, "size_m2": m2, "level": piso,
+                      "bedrooms": 2, "bathrooms": 2, "_colonia": "x"})
+    v = entrenar_hedonico(units)["validacion"]
+    assert v["unidad_nueva"]["r2"] > 0.9                # generaliza a unidad nueva
+    assert v["edificio_nuevo"]["n_edificios"] == 5      # y se probó edificio-fuera
+    assert 0 < v["edificio_nuevo"]["error_pct"] < 10    # datos sintéticos sin sesgo por edificio
+    # con 2 edificios NO se puede probar edificio-fuera → el bloque no aparece (honesto)
+    dos = [dict(u, development_id=f"d{i % 2}") for i, u in enumerate(units)]
+    assert "edificio_nuevo" not in entrenar_hedonico(dos)["validacion"]
+
+
+def test_dias_para_vender_kaplan_meier():
+    from molde_metrics import dias_para_vender
+    # 1 sola fecha → honesto: se activa con la 2ª
+    ev1 = [{"unit_id": "a", "ts": "2026-07-01", "disponible": True}]
+    assert "2ª lista" in dias_para_vender(ev1)["nota"]
+    # 4 unidades: 3 se venden (10, 20, 30 días), 1 sigue viva (censura a 30 días)
+    evs = []
+    for uid, vendida_en in [("a", "2026-07-11"), ("b", "2026-07-21"), ("c", "2026-07-31")]:
+        evs += [{"unit_id": uid, "ts": "2026-07-01", "disponible": True},
+                {"unit_id": uid, "ts": vendida_en, "disponible": False}]
+    evs += [{"unit_id": "d", "ts": "2026-07-01", "disponible": True},
+            {"unit_id": "d", "ts": "2026-07-31", "disponible": True}]
+    r = dias_para_vender(evs)
+    assert r["vendidas"] == 3 and r["en_venta"] == 1
+    assert r["mediana_dias"] == 20        # S cae 0.75→0.50 exactamente en la 2ª venta
+    # si la mayoría sigue viva, la mediana NO se inventa
+    solo1 = evs[:2] + [{"unit_id": u, "ts": t, "disponible": True}
+                       for u in ("x", "y", "z") for t in ("2026-07-01", "2026-07-31")]
+    r2 = dias_para_vender(solo1)
+    assert r2["mediana_dias"] is None and "mitad" in r2["nota"]
+    # EMPATE de fechas (bug real cazado con Almina): 1 venta y 84 vivas el mismo día
+    # NO puede dar mediana — la venta se procesa antes que las censuras
+    empate = [{"unit_id": "v", "ts": "2026-07-14", "disponible": True},
+              {"unit_id": "v", "ts": "2026-07-15", "disponible": False}]
+    for u in range(84):
+        empate += [{"unit_id": f"c{u}", "ts": "2026-07-14", "disponible": True},
+                   {"unit_id": f"c{u}", "ts": "2026-07-15", "disponible": True}]
+    r3 = dias_para_vender(empate)
+    assert r3["mediana_dias"] is None and r3["vendidas"] == 1
+
+
+def test_precio_optimo_reglas():
+    from precio_optimo import recomendar
+    assert recomendar(None, 50) is None                       # sin modelo no se inventa
+    assert recomendar(2.0, 90)["recomendacion"] == "mantener"
+    s = recomendar(-9.0, 75)                                  # barata + molde volando
+    assert s["recomendacion"] == "subir" and s["delta_sugerido_pct"] == 8.0  # techo 8%
+    assert recomendar(-9.0, 20)["recomendacion"] == "gancho"
+    r = recomendar(12.0, 25)                                  # cara + molde lento
+    assert r["recomendacion"] == "revisar" and r["delta_sugerido_pct"] == -8.0
+    assert recomendar(12.0, 80)["recomendacion"] == "mantener"  # cara pero se paga
+
+
+def test_pronostico_vs_real_examen():
+    from pronostico_real import comparar, resumen
+    previos = {"T1-101": {"precio": 5_000_000, "valor_modelo": 5_400_000,
+                          "rango_bajo": 5_100_000, "rango_alto": 5_700_000},
+               "T1-102": {"precio": 6_000_000, "valor_modelo": 5_900_000,
+                          "rango_bajo": 5_500_000, "rango_alto": 6_300_000}}
+    nuevos = [{"unit_number": "T1 - 101", "price_mxn": 5_300_000},   # subió (modelo decía barata ✓)
+              {"unit_number": "T1-102", "price_mxn": 6_000_000},     # sin movimiento: no examina
+              {"unit_number": "T1-999", "price_mxn": 4_000_000}]     # sin historia: no examina
+    ex = comparar(previos, nuevos)
+    assert len(ex) == 1
+    assert ex[0]["direccion_acertada"] is True and ex[0]["dentro_rango"] is True
+    assert ex[0]["error_pct"] == 1.9                     # (5.4M − 5.3M) / 5.3M
+    r = resumen(ex)
+    assert r["n"] == 1 and r["direccion_acertada_pct"] == 100.0
+    assert "2ª foto" in resumen([])["nota"]              # honesto sin datos
+
+
+def test_torneo_jerarquico_gana_con_efecto_de_edificio():
+    """Datos con prima POR EDIFICIO que las features no ven → el jerárquico debe
+    ganar el torneo y capturar la prima en sus residuales."""
+    from ml_precios import entrenar_hedonico
+    import random
+    rng = random.Random(3)
+    units, prima = [], {"d0": 400_000, "d1": -300_000, "d2": 0, "d3": 250_000}
+    for i in range(200):
+        dev = f"d{i % 4}"
+        m2 = 60 + rng.random() * 80
+        piso = rng.randint(1, 20)
+        units.append({"id": f"u{i}", "development_id": dev,
+                      "price_mxn": 60_000 * m2 + 50_000 * piso + prima[dev] + rng.gauss(0, 30_000),
+                      "m2_privative": m2, "size_m2": m2, "level": piso,
+                      "bedrooms": 2, "bathrooms": 2, "_colonia": "x"})
+    m = entrenar_hedonico(units)
+    assert m["version"] == "hedonico_v1_jerarquico"
+    assert "jerárquico" in m["torneo"]["campeon"]
+    assert m["torneo"]["jerarquico"]["error_pct"] < m["torneo"]["ridge"]["error_pct"]
+    # el rango 80% existe, viene ordenado y su cobertura real se midió fuera de muestra
+    r = next(iter(m["residuales"].values()))
+    assert r["rango_bajo"] < r["valor_modelo"] < r["rango_alto"] * 1.05
+    assert 55 <= m["cobertura_rango_pct"] <= 98
+
+
+def test_drift_modelo_regla_catalogo():
+    """El auditor alerta si el modelo empeora de golpe tras una carga."""
+    from auditor_catalogo import drift_modelo
+    v = lambda err: {"validacion": {"unidad_nueva": {"error_pct": err}}, "r2": 0.94}  # noqa: E731
+    assert drift_modelo(v(4.7), v(5.5)) is None            # ruido normal: no alerta
+    h = drift_modelo(v(4.7), v(9.0))                       # +4.3 pts: alerta
+    assert h and h["severidad"] == "alerta" and "±4.7%" in h["detalle"]
+    h2 = drift_modelo({"r2": 0.94, "validacion": {}}, {"r2": 0.85, "validacion": {}})
+    assert h2 and "r²=0.94" in h2["detalle"]               # caída de ajuste: alerta
+    assert drift_modelo(None, v(5.0)) is None              # primer modelo: sin base
 
 
 def test_cotas_extractor_y_validacion():
