@@ -62,6 +62,40 @@ def test_fusion_ceros_a_la_izquierda():
     assert not disc
 
 
+def test_conciliador_de_definiciones_dessea_102():
+    """Lección founder 07-15: 'habitable' del Maestro (205.09) = hab de la lista
+    (186.95) + terraza (18.14). Eso NO es pelea — el conciliador lo explica."""
+    from fusion_fuentes import conciliar_m2
+    expl = conciliar_m2(186.95, 205.09, {"balcón": 14.31, "terraza": 18.14, "roof": 0})
+    assert expl and "terraza" in expl and "205.09" in expl
+    # suma de varios exteriores también cuenta (hab + balcón + terraza)
+    assert conciliar_m2(186.95, 219.40, {"balcón": 14.31, "terraza": 18.14})
+    # pelea REAL (ninguna identidad cuadra) → None, se documenta
+    assert conciliar_m2(186.95, 199.99, {"balcón": 14.31, "terraza": 18.14}) is None
+    assert conciliar_m2(None, 205.09, {"terraza": 18.14}) is None
+    # y la fusión ya NO la reporta como discrepancia
+    us, _, disc = fusionar_con_maestro(
+        [{"unit_number": "2- 102", "size_m2": 186.95, "price_mxn": 10_350_000,
+          "m2_balcony": 14.31, "m2_terrace": 18.14}],
+        [{"_producto": "Dessea 2-Unidad 102", "m2_habitable": 205.09,
+          "precio": 10_350_000, "bedrooms": 3}], torre="")
+    assert not disc and us[0]["bedrooms"] == 3
+    assert any("no es pelea" in n for n in us[0]["notas_fuentes"])
+
+
+def test_vocabulario_total_y_terraza_sobreviven():
+    """Bug Dessea 102: el merge esperaba 'size_m2_total' y tiraba patio — el
+    vocabulario ahora emite AMBAS llaves y el desglose completo."""
+    v = a_vocabulario({"unidad": "102", "m2_habitable": 186.95, "m2_total": 219.40,
+                       "m2_balcon": 14.31, "m2_patio": 18.14, "m2_roof": 0.0,
+                       "precio": 10_350_000, "credito": 7_250_000,
+                       "enganche": 3_100_000, "bodegas": 1, "estacionamientos": 3,
+                       "_valida_m2": True, "_valida_dinero": True})
+    assert v["m2_total"] == 219.40 and v["size_m2_total"] == 219.40
+    assert v["patio_m2"] == 18.14 and v["m2_balcony"] == 14.31
+    assert v["parking_spots"] == 3 and v["bodega"] == 1
+
+
 def test_fusion_discrepancia_de_precio_no_pasa_callada():
     us, _, disc = fusionar_con_maestro(
         [{"unit_number": "301", "size_m2": 70.0, "price_mxn": 5_000_000}],

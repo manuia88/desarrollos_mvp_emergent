@@ -59,6 +59,18 @@ def linea_confirma(linea: str, valor: float, tolerancia: float) -> bool:
     return any(abs(n - valor) <= tolerancia for n in numeros_de_linea(linea))
 
 
+def _confirma_total(linea: str, valor: float, tolerancia: float) -> bool:
+    """El m²-TOTAL debe ser el MAYOR m² plausible de la línea — un total que solo
+    coincide con los habitables está PISADO, no confirmado (Dessea 102). Los m²
+    traen DECIMALES; los enteros del rango suelen ser números de unidad (301, 204)
+    y no cuentan. Sin ningún decimal en rango → criterio clásico (no inventar fallos)."""
+    m2s = [n for n in numeros_de_linea(linea)
+           if 20 <= n <= 600 and abs(n - round(n)) > 1e-9]
+    if not m2s:
+        return linea_confirma(linea, valor, tolerancia)
+    return abs(max(m2s) - valor) <= tolerancia
+
+
 def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
     """Las líneas del PDF que hablan de ESTA unidad — por TOKENS del inicio de línea
     ('T1 - 2405' de la base debe hallar la línea '2405 4.78 …' del PDF sin prefijo)."""
@@ -95,8 +107,15 @@ def juzgar_campos(muestra: List[Dict[str, Any]],
         if campo in CAMPOS_PDF and isinstance(valor, (int, float)):
             lineas = lineas_de_unidad(texto_pdf, unidad)
             if lineas:
-                ok = any(linea_confirma(ln, float(valor), CAMPOS_PDF[campo])
-                         for ln in lineas)
+                if campo == "m2_total":
+                    # el TOTAL debe ser el MAYOR m² de la línea — si solo coincide con
+                    # otro número (p.ej. los habitables) es un total PISADO, no un
+                    # total confirmado (lección Dessea 102, founder 07-15)
+                    ok = any(_confirma_total(ln, float(valor), CAMPOS_PDF[campo])
+                             for ln in lineas)
+                else:
+                    ok = any(linea_confirma(ln, float(valor), CAMPOS_PDF[campo])
+                             for ln in lineas)
                 veredicto = "confirmado" if ok else "NO_COINCIDE"
                 evidencia = ("pdf_texto_crudo" if ok else
                              f"pdf: valor no hallado en {len(lineas)} línea(s) de {unidad}")

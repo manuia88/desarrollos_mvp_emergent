@@ -29,6 +29,28 @@ POLITICAS: Dict[str, str] = {
 }
 
 
+def conciliar_m2(valor_a: Optional[float], valor_b: Optional[float],
+                 exteriores: Dict[str, Any],
+                 tolerancia: float = 0.06) -> Optional[str]:
+    """CONCILIADOR DE DEFINICIONES (lección Dessea 102, founder 07-15): cuando dos
+    fuentes 'pelean' en un m², probar las identidades aritméticas conocidas ANTES de
+    declararla pelea — muchas veces ambas dicen lo mismo con definición distinta
+    (el Maestro decía 'habitable 205.09' = 186.95 hab + 18.14 terraza de la lista).
+    Devuelve la explicación humana si alguna identidad cuadra; None = pelea real."""
+    if not valor_a or not valor_b:
+        return None
+    ext = {k: float(v) for k, v in (exteriores or {}).items() if v}
+    combos = [(v, k) for k, v in ext.items()]
+    if len(ext) > 1:
+        combos.append((sum(ext.values()), " + ".join(ext)))
+    chico, grande = sorted([float(valor_a), float(valor_b)])
+    for suma, etiqueta in combos:
+        if abs(chico + suma - grande) <= tolerancia:
+            return (f"no es pelea: {grande} = {chico} + {etiqueta} ({round(suma, 2)}) — "
+                    f"una fuente incluye ese exterior en su 'habitable'")
+    return None
+
+
 def moda_proyecto(valores: List[Any]) -> Optional[Any]:
     """Total del edificio y similares: se repiten por renglón → la moda, JAMÁS la suma."""
     limpios = [v for v in valores if v not in (None, "", 0)]

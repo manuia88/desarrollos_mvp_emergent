@@ -186,6 +186,12 @@ def test_juez_comparadores_puros():
     # NOB imprime dinero con espacios adentro — el juez debe leerlo igual (07-15)
     assert 8_312_700.0 in numeros_de_linea("A101 131.86 11.82 $ 8 ,312,700.00 $ 5 0,000.00")
     assert linea_confirma("A101 $ 8 ,312,700.00", 8_312_700, 2)
+    # el TOTAL pisado NO pasa: la línea de Dessea 102 trae 186.95 (hab) y 219.4 (total);
+    # un m2_total guardado como 186.95 debe REPROBAR aunque el número esté en la línea
+    from juez_automatico import _confirma_total
+    ln_dessea = "2- 102 14.31 18.14 0.00 1 3 186.95 219.4 $ 10,350,000.00"
+    assert not _confirma_total(ln_dessea, 186.95, 0.6)    # pisado → NO confirma
+    assert _confirma_total(ln_dessea, 219.4, 0.6)         # el mayor m² sí
     # torre numérica: '2-102' de la base encuentra la línea '102 ...' (Dessea, 07-15)
     assert lineas_de_unidad(["102 0.00 1 186.95 186.95 $ 9,053,600.00"], "2- 102")
     # …y también la línea REAL de Dessea, donde '2-' es un token separado

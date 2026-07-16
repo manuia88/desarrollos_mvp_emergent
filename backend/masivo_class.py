@@ -51,6 +51,8 @@ def a_vocabulario(u_vp: Dict[str, Any], torre: str = "") -> Dict[str, Any]:
     for k, v in u_vp.items():
         if k in _MAPA_VP and v is not None:
             out[_MAPA_VP[k]] = v
+    if out.get("m2_total") is not None:
+        out["size_m2_total"] = out["m2_total"]   # alias que el merge también entiende
     num = str(out.get("unit_number") or "").strip()
     # multi-torre sin etiqueta en la lista → se antepone la torre (identidad estable)
     if torre and not norm_unidad(num).upper().startswith(norm_unidad(torre).upper()):
@@ -156,10 +158,20 @@ def fusionar_con_maestro(unidades: List[Dict[str, Any]],
                                         (fila.get(col), {"fuente": "maestro"})])
             if r.get("valor") is not None:
                 u[campo] = r["valor"]
-        # cotejo de m²/precio entre fuentes: la pelea nunca pasa callada
+        # cotejo de m²/precio entre fuentes: primero CONCILIAR definiciones (lección
+        # Dessea 102: 'habitable' del Maestro = hab + terraza de la lista), y solo
+        # si ninguna identidad cuadra, la pelea se documenta
         for a, b, et, tol in ((u.get("size_m2"), fila.get("m2_habitable"), "m²", 0.6),
                               (u.get("price_mxn"), fila.get("precio"), "precio", 2.0)):
             if a and b and abs(float(a) - float(b)) > tol:
+                if et == "m²":
+                    from fusion_fuentes import conciliar_m2
+                    expl = conciliar_m2(a, b, {"balcón": u.get("m2_balcony"),
+                                               "terraza": u.get("m2_terrace") or u.get("patio_m2"),
+                                               "roof garden": u.get("m2_roof_garden")})
+                    if expl:
+                        u.setdefault("notas_fuentes", []).append(expl)
+                        continue
                 discrepancias.append(f"{u.get('unit_number')}: {et} lista={a} vs "
                                      f"maestro={b}")
     solo_maestro = []
