@@ -98,6 +98,11 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     except Exception:  # noqa: BLE001
         pass
     try:
+        from auditoria_drive import auditar_dev
+        await auditar_dev(db, target_dev_id)   # completo + correcto por dimensión
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         from estado_catalogo import snapshot_estado
         await snapshot_estado(db, origen=f"carga:{origen}")  # foto para comparativos
     except Exception:  # noqa: BLE001

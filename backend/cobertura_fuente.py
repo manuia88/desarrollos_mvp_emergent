@@ -28,6 +28,17 @@ def _tiene(v) -> bool:
     return v not in (None, "", [], {}) and str(v).strip().lower() not in ("nan", "none")
 
 
+def _tiene_dinero(v) -> bool:
+    """Para cuotas/fondos: '0' o 0 = NO hay cuota (no es un dato que capturar).
+    Distingue 'la fuente trae $X' de 'la fuente dice que no aplica' (founder 07-16)."""
+    if not _tiene(v):
+        return False
+    try:
+        return float(str(v).replace(",", "").split()[0]) != 0
+    except (ValueError, IndexError):
+        return True    # '12,000 USD' u otro texto = sí hay valor (queda como nota)
+
+
 CAMPOS: List[Chequeo] = [
     # ── por UNIDAD (la fila del Maestro) ──────────────────────────────────────
     ("RECAMARAS", "unidad", lambda f: _tiene(f.get("RECAMARAS")),
@@ -80,11 +91,13 @@ CAMPOS: List[Chequeo] = [
     ("UBICACIÓN GOOGLE MAPS", "dev", lambda f: _tiene(f.get("UBICACIÓN GOOGLE MAPS")),
      lambda dev, ctx: dev.get("lat") is not None or _tiene(dev.get("maps_url"))),
     ("FONDO DE MANTENIMIENTO ANTICIPADO", "dev",
-     lambda f: _tiene(f.get("FONDO DE MANTENIMIENTO ANTICIPADO")),
-     lambda dev, ctx: dev.get("fondo_mantenimiento_mxn") is not None),
+     lambda f: _tiene_dinero(f.get("FONDO DE MANTENIMIENTO ANTICIPADO")),
+     lambda dev, ctx: dev.get("fondo_mantenimiento_mxn") is not None
+     or bool(dev.get("fondo_mantenimiento_nota"))),
     ("CUOTA DE EQUIPAMIENTO AMENIDADES", "dev",
-     lambda f: _tiene(f.get("CUOTA DE EQUIPAMIENTO AMENIDADES")),
-     lambda dev, ctx: dev.get("cuota_equipamiento_mxn") is not None),
+     lambda f: _tiene_dinero(f.get("CUOTA DE EQUIPAMIENTO AMENIDADES")),
+     lambda dev, ctx: dev.get("cuota_equipamiento_mxn") is not None
+     or bool(dev.get("cuota_equipamiento_nota"))),
     ("TOTAL DEPTOS EN EL DESARROLLO", "dev",
      lambda f: _tiene(f.get("TOTAL DEPTOS EN EL DESARROLLO")),
      lambda dev, ctx: dev.get("total_units") is not None),

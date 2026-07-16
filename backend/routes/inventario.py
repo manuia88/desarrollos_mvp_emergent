@@ -223,7 +223,19 @@ async def fabrica(request: Request):
                 await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000)),
             "censo": await _resumen_censo_global(db),
             "cobertura": await _resumen_cobertura(db),
-            "estado_historico": await _estado_historico(db)}
+            "estado_historico": await _estado_historico(db),
+            "auditoria_drive": await _resumen_auditoria_drive(db)}
+
+
+async def _resumen_auditoria_drive(db):
+    """Auditoría del Drive (completo+correcto): cuántos devs 100% auditables."""
+    docs = await db.auditoria_drive.find(
+        {}, {"_id": 0, "auditable_ok": 1, "discrepancias_fuentes": 1}).to_list(100)
+    if not docs:
+        return None
+    return {"devs": len(docs),
+            "auditables_100": sum(1 for d in docs if d.get("auditable_ok")),
+            "con_discrepancia_fuentes": sum(1 for d in docs if d.get("discrepancias_fuentes"))}
 
 
 async def _estado_historico(db):

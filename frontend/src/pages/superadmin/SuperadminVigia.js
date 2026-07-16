@@ -137,6 +137,9 @@ function FabricaCard() {
           {fx.cobertura && (
             <span style={mini}>📥 cobertura (capa 7): capturamos <b style={{ color: fx.cobertura.pct >= 97 ? '#86efac' : '#d29922' }}>{fx.cobertura.pct}%</b> de lo que el Maestro trae ({fx.cobertura.capturadas}/{fx.cobertura.campos_fuente} campos){fx.cobertura.devs_con_hueco > 0 && <> · <b style={{ color: '#d29922' }}>{fx.cobertura.devs_con_hueco} dev(s) con huecos</b></>}</span>
           )}
+          {fx.auditoria_drive && (
+            <span style={mini}>🔎 auditoría del Drive (completo + correcto): <b style={{ color: fx.auditoria_drive.auditables_100 === fx.auditoria_drive.devs ? '#86efac' : '#d29922' }}>{fx.auditoria_drive.auditables_100}/{fx.auditoria_drive.devs}</b> devs 100% auditables{fx.auditoria_drive.con_discrepancia_fuentes > 0 && <> · <b style={{ color: '#d29922' }}>{fx.auditoria_drive.con_discrepancia_fuentes} con lista≠maestro (pregunta a CLASS)</b></>}</span>
+          )}
           {fx.estado_historico?.estado && (
             <span style={mini}>📸 estado (con historia): <b style={{ color: 'var(--cream)' }}>{fx.estado_historico.fotos_en_historia}</b> fotos en el tiempo · última: {fx.estado_historico.estado.desarrollos} devs · {fx.estado_historico.estado.unidades} unid · censo {fx.estado_historico.estado.censo_pct}%
               {fx.estado_historico.comparativo?.cambios && Object.keys(fx.estado_historico.comparativo.cambios).length > 0 && (
