@@ -134,3 +134,28 @@ def cobertura_dev(filas_maestro: List[Dict[str, Any]], dev_doc: Dict[str, Any],
     return {"columnas_con_fuente": con_fuente, "capturadas": capturado,
             "cobertura_pct": round(capturado * 100 / con_fuente, 1) if con_fuente else None,
             "huecos": huecos}
+
+
+async def registrar_cobertura_dev(db, development_id: str) -> Optional[Dict[str, Any]]:
+    """Auto-cobertura SIN depender del Excel: lee el renglón crudo del Maestro que se
+    guardó en cada unidad (`fuente_maestro`) al cargar. Si no hay renglones crudos
+    (dev viejo sin snapshot), no toca lo ya medido. Append al histórico + upsert último."""
+    from datetime import datetime, timezone
+
+    from identidad_unidad import norm_unidad
+    units = await db.units.find({"development_id": development_id}, {"_id": 0}).to_list(5000)
+    filas = [u["fuente_maestro"] for u in units if u.get("fuente_maestro")]
+    if not filas:
+        return None
+    por_num = {norm_unidad(u.get("unit_number") or ""): u for u in units}
+    dev = await db.developments.find_one({"id": development_id}, {"_id": 0}) or {}
+    am = await db.project_amenities.find_one({"project_id": development_id}, {"_id": 0})
+    comm = await db.project_commercialization.find_one({"project_id": development_id}, {"_id": 0})
+
+    def match(f):
+        return por_num.get(norm_unidad(str(f.get("_unit") or f.get("PRODUCTO") or "")))
+    r = cobertura_dev(filas, dev, units, am, comm, match_unidad=match)
+    doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(), **r}
+    await db.cobertura_fuente.update_one({"development_id": development_id},
+                                         {"$set": doc}, upsert=True)
+    return r

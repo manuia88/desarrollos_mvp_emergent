@@ -92,6 +92,16 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         await entrenar_y_publicar(db)      # el hedónico madura con cada carga
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from cobertura_fuente import registrar_cobertura_dev
+        await registrar_cobertura_dev(db, target_dev_id)   # capa 7: ¿capturamos todo?
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from estado_catalogo import snapshot_estado
+        await snapshot_estado(db, origen=f"carga:{origen}")  # foto para comparativos
+    except Exception:  # noqa: BLE001
+        pass
     resultado = {"development_id": target_dev_id, "unidades_antes": antes,
                  "unidades_despues": despues, "moldes": r.get("prototipos"),
                  "origen": origen, "acta_id": acta_id,

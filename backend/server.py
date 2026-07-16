@@ -2568,6 +2568,23 @@ async def startup():
                           id="vigia_hourly", replace_existing=True, misfire_grace_time=600)
         except Exception as e:
             logging.warning(f"[vigia] cron register failed: {e}")
+        # FOTO DE ESTADO semanal (domingo 4am): la historia de calidad crece sola para
+        # comparativos en el tiempo — cobertura/censo/cotejo/ml/planos (founder 07-16)
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+
+            async def _estado_semanal():
+                try:
+                    from estado_catalogo import snapshot_estado
+                    await snapshot_estado(db, origen="cron_semanal")
+                except Exception as e:  # noqa: BLE001
+                    logging.warning(f"[estado_catalogo] snapshot falló: {e}")
+
+            sched.add_job(_estado_semanal, CronTrigger(day_of_week="sun", hour=4),
+                          id="estado_catalogo_semanal", replace_existing=True,
+                          misfire_grace_time=3600)
+        except Exception as e:  # noqa: BLE001
+            logging.warning(f"[estado_catalogo] cron register failed: {e}")
         # RESPALDO AUTOMÁTICO (founder 07-15: "no puedo perder el catálogo"): JSON diario
         # de TODAS las colecciones de negocio a ~/dmx_backups, rotación de 7. Hasta que
         # haya deploy, la laptop es el datacenter — esto es el cinturón de seguridad.

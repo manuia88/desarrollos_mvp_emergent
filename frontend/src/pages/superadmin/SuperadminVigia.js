@@ -137,6 +137,12 @@ function FabricaCard() {
           {fx.cobertura && (
             <span style={mini}>📥 cobertura (capa 7): capturamos <b style={{ color: fx.cobertura.pct >= 97 ? '#86efac' : '#d29922' }}>{fx.cobertura.pct}%</b> de lo que el Maestro trae ({fx.cobertura.capturadas}/{fx.cobertura.campos_fuente} campos){fx.cobertura.devs_con_hueco > 0 && <> · <b style={{ color: '#d29922' }}>{fx.cobertura.devs_con_hueco} dev(s) con huecos</b></>}</span>
           )}
+          {fx.estado_historico?.estado && (
+            <span style={mini}>📸 estado (con historia): <b style={{ color: 'var(--cream)' }}>{fx.estado_historico.fotos_en_historia}</b> fotos en el tiempo · última: {fx.estado_historico.estado.desarrollos} devs · {fx.estado_historico.estado.unidades} unid · censo {fx.estado_historico.estado.censo_pct}%
+              {fx.estado_historico.comparativo?.cambios && Object.keys(fx.estado_historico.comparativo.cambios).length > 0 && (
+                <> · Δ vs foto previa: {Object.entries(fx.estado_historico.comparativo.cambios).slice(0, 3).map(([k, v]) => `${k} ${v.delta > 0 ? '+' : ''}${v.delta}`).join(', ')}</>
+              )}</span>
+          )}
           {fx.examen_modelo && (fx.examen_modelo.n > 0 ? (
             <span style={mini}>📝 examen vs futuro: <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.n}</b> precios movidos · error <b style={{ color: 'var(--cream)' }}>±{fx.examen_modelo.error_medio_pct}%</b> · dirección acertada <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.direccion_acertada_pct}%</b></span>
           ) : (

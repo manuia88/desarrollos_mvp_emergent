@@ -222,7 +222,13 @@ async def fabrica(request: Request):
             "examen_modelo": _resumen_examen(
                 await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000)),
             "censo": await _resumen_censo_global(db),
-            "cobertura": await _resumen_cobertura(db)}
+            "cobertura": await _resumen_cobertura(db),
+            "estado_historico": await _estado_historico(db)}
+
+
+async def _estado_historico(db):
+    from estado_catalogo import estado_con_comparativo
+    return await estado_con_comparativo(db)
 
 
 async def _resumen_cobertura(db):
