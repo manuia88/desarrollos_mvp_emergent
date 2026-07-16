@@ -108,7 +108,9 @@ def censar_unidad(u: Dict[str, Any],
                     out.append({"campo": campo, "v": "fuentes_pelean",
                                 "fuente_tipo": "lista≠maestro",
                                 "nota": f"lista confirma {u.get(campo)}, maestro dice "
-                                        f"{fila_maestro.get(llave)} — pregunta a la fuente"})
+                                        f"{fila_maestro.get(llave)} — el catálogo se queda "
+                                        f"con la LISTA (prioridad founder 07-15); si una "
+                                        f"lista futura empata, esto desaparece solo"})
                 continue
             out.append({**comparar_campo(campo, u.get(campo), fila_maestro.get(llave),
                                          tol, u), "fuente_tipo": "maestro"})

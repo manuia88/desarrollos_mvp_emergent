@@ -7,12 +7,21 @@ brochure), cada campo se resuelve por SU política — y toda pelea queda docume
   · primero_no_nulo → el primero que lo traiga (campos que solo una fuente tiene)
   · moda_proyecto → valores de proyecto repetidos por renglón: la MODA, jamás la suma
     (la regla del 516→258 de la prueba NUA).
+REGLA DE PRIORIDAD (founder 07-15): cuando las fuentes PELEAN, el PLANO y la LISTA
+DE PRECIOS mandan sobre el Maestro/Excel — el catálogo se queda con ellas y la pelea
+solo se anota. Si una lista futura empata con el Maestro, la pelea desaparece sola
+(nada es pegajoso: cada corrida recalcula). Los callers deben pasar los candidatos
+en ese orden: (plano, lista, maestro).
+
 Puro y testeable. El masivo lo usa vía fusionar_unidad().
 """
+
 from __future__ import annotations
 
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
+
+PRIORIDAD_FUENTES = ("plano", "lista", "maestro")   # la doctrina, consultable
 
 POLITICAS: Dict[str, str] = {
     "price_mxn": "mas_fresco", "status": "mas_fresco",

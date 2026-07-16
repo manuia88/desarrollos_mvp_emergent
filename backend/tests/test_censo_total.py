@@ -46,6 +46,29 @@ def test_censo_caza_el_bug_dessea_102():
     assert not [v for v in vs3 if v["v"] == "discrepa"]
 
 
+def test_prioridad_lista_sobre_maestro_en_pelea():
+    """REGLA founder 07-15: si lista y Maestro pelean, el catálogo se queda con la
+    LISTA — la pelea se anota (no es error) y se auto-resuelve si luego empatan."""
+    from fusion_fuentes import PRIORIDAD_FUENTES, fusionar_unidad
+    assert PRIORIDAD_FUENTES == ("plano", "lista", "maestro")
+    r = fusionar_unidad("parking_spots", [(2, {"fuente": "lista"}),
+                                          (1, {"fuente": "maestro"})])
+    assert r["valor"] == 2 and r["fuente"] == "lista"      # la lista gana
+    assert r.get("discrepancia")                            # y la pelea queda escrita
+    # el censo lo clasifica como pelea documentada, NO como error del catálogo
+    u = {"unit_number": "PH01", "parking_spots": 4, "bedrooms": 3, "bathrooms": 3.5,
+         "price_mxn": 17_212_000, "size_m2": 314.67}
+    vs = censar_unidad(u, {"unidad": "PH01", "estacionamientos": 4,
+                           "precio": 17_212_000, "m2_habitable": 314.67},
+                       {"_producto": "x", "estacionamientos": 3, "bedrooms": 3,
+                        "bathrooms": 3.5, "precio": 17_212_000, "m2_habitable": 314.67})
+    pelea = [v for v in vs if v["v"] == "fuentes_pelean"]
+    assert len(pelea) == 1 and pelea[0]["campo"] == "parking_spots"
+    assert "LISTA" in pelea[0]["nota"] and "desaparece" in pelea[0]["nota"]
+    assert not [v for v in vs if v["v"] == "discrepa"]
+    assert resumen_censo(vs)["pct"] == 100.0
+
+
 def test_censo_unidad_sin_fuente_se_declara():
     vs = censar_unidad({"unit_number": "X-1"}, None, None)
     assert vs[0]["v"] == "sin_fuente" and vs[0]["campo"] == "*"
