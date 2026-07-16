@@ -103,6 +103,11 @@ function FabricaCard() {
   if (!fx) return null;
   return (
     <div style={card} data-testid="fabrica">
+      {fx.proceso?.codigo_viejo && (
+        <div data-testid="codigo-viejo" style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.55)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700 }}>
+          🛑 El backend corre CÓDIGO VIEJO — {fx.proceso.n_archivos_nuevos} archivo(s) cambiaron después de arrancar (el más nuevo: {fx.proceso.mas_nuevo}). Lo que ves puede estar desactualizado. Reinicia el backend (run_dev.sh) para ver lo último.
+        </div>
+      )}
       <div style={h3}>🏭 La fábrica de datos</div>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6 }}>
         <span style={mini}>👁 última ronda: <b style={{ color: 'var(--cream)' }}>{fx.vigia.ultima_ronda ? new Date(fx.vigia.ultima_ronda).toLocaleString('es-MX') : '—'}</b></span>
