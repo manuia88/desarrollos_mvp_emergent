@@ -60,15 +60,16 @@ def linea_confirma(linea: str, valor: float, tolerancia: float) -> bool:
 
 
 def _confirma_total(linea: str, valor: float, tolerancia: float) -> bool:
-    """El m²-TOTAL debe ser el MAYOR m² plausible de la línea — un total que solo
-    coincide con los habitables está PISADO, no confirmado (Dessea 102). Los m²
-    traen DECIMALES; los enteros del rango suelen ser números de unidad (301, 204)
-    y no cuentan. Sin ningún decimal en rango → criterio clásico (no inventar fallos)."""
-    m2s = [n for n in numeros_de_linea(linea)
-           if 20 <= n <= 600 and abs(n - round(n)) > 1e-9]
-    if not m2s:
-        return linea_confirma(linea, valor, tolerancia)
-    return abs(max(m2s) - valor) <= tolerancia
+    """El m²-TOTAL debe estar en la línea Y no ser 'pisado' por un ÁREA mayor con decimales
+    (Dessea 102: un total que coincide con los habitables cuando existe un total mayor está
+    mal). PERO el total puede ser ENTERO (Casa Roma 222: 'M2 Totales' = 124, sin decimales)
+    mientras los exteriores (roof/balcón 25.77) traen decimales — no exigir que el total
+    sea el mayor DECIMAL; basta que esté en la línea y no sea menor que el mayor exterior."""
+    if not linea_confirma(linea, valor, tolerancia):
+        return False
+    decimales = [n for n in numeros_de_linea(linea)
+                 if 20 <= n <= 600 and abs(n - round(n)) > 1e-9]
+    return not decimales or valor >= max(decimales) - tolerancia
 
 
 def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
