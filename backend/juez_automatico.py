@@ -97,13 +97,23 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
 # ─── el juez sobre un lote (bytes de fuente + valores cargados) ───────────────
 def juzgar_campos(muestra: List[Dict[str, Any]],
                   texto_pdf: List[str],
-                  filas_excel: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+                  filas_excel: Dict[str, Dict[str, Any]],
+                  campos_derivados: Optional[List[str]] = None) -> Dict[str, Any]:
     """Cada campo de la muestra se re-verifica contra SU fuente por el camino
-    independiente. Devuelve el veredicto con el detalle campo por campo."""
+    independiente. Devuelve el veredicto con el detalle campo por campo.
+    `campos_derivados`: campos CALCULADOS por el extractor (no impresos en la fuente,
+    p.ej. el interior de GDC = total − exteriores, o enganche/crédito del % de esquema).
+    El juez no puede hallarlos en el PDF por diseño → los marca 'derivado' (los cubre la
+    capa 1 aritmética), NO 'NO_COINCIDE'. Así el gate no castiga lo que no existe imprimir."""
+    derivados = set(campos_derivados or [])
     detalles = []
     for m in muestra:
         campo, unidad, valor = m["campo"], m["unidad"], m["valor"]
         veredicto, evidencia = "sin_fuente", None
+        if campo in derivados:
+            detalles.append({**m, "veredicto": "derivado",
+                             "evidencia": "calculado por el extractor (no impreso en la fuente)"})
+            continue
         if campo in CAMPOS_PDF and isinstance(valor, (int, float)):
             lineas = lineas_de_unidad(texto_pdf, unidad)
             if lineas:
@@ -147,7 +157,10 @@ def juzgar_campos(muestra: List[Dict[str, Any]],
     # la discrepancia entre fuentes NO cuenta contra el gate (es hallazgo de capa 2)
     confirmados = sum(1 for d in detalles
                       if d["veredicto"] in ("confirmado", "discrepancia_fuentes"))
-    revisables = sum(1 for d in detalles if d["veredicto"] != "sin_fuente")
+    # sin_fuente (no verificable) y derivado (no impreso) quedan fuera del denominador:
+    # el gate solo mide lo que el juez SÍ pudo confrontar contra la fuente
+    revisables = sum(1 for d in detalles
+                     if d["veredicto"] not in ("sin_fuente", "derivado"))
     return {"detalles": detalles, "confirmados": confirmados,
             "revisables": revisables,
             "pct": round(confirmados * 100 / revisables, 1) if revisables else None,
@@ -173,9 +186,11 @@ async def juzgar_desarrollo(db, development_id: str,
             pass
     # el Excel maestro trae TODOS los devs (582 renglones): filtrar por ESTE proyecto
     # (colisión cazada por el propio juez: el '604' de otro desarrollo opinaba aquí)
-    dev_doc = await db.developments.find_one({"id": development_id}, {"_id": 0, "name": 1})
+    dev_doc = await db.developments.find_one(
+        {"id": development_id}, {"_id": 0, "name": 1, "campos_derivados": 1})
     tokens = {t for t in re.split(r"\W+", (dev_doc or {}).get("name", "").upper())
               if len(t) >= 4}
+    campos_derivados = (dev_doc or {}).get("campos_derivados") or []
     filas_excel: Dict[str, Dict[str, Any]] = {}
     if excel_bytes:
         try:
@@ -200,7 +215,7 @@ async def juzgar_desarrollo(db, development_id: str,
             {"$set": {"development_id": development_id, "motivo": "pdf_sin_texto",
                       "ts": datetime.now(timezone.utc).isoformat(), "estado": "pendiente"}},
             upsert=True)
-    v = juzgar_campos(muestra, texto_pdf, filas_excel)
+    v = juzgar_campos(muestra, texto_pdf, filas_excel, campos_derivados)
     doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(),
            "n_muestra": len(muestra), "semilla": semilla, **v}
     await db.veredictos_juez.insert_one(dict(doc))

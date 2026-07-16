@@ -1,6 +1,5 @@
 """Extractor GDC — familia header-driven (columnas variables, esquemas de pago, estatus
 en celda). Los fixtures reales viven en scratchpad; si no están, se prueba la lógica pura."""
-import os
 import pathlib
 
 import pytest
@@ -35,6 +34,9 @@ def test_casa_condesa_header_driven():
     """Formato: NIVEL·DEPTO·BALCON·TERRAZA·M2·Cajones·Rec·Baños·[10% 90%]."""
     r = extraer_gdc((SP / "CASA_CONDESA_LP.pdf").read_bytes())
     assert r["familia"] == "gdc" and r["validacion"]["total"] >= 70
+    # cobertura (capa 7): capturamos toda columna del header · derivados declarados
+    assert r["cobertura_lista_ok"] is True and r["columnas_no_mapeadas"] == []
+    assert "size_m2" in r["campos_derivados"]
     u101 = next(u for u in r["unidades"] if u["unit_number"] == "101")
     assert u101["m2_total"] == 235.0 and u101["m2_terrace"] == 43.0
     assert u101["size_m2"] == 192.0            # interior = total − exteriores

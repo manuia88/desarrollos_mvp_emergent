@@ -300,13 +300,17 @@ _GDC_COL = {
     "DEPARTAMENTO": "unit_number",
     "BALCON": "m2_balcony", "BALCÓN": "m2_balcony", "JARDIN/BALCON": "m2_balcony",
     "JARDÍN/BALCON": "m2_balcony",
-    "TERRAZA": "m2_terrace", "ROOF O JARDIN": "m2_roof", "ROOF": "m2_roof",
+    "TERRAZA": "m2_terrace", "ROOF O JARDIN": "m2_roof_garden", "ROOF": "m2_roof_garden",
+    "ROOF/JARDIN": "m2_roof_garden", "ROOF GARDEN": "m2_roof_garden",
     "M2 TOTALES": "m2_total", "M2TOTALES": "m2_total", "M2": "m2_total",
     "CAJONES": "parking_spots",
     "RECAMARAS": "bedrooms", "RECÁMARAS": "bedrooms",
     "BANOS": "bathrooms", "BAÑOS": "bathrooms",
 }
 _GDC_ESQUEMA_RE = re.compile(r"^\s*\d{1,3}\s*%(\s+\d{1,3}\s*%)+\s*$")   # "10% 90%" · "30% 20% 50%"
+# headers que NO son un dato faltante (vacíos, numeración, notas) → no cuentan como brecha
+_GDC_IGNORA_H = {"", "#", "NO", "NO.", "ITEM", "CONSECUTIVO", "TIPO", "MODELO",
+                 "PROTOTIPO", "OBSERVACIONES", "NOTAS", "STATUS", "ESTATUS", "ESTADO"}
 _ESTATUS_TXT = {"VENDIDO": "vendido", "APARTADO": "reservado",
                 "DISPONIBLE": "disponible", "BLOQUEADO": "bloqueado"}
 
@@ -326,6 +330,7 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
     estatus de la celda de precio y guarda TODOS los esquemas de pago del encabezado."""
     import pdfplumber
     unidades: Dict[str, Dict[str, Any]] = {}
+    no_mapeadas: set = set()
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
             tbl = page.extract_table()
@@ -343,6 +348,10 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
                             mapa[j] = _GDC_COL[c]
                         elif _GDC_ESQUEMA_RE.match((row[j] or "").strip()):
                             esquemas.append({"col": j, "nombre": (row[j] or "").strip()})
+                        elif c and c not in _GDC_IGNORA_H:
+                            # columna con nombre que NI mapeamos NI es esquema → brecha de
+                            # cobertura (capa 7): la fuente trae un dato que estamos tirando
+                            no_mapeadas.add(c)
                     break
             if hdr_i is None or "unit_number" not in mapa.values():
                 continue
@@ -388,13 +397,20 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
                     u["status"] = estatus or "no_disponible"
                 # 4· interior derivado (total incluye exteriores) + validación
                 tot = u.get("m2_total")
-                ext = sum(u.get(k) or 0 for k in ("m2_balcony", "m2_terrace", "m2_roof"))
+                ext = sum(u.get(k) or 0 for k in ("m2_balcony", "m2_terrace", "m2_roof_garden"))
                 if tot:
                     u["size_m2"] = round(tot - ext, 2) if tot - ext > 0 else tot
                 u["_valida_m2"] = bool(tot and tot > 0)
                 unidades[norm_unidad(num)] = u
     us = list(unidades.values())
-    return {"familia": "gdc", "unidades": us,
+    # campos CALCULADOS (no impresos en la lista) — el juez NO debe buscarlos en el PDF:
+    # interior = total − exteriores · enganche/crédito = % del esquema de pago
+    derivados = ["size_m2"]
+    if any(u.get("enganche_mxn") for u in us):
+        derivados += ["enganche_mxn", "credito_mxn"]
+    return {"familia": "gdc", "unidades": us, "campos_derivados": derivados,
+            "columnas_no_mapeadas": sorted(no_mapeadas),   # capa 7: fuente trae datos que no capturamos
+            "cobertura_lista_ok": not no_mapeadas,         # ¿capturamos toda columna del header?
             "validacion": {"m2": sum(1 for u in us if u.get("_valida_m2")),
                            "dinero": sum(1 for u in us if u.get("price_mxn")),
                            "total": len(us),

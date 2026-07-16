@@ -219,6 +219,28 @@ def test_juez_veredictos_y_discrepancia_fuentes():
     assert v["confirmados"] == 3 and v["revisables"] == 4 and not v["gate_98"]
 
 
+def test_juez_no_castiga_campos_derivados():
+    """GDC no imprime interior ni enganche/crédito (los calcula del total y del % de
+    esquema). El juez debe marcarlos 'derivado' y dejarlos FUERA del denominador del
+    gate — si no, castigaría lo que por diseño no existe imprimir."""
+    from juez_automatico import juzgar_campos
+    texto = ["101 43 235 2 3 2.5 $ 18,760,326.40"]     # sólo total (235) y precio impresos
+    muestra = [
+        {"unidad": "101", "campo": "price_mxn", "valor": 18_760_326.40},  # PDF ✓
+        {"unidad": "101", "campo": "m2_total", "valor": 235.0},           # PDF ✓
+        {"unidad": "101", "campo": "size_m2", "valor": 192.0},            # DERIVADO (235−43)
+        {"unidad": "101", "campo": "enganche_mxn", "valor": 1_876_032},   # DERIVADO (10%)
+        {"unidad": "101", "campo": "credito_mxn", "valor": 16_884_294},   # DERIVADO (90%)
+    ]
+    v = juzgar_campos(muestra, texto, {},
+                      campos_derivados=["size_m2", "enganche_mxn", "credito_mxn"])
+    por = {d["campo"]: d["veredicto"] for d in v["detalles"]}
+    assert por["price_mxn"] == "confirmado" and por["m2_total"] == "confirmado"
+    assert por["size_m2"] == por["enganche_mxn"] == por["credito_mxn"] == "derivado"
+    # sólo cuentan los 2 confrontables → gate 100%, no 40%
+    assert v["confirmados"] == 2 and v["revisables"] == 2 and v["gate_98"]
+
+
 def test_familia_maestro_y_drift():
     from extractores_layout import detecta_maestro, drift_de_familia
     assert detecta_maestro("Inventario 13 de julio de 2026.xlsx")

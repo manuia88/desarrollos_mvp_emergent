@@ -149,6 +149,29 @@ def cobertura_dev(filas_maestro: List[Dict[str, Any]], dev_doc: Dict[str, Any],
             "huecos": huecos}
 
 
+async def _cobertura_lista(db, development_id: str, units: List[Dict[str, Any]],
+                           dev: Dict[str, Any]) -> Dict[str, Any]:
+    """Cobertura cuando la FUENTE es la lista (GDC, sin Maestro): cada columna del header
+    debe estar capturada. `columnas_no_mapeadas` (columnas del header que el extractor no
+    reconoció) son los huecos; el resto quedó en `fuente_lista` de cada unidad."""
+    from datetime import datetime, timezone
+    _INTERNOS = {"_valida_m2", "tipo", "esquemas_pago", "level"}
+    capturadas = sorted({k for u in units for k in (u.get("fuente_lista") or {})
+                         if k not in _INTERNOS})
+    no_mapeadas = dev.get("columnas_no_mapeadas") or []
+    con_fuente = len(capturadas) + len(no_mapeadas)
+    huecos = [{"campo": c, "ambito": "lista", "faltan": len(units), "de": len(units),
+               "nota": "columna del header de la lista que el extractor no capturó"}
+              for c in no_mapeadas]
+    r = {"columnas_con_fuente": con_fuente, "capturadas": len(capturadas),
+         "cobertura_pct": round(len(capturadas) * 100 / con_fuente, 1) if con_fuente else None,
+         "huecos": huecos, "fuente": "lista"}
+    doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(), **r}
+    await db.cobertura_fuente.update_one({"development_id": development_id},
+                                         {"$set": doc}, upsert=True)
+    return r
+
+
 async def registrar_cobertura_dev(db, development_id: str) -> Optional[Dict[str, Any]]:
     """Auto-cobertura SIN depender del Excel: lee el renglón crudo del Maestro que se
     guardó en cada unidad (`fuente_maestro`) al cargar. Si no hay renglones crudos
@@ -159,6 +182,12 @@ async def registrar_cobertura_dev(db, development_id: str) -> Optional[Dict[str,
     units = await db.units.find({"development_id": development_id}, {"_id": 0}).to_list(5000)
     filas = [u["fuente_maestro"] for u in units if u.get("fuente_maestro")]
     if not filas:
+        # sin Maestro: si la fuente de unidad es la LISTA (GDC), medir cobertura contra
+        # las columnas del header — todo lo que la lista trae debe estar capturado
+        dev_l = await db.developments.find_one(
+            {"id": development_id}, {"_id": 0, "fuente_unidad": 1, "columnas_no_mapeadas": 1})
+        if dev_l and dev_l.get("fuente_unidad") == "lista":
+            return await _cobertura_lista(db, development_id, units, dev_l)
         return None
     por_num = {norm_unidad(u.get("unit_number") or ""): u for u in units}
     dev = await db.developments.find_one({"id": development_id}, {"_id": 0}) or {}
