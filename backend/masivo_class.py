@@ -269,5 +269,11 @@ async def cargar_proyecto(db, proyecto: Dict[str, Any]) -> Dict[str, Any]:
             {"$set": {"development_id": dev_id, "preguntas": proyecto["preguntas"],
                       "origen": proyecto.get("origen", "masivo_class"),
                       "ts": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+    # GPS desde la dirección si no vino (OSM, $0) — el pin cae solo en el mapa (07-16)
+    try:
+        from geocodificar import geocodificar_dev
+        await geocodificar_dev(db, dev_id)
+    except Exception:  # noqa: BLE001 — best-effort, jamás bloquea el alta
+        pass
     return {"dev_id": dev_id, **{k: r[k] for k in ("unidades_antes", "unidades_despues",
                                                    "moldes", "acta_id", "juez")}}
