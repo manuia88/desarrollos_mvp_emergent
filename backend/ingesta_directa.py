@@ -31,6 +31,21 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         previos_modelo = {}
     await bie.merge_into_dev(db, item, target_dev_id)
     despues = await db.units.count_documents({"development_id": target_dev_id})
+    # RENGLÓN CRUDO DE LA LISTA por unidad (cero deuda 07-16): así el censo/auditoría
+    # se auto-verifican sin re-abrir el PDF; junto a fuente_maestro = 100% autocontenido
+    try:
+        from identidad_unidad import norm_unidad
+        idx_plat = {}
+        async for u in db.units.find({"development_id": target_dev_id},
+                                     {"_id": 0, "id": 1, "unit_number": 1}):
+            idx_plat[norm_unidad(u.get("unit_number") or "")] = u["id"]
+        for uni in unidades:
+            uid = idx_plat.get(norm_unidad(str(uni.get("unit_number") or "")))
+            if uid:
+                fila = {k: v for k, v in uni.items() if not str(k).startswith("_")}
+                await db.units.update_one({"id": uid}, {"$set": {"fuente_lista": fila}})
+    except Exception:  # noqa: BLE001
+        pass
     # el circuito automático (mismo orden que aprobar en la bandeja)
     try:
         from market_timeline import snapshot_oferta
