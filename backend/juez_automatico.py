@@ -89,7 +89,11 @@ def lineas_de_unidad(texto_paginas: List[str], unidad: str) -> List[str]:
             # torre con guion como token propio: '2- 102 …' debe hallar a '102'/'2-102'
             if len(toks) > 1 and re.fullmatch(r"([A-Z]{1,2}|T\d|\d{1,2})-?", toks[0]):
                 cabeza |= {toks[1], f"{toks[0].rstrip('-')}-{toks[1]}"}
-            if variantes & cabeza:
+            # formato GDC con columna de NÚMERO DE FILA: la unidad va a media línea
+            # ('1 NIVEL 1 EXT 101 41 $9,805,081') — matchear el número de depto (≥3
+            # dígitos, seguro: no confunde con el índice de fila) como token propio
+            medio = {t for t in toks[1:] if t.isdigit() and len(t) >= 3}
+            if variantes & (cabeza | medio):
                 out.append(ln)
     return out
 

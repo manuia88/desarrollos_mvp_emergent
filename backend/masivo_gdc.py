@@ -37,10 +37,17 @@ def estatus_de_carpeta(carpeta_padre: str) -> Optional[str]:
 
 
 def es_cdmx_residencial(nombre: str, direccion: Optional[str]) -> bool:
-    """Filtro founder (07-16): solo CDMX + residencial. Fuera otras ciudades y oficinas."""
+    """Filtro founder (07-16): solo CDMX + residencial. Fuera otras ciudades y oficinas.
+
+    OJO (aprendizaje 07-16): 'Monterrey' y 'Medellín' son CALLES de la Roma (CDMX) —
+    Casa Roma 240 (Monterrey 240), Vía Roma 386 (Monterrey 386), Casa Roma 269 (Medellín
+    269) SON CDMX. No excluir por esos nombres; excluir solo CIUDADES reales inequívocas
+    y las oficinas WorkLab (que ya caen por su propio nombre)."""
     txt = f"{nombre} {direccion or ''}".upper()
-    fuera_ciudad = any(c in txt for c in ("TIJUANA", "MONTERREY", "PUERTO ESCONDIDO",
-                                          "GUADALAJARA", "MEDELLÍN,", "PERÚ", "MIAMI"))
+    fuera_ciudad = any(c in txt for c in (
+        "TIJUANA", "PUERTO ESCONDIDO", "GUADALAJARA", "CANCÚN", "CANCUN", "MÉRIDA",
+        "MERIDA", "QUERÉTARO", "QUERETARO", "PLAYA DEL CARMEN", "TULUM", "PERÚ",
+        "PERU", "MIAMI", "MONTERREY, N", "MEDELLÍN, COL"))
     es_oficina = any(o in txt for o in ("WORK LAB", "WORKLAB", "WORK-LAB"))
     return not fuera_ciudad and not es_oficina
 
