@@ -155,7 +155,10 @@ def _norm_stage(s, delivery=None):
     """Solo 2 etapas de cara al comprador: PREVENTA o ENTREGA INMEDIATA. Clasifica por la FECHA de entrega (no solo
     la etiqueta): si la entrega ya llegó (fecha pasada o este mes) = ENTREGA INMEDIATA; si falta, = PREVENTA. Así
     nunca sale el contradictorio 'preventa · entrega ya'."""
-    if str(s or "").lower() in ("entrega", "entrega_inmediata", "entregado", "lista", "listo"):
+    # normaliza espacios a guion bajo: GDC trae "entrega inmediata" (espacio), CLASS
+    # "entrega_inmediata" (guion) — sin esto los GDC de entrega salían como 'preventa' (07-16)
+    sl = str(s or "").lower().replace(" ", "_")
+    if sl in ("entrega", "entrega_inmediata", "entregado", "lista", "listo") or "inmediata" in sl:
         return "entrega_inmediata"
     if delivery:
         import re as _re
