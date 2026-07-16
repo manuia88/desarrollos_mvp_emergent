@@ -63,6 +63,21 @@ def tiene_disponible(unidades: List[Dict[str, Any]]) -> bool:
                u.get("status") not in ("vendido", "reservado")) for u in unidades)
 
 
+def es_oficina(extraccion: Dict[str, Any]) -> bool:
+    """Detecta OFICINAS/WorkLab por CONTENIDO, no por el nombre (aprendizaje 07-16:
+    'Medellín 219' es un WorkLab pero no lo dice en el nombre). Señal robusta: la lista NO
+    trae columna de RECÁMARAS **Y** tiene unidades etiquetadas 'Oficina/Corporativo'.
+    Los LOFTS (Vía Insurgentes) también carecen de recámaras pero son residenciales — por
+    eso se exige además la etiqueta de oficina. Un formato con encabezado combinado
+    'Int./Ext.' SÍ trae recámaras (aunque la extracción falle) → no cae aquí."""
+    sin_recamaras = "bedrooms" not in (extraccion.get("campos_detectados") or [])
+    hay_oficinas = any(
+        any(w in (u.get("unit_number") or "").upper()
+            for w in ("OFICINA", "CORPORATIVO", "DESPACHO", "CONSULTORIO"))
+        for u in (extraccion.get("unidades") or []))
+    return sin_recamaras and hay_oficinas
+
+
 async def procesar_proyecto_local(db, root_dir: str, folder_name: str,
                                   status: str) -> Dict[str, Any]:
     """Carga TODO lo automatizable de un proyecto desde su carpeta local."""
@@ -81,6 +96,9 @@ async def procesar_proyecto_local(db, root_dir: str, folder_name: str,
     r = extraer_gdc(pathlib.Path(cats["lp"][0]["path"]).read_bytes())
     if not r["unidades"]:
         return {"proyecto": folder_name, "estado": "lista_ilegible"}
+    if es_oficina(r):
+        return {"proyecto": folder_name, "estado": "oficina_no_residencial",
+                "unidades": len(r["unidades"])}
     if not tiene_disponible(r["unidades"]):
         return {"proyecto": folder_name, "estado": "sold_out",
                 "unidades": len(r["unidades"])}

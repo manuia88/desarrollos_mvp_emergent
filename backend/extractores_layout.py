@@ -331,6 +331,7 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
     import pdfplumber
     unidades: Dict[str, Dict[str, Any]] = {}
     no_mapeadas: set = set()
+    campos_detectados: set = set()   # qué columnas del catálogo trae el encabezado
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
             tbl = page.extract_table()
@@ -346,6 +347,7 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
                     for j, c in enumerate(cs):
                         if c in _GDC_COL:
                             mapa[j] = _GDC_COL[c]
+                            campos_detectados.add(_GDC_COL[c])
                         elif _GDC_ESQUEMA_RE.match((row[j] or "").strip()):
                             esquemas.append({"col": j, "nombre": (row[j] or "").strip()})
                         elif c and c not in _GDC_IGNORA_H:
@@ -410,6 +412,7 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
         derivados += ["enganche_mxn", "credito_mxn"]
     return {"familia": "gdc", "unidades": us, "campos_derivados": derivados,
             "columnas_no_mapeadas": sorted(no_mapeadas),   # capa 7: fuente trae datos que no capturamos
+            "campos_detectados": sorted(campos_detectados),  # columnas del catálogo en el header
             "cobertura_lista_ok": not no_mapeadas,         # ¿capturamos toda columna del header?
             "validacion": {"m2": sum(1 for u in us if u.get("_valida_m2")),
                            "dinero": sum(1 for u in us if u.get("price_mxn")),

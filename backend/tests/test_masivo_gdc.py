@@ -1,5 +1,27 @@
 """Masivo GDC: nombre/dirección del folder, estatus de la carpeta padre, filtro CDMX."""
 from masivo_gdc import (es_cdmx_residencial, estatus_de_carpeta, nombre_y_direccion)
+from masivo_gdc_run import es_oficina, tiene_disponible
+
+
+def test_es_oficina_por_contenido_no_por_nombre():
+    # Medellín 219: sin columna de recámaras + unidades 'Oficina' → oficina (WorkLab)
+    medellin = {"campos_detectados": ["unit_number", "m2_total", "parking_spots"],
+                "unidades": [{"unit_number": "Oficina 103"}, {"unit_number": "Depto 101"}]}
+    assert es_oficina(medellin) is True
+    # Vía Insurgentes: lofts (sin recámaras) PERO sin etiqueta oficina → residencial
+    lofts = {"campos_detectados": ["unit_number", "m2_total"],
+             "unidades": [{"unit_number": "201"}, {"unit_number": "202"}]}
+    assert es_oficina(lofts) is False
+    # residencial normal: trae columna de recámaras
+    resi = {"campos_detectados": ["unit_number", "bedrooms", "m2_total"],
+            "unidades": [{"unit_number": "101"}]}
+    assert es_oficina(resi) is False
+
+
+def test_tiene_disponible():
+    assert tiene_disponible([{"status": "vendido"}, {"status": "disponible"}]) is True
+    assert tiene_disponible([{"status": "vendido"}, {"status": "reservado"}]) is False
+    assert tiene_disponible([{"price_mxn": 5_000_000, "status": "disponible"}]) is True
 
 
 def test_nombre_y_direccion_del_folder():
