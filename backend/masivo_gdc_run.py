@@ -131,6 +131,12 @@ async def procesar_proyecto_local(db, root_dir: str, folder_name: str,
         rutas = [f["path"] for f in cats["renders"][:20]]
         rr = await ingerir_renders_archivos(db, dev_id, rutas, maximo=20)
         out["renders"] = rr.get("renders")
+    elif cats["presentacion"]:
+        # sin carpeta de renders (o vacía en el export) → sacar los renders EMBEBIDOS
+        # del deck de presentación (fallback, menor resolución pero presentes)
+        from presentacion_gdc import ingerir_renders
+        rr = await ingerir_renders(db, dev_id, cats["presentacion"][0]["path"])
+        out["renders"] = f"deck:{rr.get('renders')}"
     try:
         from auditoria_drive import auditar_dev
         au = await auditar_dev(db, dev_id)
