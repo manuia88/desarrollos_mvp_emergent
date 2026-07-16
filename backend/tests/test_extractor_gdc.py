@@ -4,7 +4,8 @@ import pathlib
 
 import pytest
 
-from extractores_layout import _dinero_gdc, detecta_gdc, extraer_gdc
+from extractores_layout import (_dinero_gdc, detecta_gdc, extraer_gdc,
+                                extraer_gdc_bodegas)
 
 SP = pathlib.Path("/private/tmp/claude-501/-Users-manuelacosta-Developer-desarrollos-mvp-emergent"
                   "/71957709-de6c-409e-8543-2c59c1c9cf67/scratchpad/gdc")
@@ -43,6 +44,25 @@ def test_casa_condesa_header_driven():
     assert u101["bedrooms"] == 3.0 and u101["bathrooms"] == 2.5
     assert u101["status"] == "disponible" and u101["price_mxn"] > 18_000_000
     assert any(u["status"] == "vendido" for u in r["unidades"])   # estatus en celda
+
+
+def test_bodegas_parseo():
+    """Lista de bodegas: 'NIVEL CLAVE M2 PRECIO' (o APARTADO en vez de $)."""
+    from extractores_layout import _BODEGA_RE, _dinero_gdc
+    m = _BODEGA_RE.match("1 SOTANO B-01 6.25 $260,000.00")
+    assert m and m.group(2) == "B-01" and _dinero_gdc(m.group(4)) == 260000.0
+    ap = _BODEGA_RE.match("5 SOTANO B-08 4.27 APARTADO")
+    assert ap and ap.group(2) == "B-08" and _dinero_gdc(ap.group(4)) is None
+
+
+@pytest.mark.skipif(not (SP / "gdc_condesa_bodegas.pdf").exists(),
+                    reason="sin fixture de bodegas")
+def test_bodegas_fixture_real():
+    r = extraer_gdc_bodegas((SP / "gdc_condesa_bodegas.pdf").read_bytes())
+    assert r["familia"] == "gdc_bodegas" and r["validacion"]["total"] >= 10
+    b01 = next(u for u in r["unidades"] if u["unit_number"] == "B-01")
+    assert b01["tipo"] == "bodega" and b01["price_mxn"] == 260000.0
+    assert any(u["status"] == "reservado" for u in r["unidades"])   # B-08 APARTADO
 
 
 @pytest.mark.skipif(not _REALES, reason="sin fixtures GDC en scratchpad")

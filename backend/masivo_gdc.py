@@ -45,6 +45,27 @@ def es_cdmx_residencial(nombre: str, direccion: Optional[str]) -> bool:
     return not fuera_ciudad and not es_oficina
 
 
+async def cargar_bodegas_gdc(db, dev_id: str, pdf_bytes: bytes,
+                             archivo: str = "bodegas.pdf") -> Dict[str, Any]:
+    """Inventario de BODEGAS (producto distinto al depto: sin recámaras) → colección
+    propia `dev_bodegas`, NO ensucia el conteo de departamentos. Cada bodega guarda su
+    renglón crudo (cero deuda). Idempotente por (development_id, clave)."""
+    from extractores_layout import extraer_gdc_bodegas
+    r = extraer_gdc_bodegas(pdf_bytes)
+    if not r["unidades"]:
+        return {"estado": "sin_bodegas"}
+    for b in r["unidades"]:
+        clave = b["unit_number"]
+        await db.dev_bodegas.update_one(
+            {"development_id": dev_id, "clave": clave},
+            {"$set": {"development_id": dev_id, "clave": clave,
+                      "nivel": b.get("nivel_texto"), "m2": b.get("size_m2"),
+                      "price_mxn": b.get("price_mxn"), "status": b.get("status"),
+                      "fuente": archivo, "fuente_lista": b}}, upsert=True)
+    return {"estado": "cargadas", "bodegas": r["validacion"]["total"],
+            "con_precio": r["validacion"]["con_precio"]}
+
+
 async def cargar_proyecto_gdc(db, proyecto: Dict[str, Any]) -> Dict[str, Any]:
     """proyecto = {folder_name, carpeta_padre, unidades (de extraer_gdc), presentacion?,
     fuentes_pdf?, fuentes_meta?}. Crea/actualiza el dev y dispara el pipeline."""

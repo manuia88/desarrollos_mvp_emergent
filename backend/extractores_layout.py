@@ -417,6 +417,43 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
                            "vendidas": sum(1 for u in us if u.get("status") == "vendido")}}
 
 
+_BODEGA_RE = re.compile(
+    r"^\s*\d+\s+([A-ZÁÉÍÓÚ ]+?)\s+([A-Z]-?\d+)\s+([\d.,]+)\s+(.+?)\s*$")
+
+
+def extraer_gdc_bodegas(pdf_bytes: bytes) -> Dict[str, Any]:
+    """Lista de BODEGAS de GDC (inventario aparte de los deptos): filas
+    'NIVEL CLAVE M2 PRECIO' (SOTANO B-01 6.25 $260,000 · o APARTADO/VENDIDO en vez de $).
+    Cada bodega es una unidad tipo='bodega' para que entre al mismo catálogo."""
+    import pdfplumber
+    us: List[Dict[str, Any]] = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            for ln in (page.extract_text() or "").split("\n"):
+                m = _BODEGA_RE.match(ln)
+                if not m:
+                    continue
+                nivel, clave, m2, precio_txt = m.groups()
+                if not re.search(r"\d", clave):
+                    continue
+                monto = _dinero_gdc(precio_txt)
+                estatus = next((st for k, st in _ESTATUS_TXT.items()
+                                if k in precio_txt.upper()), None)
+                u: Dict[str, Any] = {
+                    "unit_number": clave.strip(), "tipo": "bodega",
+                    "nivel_texto": nivel.strip().title(),
+                    "m2_total": _num(m2), "size_m2": _num(m2)}
+                if monto and monto > 1000:
+                    u["price_mxn"] = monto
+                    u["status"] = "disponible"
+                else:
+                    u["status"] = estatus or "no_disponible"
+                us.append(u)
+    return {"familia": "gdc_bodegas", "unidades": us,
+            "validacion": {"total": len(us),
+                           "con_precio": sum(1 for u in us if u.get("price_mxn"))}}
+
+
 def detecta_gdc(nombre_archivo: str, primer_texto: str = "") -> bool:
     n = (nombre_archivo or "").upper()
     return "_LP" in n or "ESQUEMA DE PAGO" in (primer_texto or "").upper()[:300]
