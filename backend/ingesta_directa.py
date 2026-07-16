@@ -83,6 +83,11 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
     except Exception:  # noqa: BLE001
         pass
     try:
+        from plano_lectura import cotejar_planos_contra_lista
+        await cotejar_planos_contra_lista(db, target_dev_id)   # plano confirma m² lista
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         from ml_precios import entrenar_y_publicar
         await entrenar_y_publicar(db)      # el hedónico madura con cada carga
     except Exception:  # noqa: BLE001
