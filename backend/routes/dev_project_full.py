@@ -309,7 +309,10 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     sis = (full.get("construccion") or {}).get("sistema_constructivo") or {}
     leg = full.get("legal") or {}
     sello_leg = legal_seal(leg.get("estado"), leg.get("docs") or 0, leg.get("verificados") or 0)
-    has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis or sello_leg["configured"])
+    # incluir amenities en la condición: un proyecto con SOLO amenidades (sin servicios/
+    # pagos/sistema/legal) igual debe mostrarlas en la ficha (bug 07-16 cazado en Playwright)
+    has_any = bool(am.get("amenities") or am.get("servicios") or am.get("amenity_scope")
+                   or pagos.get("schemes") or sis or sello_leg["configured"])
     if not has_any:
         return {}
     # Sello de confianza en lenguaje del comprador (fuente única en dev_batch2)
