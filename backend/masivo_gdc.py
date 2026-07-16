@@ -78,13 +78,6 @@ async def cargar_proyecto_gdc(db, proyecto: Dict[str, Any]) -> Dict[str, Any]:
             "created_at": datetime.now(timezone.utc).isoformat(), **campos})
     else:
         await db.developments.update_one({"id": dev_id}, {"$set": campos})
-    # amenidades de la presentación → colección canónica
-    if pres.get("amenidades"):
-        from amenidades_canon import canonizar_lista
-        await db.project_amenities.update_one(
-            {"project_id": dev_id},
-            {"$set": {"project_id": dev_id,
-                      "amenities": canonizar_lista(pres["amenidades"])}}, upsert=True)
     from ingesta_directa import cargar_lote
     r = await cargar_lote(db, dev_id, proyecto["unidades"],
                           origen=proyecto.get("origen", "masivo_gdc"),
@@ -96,6 +89,22 @@ async def cargar_proyecto_gdc(db, proyecto: Dict[str, Any]) -> Dict[str, Any]:
         await geocodificar_dev(db, dev_id)
     except Exception:  # noqa: BLE001
         pass
-    return {"dev_id": dev_id, "nombre": nombre, "estatus": estatus,
+    # PRESENTACIÓN (imagen): datos de desarrollo + renders + plantas → cierra las
+    # dimensiones que la lista no trae (amenidades/características/entrega/renders/planos)
+    extra: Dict[str, Any] = {}
+    if pres:
+        from presentacion_gdc import (guardar_datos_desarrollo, ingerir_plantas,
+                                      ingerir_renders)
+        extra["datos"] = await guardar_datos_desarrollo(db, dev_id, pres)
+        if proyecto.get("presentacion_pdf"):
+            extra["renders"] = await ingerir_renders(db, dev_id, proyecto["presentacion_pdf"])
+        if proyecto.get("plantas_pdf"):
+            extra["plantas"] = await ingerir_plantas(db, dev_id, proyecto["plantas_pdf"])
+        try:                      # re-auditar: las nuevas dimensiones ya deben prender
+            from auditoria_drive import auditar_dev
+            await auditar_dev(db, dev_id)
+        except Exception:  # noqa: BLE001
+            pass
+    return {"dev_id": dev_id, "nombre": nombre, "estatus": estatus, **extra,
             **{k: r[k] for k in ("unidades_antes", "unidades_despues", "moldes",
                                  "acta_id", "juez")}}
