@@ -78,6 +78,11 @@ async def cargar_lote(db, target_dev_id: str, unidades: List[Dict[str, Any]],
         except Exception:  # noqa: BLE001 — el juez nunca bloquea la carga; su veredicto sí
             pass
     try:
+        from plano_preview import previsualizar_planos
+        await previsualizar_planos(db)     # planos PDF → PNG para que SE VEAN (07-16)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         from ml_precios import entrenar_y_publicar
         await entrenar_y_publicar(db)      # el hedónico madura con cada carga
     except Exception:  # noqa: BLE001
