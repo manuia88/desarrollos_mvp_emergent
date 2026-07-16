@@ -221,7 +221,21 @@ async def fabrica(request: Request):
                 {}, {"_id": 0, "residuales": 0, "anomalias": 0}, sort=[("ts", -1)]),
             "examen_modelo": _resumen_examen(
                 await db.pronostico_vs_real.find({}, {"_id": 0}).to_list(5000)),
-            "censo": await _resumen_censo_global(db)}
+            "censo": await _resumen_censo_global(db),
+            "cobertura": await _resumen_cobertura(db)}
+
+
+async def _resumen_cobertura(db):
+    """Cobertura de fuente (capa 7): ¿qué % de lo que el Maestro trae capturamos?"""
+    docs = await db.cobertura_fuente.find(
+        {}, {"_id": 0, "capturadas": 1, "columnas_con_fuente": 1, "huecos": 1}).to_list(100)
+    if not docs:
+        return None
+    cap = sum(d.get("capturadas") or 0 for d in docs)
+    con = sum(d.get("columnas_con_fuente") or 0 for d in docs)
+    return {"devs": len(docs), "capturadas": cap, "campos_fuente": con,
+            "pct": round(cap * 100 / con, 1) if con else None,
+            "devs_con_hueco": sum(1 for d in docs if d.get("huecos"))}
 
 
 async def _resumen_censo_global(db):

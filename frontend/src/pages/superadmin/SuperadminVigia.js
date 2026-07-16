@@ -134,6 +134,9 @@ function FabricaCard() {
           {fx.censo && (
             <span style={mini}>🧾 censo (capa 6): <b style={{ color: fx.censo.discrepa === 0 ? '#86efac' : '#d29922' }}>{fx.censo.pct}%</b> de {fx.censo.campos.toLocaleString('en-US')} campos verificados contra fuente en {fx.censo.devs_censados} devs{fx.censo.cargas_con_perdida > 0 && <b style={{ color: '#fca5a5' }}> · ⚠ {fx.censo.cargas_con_perdida} carga(s) con pérdida</b>}</span>
           )}
+          {fx.cobertura && (
+            <span style={mini}>📥 cobertura (capa 7): capturamos <b style={{ color: fx.cobertura.pct >= 97 ? '#86efac' : '#d29922' }}>{fx.cobertura.pct}%</b> de lo que el Maestro trae ({fx.cobertura.capturadas}/{fx.cobertura.campos_fuente} campos){fx.cobertura.devs_con_hueco > 0 && <> · <b style={{ color: '#d29922' }}>{fx.cobertura.devs_con_hueco} dev(s) con huecos</b></>}</span>
+          )}
           {fx.examen_modelo && (fx.examen_modelo.n > 0 ? (
             <span style={mini}>📝 examen vs futuro: <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.n}</b> precios movidos · error <b style={{ color: 'var(--cream)' }}>±{fx.examen_modelo.error_medio_pct}%</b> · dirección acertada <b style={{ color: 'var(--cream)' }}>{fx.examen_modelo.direccion_acertada_pct}%</b></span>
           ) : (
