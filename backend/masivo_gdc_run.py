@@ -40,21 +40,27 @@ def clasificar_archivos(files: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
         return any(s in n for s in subs)
 
     pdf = [f for f in files if f["name"].upper().endswith(".PDF")]
+    _PRESKW = ("PRESENTAC", "PREVENTA", "ENTREGA INMEDIATA", "LANZAMIENTO", "INVIERTE")
+    def es_pres(f):
+        return es(f, *_PRESKW) or "PRESENTAC" in f["carpeta"]
     lp = [f for f in pdf if ("_LP" in f["name"].upper() or "LISTA DE PRECIOS" in f["carpeta"])
           and "BODEGA" not in f["name"].upper()]
     bodegas = [f for f in pdf if es(f, "BODEGA")]
-    deptos = [f for f in pdf if es(f, "DEPTO")]
+    # plano POR DEPTO: la palabra DEPTO pero NO es presentación ni LP ('...Últimos Deptos.pdf'
+    # es una PRESENTACIÓN, no un plano — aprendizaje 07-16, Icon San Ángel)
+    deptos = [f for f in pdf if es(f, "DEPTO") and not es_pres(f) and "_LP" not in f["name"].upper()]
     plantas = [f for f in pdf if es(f, "PLANTA") and not es(f, "DEPTO")]
-    pres = [f for f in pdf
-            if (es(f, "PRESENTAC", "PREVENTA", "ENTREGA INMEDIATA", "LANZAMIENTO", "INVIERTE")
-                or "PRESENTAC" in f["carpeta"])
+    pres = [f for f in pdf if es_pres(f)
             and "BODEGA" not in f["name"].upper() and "_LP" not in f["name"].upper()
-            and not es(f, "PLANTA", "DEPTO")]
+            and not es(f, "PLANTA")]
     renders = [f for f in files if f["name"].lower().endswith(_IMG)
                and any(k in f["carpeta"] for k in ("RENDER", "VISTA", "FOTO"))
                and not es(f, "CUENTA", "LOGO")]
+    # renders que vienen como PDF (carpeta VISTAS/RENDERS, un render por PDF — Icon San Ángel)
+    vistas_pdf = [f for f in pdf if any(k in f["carpeta"] for k in ("VISTA", "RENDER", "FOTO"))
+                  and not es(f, "CUENTA", "LOGO", "LP", "PLANTA")]
     return {"lp": lp, "bodegas": bodegas, "deptos": deptos, "plantas": plantas,
-            "presentacion": pres, "renders": renders}
+            "presentacion": pres, "renders": renders, "vistas_pdf": vistas_pdf}
 
 
 def tiene_disponible(unidades: List[Dict[str, Any]]) -> bool:
@@ -127,16 +133,19 @@ async def procesar_proyecto_local(db, root_dir: str, folder_name: str,
         rp = await ingerir_plantas(db, dev_id, cats["plantas"][0]["path"],
                                    nivel_por_pagina=not hay_texto)
         out["planos"] = f"nivel:{rp.get('unidades_con_plano')}"
+    from presentacion_gdc import ingerir_renders, ingerir_vistas_pdf
+    nr = 0
     if cats["renders"]:
-        rutas = [f["path"] for f in cats["renders"][:20]]
-        rr = await ingerir_renders_archivos(db, dev_id, rutas, maximo=20)
-        out["renders"] = rr.get("renders")
-    elif cats["presentacion"]:
-        # sin carpeta de renders (o vacía en el export) → sacar los renders EMBEBIDOS
-        # del deck de presentación (fallback, menor resolución pero presentes)
-        from presentacion_gdc import ingerir_renders
+        rr = await ingerir_renders_archivos(db, dev_id, [f["path"] for f in cats["renders"][:20]], maximo=20)
+        nr += rr.get("renders") or 0
+    if cats.get("vistas_pdf"):        # renders en PDF (carpeta VISTAS)
+        rv = await ingerir_vistas_pdf(db, dev_id, [f["path"] for f in cats["vistas_pdf"]])
+        nr += rv.get("renders") or 0
+    if nr == 0 and cats["presentacion"]:
+        # sin carpeta de renders (o vacía en el export) → renders EMBEBIDOS del deck
         rr = await ingerir_renders(db, dev_id, cats["presentacion"][0]["path"])
-        out["renders"] = f"deck:{rr.get('renders')}"
+        nr += rr.get("renders") or 0
+    out["renders"] = nr
     try:
         from auditoria_drive import auditar_dev
         au = await auditar_dev(db, dev_id)

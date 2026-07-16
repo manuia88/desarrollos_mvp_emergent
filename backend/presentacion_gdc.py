@@ -131,7 +131,7 @@ async def guardar_datos_desarrollo(db, dev_id: str, datos: Dict[str, Any]) -> Di
 
 # ─── 2· renders embebidos de la presentación → galería ────────────────────────
 def _extraer_imagenes(pdf_path: str, dest: pathlib.Path,
-                      min_w: int = 700, min_h: int = 450) -> List[pathlib.Path]:
+                      min_w: int = 600, min_h: int = 400) -> List[pathlib.Path]:
     """pdfimages saca los rasters embebidos; nos quedamos con los GRANDES (renders), no
     logos/iconos. Devuelve rutas PNG deduplicadas por tamaño de archivo."""
     dest.mkdir(parents=True, exist_ok=True)
@@ -232,6 +232,41 @@ async def ingerir_renders(db, dev_id: str, pres_pdf_path: str,
         tmp.rmdir()
     except Exception:  # noqa: BLE001
         pass
+    return {"renders": n, "estado": "ingeridos"}
+
+
+async def ingerir_vistas_pdf(db, dev_id: str, rutas_pdf: List[str],
+                             maximo: int = 12) -> Dict[str, Any]:
+    """Renders que vienen como PDF (carpeta VISTAS de GDC: NORESTE.pdf, SURESTE.pdf…).
+    Renderiza la 1ª página de cada uno a PNG → galería. (Aprendizaje 07-16: los renders no
+    siempre son .jpg; el clasificador de solo-imágenes los ignoraba.)"""
+    import secrets
+
+    from dev_assets import ASSET_UPLOAD_DIR
+    updir = pathlib.Path(ASSET_UPLOAD_DIR)
+    ya = await db.dev_assets.count_documents(
+        {"development_id": dev_id, "asset_type": {"$in": ["foto_galeria", "foto_hero"]}})
+    base = ya
+    n = 0
+    for ruta in rutas_pdf[:maximo]:
+        if not pathlib.Path(ruta).exists():
+            continue
+        aid = f"ast_{secrets.token_urlsafe(8)}"
+        destino = updir / f"{aid}.png"
+        try:
+            subprocess.run(
+                ["pdftoppm", "-png", "-singlefile", "-r", "130", "-f", "1", "-l", "1",
+                 ruta, str(updir / aid)], capture_output=True, timeout=90, check=True)
+        except Exception:  # noqa: BLE001
+            continue
+        if not destino.exists():
+            continue
+        await db.dev_assets.insert_one({
+            "id": aid, "development_id": dev_id,
+            "asset_type": "foto_hero" if base + n == 0 else "foto_galeria",
+            "mime_type": "image/png", "filename": pathlib.Path(ruta).stem + ".png",
+            "storage_path": str(destino), "order_index": base + n, "source": "vistas_pdf_gdc"})
+        n += 1
     return {"renders": n, "estado": "ingeridos"}
 
 
