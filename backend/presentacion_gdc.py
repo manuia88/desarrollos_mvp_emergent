@@ -161,6 +161,45 @@ def _extraer_imagenes(pdf_path: str, dest: pathlib.Path,
     return out
 
 
+def url_de_webloc(data: bytes) -> Optional[str]:
+    """Un .webloc (tour 360 de kuula) es un plist con la URL adentro. Ojo: la 1ª URL del
+    archivo es el DTD de Apple/plist — hay que saltarlo y tomar la URL real (kuula)."""
+    txt = (data or b"").decode("utf-8", "ignore")
+    _RUIDO = ("apple.com/dtds", "w3.org", "purl.org", "propertylist")
+    for u in re.findall(r"https?://[^\s<>\"']+", txt):
+        if not any(r in u.lower() for r in _RUIDO):
+            return u
+    return None
+
+
+async def ingerir_medios_gdc(db, dev_id: str, videos: Optional[List[Dict[str, str]]] = None,
+                             tours: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+    """Videos y tours 360 → dev_assets por REFERENCIA (no se descarga el mp4 pesado; se
+    guarda el id de Drive del video y la URL de kuula del tour). `videos`=[{name,drive_id}],
+    `tours`=[{name,url}]. Idempotente por (dev, external_ref)."""
+    import secrets
+    n_v = n_t = 0
+    for v in (videos or []):
+        ref = v.get("drive_id")
+        if not ref or await db.dev_assets.find_one({"development_id": dev_id, "external_ref": ref}):
+            continue
+        await db.dev_assets.insert_one({
+            "id": f"ast_{secrets.token_urlsafe(8)}", "development_id": dev_id,
+            "asset_type": "video", "mime_type": "video/mp4", "filename": v.get("name"),
+            "external_ref": ref, "external_kind": "drive_file", "source": "medios_gdc"})
+        n_v += 1
+    for t in (tours or []):
+        url = t.get("url")
+        if not url or await db.dev_assets.find_one({"development_id": dev_id, "external_ref": url}):
+            continue
+        await db.dev_assets.insert_one({
+            "id": f"ast_{secrets.token_urlsafe(8)}", "development_id": dev_id,
+            "asset_type": "tour_360", "mime_type": "text/uri-list", "filename": t.get("name"),
+            "external_ref": url, "external_kind": "kuula", "source": "medios_gdc"})
+        n_t += 1
+    return {"videos": n_v, "tours": n_t}
+
+
 async def ingerir_renders(db, dev_id: str, pres_pdf_path: str,
                           maximo: int = 14) -> Dict[str, Any]:
     """Renders grandes de la presentación → dev_assets (1 hero + resto galería)."""

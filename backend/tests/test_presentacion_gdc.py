@@ -1,6 +1,15 @@
 """Presentación GDC: nivel de página/unidad + discrepancias documentadas (lista manda)."""
 from presentacion_gdc import (deptos_de_pagina, discrepancias_presentacion,
-                              nivel_de_pagina, nivel_de_unidad)
+                              nivel_de_pagina, nivel_de_unidad, url_de_webloc)
+
+
+def test_url_de_webloc_salta_el_dtd():
+    """El .webloc trae 1º el DTD de Apple; hay que tomar la URL real de kuula."""
+    plist = (b'<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
+             b'"http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist><dict><key>URL</key>'
+             b'<string>https://kuula.co/post/7J0hL</string></dict></plist>')
+    assert url_de_webloc(plist) == "https://kuula.co/post/7J0hL"
+    assert url_de_webloc(b"sin urls") is None
 
 
 def test_deptos_de_pagina():
