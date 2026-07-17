@@ -1,22 +1,27 @@
-"""CALOR DE ZONAS — ranking automático de zonas por OFERTA + DEMANDA + ABSORCIÓN
-(founder 07-17: "pon las colonias con más desarrollos al principio, que se mueva solo por
-demanda, absorción y oferta"). Se recalcula de datos vivos, sin lista estática.
+"""CALOR DE ZONAS — ranking automático de zonas por lo que un COMPRADOR puede comprar HOY,
+qué tanto la buscan, y qué tan viva está (founder 07-17). DINÁMICO: se recalcula de datos
+vivos en cada request; cuando el robot aplica cambios de lista (precio/estatus) al inventario,
+el siguiente cálculo reordena solo — un proyecto que se agota BAJA porque su disponible cae.
 
-Señales (cada una normalizada 0-1 contra el máximo de todas las zonas):
-· oferta      = # desarrollos en la zona (peso 0.35 — "más desarrollos al principio")
-· demanda     = señales de interés (demand_atoms + vistas) apuntando a la zona (0.25)
-· absorcion   = unidades vendidas (qué tan rápido se mueve el inventario) (0.20)
-· disponibles = inventario activo a la venta (0.12)
-· frescura    = desarrollos con lista actualizada en el periodo (0.08 — criterio extra que
-                premia a la zona con datos vivos, no dormidos)
+CORRECCIÓN 07-17 (founder cazó, aplica a TODOS los proyectos): antes pesaba "vendidas de por
+vida" (0.22) → una zona AGOTADA (los Icon: 348 vendidas, 1 depa) salía arriba aunque no
+hubiera qué comprar. Ahora el peso manda al INVENTARIO ACTIVO + DEMANDA:
+· disponibles   = unidades a la venta AHORA (0.34 — lo que de verdad puede comprar)
+· demanda       = señales de interés reales (demand_atoms + vistas) (0.30)
+· oferta_activa = # desarrollos CON inventario disponible (0.22 — no cuenta los agotados)
+· deseabilidad  = ventas históricas, RAÍZ (topada) → solo bonus de "zona probada" (0.14)
+Las zonas SIN inventario disponible quedan al final (nada que ofrecer al comprador).
+Cuando haya histórico real de ventas en el tiempo, 'deseabilidad' se cambia por velocidad
+reciente (ventana 90d) — hoy las fechas son de la carga, no de ventas longitudinales.
 """
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, List
 
 from zona_packs import zona_base
 
-_PESOS = {"oferta": 0.38, "demanda": 0.27, "absorcion": 0.22, "disponibles": 0.13}
+_PESOS = {"disponibles": 0.34, "demanda": 0.30, "oferta_activa": 0.22, "deseabilidad": 0.14}
 
 
 def _nombre_zona(slug: str) -> str:
@@ -35,14 +40,14 @@ async def zonas_populares(db, limite: int = 40) -> List[Dict[str, Any]]:
 
     def _z(slug: str) -> Dict[str, Any]:
         return Z.setdefault(slug, {"slug": slug, "name": _nombre_zona(slug),
-                                   "alcaldia": None, "oferta": 0, "disponibles": 0,
-                                   "vendidas": 0, "demanda": 0.0, "colonia_ids": set()})
+                                   "alcaldia": None, "oferta": 0, "oferta_activa": 0,
+                                   "disponibles": 0, "vendidas": 0, "demanda": 0.0,
+                                   "colonia_ids": set()})
 
     # ── OFERTA + inventario (developments + units) ──
     dev_zona: Dict[str, str] = {}
     async for d in db.developments.find(
-            {}, {"_id": 0, "id": 1, "colonia_id": 1, "alcaldia": 1,
-                 "units_disponibles": 1, "units_visibles": 1}):
+            {}, {"_id": 0, "id": 1, "colonia_id": 1, "alcaldia": 1}):
         cid = d.get("colonia_id")
         if not cid:
             continue
@@ -53,16 +58,23 @@ async def zonas_populares(db, limite: int = 40) -> List[Dict[str, Any]]:
         z["alcaldia"] = z["alcaldia"] or d.get("alcaldia")
         dev_zona[d["id"]] = zb
 
-    # unidades por dev → disponibles / vendidas (absorción)
+    # unidades por dev → disponibles / vendidas; y qué DEVS tienen inventario vivo
+    dev_disp: Dict[str, int] = {}
     async for u in db.units.find({}, {"_id": 0, "development_id": 1, "status": 1, "type": 1}):
-        zb = dev_zona.get(u.get("development_id"))
+        did = u.get("development_id")
+        zb = dev_zona.get(did)
         if not zb or (u.get("type") or "depto") in ("roof_garden", "roof", "local", "bodega"):
             continue
         st = (u.get("status") or "").lower()
         if st in ("disponible", "", "available"):
             Z[zb]["disponibles"] += 1
+            dev_disp[did] = dev_disp.get(did, 0) + 1
         elif st in ("vendido", "vendida", "sold"):
             Z[zb]["vendidas"] += 1
+    # oferta_activa = desarrollos CON al menos 1 disponible (los agotados no cuentan)
+    for did, n in dev_disp.items():
+        if n > 0:
+            Z[dev_zona[did]]["oferta_activa"] += 1
 
     # ── DEMANDA (demand_atoms: interés real por colonia) ──
     try:
@@ -86,16 +98,22 @@ async def zonas_populares(db, limite: int = 40) -> List[Dict[str, Any]]:
     if not zonas:
         return []
 
-    # ── normalización 0-1 y calor compuesto ──
+    # ── normalización 0-1 y calor compuesto (deseabilidad = raíz de vendidas, topada) ──
+    for z in zonas:
+        z["deseabilidad"] = math.sqrt(z["vendidas"])
     def _mx(k):
         return max((z[k] for z in zonas), default=0) or 1
-    mx = {k: _mx(k) for k in ("oferta", "demanda", "vendidas", "disponibles")}
+    mx = {k: _mx(k) for k in ("disponibles", "demanda", "oferta_activa", "deseabilidad")}
     for z in zonas:
+        vivo = z["disponibles"] > 0                 # ¿hay algo que comprar?
         z["heat"] = round(
-            _PESOS["oferta"] * (z["oferta"] / mx["oferta"])
+            _PESOS["disponibles"] * (z["disponibles"] / mx["disponibles"])
             + _PESOS["demanda"] * (z["demanda"] / mx["demanda"])
-            + _PESOS["absorcion"] * (z["vendidas"] / mx["vendidas"])
-            + _PESOS["disponibles"] * (z["disponibles"] / mx["disponibles"]), 4)
+            + _PESOS["oferta_activa"] * (z["oferta_activa"] / mx["oferta_activa"])
+            + _PESOS["deseabilidad"] * (z["deseabilidad"] / mx["deseabilidad"]), 4)
+        z["agotada"] = not vivo
         z["colonia_ids"] = sorted(z.pop("colonia_ids"))
-    zonas.sort(key=lambda z: (-z["heat"], -z["oferta"], z["name"]))
+        z.pop("deseabilidad", None)
+    # las zonas SIN inventario disponible van al final (nada que comprar), luego por calor
+    zonas.sort(key=lambda z: (z["agotada"], -z["heat"], -z["oferta_activa"], z["name"]))
     return zonas[:limite]
