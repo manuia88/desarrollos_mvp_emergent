@@ -105,7 +105,10 @@ def r_campos_obligatorios(u, ctx):
     """Tipo-consciente (07-16): a un LOCAL/bodega/oficina no le faltan recámaras — exigirle
     campos de depto inflaba el conteo de errores y ahogaba los errores reales."""
     tipo = str(u.get("tipo") or u.get("type") or "departamento").lower()
-    if tipo in ("local", "bodega", "oficina", "estacionamiento", "cajon"):
+    # un roof garden / local / bodega no tiene recámaras ni baños (07-17 Punto Destino:
+    # los roofs privados se vendían aparte y salían como 5 ERRORES "faltan recámaras" →
+    # con el tipo reconocido caen a AVISO, no bloquean).
+    if tipo in ("roof_garden", "roof", "local", "bodega", "oficina", "estacionamiento", "cajon"):
         faltan = [c for c, k in (("número", "unit_number"), ("m²", "size_m2"))
                   if not (u.get(k) or (k == "size_m2" and u.get("m2_total")))]
         if faltan:
