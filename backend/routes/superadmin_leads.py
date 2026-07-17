@@ -105,6 +105,7 @@ QUE_FALTA = {
     "columna_banos_listas": "Columna de baños en las listas de precios",
     "laminas_faltantes": "Láminas de planos faltantes",
     "lista_precios_illinois": "Lista de precios",
+    "galeria_recorrido": "Fotos de galería (recorrido incompleto)",
 }
 
 

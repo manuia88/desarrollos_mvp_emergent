@@ -591,14 +591,26 @@ function BandejaUnica() {
 }
 
 /* 📋 Lo que les pedimos a los desarrolladores (CLASS/GDC) para completar el catálogo.
-   Antes estas solicitudes solo vivían en Mongo (solicitudes_gdc/_class) — ahora se ven aquí. */
+   Antes estas solicitudes solo vivían en Mongo (solicitudes_gdc/_class) — ahora se ven aquí.
+   Cada pedido muestra su EDAD (cuántos días lleva esperando) y arriba va el contador de
+   datos en disputa entre fuentes (GET /api/superadmin/peleas). */
+export const edadEnDias = (fechaISO, ahora = Date.now()) => {
+  if (!fechaISO) return null;
+  const d = Math.floor((ahora - new Date(`${fechaISO}T00:00:00`).getTime()) / 86400000);
+  return Number.isFinite(d) && d >= 0 ? d : null;
+};
+
 export function PedidosDevs() {
   const [s, setS] = useState(null);
+  const [pel, setPel] = useState(null);
   useEffect(() => {
     fetch(`${API}/api/superadmin/solicitudes-devs`, { credentials: 'include' }).then(_j)
       .then(setS).catch(() => setS(null));
+    fetch(`${API}/api/superadmin/peleas`, { credentials: 'include' }).then(_j)
+      .then(setPel).catch(() => setPel(null));
   }, []);
   if (!s || !s.n) return null;
+  const viejas = (pel?.envejecidas || []).length;
   return (
     <div style={{ ...S.card, margin: '4px 0 12px' }} className="dmx-card" data-testid="pedidos-devs">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -607,6 +619,13 @@ export function PedidosDevs() {
         </h2>
         <span style={S.mini}>datos que faltan en la fuente — se los pedimos a CLASS y GDC</span>
       </div>
+      {pel && pel.n > 0 && (
+        <div data-testid="contador-peleas" style={{ ...S.mini, padding: '6px 10px', borderRadius: 9, background: 'rgba(210,153,34,0.08)', border: '1px solid rgba(210,153,34,0.25)', marginBottom: 6, color: 'rgba(240,235,224,0.8)' }}>
+          ⚖️ <b style={{ color: 'var(--cream)' }}>{pel.n} dato{pel.n === 1 ? '' : 's'} donde las fuentes no coinciden</b>
+          {' — '}{pel.por_ruta?.auto || 0} se corrigen solos con la próxima lista · {pel.por_ruta?.otro_doc || 0} los resuelve otro documento · {pel.por_ruta?.dev || 0} esperan respuesta del desarrollador
+          {viejas > 0 && <b style={{ color: '#d29922' }}> ({viejas} llevan más de {pel.umbral_dias || 10} días)</b>}
+        </div>
+      )}
       {(s.solicitudes || []).map((p, i) => (
         <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', marginTop: 5 }}>
           <span style={{ ...S.mini, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', flexShrink: 0 }}>{p.desarrollador}</span>
@@ -624,6 +643,15 @@ export function PedidosDevs() {
               {p.estado === 'pendiente' ? '⏳ pendiente' : '✓ resuelto'}
             </span>
             {p.fecha}
+            {(() => {
+              const e = edadEnDias(p.fecha);
+              if (e === null || p.estado !== 'pendiente') return null;
+              return (
+                <span style={{ display: 'block', fontWeight: 700, color: e > 10 ? '#d29922' : 'rgba(240,235,224,0.55)' }}>
+                  {e === 0 ? 'pedido hoy' : `lleva ${e} día${e === 1 ? '' : 's'} esperando`}
+                </span>
+              );
+            })()}
           </span>
         </div>
       ))}

@@ -9,7 +9,7 @@ jest.mock('../components/superadmin/SuperadminLayout', () => ({ __esModule: true
 jest.mock('mapbox-gl', () => ({}), { virtual: true });
 const SuperadminLeads = require('../pages/superadmin/SuperadminLeads').default;
 const { filtrarLeads } = require('../pages/superadmin/SuperadminLeads');
-const { PedidosDevs } = require('../pages/superadmin/SuperadminInventario');
+const { PedidosDevs, edadEnDias } = require('../pages/superadmin/SuperadminInventario');
 
 const PAYLOAD_LEADS = {
   n: 3, n_proyecto_borrado: 1,
@@ -29,10 +29,24 @@ const PAYLOAD_SOLICITUDES = {
   ],
 };
 
+const PAYLOAD_PELEAS = {
+  n: 6, umbral_dias: 10,
+  por_ruta: { auto: 1, otro_doc: 3, dev: 2 },
+  por_tipo: { m2_pelea: 1, inventario_pelea: 1, status_nota: 1, pelea_fuente: 2, solicitud: 1 },
+  peleas: [
+    { tipo: 'm2_pelea', desarrollo: 'NUA Interlomas', unidad: 'T2 - 2304', detalle: 'lista dice 124.98, plano dice 127.36', edad_dias: 2, ruta: 'otro_doc' },
+    { tipo: 'inventario_pelea', desarrollo: 'Jai Reforma', unidad: '16G', detalle: 'lista no la ofrece; maestro sí', edad_dias: 27, ruta: 'dev' },
+  ],
+  envejecidas: [
+    { tipo: 'inventario_pelea', desarrollo: 'Jai Reforma', unidad: '16G', detalle: 'lista no la ofrece; maestro sí', edad_dias: 27, ruta: 'dev' },
+  ],
+};
+
 beforeEach(() => {
   global.fetch = jest.fn((url) => {
     const body = String(url).includes('/solicitudes-devs') ? PAYLOAD_SOLICITUDES
-      : String(url).includes('/leads') ? PAYLOAD_LEADS : {};
+      : String(url).includes('/peleas') ? PAYLOAD_PELEAS
+        : String(url).includes('/leads') ? PAYLOAD_LEADS : {};
     return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
   });
 });
@@ -66,6 +80,27 @@ test('la sección "Pedido a los desarrolladores" del Inventario muestra los pedi
   expect(screen.getByText('CLASS')).toBeInTheDocument();
   expect(screen.getByText('GDC')).toBeInTheDocument();
   expect(screen.getByText(/\+1 más/)).toBeInTheDocument();   // 5 proyectos → 4 + "+1 más"
+  // EDAD de cada pedido: cuántos días lleva esperando (o "pedido hoy")
+  expect(screen.getAllByText(/lleva \d+ días? esperando|pedido hoy/).length).toBeGreaterThanOrEqual(1);
+});
+
+test('el contador de peleas resume las disputas entre fuentes, con las envejecidas marcadas', async () => {
+  render(<MemoryRouter><PedidosDevs /></MemoryRouter>);
+  await screen.findByTestId('contador-peleas');
+  expect(screen.getByText(/6 datos donde las fuentes no coinciden/)).toBeInTheDocument();
+  const linea = screen.getByTestId('contador-peleas').textContent;
+  expect(linea).toMatch(/1 se corrigen solos con la próxima lista/);
+  expect(linea).toMatch(/3 los resuelve otro documento/);
+  expect(linea).toMatch(/2 esperan respuesta del desarrollador/);
+  expect(linea).toMatch(/1 llevan más de 10 días/);
+});
+
+test('edadEnDias: pura y sin sorpresas', () => {
+  const hoy = new Date('2026-07-17T12:00:00').getTime();
+  expect(edadEnDias('2026-07-10', hoy)).toBe(7);
+  expect(edadEnDias('2026-07-17', hoy)).toBe(0);
+  expect(edadEnDias(null, hoy)).toBe(null);
+  expect(edadEnDias('no-es-fecha', hoy)).toBe(null);
 });
 
 test('filtrarLeads: status + proyecto + texto libre', () => {

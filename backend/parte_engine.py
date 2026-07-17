@@ -180,6 +180,11 @@ async def _sec_listas(db, desde: str) -> List[str]:
                           f"«{a.get('nombre')}» ({ev.get('proyecto')}) — lo cambió el "
                           f"DESARROLLADOR en su Drive, no fuiste tú:")
             lineas += lineas_de_cambios(ev.get("cambios"))
+            if ev.get("aplicado"):
+                ap = ev["aplicado"]
+                lineas.append(f"   ✅ el vigía YA lo aplicó a la plataforma "
+                              f"({ap.get('precios', 0)} precios · {ap.get('status', 0)} "
+                              f"estados, auditados) — no tienes que hacer nada")
         elif ev["tipo"] == "lista_nueva":
             lineas.append(f"📄 <b>{ev.get('dev')}</b> subió lista nueva: «{a.get('nombre')}» "
                           f"— {ev.get('proyecto')}")
@@ -401,6 +406,7 @@ _ACCION_REGLA = {   # qué HACER con cada tipo de hallazgo (el reporte siempre d
     "nivel_vs_numero": "corregir el piso (level) o el número de unidad",
     "molde_sin_rec": "marcar rec=0 si son lofts o completar recámaras",
     "flex_pendiente": "nada urgente: config flexible anotada",
+    "censo_fuente": "abrir la lista del dev y corregir la plataforma (la fuente manda)",
 }
 
 
@@ -429,9 +435,19 @@ async def _sec_salud(db, desde: str) -> List[str]:
         quien = f"{ej.get('desarrollo') or '?'} · {ej.get('ref')}"
         out.append(f"· [{sev[:1].upper()}] <b>{len(grupo)}×</b> {regla}: "
                    f"p.ej. {quien} — {ej['detalle'][:95]}")
-        accion = _ACCION_REGLA.get(regla)
+        accion = ej.get("accion") or _ACCION_REGLA.get(regla)
         if accion:
             out.append(f"  → {accion}")
+    # el juez de jueces: cuánto del mapa de riesgos tiene vigilante (error_matrix)
+    try:
+        from error_matrix import resumen as _mr
+        mr = _mr()
+        out.append(f"🧭 Mapa de jueces: <b>{mr['cubiertas']}/{mr['total']}</b> riesgos "
+                   f"conocidos con juez ({mr['pct']}%) — sin juez aún: "
+                   + ", ".join(f"{f['campo']}·{f['modo']}" for f in mr["faltantes"][:3])
+                   + " <i>(cada error cazado a ojo se vuelve juez nuevo)</i>")
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 
