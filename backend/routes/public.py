@@ -90,7 +90,7 @@ async def _apply_unit_overrides(db, dev_id: str, units: list) -> list:
         return units
 
 
-def _aggregates_from_units(units: list) -> dict:
+def _aggregates_from_units(units: list, total_edificio: int = 0) -> dict:
     """Conteos + rangos + desde/hasta derivados de las unidades EFECTIVAS (tras overrides del dev). Evita que el documento
     siga mostrando cifras viejas del seed (precio, disponibles, m²/recámaras/baños/cajones) cuando el dev edita unidades.
     Devuelve un dict para .update() sobre el doc/card. Espeja la lógica de _build_dev en data_developments.py."""
@@ -124,10 +124,14 @@ def _aggregates_from_units(units: list) -> dict:
     for u in deptos:
         s = (u.get("status") or "disponible").lower()
         sc["reservado" if s == "apartado" else s] = sc.get("reservado" if s == "apartado" else s, 0) + 1
-    agg["units_total"] = len(deptos)
-    agg["units_available"] = sc.get("disponible", 0)
-    agg["units_reserved"] = sc.get("reservado", 0)
-    agg["units_sold"] = sc.get("vendido", 0)
+    # el TOTAL del edificio (brochure) manda sobre las unidades cargadas; las que faltan son
+    # vendidas no detalladas (07-17: Chilpancingo 48 deptos, 1 cargado, mostraba 'total 1').
+    total = max(len(deptos), total_edificio or 0)
+    disp, resv = sc.get("disponible", 0), sc.get("reservado", 0)
+    agg["units_total"] = total
+    agg["units_available"] = disp
+    agg["units_reserved"] = resv
+    agg["units_sold"] = max(sc.get("vendido", 0), total - disp - resv)   # + vendidas ocultas
     return agg
 
 
@@ -265,7 +269,9 @@ async def _enrich_listing(db, devs: list) -> list:
         card["stage"] = _norm_stage(card.get("stage"), d.get("delivery_estimate"))   # por fecha de entrega real
         # Conteos + rangos + desde/hasta coherentes con las unidades vivas (overlay + ediciones manuales del dev) — no cifras viejas
         _eff_units = _merge_units(_apply_overlay(d).get("units") or [], ov_by_dev.get(d["id"]) or {})
-        card.update(_aggregates_from_units(_eff_units))
+        # el total del edificio: 'total_units' (curados) o 'units_total' (tarjetas ingeridas, que
+        # ya traen el total real del brochure) — sin el fallback pasaba 0 y el total colapsaba a 1.
+        card.update(_aggregates_from_units(_eff_units, d.get("total_units") or d.get("units_total") or 0))
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
         m2lo = (d.get("m2_range") or [0])[0] or 0
@@ -2214,7 +2220,7 @@ async def get_development(dev_id: str, request: Request):
         pass
     # Conteos + rangos + desde/hasta coherentes con las unidades vivas (si el dev edita precio/estado/m²/etc., el doc no puede
     # seguir mostrando cifras viejas del seed: 'desde' inexistente, 'X disponibles' que ya no aplica, rangos de búsqueda viejos).
-    out.update(_aggregates_from_units(out.get("units")))
+    out.update(_aggregates_from_units(out.get("units"), out.get("total_units") or 0))
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay

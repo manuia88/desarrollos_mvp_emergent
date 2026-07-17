@@ -40,3 +40,16 @@ def test_roofs_no_son_el_desde_del_edificio():
     assert card["price_from"] == 5450000        # el depto más barato, NO el roof de 550k
     assert card["units_total"] == 2             # 2 deptos, el roof no cuenta
     assert card["units_available"] == 1         # solo 107 disponible (508 reservado)
+
+
+def test_total_del_edificio_manda_sobre_cargadas():
+    """07-17: Chilpancingo tiene 48 deptos (brochure) con 1 disponible cargado. El total del
+    edificio manda; las que faltan son vendidas no detalladas → NO colapsar a 'total 1'."""
+    from ingested_reader import apply_unit_aggregates
+    card = {"units_total": 48}   # ya viene del brochure (dev_doc_to_card lo puso)
+    apply_unit_aggregates(card, [
+        {"unit_number": "504", "type": "depto", "price": 11500000, "status": "disponible"},
+    ])
+    assert card["units_total"] == 48        # el edificio, no la unidad cargada
+    assert card["units_available"] == 1
+    assert card["units_sold"] == 47         # 48 − 1 disponible (vendidas ocultas)
