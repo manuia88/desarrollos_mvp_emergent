@@ -1062,9 +1062,13 @@ function TabGeneral({ dev }) {
   const bathR = rng(units.map((u) => u.bathrooms)) || dev.bathrooms_range;
   const parkR = rng(units.map((u) => u.parking_spots)) || dev.parking_range;
   const m2R = rng(units.map(m2of)) || dev.m2_range;
-  const nUnits = dev.units_total || dev.total_units || units.length || null;
+  // Unidades TOTALES del edificio = el dato del brochure (total_units) MANDA sobre el agregado
+  // de unidades cargadas (units_total): un edificio de 48 deptos con 1 disponible mostraba "1".
+  const nUnits = dev.total_units || dev.units_total || units.length || null;
   const { keyOf: mKey, labelFor: mLabel } = modelScheme(units);
-  const protos = units.length ? new Set(units.map(mKey)).size : null;
+  // Prototipos del edificio: el conteo del brochure MANDA (n_prototipos); si no, se deriva de
+  // las unidades cargadas (que con 1 disponible daba "1 prototipo" falso).
+  const protos = dev.n_prototipos || (units.length ? new Set(units.map(mKey)).size : null);
   const tipo = dev.property_type ? titleCase(dev.property_type) : 'Departamentos';
   const pm2s = units.map((u) => (u.price && m2of(u)) ? u.price / m2of(u) : null).filter(Boolean).sort((a, b) => a - b);
   const pm2 = pm2s.length ? pm2s[Math.floor(pm2s.length / 2)] : null;
@@ -1076,7 +1080,7 @@ function TabGeneral({ dev }) {
   const creds = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
   const cp = dev.construction_progress || {};
   const developer = dev.developer || {};
-  const total = dev.units_total || nUnits || 0;
+  const total = dev.total_units || dev.units_total || nUnits || 0;
   const sold = dev.units_sold || 0; const res = dev.units_reserved || 0;
   const avail = dev.units_available != null ? dev.units_available : units.filter((u) => u.status === 'disponible').length;
   const chip = { fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.ink2, background: C.bgSoft, border: `1px solid ${CARD_LINE}`, borderRadius: 9999, padding: '6px 13px' };
@@ -1132,7 +1136,7 @@ function TabGeneral({ dev }) {
         <div style={fg}>
           <Fact icon="🏢" label="Tipo de propiedad" value={tipo} />
           <Fact icon="🏗️" label="Niveles" value={dev.max_level != null ? String(dev.max_level) : (levels || null)} />
-          <Fact icon="🏬" label="Depas por piso" value={depasPiso} />
+          <Fact icon="🏬" label="Depas por piso" value={dev.depas_por_piso != null ? String(dev.depas_por_piso) : depasPiso} />
           <Fact icon="🔢" label="Unidades totales" value={nUnits ? String(nUnits) : null} />
           <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
           <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />

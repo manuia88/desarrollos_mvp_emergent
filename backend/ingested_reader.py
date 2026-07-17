@@ -146,10 +146,18 @@ def apply_unit_aggregates(card: Dict[str, Any], units: List[Dict[str, Any]]) -> 
     if prices:
         card["price_from"] = min(prices)
         card["price_to"] = max(prices)
-    card["units_total"] = len(deptos)
-    card["units_available"] = sum(1 for u in deptos if u.get("status") == "disponible")
-    card["units_sold"] = sum(1 for u in deptos if u.get("status") == "vendido")
-    card["units_reserved"] = sum(1 for u in deptos if u.get("status") == "reservado")
+    # el TOTAL del edificio manda el brochure (card ya trae total_units); si es mayor que
+    # las unidades cargadas, las que faltan son vendidas no detalladas (07-17: Chilpancingo
+    # 48 deptos con 1 disponible mostraba 'total 1'). units_available/reserved sí son reales.
+    cargadas = len(deptos)
+    total_edif = max(card.get("units_total") or 0, cargadas)   # brochure manda el total
+    disp = sum(1 for u in deptos if u.get("status") == "disponible")
+    resv = sum(1 for u in deptos if u.get("status") == "reservado")
+    vend_vis = sum(1 for u in deptos if u.get("status") == "vendido")
+    card["units_total"] = total_edif
+    card["units_available"] = disp
+    card["units_reserved"] = resv
+    card["units_sold"] = max(vend_vis, total_edif - disp - resv)   # incluye vendidas ocultas
     if beds:
         card["bedrooms_range"] = [min(beds), max(beds)]
     if baths:
