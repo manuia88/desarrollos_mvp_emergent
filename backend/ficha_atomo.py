@@ -355,6 +355,10 @@ async def gangas_catalogo(db, solo_disponibles: bool = True,
         p = pos.get(u.get("id"))
         if not p or p["banda"] != "ganga":
             continue
+        if p.get("vs_molde_pct") is not None and p["vs_molde_pct"] <= -25:
+            # >25% bajo el molde = casi seguro dato roto, no ganga (07-16: '404 · -59.3%'
+            # salió como oportunidad en el parte) → lo reporta ganga_sospechosa en salud
+            continue
         if solo_disponibles and (u.get("status") or "disponible").lower() not in (
                 "disponible", "available"):
             continue

@@ -181,8 +181,12 @@ async def public_photos(db, dev_id: str, limit: int = 12) -> List[str]:
         for kind in ("render", "obra"):
             async for a in db.project_assets.find(
                     {"development_id": dev_id, "image_kind": kind},
-                    {"_id": 0, "drive_file_id": 1}).limit(limit):
-                if a.get("drive_file_id"):
+                    {"_id": 0, "drive_file_id": 1, "local_file": 1}).limit(limit):
+                # MATERIALIZADO local primero (07-16): servir /archivo/ iba a Google Drive
+                # EN VIVO en cada click del carrusel — segundos por foto.
+                if a.get("local_file"):
+                    out.append(f"/api/assets-static/{a['local_file']}")
+                elif a.get("drive_file_id"):
                     out.append(f"/api/developments/{dev_id}/archivo/{a['drive_file_id']}")
             if out:
                 break
@@ -207,10 +211,11 @@ async def attach_planos(db, dev_id: str, units: List[Dict[str, Any]]) -> int:
         planos = []
         async for a in db.project_assets.find(
                 {"development_id": dev_id, "mime": "application/pdf"},
-                {"_id": 0, "drive_file_id": 1, "filename": 1}).limit(300):
+                {"_id": 0, "drive_file_id": 1, "filename": 1, "local_file": 1}).limit(300):
             fn = a.get("filename") or ""
             if a.get("drive_file_id") and _PLANO_NAME_RE.search(fn):
                 planos.append({"fid": a["drive_file_id"], "fn": fn, "norm": _norm_token(fn),
+                               "local": a.get("local_file"),
                                "toks": set((re.findall(r"\d+[A-Za-z]*", re.sub(r"[^A-Za-z0-9 ]", "", fn))))})
         if not planos:
             return 0
@@ -232,7 +237,8 @@ async def attach_planos(db, dev_id: str, units: List[Dict[str, Any]]) -> int:
                         hit = p
                         break
             if hit:
-                u["plano_url"] = f"/api/developments/{dev_id}/archivo/{hit['fid']}"
+                u["plano_url"] = (f"/api/assets-static/{hit['local']}" if hit.get("local")
+                                  else f"/api/developments/{dev_id}/archivo/{hit['fid']}")
                 u["plano_mime"] = "application/pdf"
                 n += 1
         return n
@@ -341,7 +347,10 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
     (ya aprobados por el superadmin) + units reales de db.units. Fail-open (nunca rompe el listado)."""
     out: List[Dict[str, Any]] = []
     try:
-        q: Dict[str, Any] = {"source": "bulk_ingest"}
+        # TODA la familia de ingesta (07-16: el masivo carga con source='masivo_gdc'/'masivo_class'
+        # y el filtro solo dejaba pasar 'bulk_ingest' → 49 proyectos publicados invisibles en el listado)
+        q: Dict[str, Any] = {"source": {"$in": ["bulk_ingest", "masivo_gdc", "masivo_class",
+                                                "prueba_2proyectos"]}}
         if published_only:
             q["marketplace_published"] = {"$nin": [False, "pending"]}
         async for d in db.developments.find(q, {"_id": 0}).limit(500):
@@ -354,6 +363,16 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
             # fotos de la TARJETA del marketplace = renders clasificados (antes salía el placeholder oscuro)
             if not card.get("photos"):
                 card["photos"] = await public_photos(db, d.get("id"), limit=6)
+            if not card.get("photos"):
+                # familia masivo (CLASS/GDC): sus fotos viven en dev_assets, no en project_assets
+                # (07-16: 20 tarjetas CLASS salían sin foto aunque la FICHA sí las mostraba)
+                try:
+                    from dev_assets import public_photos_for_dev
+                    fotos = await public_photos_for_dev(db, d.get("id"))
+                    card["photos"] = [p["url"] for p in fotos if p.get("url")
+                                      and p["url"].lower().endswith((".jpg", ".jpeg", ".png", ".webp"))][:6]
+                except Exception:  # noqa: BLE001
+                    pass
             out.append(card)
     except Exception:
         pass

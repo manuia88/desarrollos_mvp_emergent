@@ -3,7 +3,12 @@ PROPIEDAD (fachada/interior/amenidad), NO una slide en BLANCO ni una foto de PER
 (stock de estilo de vida que a veces se cuela al extraer del deck de presentación).
 
 es_render_malo(path) → True si la imagen es blanca/casi-vacía o tiene una persona prominente.
-Se usa al ingerir renders (filtro de entrada) y para purgar lo ya cargado. $0, sin IA.
+Se usa al ingerir renders (filtro de entrada). $0, sin IA.
+
+OJO (auditoría 07-16): como señal de PURGA el detector de caras alucina — 27 de 29 flags
+fueron falsos positivos (costales de box, maquetas, muebles = "caras"). Regla: es_render_malo
+sirve para FILTRAR EN INGESTA y para MARCAR candidatos; borrar lo ya cargado requiere
+verificación visual humana, nunca purga automática.
 """
 from __future__ import annotations
 
@@ -43,8 +48,22 @@ def metricas(path: str) -> Optional[dict]:
     return {"blanco": blanco, "std": std, "cara_pct": cara_pct}
 
 
+def es_negra_o_texto(path: str) -> bool:
+    """Slides negras (mapas B/N, logos, portadas con texto) — regla founder 07-16: la galería
+    es SOLO renders. Un render real casi nunca es ≥60% píxeles oscuros."""
+    try:
+        import numpy as np
+        from PIL import Image
+        a = np.asarray(Image.open(path).convert("RGB"))
+    except Exception:  # noqa: BLE001
+        return False
+    oscuro = float((a.max(axis=2) < 45).mean())
+    return oscuro >= 0.55
+
+
 def es_render_malo(path: str) -> bool:
-    """¿Esta imagen NO sirve como render de galería? (blanca/vacía o persona prominente)."""
+    """¿Esta imagen NO sirve como render de galería? (blanca/vacía, persona prominente,
+    o slide negra de texto/mapa/logo — auditoría visual GDC 07-16)."""
     if not path or not os.path.exists(path):
         return True
     m = metricas(path)
@@ -53,6 +72,8 @@ def es_render_malo(path: str) -> bool:
     if m["blanco"] >= _BLANCO_MIN:          # slide en blanco / casi vacía
         return True
     if m["cara_pct"] >= _CARA_PCT_MIN:       # persona prominente = stock de estilo de vida
+        return True
+    if es_negra_o_texto(path):               # mapa negro / logo / portada de deck
         return True
     return False
 

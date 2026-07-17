@@ -79,3 +79,32 @@ def test_via_sin_recamaras_no_truena():
     r = extraer_gdc((SP / "VIA_INSURGENTES_LP.pdf").read_bytes())
     assert r["validacion"]["total"] >= 80
     assert all(u.get("m2_total") for u in r["unidades"] if u.get("_valida_m2"))
+
+
+def test_conteo_lockoff_no_es_12():
+    """Bug real 07-16: '1 o 2' → 12 · '1 / OP a 2' → 12 · '(1 rec, 2 rec o 2 lotf)' → 122.
+    El primer número es la config base; la alternativa se conserva como flex."""
+    from extractores_layout import _conteo
+    assert _conteo("Lock-Off 1 rec o 2 lofts") == (1.0, "Lock-Off 1 rec o 2 lofts")
+    assert _conteo("1 o 2") == (1.0, "1 o 2")
+    assert _conteo("1 / OP a 2") == (1.0, "1 / OP a 2")
+    assert _conteo("Lock-Off (1 rec, 2 rec o 2 lotf)") == (1.0, "Lock-Off (1 rec, 2 rec o 2 lotf)")
+    assert _conteo("2") == (2.0, None)          # normal: sin flex
+    assert _conteo("1.5") == (1.5, None)        # baños con medio
+    assert _conteo("2.5") == (2.5, None)
+    assert _conteo("NA") == (None, None)
+
+
+def test_unidades_nombradas_sin_digitos_no_se_saltan():
+    """Auditoría 07-17: 'ROOF PRIVADO' ($26.5M), 'LOCAL' ($14.3M), 'LOCAL RG' ($43M)
+    se saltaban porque el filtro exigía dígitos en el número de unidad."""
+    import re
+    def acepta(num):
+        es_nombrada = bool(re.search(r"\b(ROOF|LOCAL|GARDEN|GH|PH|BODEGA)\b", str(num or "").upper()))
+        return bool(num) and (bool(re.search(r"\d", num)) or es_nombrada)
+    assert acepta("ROOF PRIVADO") is True
+    assert acepta("LOCAL") is True
+    assert acepta("LOCAL RG") is True
+    assert acepta("201") is True
+    assert acepta("TOTALES") is False      # filas de resumen siguen fuera
+    assert acepta("") is False

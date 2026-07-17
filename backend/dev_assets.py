@@ -215,7 +215,29 @@ def concepto_de_nombre(filename: str) -> str | None:
 def write_asset(asset_id: str, data: bytes, ext: str) -> str:
     p = ASSET_UPLOAD_DIR / f"{asset_id}.{ext}"
     p.write_bytes(data)
+    crear_thumb(str(p))
     return str(p)
+
+
+def crear_thumb(path: str) -> Optional[str]:
+    """<id>_thumb.jpg (720px, q78) junto a la foto — el marketplace pide el thumb y el
+    original de 5–8 MB solo se baja en la ficha (07-16: cada flecha del carrusel tardaba
+    segundos). Fail-open: sin thumb, el front cae al original."""
+    try:
+        import os
+        if not str(path).lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            return None
+        base, _ = os.path.splitext(str(path))
+        dst = base + "_thumb.jpg"
+        if os.path.exists(dst):
+            return dst
+        from PIL import Image
+        im = Image.open(path).convert("RGB")
+        im.thumbnail((720, 720))
+        im.save(dst, "JPEG", quality=78)
+        return dst
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -248,11 +270,20 @@ async def public_photos_for_dev(db, dev_id: str) -> List[Dict[str, Any]]:
     el dev sube → la IA la clasifica → el comprador la ve etiquetada."""
     out: List[Dict[str, Any]] = []
     try:
+        # PORTADA primero y luego el RECORRIDO del depto (order_index del curador visual,
+        # 07-16). El sort viejo por asset_type alfabético mandaba el hero a media galería.
         cur = db.dev_assets.find(
             {"development_id": dev_id, "asset_type": {"$in": list(PUBLIC_ASSET_TYPES)}},
             {"_id": 0, "asset_type": 1, "storage_path": 1, "order_index": 1,
              "ai_caption": 1, "ai_category": 1, "tour_url": 1},
-        ).sort([("asset_type", 1), ("order_index", 1)])
+        ).sort([("order_index", 1)])
+        docs = [a async for a in cur]
+        docs.sort(key=lambda a: (0 if a.get("asset_type") == "foto_hero" else 1,
+                                 a.get("order_index") if a.get("order_index") is not None else 999))
+        async def _iter():
+            for a in docs:
+                yield a
+        cur = _iter()
         async for a in cur:
             url = _public_url(a) or a.get("tour_url")
             if not url:

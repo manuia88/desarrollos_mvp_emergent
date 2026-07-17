@@ -354,6 +354,11 @@ async def ingerir_deptos(db, dev_id: str, deptos_pdf_path: str) -> Dict[str, Any
             continue
         if not destino.exists():
             continue
+        try:  # el plano debe leerse horizontal (láminas apaisadas guardadas de lado)
+            from plano_orientacion import enderezar_si_hace_falta
+            enderezar_si_hace_falta(str(destino))
+        except Exception:  # noqa: BLE001
+            pass
         url = f"/api/assets-static/{destino.name}"
         await db.dev_assets.insert_one({
             "id": aid, "development_id": dev_id, "asset_type": "plano_unidad",
@@ -405,6 +410,11 @@ async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str,
             continue
         if not destino.exists():
             continue
+        try:  # el plano debe leerse horizontal (láminas apaisadas guardadas de lado)
+            from plano_orientacion import enderezar_si_hace_falta
+            enderezar_si_hace_falta(str(destino))
+        except Exception:  # noqa: BLE001
+            pass
         url = f"/api/assets-static/{destino.name}"
         await db.dev_assets.insert_one({
             "id": aid, "development_id": dev_id, "asset_type": "plano_nivel",

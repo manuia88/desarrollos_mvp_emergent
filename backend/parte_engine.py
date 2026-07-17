@@ -57,73 +57,148 @@ def _specs(u: Dict[str, Any]) -> str:
     return s
 
 
-def linea_movimiento(r: Dict[str, Any]) -> str:
-    """Una transición → una línea humana con emoji. Ejemplos:
-    🔴 Vendida/retirada: 105 · 2R·2B·2E · $4.85M — Almina
-    💰 402: $4.65M → $4.85M (+4.3%) — Torre Alba"""
+def linea_movimiento(r: Dict[str, Any], nombres: Optional[Dict[str, str]] = None) -> str:
+    """Una transición → una línea humana COMPLETA: unidad · specs · desarrollo (nombre real)
+    · qué pasó. La fuente de estas líneas es la LISTA del dev (las vio el vigía)."""
     uid = str(r.get("unit_id") or "?").split("__")[-1]
-    proy = r.get("dev_id") or r.get("colonia") or ""
+    did = r.get("dev_id") or ""
+    proy = (nombres or {}).get(did) or did or r.get("colonia") or "proyecto sin nombre"
     if r.get("campo") == "precio":
         antes, despues = r.get("antes"), r.get("despues")
         try:
             pct = (float(despues) - float(antes)) / float(antes) * 100
             flecha = "💰" if pct > 0 else "📉"
-            return f"{flecha} {uid}: {_fmt_precio(antes)} → {_fmt_precio(despues)} ({pct:+.1f}%) — {proy}"
+            return (f"{flecha} {proy} · unidad {uid}: precio {_fmt_precio(antes)} → "
+                    f"{_fmt_precio(despues)} ({pct:+.1f}%)")
         except (TypeError, ValueError, ZeroDivisionError):
-            return f"✏️ {uid}: precio cambió — {proy}"
+            return f"✏️ {proy} · unidad {uid}: cambió el precio"
     if r["tipo"] == "salida":
-        motivo = "vendida" if (r.get("tipo_salida") or "").startswith("vend") else "retirada"
-        return f"🔴 {'Vendida' if motivo == 'vendida' else 'Salió'}: {uid} · {_specs(r)} · {_fmt_precio(r.get('precio'))} — {proy}"
+        vendida = (r.get("tipo_salida") or "").startswith("vend")
+        return (f"🔴 {proy} · unidad {uid}: {'VENDIDA' if vendida else 'salió de la lista'}"
+                f" · {_specs(r)} · {_fmt_precio(r.get('precio'))}")
     if r["tipo"] == "alta":
-        return f"🆕 Nueva: {uid} · {_specs(r)} · {_fmt_precio(r.get('precio'))} — {proy}"
+        return f"🆕 {proy} · unidad {uid}: ALTA en la lista · {_specs(r)} · {_fmt_precio(r.get('precio'))}"
     if r["tipo"] == "reaparicion":
-        return f"↩️ Regresó: {uid} — {proy}"
-    return f"{_EMOJI_TIPO.get(r['tipo'], '·')} {uid}: {r.get('campo')} cambió — {proy}"
+        return f"↩️ {proy} · unidad {uid}: regresó a la lista (estaba fuera)"
+    return f"{_EMOJI_TIPO.get(r['tipo'], '·')} {proy} · unidad {uid}: cambió {r.get('campo')}"
+
+
+async def _nombres_devs(db) -> Dict[str, str]:
+    return {d["id"]: (d.get("name") or d["id"]) async for d in
+            db.developments.find({}, {"_id": 0, "id": 1, "name": 1})}
 
 
 # ─── las secciones (cada una: datos reales → líneas con emoji) ───────────────
 async def _sec_movimientos(db, desde: str) -> List[str]:
+    """Dos fuentes, separadas para que se sepa QUIÉN movió qué (pedido founder 07-16):
+    · lo que cambió en las LISTAS de los devs (lo vio el vigía comparando fotos),
+    · lo que se cambió A MANO en la plataforma (portal del dev o superadmin), con autor."""
     from market_timeline import transiciones
+    nombres = await _nombres_devs(db)
+    lineas: List[str] = []
     t = await transiciones(db, desde=desde, limite=500)
     regs = t.get("registros") or t.get("eventos") or []
-    if not regs:
-        return ["😴 Sin movimientos de unidades en el periodo."]
-    lineas = ["<b>🏃 Movimientos de unidades</b>"]
-    # vendidas/salidas primero (lo que más importa), luego precios, luego altas
-    orden = {"salida": 0, "cambio": 1, "alta": 2, "reaparicion": 3}
-    for r in sorted(regs, key=lambda x: orden.get(x["tipo"], 9))[:25]:
-        lineas.append(linea_movimiento(r))
-    if len(regs) > 25:
-        lineas.append(f"… y {len(regs) - 25} movimientos más (completo en la plataforma).")
+    if regs:
+        lineas += ["<b>🏃 Movimientos en las LISTAS de los devs</b>",
+                   "<i>(el vigía los detectó comparando la lista de hoy vs la anterior)</i>"]
+        orden = {"salida": 0, "cambio": 1, "alta": 2, "reaparicion": 3}
+        for r in sorted(regs, key=lambda x: orden.get(x["tipo"], 9))[:20]:
+            lineas.append(linea_movimiento(r, nombres))
+        if len(regs) > 20:
+            lineas.append(f"… y {len(regs) - 20} más (completos en la plataforma).")
+    # cambios MANUALES: portal del dev (developer_audit) + superadmin (audit_log)
+    manuales: List[str] = []
+    try:
+        async for a in db.developer_audit.find(
+                {"ts": {"$gte": desde}, "action": "unit_fields_change"},
+                {"_id": 0}).sort("ts", -1).limit(12):
+            proy = nombres.get(a.get("dev_id")) or a.get("dev_id")
+            cambios = ", ".join(f"{k}: {(a.get('antes') or {}).get(k)} → {v}"
+                                for k, v in (a.get("payload") or {}).items())
+            manuales.append(f"✍️ {proy} · unidad {a.get('unit_id')}: {cambios[:120]} "
+                            f"— lo cambió el DEV en su portal")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        async for a in db.audit_log.find(
+                {"ts": {"$gte": desde}, "entity": "unit",
+                 "actor.role": {"$ne": "developer"}}, {"_id": 0}).sort("ts", -1).limit(12):
+            actor = (a.get("actor") or {})
+            quien = actor.get("name") or actor.get("role") or "superadmin"
+            manuales.append(f"✍️ unidad {a.get('entity_id')}: {a.get('action')} "
+                            f"— lo hizo {quien} (plataforma)")
+    except Exception:  # noqa: BLE001
+        pass
+    if manuales:
+        lineas += ["", "<b>✍️ Cambios manuales en la plataforma</b>",
+                   "<i>(quién tocó qué — dev en su portal o tú en superadmin)</i>"] + manuales
+    if not lineas:
+        return ["😴 Sin movimientos de unidades en el periodo "
+                "<i>(ni en listas de devs ni cambios manuales)</i>."]
     return lineas
 
 
 async def _sec_listas(db, desde: str) -> List[str]:
-    lineas = []
+    """Novedades en el Drive vigilado. Dedup real (07-16: 'Desarrollador nuevo detectado'
+    salía repetido cada día): un dev/proyecto solo se anuncia si NUNCA se había anunciado."""
+    lineas, vistos = [], set()
     async for ev in db.vigia_eventos.find({"ts": {"$gte": desde},
                                            "tipo": {"$in": ["lista_cambiada", "lista_nueva",
                                                             "proyecto_nuevo", "dev_nuevo"]}},
-                                          {"_id": 0}).sort("ts", -1).limit(15):
+                                          {"_id": 0}).sort("ts", -1).limit(30):
+        llave = (ev["tipo"], ev.get("dev"), ev.get("proyecto"))
+        if llave in vistos:
+            continue                     # repetido dentro del periodo
+        vistos.add(llave)
+        if ev["tipo"] in ("dev_nuevo", "proyecto_nuevo"):
+            # ¿ya se anunció ANTES del periodo? → no es nuevo, el robot lo re-emitió
+            ya = await db.vigia_eventos.find_one(
+                {"tipo": ev["tipo"], "dev": ev.get("dev"),
+                 "proyecto": ev.get("proyecto"), "ts": {"$lt": desde}}, {"_id": 1})
+            if ya:
+                continue
         a = ev.get("archivo") or {}
         if ev["tipo"] == "lista_cambiada":
-            lineas.append(f"✏️ Lista cambió: <b>{a.get('nombre')}</b> — {ev.get('dev')} · {ev.get('proyecto')}")
+            lineas.append(f"✏️ Lista de precios ACTUALIZADA: <b>{a.get('nombre')}</b> — "
+                          f"{ev.get('dev')} · {ev.get('proyecto')} → el vigía ya comparó y "
+                          f"los cambios salen arriba en Movimientos")
         elif ev["tipo"] == "lista_nueva":
-            lineas.append(f"📄 Lista nueva: <b>{a.get('nombre')}</b> — {ev.get('dev')} · {ev.get('proyecto')}")
+            lineas.append(f"📄 Lista nueva: <b>{a.get('nombre')}</b> — {ev.get('dev')} · "
+                          f"{ev.get('proyecto')}")
         elif ev["tipo"] == "proyecto_nuevo":
-            lineas.append(f"🏗 Carpeta de proyecto nueva: <b>{ev.get('proyecto')}</b> — {ev.get('dev')}")
+            lineas.append(f"🏗 Proyecto nuevo en el Drive: <b>{ev.get('proyecto')}</b> — "
+                          f"de {ev.get('dev')} → pide aprobar/ignorar abajo")
         elif ev["tipo"] == "dev_nuevo":
-            lineas.append(f"🏢 Desarrollador nuevo detectado: <b>{ev.get('dev')}</b>")
-    return (["<b>👁 Lo que vio el vigía</b>"] + lineas) if lineas else []
+            lineas.append(f"🏢 Desarrollador nuevo en el Drive: <b>{ev.get('dev')}</b> "
+                          f"→ hay que mapearlo antes de ingerir nada")
+    return (["<b>👁 Lo que vio el vigía en el Drive</b>"] + lineas) if lineas else []
 
 
 async def _sec_catalogo(db, desde: str) -> List[str]:
     total = await db.units.estimated_document_count()
     disp = await db.units.count_documents({"status": {"$in": [None, "", "disponible", "available"]}})
-    vend = await db.units.count_documents({"status": {"$in": ["vendida", "sold"]}})
-    apart = await db.units.count_documents({"status": {"$in": ["apartada", "reserved"]}})
+    vend = await db.units.count_documents({"status": {"$in": ["vendida", "vendido", "sold"]}})
+    apart = await db.units.count_documents({"status": {"$in": ["apartada", "reservado", "reserved"]}})
     devs = await db.developments.estimated_document_count()
     lineas = ["<b>🏢 El catálogo hoy</b>",
               f"📦 {devs} proyectos · {total} unidades ({disp} disponibles · {apart} apartadas · {vend} vendidas)"]
+    # desglose por DESARROLLADOR (quién es quién en esos números — pedido founder 07-16)
+    try:
+        pipeline = [{"$group": {"_id": "$developer_id", "proyectos": {"$sum": 1}}}]
+        conteo_devs = {r["_id"]: r["proyectos"]
+                       async for r in db.developments.aggregate(pipeline)}
+        nombres_org = {}
+        async for o in db.dev_orgs.find({}, {"_id": 0, "tenant_id": 1, "id": 1,
+                                             "name": 1, "display_name": 1}):
+            k = o.get("tenant_id") or o.get("id")
+            if k:
+                nombres_org[k] = o.get("display_name") or o.get("name") or k
+        top = sorted(conteo_devs.items(), key=lambda x: -x[1])[:5]
+        if top:
+            partes = " · ".join(f"{nombres_org.get(k) or k or 'sin dueño'}: {n}" for k, n in top)
+            lineas.append(f"🏗 Por desarrollador: {partes}")
+    except Exception:  # noqa: BLE001
+        pass
     # SOLD OUTs: proyectos con unidades pero cero disponibles
     async for d in db.developments.find({}, {"_id": 0, "id": 1, "name": 1}).limit(300):
         n = await db.units.count_documents({"development_id": d["id"]})
@@ -142,7 +217,8 @@ async def _sec_absorcion(db, desde: str) -> List[str]:
     pct = (vendidas / base * 100) if base else 0
     semaforo = "🟢" if pct >= 2 else ("🟡" if pct > 0 else "⚪")
     return [f"<b>📊 Absorción del periodo</b>",
-            f"{semaforo} {vendidas} unidades salieron · {pct:.1f}% del inventario"]
+            f"{semaforo} {vendidas} unidades salieron · {pct:.1f}% del inventario "
+            f"<i>(qué tan rápido se vende el catálogo: verde ≥2% en el periodo)</i>"]
 
 
 async def _sec_ritmo(db, desde: str) -> List[str]:
@@ -201,25 +277,38 @@ async def _sec_demanda(db, desde: str) -> List[str]:
 async def _sec_moldes(db, desde: str) -> List[str]:
     """La vida del Catálogo de Moldes en el periodo: nació / se agotó / revivió (la
     biografía del conciliador) + los más grandes del catálogo."""
-    protos = await db.dmx_prototypes.find({}, {"_id": 0}).to_list(500)
+    protos = await db.dmx_prototypes.find({}, {"_id": 0}).to_list(2000)
     if not protos:
         return []
-    out = ["<b>📦 Los moldes del catálogo</b>"]
+    nombres = await _nombres_devs(db)
+
+    def _dev_de(p):
+        return nombres.get(p.get("development_id")) or ""
+
+    # los '?R' (sin recámaras en el dato) NO se publican como molde — van a salud
+    sanos = [p for p in protos if "?" not in str(p.get("nombre") or "")]
+    rotos = len(protos) - len(sanos)
+    out = ["<b>📦 Los moldes del catálogo</b>",
+           "<i>(molde = un tipo de depto: rec·baños·m². Nace cuando aparece en una lista, "
+           "se agota cuando se vende su última unidad)</i>"]
     vida = []
-    for p in protos:
-        n = p.get("nombre")
+    for p in sanos:
+        n, d = p.get("nombre"), _dev_de(p)
         if (p.get("agoto_at") or "") >= desde:
-            vida.append(f"🔴 Se AGOTÓ el molde {n} — dato de oro: qué producto vuela")
+            vida.append(f"🔴 Se AGOTÓ {n} ({d}) — dato de oro: ese producto vuela")
         elif (p.get("revivio_at") or "") >= desde:
-            vida.append(f"🟢 Revivió {n} (el dev liberó más unidades)")
+            vida.append(f"🟢 Revivió {n} ({d}) — el dev liberó más unidades")
         elif (p.get("nacio_at") or "") >= desde:
-            vida.append(f"✨ Nació {n}")
+            vida.append(f"✨ Nació {n} ({d})")
     out += vida[:6]
-    top = sorted(protos, key=lambda p: -(p.get("unidades_total") or 0))[:5]
-    out += [f"· {p.get('nombre')}: {p.get('unidades_total')}u"
+    top = sorted(sanos, key=lambda p: -(p.get("unidades_total") or 0))[:5]
+    out += [f"· {p.get('nombre')} ({_dev_de(p)}): {p.get('unidades_total')}u"
             + (f" desde {_fmt_precio(p.get('precio_desde_mxn'))}" if p.get("precio_desde_mxn") else "")
             + (" · AGOTADO" if p.get("estado") == "agotado" else "")
             for p in top]
+    if rotos:
+        out.append(f"🧩 {rotos} moldes sin recámaras en el dato — no se publican; "
+                   f"el detalle está en Salud del dato")
     return out
 
 
@@ -230,14 +319,35 @@ async def _sec_gangas(db, desde: str) -> List[str]:
     gangas = await gangas_catalogo(db, limite=5)
     if not gangas:
         return []
-    return ["<b>💎 Gangas del catálogo (vs sus gemelas)</b>"] + [
-        f"· {g['unidad']} ({g['desarrollo']}, p.{g['piso']}): "
-        f"<b>{g['vs_molde_pct']}%</b> bajo su molde · {_fmt_precio(g['precio'])}"
+
+    def _piso(g):
+        try:
+            return f", piso {int(float(g['piso']))}" if g.get("piso") is not None else ""
+        except (TypeError, ValueError):
+            return ""
+    return ["<b>💎 Gangas del catálogo</b>",
+            "<i>(unidades hasta 25% por DEBAJO de sus gemelas del mismo molde, ajustado por "
+            "piso — descuentos mayores se tratan como error de dato, no como ganga. "
+            "Úsalas para: ofrecerlas a compradores o preguntar al dev por qué no salen)</i>"] + [
+        f"· {g['desarrollo']} · unidad {g['unidad']}{_piso(g)}: "
+        f"<b>{g['vs_molde_pct']}%</b> bajo sus gemelas · {_fmt_precio(g['precio'])}"
         for g in gangas]
 
 
+_ACCION_REGLA = {   # qué HACER con cada tipo de hallazgo (el reporte siempre dice el paso)
+    "m2_coherencia": "revisar la lista fuente y corregir el desglose de m²",
+    "campos_obligatorios": "pedir el dato al dev o completarlo de la lista",
+    "plausibilidad": "reextraer de la lista fuente (valor imposible)",
+    "ganga_sospechosa": "verificar precio/m² contra la lista antes de publicar",
+    "nivel_vs_numero": "corregir el piso (level) o el número de unidad",
+    "molde_sin_rec": "marcar rec=0 si son lofts o completar recámaras",
+    "flex_pendiente": "nada urgente: config flexible anotada",
+}
+
+
 async def _sec_salud(db, desde: str) -> List[str]:
-    """El Auditor del Catálogo: los datos rotos que hay que arreglar (con el átomo exacto)."""
+    """El Auditor del Catálogo: datos rotos con el átomo exacto (desarrollo · unidad),
+    agrupados por tipo y SIEMPRE con la acción a tomar."""
     from auditor_catalogo import ultima_auditoria
     a = await ultima_auditoria(db)
     hs = a.get("hallazgos") or []
@@ -245,10 +355,24 @@ async def _sec_salud(db, desde: str) -> List[str]:
         return ["<b>🩺 Salud del dato</b>", "✅ 0 hallazgos — el catálogo está sano"]
     r = a.get("resumen") or {}
     out = [f"<b>🩺 Salud del dato</b> — {r.get('error', 0)} errores · "
-           f"{r.get('alerta', 0)} alertas · {r.get('aviso', 0)} avisos"]
-    graves = sorted(hs, key=lambda h: 0 if h["severidad"] == "error" else 1)[:5]
-    out += [f"· [{h['severidad'][:1].upper()}] {h.get('ref')}: {h['detalle'][:110]}"
-            for h in graves]
+           f"{r.get('alerta', 0)} alertas · {r.get('aviso', 0)} avisos",
+           "<i>(el auditor corre solo tras cada carga; aquí salen los 5 más graves con "
+           "SU acción — la lista completa vive en /superadmin/inventario)</i>"]
+    # agrupar por (regla, severidad) para que 1,400 avisos iguales no ahoguen el reporte
+    por_regla: Dict[tuple, List[Dict[str, Any]]] = {}
+    for h in hs:
+        por_regla.setdefault((h.get("regla") or "otra", h.get("severidad")), []).append(h)
+    orden_sev = {"error": 0, "alerta": 1, "aviso": 2}
+    resumen_reglas = sorted(por_regla.items(),
+                            key=lambda kv: (orden_sev.get(kv[0][1], 9), -len(kv[1])))[:5]
+    for (regla, sev), grupo in resumen_reglas:
+        ej = grupo[0]
+        quien = f"{ej.get('desarrollo') or '?'} · {ej.get('ref')}"
+        out.append(f"· [{sev[:1].upper()}] <b>{len(grupo)}×</b> {regla}: "
+                   f"p.ej. {quien} — {ej['detalle'][:95]}")
+        accion = _ACCION_REGLA.get(regla)
+        if accion:
+            out.append(f"  → {accion}")
     return out
 
 
