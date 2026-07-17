@@ -123,22 +123,33 @@ def _property_type_from_units(units: List[Dict[str, Any]]) -> str:
     return "departamento"
 
 
+_TIPOS_NO_DEPTO = {"roof_garden", "roof", "local", "bodega", "estacionamiento", "cajon"}
+
+
+def _es_depto(u: Dict[str, Any]) -> bool:
+    """Un roof garden / local / bodega NO es el 'desde' del edificio (07-17: Coahuila
+    mostraba 'desde $550,000' = un roof, no un departamento)."""
+    return str(u.get("type") or u.get("tipo") or "depto").lower() not in _TIPOS_NO_DEPTO
+
+
 def apply_unit_aggregates(card: Dict[str, Any], units: List[Dict[str, Any]]) -> None:
-    """Recalcula precio 'desde/hasta', conteos por estado y rangos a partir de las unidades vivas (in-place)."""
+    """Recalcula precio 'desde/hasta', conteos por estado y rangos a partir de las unidades vivas (in-place).
+    El precio y las especificaciones representan DEPARTAMENTOS; roofs/locales/bodegas se excluyen del 'desde'."""
     if not units:
         return
-    prices = [u.get("price") for u in units if u.get("price")]
-    beds = [u.get("bedrooms") for u in units if u.get("bedrooms") is not None]
-    baths = [u.get("bathrooms") for u in units if u.get("bathrooms") is not None]
-    park = [u.get("parking_spots") for u in units if u.get("parking_spots") is not None]
-    m2 = [u.get("m2_total") or u.get("m2_privative") for u in units if (u.get("m2_total") or u.get("m2_privative"))]
+    deptos = [u for u in units if _es_depto(u)] or units
+    prices = [u.get("price") for u in deptos if u.get("price")]
+    beds = [u.get("bedrooms") for u in deptos if u.get("bedrooms") is not None]
+    baths = [u.get("bathrooms") for u in deptos if u.get("bathrooms") is not None]
+    park = [u.get("parking_spots") for u in deptos if u.get("parking_spots") is not None]
+    m2 = [u.get("m2_total") or u.get("m2_privative") for u in deptos if (u.get("m2_total") or u.get("m2_privative"))]
     if prices:
         card["price_from"] = min(prices)
         card["price_to"] = max(prices)
-    card["units_total"] = len(units)
-    card["units_available"] = sum(1 for u in units if u.get("status") == "disponible")
-    card["units_sold"] = sum(1 for u in units if u.get("status") == "vendido")
-    card["units_reserved"] = sum(1 for u in units if u.get("status") == "reservado")
+    card["units_total"] = len(deptos)
+    card["units_available"] = sum(1 for u in deptos if u.get("status") == "disponible")
+    card["units_sold"] = sum(1 for u in deptos if u.get("status") == "vendido")
+    card["units_reserved"] = sum(1 for u in deptos if u.get("status") == "reservado")
     if beds:
         card["bedrooms_range"] = [min(beds), max(beds)]
     if baths:
@@ -358,7 +369,7 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
         # TODA la familia de ingesta (07-16: el masivo carga con source='masivo_gdc'/'masivo_class'
         # y el filtro solo dejaba pasar 'bulk_ingest' → 49 proyectos publicados invisibles en el listado)
         q: Dict[str, Any] = {"source": {"$in": ["bulk_ingest", "masivo_gdc", "masivo_class",
-                                                "prueba_2proyectos"]}}
+                                                "prueba_2proyectos", "ingesta_en_sesion"]}}
         if published_only:
             q["marketplace_published"] = {"$nin": [False, "pending"]}
         async for d in db.developments.find(q, {"_id": 0}).limit(500):

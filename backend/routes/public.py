@@ -97,29 +97,34 @@ def _aggregates_from_units(units: list) -> dict:
     units = [u for u in (units or []) if u]
     if not units:
         return {}
+    # roofs privados / locales / bodegas NO son el 'desde' ni los conteos del edificio
+    # (07-17 Punto Destino: Coahuila mostraba 'desde $550,000' = un roof, no un depto)
+    _NO_DEPTO = {"roof_garden", "roof", "local", "bodega", "estacionamiento", "cajon"}
+    deptos = [u for u in units
+              if str(u.get("type") or u.get("tipo") or "depto").lower() not in _NO_DEPTO] or units
     agg: dict = {}
-    prices = [u.get("price") for u in units if u.get("price")]
+    prices = [u.get("price") for u in deptos if u.get("price")]
     if prices:
         agg["price_from"] = min(prices)
         agg["price_to"] = max(prices)
         agg["price_from_display"] = f"${int(min(prices)):,}"
-    m2 = [u.get("m2_privative") for u in units if u.get("m2_privative")]
+    m2 = [u.get("m2_privative") for u in deptos if u.get("m2_privative")]
     if m2:
         agg["m2_range"] = [min(m2), max(m2)]
-    beds = [u.get("bedrooms") for u in units if u.get("bedrooms") is not None]
+    beds = [u.get("bedrooms") for u in deptos if u.get("bedrooms") is not None]
     if beds:
         agg["bedrooms_range"] = [min(beds), max(beds)]
-    baths = [u.get("bathrooms") for u in units if u.get("bathrooms") is not None]
+    baths = [u.get("bathrooms") for u in deptos if u.get("bathrooms") is not None]
     if baths:
         agg["bathrooms_range"] = [min(baths), max(baths)]
-    park = [u.get("parking_spots") for u in units if u.get("parking_spots") is not None]
+    park = [u.get("parking_spots") for u in deptos if u.get("parking_spots") is not None]
     if park:
         agg["parking_range"] = [min(park), max(park)]
     sc = {"disponible": 0, "reservado": 0, "vendido": 0}
-    for u in units:
+    for u in deptos:
         s = (u.get("status") or "disponible").lower()
         sc["reservado" if s == "apartado" else s] = sc.get("reservado" if s == "apartado" else s, 0) + 1
-    agg["units_total"] = len(units)
+    agg["units_total"] = len(deptos)
     agg["units_available"] = sc.get("disponible", 0)
     agg["units_reserved"] = sc.get("reservado", 0)
     agg["units_sold"] = sc.get("vendido", 0)

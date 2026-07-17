@@ -24,3 +24,19 @@ def test_vacio_es_oferta_viva_pero_desconocido_no_se_traduce():
     assert _st("") == "disponible" and _st(None) == "disponible"
     # un status raro se conserva tal cual: que se note en la ficha, no que se venda
     assert _st("en litigio") == "en litigio"
+
+
+def test_roofs_no_son_el_desde_del_edificio():
+    """Punto Destino 07-17: Coahuila mostraba 'desde $550,000' = un roof, no un depto.
+    El price_from y los conteos del edificio son de DEPARTAMENTOS."""
+    from ingested_reader import apply_unit_aggregates
+    units = [
+        {"unit_number": "107", "type": "depto", "price": 9500000, "status": "disponible", "bedrooms": 2},
+        {"unit_number": "508", "type": "depto", "price": 5450000, "status": "reservado", "bedrooms": 1},
+        {"unit_number": "Roof 1", "type": "roof_garden", "price": 550000, "status": "disponible"},
+    ]
+    card = {}
+    apply_unit_aggregates(card, units)
+    assert card["price_from"] == 5450000        # el depto más barato, NO el roof de 550k
+    assert card["units_total"] == 2             # 2 deptos, el roof no cuenta
+    assert card["units_available"] == 1         # solo 107 disponible (508 reservado)
