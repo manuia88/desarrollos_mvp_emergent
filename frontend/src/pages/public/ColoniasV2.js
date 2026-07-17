@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav } from '../../components/ui';
 import { COLONIAS as ALL_COLONIAS } from '../../data/colonias';
+import { fetchZonasPopulares } from '../../api/marketplace';
+import { zonaBase, nombreZona } from '../../utils/zonaPack';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 
 /**
@@ -23,10 +25,21 @@ const COL_IMG = {
   'roma-sur': IMG('photo-1551361415-69c87624334f'), 'cuauhtemoc': IMG('photo-1518105779142-d975f22f1b0a'),
   'doctores': IMG('photo-1493809842364-78817add7ffb'), 'jardines-del-pedregal': IMG('photo-1564013799919-ab600027ffc6'),
 };
-const COLONIAS = ALL_COLONIAS.map((c) => ({
-  key: c.key, n: c.name, alc: c.alcaldia, desde: `${c.priceM2}/m²`, mom: c.momentum, up: c.momentumPositive,
-  vibe: TIER_ES[c.tier] || c.tier || c.alcaldia, img: COL_IMG[c.key] || IMG('photo-1518105779142-d975f22f1b0a'),
-}));
+// PACKS (founder 07-17): agrupa las colonias sueltas por su ZONA BASE (Roma Norte+Sur→Roma,
+// Del Valle Centro→Del Valle) y aplica adyacencia (San Miguel Chapultepec/Escandón→Condesa).
+// El precio "desde" del pack = el más bajo de sus miembros; imagen/momentum del miembro líder.
+function empacarEstaticas() {
+  const packs = {};
+  for (const c of ALL_COLONIAS) {
+    const zb = zonaBase(c.key);
+    const p = packs[zb] || (packs[zb] = { key: zb, n: nombreZona(zb), alc: c.alcaldia, min: Infinity, mom: c.momentum, up: c.momentumPositive, img: COL_IMG[c.key] || IMG('photo-1518105779142-d975f22f1b0a'), tier: c.tier });
+    if ((c.priceM2Num || Infinity) < p.min) { p.min = c.priceM2Num || p.min; p.desde = `${c.priceM2}/m²`; p.img = COL_IMG[c.key] || p.img; p.mom = c.momentum; p.up = c.momentumPositive; }
+    if (COL_IMG[c.key] && p.img === IMG('photo-1518105779142-d975f22f1b0a')) p.img = COL_IMG[c.key];
+    p.vibe = TIER_ES[p.tier] || p.tier || p.alc;
+  }
+  return Object.values(packs);
+}
+const COLONIAS_PACK = empacarEstaticas();
 const READ = [
   ['Todo a la Mano', 'Súper, café, escuelas y hospitales a pie.'],
   ['Zona Tranquila', 'Qué tan segura es, según datos reales — no rumores.'],
@@ -37,6 +50,25 @@ const READ = [
 export default function ColoniasV2() {
   const nav = useNavigate();
   const [q, setQ] = useState('');
+  // desarrollos reales por zona (calor auto) → conteo + orden por movimiento
+  const [zonasReal, setZonasReal] = useState([]);
+  useEffect(() => { fetchZonasPopulares(60).then((z) => setZonasReal(Array.isArray(z) ? z : [])); }, []);
+
+  const colonias = useMemo(() => {
+    const real = {}; zonasReal.forEach((z) => { real[z.slug] = z; });
+    // enriquecer los packs estáticos con # de desarrollos reales
+    const conConteo = COLONIAS_PACK.map((c) => ({ ...c, devs: (real[c.key] || {}).oferta || 0, disp: (real[c.key] || {}).disponibles || 0, heat: (real[c.key] || {}).heat || 0 }));
+    // agregar zonas reales que NO están en la lista estática (p.ej. Interlomas, San Rafael)
+    const keysEstaticas = new Set(COLONIAS_PACK.map((c) => c.key));
+    for (const z of zonasReal) {
+      if (!keysEstaticas.has(z.slug) && z.oferta > 0) {
+        conConteo.push({ key: z.slug, n: z.name, alc: z.alcaldia || '', desde: null, mom: null, up: true, img: IMG('photo-1518105779142-d975f22f1b0a'), vibe: '', devs: z.oferta, disp: z.disponibles, heat: z.heat });
+      }
+    }
+    // orden: las de MÁS desarrollos (calor) primero; las sin inventario al final
+    return conConteo.sort((a, b) => (b.devs - a.devs) || (b.heat - a.heat) || (a.min || 0) - (b.min || 0));
+  }, [zonasReal]);
+
   return (
     <LightScope>
       <style>{`.dmx-zone{transition:transform .2s ease, box-shadow .25s ease}.dmx-zone img{transition:transform .5s ease}.dmx-zone:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(16,24,40,.16)}.dmx-zone:hover img{transform:scale(1.06)}`}</style>
@@ -63,16 +95,18 @@ export default function ColoniasV2() {
       <Section py={20}>
         <Container>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px,1fr))', gap: 16 }}>
-            {COLONIAS.map((z) => (
+            {colonias.map((z) => (
               <Link key={z.key} to={`/zona/${encodeURIComponent(z.key)}?ver=propiedades`} className="dmx-zone" style={{ textDecoration: 'none', position: 'relative', display: 'block', borderRadius: 'var(--r-card)', overflow: 'hidden', aspectRatio: '16/11' }}>
                 <img src={z.img} alt={z.n} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(11,11,18,0.85) 0%, rgba(11,11,18,0.1) 60%, transparent 100%)' }} />
-                {z.mom && <span style={{ position: 'absolute', top: 12, right: 12, background: z.up ? 'var(--ok,#1FA06A)' : 'var(--theme)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: '3px 9px' }}>{z.up ? '▲' : '▼'} {z.mom}</span>}
+                {z.devs > 0
+                  ? <span style={{ position: 'absolute', top: 12, right: 12, background: 'var(--theme)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: '3px 9px' }}>{z.devs} {z.devs === 1 ? 'desarrollo' : 'desarrollos'}</span>
+                  : (z.mom && <span style={{ position: 'absolute', top: 12, right: 12, background: z.up ? 'var(--ok,#1FA06A)' : 'var(--theme)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: '3px 9px' }}>{z.up ? '▲' : '▼'} {z.mom}</span>)}
                 <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14 }}>
                   <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 21, color: '#fff' }}>{z.n} ›</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{z.alc}</span>
-                    <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)' }}>Desde {z.desde}</span>
+                    {z.desde && <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)' }}>Desde {z.desde}</span>}
                   </div>
                 </div>
               </Link>
