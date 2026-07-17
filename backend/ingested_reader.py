@@ -19,10 +19,15 @@ import re
 from typing import Any, Dict, List, Optional
 
 # status: inglés (lo que escribió la ingesta) → español canónico (lo que filtran/renderizan seed + front)
+# 07-17: le faltaban 'bloqueado' y los femeninos — y el default mandaba TODO lo desconocido a
+# 'disponible', así que una unidad bloqueada se publicaba como si estuviera a la venta.
 _STATUS_ES = {
     "available": "disponible", "disponible": "disponible",
-    "reserved": "reservado", "reservado": "reservado", "apartado": "reservado",
-    "sold": "vendido", "vendido": "vendido",
+    "reserved": "reservado", "reservado": "reservado",
+    "apartado": "reservado", "apartada": "reservado",
+    "sold": "vendido", "vendido": "vendido", "vendida": "vendido",
+    "bloqueado": "bloqueado", "bloqueada": "bloqueado", "blocked": "bloqueado",
+    "no_disponible": "no_disponible", "no disponible": "no_disponible",
 }
 
 
@@ -56,10 +61,13 @@ def normalize_unit(u: Dict[str, Any]) -> Dict[str, Any]:
     price = u.get("price") if u.get("price") is not None else u.get("price_mxn")
     m2_total = u.get("m2_total") or u.get("size_m2_total") or u.get("size_m2")
     m2_priv = u.get("m2_privative") or u.get("size_m2")
-    st = _STATUS_ES.get(str(u.get("status") or "").lower().strip(), None)
+    crudo = str(u.get("status") or "").lower().strip()
+    st = _STATUS_ES.get(crudo)
     if st is None:
-        # sin status legible → asumimos disponible (una lista de precios sin marca suele ser oferta viva)
-        st = "disponible"
+        # VACÍO → disponible (una lista de precios sin marca suele ser oferta viva).
+        # Un status DESCONOCIDO no se traduce a 'disponible': se conserva tal cual
+        # (fail-visible — que se note en la ficha, no que se venda un fantasma).
+        st = "disponible" if not crudo else crudo
     out["price"] = price
     if not out.get("price_display") and price:
         try:

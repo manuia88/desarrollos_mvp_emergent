@@ -99,8 +99,9 @@ async def _sec_movimientos(db, desde: str) -> List[str]:
     t = await transiciones(db, desde=desde, limite=500)
     regs = t.get("registros") or t.get("eventos") or []
     if regs:
-        lineas += ["<b>🏃 Movimientos en las LISTAS de los devs</b>",
-                   "<i>(el vigía los detectó comparando la lista de hoy vs la anterior)</i>"]
+        lineas += ["<b>🏃 Movimientos que hicieron LOS DESARROLLADORES</b>",
+                   "<i>(cada línea la causó el dev al actualizar su lista en Drive — "
+                   "no fuiste tú ni la plataforma)</i>"]
         orden = {"salida": 0, "cambio": 1, "alta": 2, "reaparicion": 3}
         for r in sorted(regs, key=lambda x: orden.get(x["tipo"], 9))[:20]:
             lineas.append(linea_movimiento(r, nombres))
@@ -124,14 +125,17 @@ async def _sec_movimientos(db, desde: str) -> List[str]:
                 {"ts": {"$gte": desde}, "entity": "unit",
                  "actor.role": {"$ne": "developer"}}, {"_id": 0}).sort("ts", -1).limit(12):
             actor = (a.get("actor") or {})
-            quien = actor.get("name") or actor.get("role") or "superadmin"
+            quien = ("TÚ (superadmin)" if (actor.get("role") or "") in ("superadmin", "admin")
+                     else (actor.get("name") or actor.get("role") or "la plataforma"))
             manuales.append(f"✍️ unidad {a.get('entity_id')}: {a.get('action')} "
-                            f"— lo hizo {quien} (plataforma)")
+                            f"— lo hiciste {quien}" if quien.startswith("TÚ") else
+                            f"✍️ unidad {a.get('entity_id')}: {a.get('action')} — lo hizo {quien}")
     except Exception:  # noqa: BLE001
         pass
     if manuales:
         lineas += ["", "<b>✍️ Cambios manuales en la plataforma</b>",
-                   "<i>(quién tocó qué — dev en su portal o tú en superadmin)</i>"] + manuales
+                   "<i>(NO vinieron del Drive: los hizo el dev en su portal o tú en "
+                   "superadmin — cada línea dice quién)</i>"] + manuales
     if not lineas:
         return ["😴 Sin movimientos de unidades en el periodo "
                 "<i>(ni en listas de devs ni cambios manuales)</i>."]
@@ -139,18 +143,31 @@ async def _sec_movimientos(db, desde: str) -> List[str]:
 
 
 async def _sec_listas(db, desde: str) -> List[str]:
-    """Novedades en el Drive vigilado. Dedup real (07-16: 'Desarrollador nuevo detectado'
-    salía repetido cada día): un dev/proyecto solo se anuncia si NUNCA se había anunciado."""
+    """Novedades en el Drive vigilado — SIEMPRE con quién (el dev movió SU Drive), qué cambió
+    (el peek de la lista, unidad por unidad) y qué hacer. Dedup real (07-16: 'Desarrollador
+    nuevo detectado' salía repetido cada día): solo se anuncia si NUNCA se había anunciado."""
+    from lista_peek import lineas_de_cambios
     lineas, vistos = [], set()
+    # los renombres callan al 'proyecto nuevo' del MISMO proyecto (caso Cordobanes 07-17:
+    # sin esto salían las dos líneas juntas y el parte se contradecía solo)
+    renombrados = {(e.get("dev"), e.get("proyecto")) async for e in db.vigia_eventos.find(
+        {"tipo": "proyecto_renombrado"}, {"_id": 0, "dev": 1, "proyecto": 1})}
     async for ev in db.vigia_eventos.find({"ts": {"$gte": desde},
                                            "tipo": {"$in": ["lista_cambiada", "lista_nueva",
-                                                            "proyecto_nuevo", "dev_nuevo"]}},
+                                                            "proyecto_nuevo", "dev_nuevo",
+                                                            "proyecto_renombrado"]}},
                                           {"_id": 0}).sort("ts", -1).limit(30):
-        llave = (ev["tipo"], ev.get("dev"), ev.get("proyecto"))
+        if ev["tipo"] == "proyecto_nuevo" and (ev.get("dev"), ev.get("proyecto")) in renombrados:
+            continue                     # no era nuevo: fue un renombre
+        # la llave incluye el archivo: dos listas del mismo proyecto (Torre A y B) SÍ son dos
+        llave = (ev["tipo"], ev.get("dev"), ev.get("proyecto"),
+                 (ev.get("archivo") or {}).get("id"))
         if llave in vistos:
             continue                     # repetido dentro del periodo
         vistos.add(llave)
-        if ev["tipo"] in ("dev_nuevo", "proyecto_nuevo"):
+        if ev.get("proyecto") == "(raíz)":
+            ev["proyecto"] = "carpeta principal del dev"
+        if ev["tipo"] in ("dev_nuevo", "proyecto_nuevo", "proyecto_renombrado"):
             # ¿ya se anunció ANTES del periodo? → no es nuevo, el robot lo re-emitió
             ya = await db.vigia_eventos.find_one(
                 {"tipo": ev["tipo"], "dev": ev.get("dev"),
@@ -159,18 +176,60 @@ async def _sec_listas(db, desde: str) -> List[str]:
                 continue
         a = ev.get("archivo") or {}
         if ev["tipo"] == "lista_cambiada":
-            lineas.append(f"✏️ Lista de precios ACTUALIZADA: <b>{a.get('nombre')}</b> — "
-                          f"{ev.get('dev')} · {ev.get('proyecto')} → el vigía ya comparó y "
-                          f"los cambios salen arriba en Movimientos")
+            lineas.append(f"✏️ <b>{ev.get('dev')}</b> actualizó su lista de precios "
+                          f"«{a.get('nombre')}» ({ev.get('proyecto')}) — lo cambió el "
+                          f"DESARROLLADOR en su Drive, no fuiste tú:")
+            lineas += lineas_de_cambios(ev.get("cambios"))
         elif ev["tipo"] == "lista_nueva":
-            lineas.append(f"📄 Lista nueva: <b>{a.get('nombre')}</b> — {ev.get('dev')} · "
-                          f"{ev.get('proyecto')}")
+            lineas.append(f"📄 <b>{ev.get('dev')}</b> subió lista nueva: «{a.get('nombre')}» "
+                          f"— {ev.get('proyecto')}")
+            if ev.get("cambios"):
+                lineas += lineas_de_cambios(ev.get("cambios"))
+        elif ev["tipo"] == "proyecto_renombrado":
+            viejo = (ev.get("antes") or {}).get("proyecto")
+            lineas.append(f"📁 <b>{ev.get('dev')}</b> RENOMBRÓ la carpeta «{viejo}» → "
+                          f"«{ev.get('proyecto')}» — es el MISMO proyecto de siempre, "
+                          f"no es nuevo. Nada que aprobar.")
         elif ev["tipo"] == "proyecto_nuevo":
-            lineas.append(f"🏗 Proyecto nuevo en el Drive: <b>{ev.get('proyecto')}</b> — "
-                          f"de {ev.get('dev')} → pide aprobar/ignorar abajo")
+            if ev.get("ya_en_catalogo"):
+                ya_c = ev["ya_en_catalogo"]
+                lineas.append(f"📁 <b>{ev.get('dev')}</b> subió la carpeta «{ev.get('proyecto')}» "
+                              f"— OJO: parece ser el proyecto EXISTENTE "
+                              f"<b>{ya_c.get('name')}</b> ({ya_c.get('unidades')} unidades ya "
+                              f"en el catálogo), no uno nuevo. Revisa antes de aprobar.")
+            else:
+                lineas.append(f"🏗 Proyecto nuevo en el Drive: <b>{ev.get('proyecto')}</b> — "
+                              f"de {ev.get('dev')} → pide aprobar/ignorar abajo")
         elif ev["tipo"] == "dev_nuevo":
             lineas.append(f"🏢 Desarrollador nuevo en el Drive: <b>{ev.get('dev')}</b> "
                           f"→ hay que mapearlo antes de ingerir nada")
+    # movimiento de ARCHIVOS por proyecto (planos que entran/salen = señal de ventas):
+    # resumen agrupado, nunca un renglón por archivo
+    conteo: Dict[tuple, Dict[str, int]] = {}
+    async for ev in db.vigia_eventos.find(
+            {"ts": {"$gte": desde},
+             "tipo": {"$in": ["archivo_nuevo", "archivo_eliminado",
+                              "archivo_reemplazado", "archivo_cambiado"]}},
+            {"_id": 0, "tipo": 1, "dev": 1, "proyecto": 1}).limit(2000):
+        k = (ev.get("dev"), ev.get("proyecto"))
+        conteo.setdefault(k, {})[ev["tipo"]] = conteo.setdefault(k, {}).get(ev["tipo"], 0) + 1
+    resumen = []
+    for (dev, proy), c in sorted(conteo.items(), key=lambda kv: -sum(kv[1].values()))[:8]:
+        partes = []
+        if c.get("archivo_nuevo"):
+            partes.append(f"subió {c['archivo_nuevo']} archivo(s)")
+        if c.get("archivo_eliminado"):
+            partes.append(f"retiró {c['archivo_eliminado']}")
+        if c.get("archivo_reemplazado"):
+            partes.append(f"re-subió {c['archivo_reemplazado']}")
+        if c.get("archivo_cambiado"):
+            partes.append(f"editó {c['archivo_cambiado']}")
+        if partes:
+            resumen.append(f"· {dev} · {proy}: {', '.join(partes)}")
+    if resumen:
+        lineas += ["", "📂 <b>Movimiento de archivos en el Drive</b> "
+                       "<i>(lo hicieron los devs en sus carpetas; retirar planos suele "
+                       "significar deptos vendidos)</i>"] + resumen
     return (["<b>👁 Lo que vio el vigía en el Drive</b>"] + lineas) if lineas else []
 
 

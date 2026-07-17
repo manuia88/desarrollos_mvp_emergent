@@ -58,6 +58,15 @@ async def guard_project(db, user, dev_id: Optional[str], endpoint: str):
     superadmin), deja pasar. Punto único para mutaciones/lecturas sensibles del dev."""
     if dev_can_access_project(user, dev_id):
         return
+    # [AUD flujos 07-17] Los desarrollos REALES viven en db.developments (developer_id = org
+    # del dev), no en el seed en memoria: resolver pertenencia contra BD ANTES de negar —
+    # sin esto el dueño legítimo de los proyectos ingeridos recibía 403 en su propio portal.
+    try:
+        from tenant_scope import user_dev_ids_db
+        if dev_id and dev_id in await user_dev_ids_db(db, user):
+            return
+    except Exception as e:  # fail-closed: si la BD no responde, el candado sigue negando
+        log.warning(f"[dev_guard] resolución BD de pertenencia falló (sigue el candado): {e}")
     await log_access(db, user, endpoint=endpoint, dev_id=dev_id, allowed=False,
                      reason="Intento de acceso a proyecto de otra desarrolladora")
     raise HTTPException(403, "Este proyecto es de otra desarrolladora")
@@ -66,7 +75,11 @@ async def guard_project(db, user, dev_id: Optional[str], endpoint: str):
 async def dev_security_summary(db, user) -> Dict[str, Any]:
     """Resumen de seguridad PARA EL DEV: confirma aislamiento + cuántos intentos de otras cuentas
     a SUS proyectos se bloquearon (en lenguaje de persona, sin tecnicismos)."""
-    mis = user_dev_ids(user)
+    try:
+        from tenant_scope import user_dev_ids_db
+        mis = await user_dev_ids_db(db, user)   # seed + proyectos REALES en BD
+    except Exception:  # noqa: BLE001
+        mis = user_dev_ids(user)
     mi_tenant = tenant_of(user)
     intentos = 0
     ultimo = None

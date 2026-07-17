@@ -16,11 +16,16 @@ from typing import Any, ClassVar, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from data_developments import STATUS_CANONICOS, normalize_unit_status
 from permissions import require_superadmin
 
 router = APIRouter(prefix="/api/superadmin/inventario")
 
-ESTADOS_VALIDOS = {"disponible", "apartada", "vendida", "bloqueada", "renta"}
+# [AUD flujos] Antes: set en femenino ('vendida'/'apartada') y la BD guarda masculino
+# ('vendido'/'reservado') → el mismo estado vivía en dos formas y los filtros se partían.
+# Ahora el normalizador ÚNICO (data_developments.normalize_unit_status) acepta ambos
+# géneros y sinónimos y guarda SIEMPRE la forma canónica de la BD.
+ESTADOS_VALIDOS = set(STATUS_CANONICOS)
 
 
 def _db(request: Request):
@@ -683,8 +688,9 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
         raise HTTPException(404, "Unidad no encontrada")
     cambios: Dict[str, Any] = {}
     if body.status is not None:
-        st = body.status.strip().lower()
-        if st not in ESTADOS_VALIDOS:
+        # normalizador único: acepta 'vendida'/'apartada'/'sold'/… y guarda la forma canónica
+        st = normalize_unit_status(body.status)
+        if st is None:
             raise HTTPException(400, f"Estado inválido; usa uno de {sorted(ESTADOS_VALIDOS)}")
         cambios["status"] = st
     if body.price_mxn is not None:

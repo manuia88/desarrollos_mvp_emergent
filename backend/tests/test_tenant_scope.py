@@ -106,3 +106,58 @@ async def test_tenant_filter_composes_in_query(mock_db):
     got = await mock_db.leads.find(ts.tenant_filter(DEV_A, "leads"), {"_id": 0}).to_list(10)
     ids = {d["id"] for d in got}
     assert ids == {"a"}                                            # NO ve el de org_b
+
+
+# ─── user_dev_ids_db (fix AUD 07-17 · los desarrollos REALES viven en BD, no en el seed) ─
+@pytest.mark.asyncio
+async def test_user_dev_ids_db_resuelve_propiedad_real(mock_db):
+    """El dueño (tenant == developer_id en db.developments) VE sus proyectos ingeridos;
+    los de otra org NO. Antes: solo seed en memoria → los 50 reales eran invisibles."""
+    await mock_db.developments.insert_many([
+        {"id": "d_real_1", "developer_id": "org_a"},
+        {"id": "d_real_2", "developer_id": "org_a"},
+        {"id": "d_ajeno", "developer_id": "org_gdc"},
+    ])
+    ids = await ts.user_dev_ids_db(mock_db, DEV_A)
+    assert {"d_real_1", "d_real_2"} <= set(ids)
+    assert "d_ajeno" not in ids
+    # y la otra cuenta no ve los de org_a
+    ids_b = await ts.user_dev_ids_db(mock_db, DEV_B)
+    assert "d_real_1" not in ids_b and "d_real_2" not in ids_b
+
+
+@pytest.mark.asyncio
+async def test_user_dev_ids_db_via_claim_dev_orgs(mock_db):
+    """Usuario SIN tenant en el token pero con org reclamada (dev_orgs.admin_email del
+    flujo de claim) → resuelve su org vía BD y ve sus desarrollos."""
+    await mock_db.users.insert_one({"user_id": "u9", "email": "dev@x.com", "tenant_id": None})
+    await mock_db.dev_orgs.insert_one({"tenant_id": "org_claimed", "admin_email": "dev@x.com"})
+    await mock_db.developments.insert_one({"id": "d9", "developer_id": "org_claimed"})
+    user = {"role": "developer_admin", "user_id": "u9", "email": "dev@x.com"}
+    ids = await ts.user_dev_ids_db(mock_db, user)
+    assert "d9" in ids
+
+
+@pytest.mark.asyncio
+async def test_user_dev_ids_db_superadmin_y_fallback_seed(mock_db):
+    """superadmin → seed + BD (god-view). Y si la BD truena, cae al seed sin romper."""
+    await mock_db.developments.insert_one({"id": "d_bd", "developer_id": "org_x"})
+    ids = await ts.user_dev_ids_db(mock_db, SUPER)
+    assert "d_bd" in ids
+    assert set(ts.user_dev_ids(SUPER)) <= set(ids)     # el seed sigue completo
+
+    class _Boom:                                       # db rota → fallback al seed
+        def __getattr__(self, _):
+            raise RuntimeError("db caída")
+    assert await ts.user_dev_ids_db(_Boom(), DEV_A) == ts.user_dev_ids(DEV_A)
+
+
+@pytest.mark.asyncio
+async def test_guard_project_resuelve_bd(mock_db):
+    """dev_guard.guard_project deja pasar al dueño REAL (BD) y sigue negando al ajeno."""
+    from dev_guard import guard_project
+    await mock_db.developments.insert_one({"id": "d_real", "developer_id": "org_a"})
+    await guard_project(mock_db, DEV_A, "d_real", "test")          # dueño real: no lanza
+    with pytest.raises(HTTPException) as e:
+        await guard_project(mock_db, DEV_B, "d_real", "test")      # otra cuenta → 403
+    assert e.value.status_code == 403

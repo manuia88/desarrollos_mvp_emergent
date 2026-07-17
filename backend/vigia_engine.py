@@ -118,9 +118,14 @@ def diff_fotos(prev: Optional[Dict[str, Any]], nueva: Dict[str, Any]) -> List[Di
     """Compara dos fotos y devuelve EVENTOS. Reglas:
     - dev nuevo → 1 evento resumen (NO un evento por archivo: su primera foto es la línea base).
     - dev que ya no se puede leer o desapareció → acceso_roto.
-    - proyecto (subcarpeta 1er nivel) nuevo → proyecto_nuevo.
+    - proyecto (subcarpeta 1er nivel) nuevo → proyecto_nuevo… SALVO que sus archivos ya
+      existieran (mismos IDs de Drive) bajo una carpeta que desapareció: eso es un RENOMBRE
+      (caso Cordobanes 07-17: CLASS renombró la carpeta y anunciamos 'proyecto nuevo' falso)
+      → proyecto_renombrado, solo informativo, nada que aprobar.
     - archivo nuevo/cambiado (por HUELLA, no por fecha de shortcut) → lista_* si parece lista
-      de precios; si no, archivo_* (solo linaje, sin bandeja). Eliminado → archivo_eliminado."""
+      de precios; si no, archivo_* (solo linaje, sin bandeja). Eliminado → archivo_eliminado…
+      SALVO que un archivo 'nuevo' traiga la MISMA huella md5 que uno 'eliminado': el dev lo
+      re-subió o lo movió → archivo_reemplazado (evita el ruido 'borró 15, subió 15')."""
     eventos: List[Dict[str, Any]] = []
     prev_devs = (prev or {}).get("devs", {}) or {}
 
@@ -139,18 +144,43 @@ def diff_fotos(prev: Optional[Dict[str, Any]], nueva: Dict[str, Any]) -> List[Di
                 eventos.append({"tipo": "fallo_transitorio", "dev": dev})
             continue
 
-        for p in d.get("proyectos", []):
-            if p != "(raíz)" and p not in (pd.get("proyectos") or []):
-                eventos.append({"tipo": "proyecto_nuevo", "dev": dev, "proyecto": p})
-
         prev_files = {f["id"]: f for f in (pd.get("archivos") or [])}
+        proys_prev = set(pd.get("proyectos") or [])
+        desaparecidos = proys_prev - set(d.get("proyectos") or []) - {"(raíz)"}
+        renombrados_de: Dict[str, str] = {}          # carpeta nueva → carpeta vieja
+        for p in d.get("proyectos", []):
+            if p == "(raíz)" or p in proys_prev:
+                continue
+            # ¿de dónde vienen los archivos de esta carpeta "nueva"? (los IDs de Drive
+            # sobreviven al renombre de la carpeta — si la mayoría ya eran nuestros, es la misma)
+            ids_p = [f["id"] for f in d.get("archivos", []) if f.get("proyecto") == p]
+            origen: Dict[str, int] = {}
+            for fid in ids_p:
+                pf = prev_files.get(fid)
+                if pf:
+                    origen[pf.get("proyecto")] = origen.get(pf.get("proyecto"), 0) + 1
+            if origen:
+                viejo, n = max(origen.items(), key=lambda kv: kv[1])
+                if viejo in desaparecidos and n >= len(ids_p) * 0.6:
+                    renombrados_de[p] = viejo
+                    eventos.append({"tipo": "proyecto_renombrado", "dev": dev, "proyecto": p,
+                                    "antes": {"proyecto": viejo},
+                                    "detalle": {"archivos_conservados": n,
+                                                "archivos_total": len(ids_p)}})
+                    continue
+            eventos.append({"tipo": "proyecto_nuevo", "dev": dev, "proyecto": p})
+        # carpetas que se fueron sin renombre: linaje (no bandeja — puede ser sold-out limpiado)
+        for q in sorted(desaparecidos - set(renombrados_de.values())):
+            eventos.append({"tipo": "proyecto_desaparecido", "dev": dev, "proyecto": q})
+
         ids_ahora = set()
+        cand_nuevos: List[Dict[str, Any]] = []
+        cand_elim: List[Dict[str, Any]] = []
         for f in d.get("archivos", []):
             ids_ahora.add(f["id"])
             pf = prev_files.get(f["id"])
             if pf is None:
-                tipo = "lista_nueva" if f["es_lista"] else "archivo_nuevo"
-                eventos.append({"tipo": tipo, "dev": dev, "proyecto": f["proyecto"], "archivo": f})
+                cand_nuevos.append(f)
             elif pf.get("huella") != f.get("huella"):
                 tipo = "lista_cambiada" if f["es_lista"] else "archivo_cambiado"
                 eventos.append({"tipo": tipo, "dev": dev, "proyecto": f["proyecto"], "archivo": f,
@@ -158,13 +188,57 @@ def diff_fotos(prev: Optional[Dict[str, Any]], nueva: Dict[str, Any]) -> List[Di
                                           "modificado": pf.get("modificado")}})
         for fid, pf in prev_files.items():
             if fid not in ids_ahora:
-                eventos.append({"tipo": "archivo_eliminado", "dev": dev,
-                                "proyecto": pf.get("proyecto"), "archivo": pf})
+                cand_elim.append(pf)
+        # aparear re-subidas: misma huella md5 (las huellas 'mt:' de fecha NO identifican)
+        elim_por_huella: Dict[str, List[Dict[str, Any]]] = {}
+        for pf in cand_elim:
+            h = pf.get("huella") or ""
+            if h and not h.startswith("mt:"):
+                elim_por_huella.setdefault(h, []).append(pf)
+        for f in cand_nuevos:
+            h = f.get("huella") or ""
+            par = elim_por_huella.get(h) if h and not h.startswith("mt:") else None
+            if par:
+                pf = par.pop(0)
+                cand_elim.remove(pf)
+                eventos.append({"tipo": "archivo_reemplazado", "dev": dev,
+                                "proyecto": f["proyecto"], "archivo": f,
+                                "antes": {"nombre": pf.get("nombre"),
+                                          "proyecto": pf.get("proyecto")}})
+                continue
+            tipo = "lista_nueva" if f["es_lista"] else "archivo_nuevo"
+            eventos.append({"tipo": tipo, "dev": dev, "proyecto": f["proyecto"], "archivo": f})
+        for pf in cand_elim:
+            eventos.append({"tipo": "archivo_eliminado", "dev": dev,
+                            "proyecto": pf.get("proyecto"), "archivo": pf})
 
     for dev in prev_devs:
         if dev not in (nueva.get("devs") or {}):
             eventos.append({"tipo": "acceso_roto", "dev": dev})
     return eventos
+
+
+# ─── ¿la carpeta "nueva" ya vive en el catálogo? (2º candado anti-falso-nuevo) ─
+_PALABRAS_RUIDO = {"de", "la", "el", "los", "las", "y", "col", "colonia", "zona", "entrega",
+                   "inmediata", "preventa", "pre", "venta", "inversion", "inversión", "rentas"}
+
+
+def _tokens_proyecto(nombre: str) -> set:
+    toks = re.findall(r"[a-záéíóúñ0-9]+", (nombre or "").lower())
+    return {t for t in toks if t not in _PALABRAS_RUIDO}
+
+
+def proyecto_ya_en_catalogo(nombre_carpeta: str, candidatos: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """¿El nombre de la carpeta coincide con un desarrollo EXISTENTE? (candidatos =
+    [{id, name}] del org mapeado). Coincide si los tokens de uno contienen a los del otro."""
+    tc = _tokens_proyecto(nombre_carpeta)
+    if not tc:
+        return None
+    for c in candidatos:
+        tn = _tokens_proyecto(c.get("name") or "")
+        if tn and (tn <= tc or tc <= tn):
+            return c
+    return None
 
 
 def _clave_pendiente(ev: Dict[str, Any]) -> str:
@@ -203,6 +277,57 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
                 _d["fails"] = int((prev_devs.get(_dev) or {}).get("fails") or 0) + 1
         eventos = diff_fotos(prev, nueva)
 
+        # 2º candado anti-falso-nuevo: si la carpeta "nueva" coincide con un desarrollo que YA
+        # está en el catálogo (del org mapeado), se anota — la tarjeta y el parte lo advierten.
+        for ev in eventos:
+            if ev["tipo"] != "proyecto_nuevo":
+                continue
+            try:
+                org = await _dev_org_de(db, fuente["id"], ev.get("dev") or "")
+                if not org:
+                    continue
+                candidatos = await db.developments.find(
+                    {"developer_id": org}, {"_id": 0, "id": 1, "name": 1}).to_list(200)
+                ya = proyecto_ya_en_catalogo(ev.get("proyecto") or "", candidatos)
+                if ya:
+                    ev["ya_en_catalogo"] = {
+                        "dev_id": ya["id"], "name": ya.get("name"),
+                        "unidades": await db.units.count_documents({"development_id": ya["id"]})}
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[vigia] candado catálogo: {e}")
+
+        # renombre detectado → cerrar solos los pendientes de la carpeta vieja Y de la nueva
+        # (si una ronda anterior ya había gritado 'proyecto nuevo' por error)
+        for ev in eventos:
+            if ev["tipo"] != "proyecto_renombrado":
+                continue
+            viejo = (ev.get("antes") or {}).get("proyecto")
+            claves = [f"proj::{ev['dev']}::{ev.get('proyecto')}"]
+            if viejo:
+                claves.append(f"proj::{ev['dev']}::{viejo}")
+            await db.vigia_pendientes.update_many(
+                {"clave": {"$in": claves}, "estado": "pendiente"},
+                {"$set": {"estado": "resuelto", "resuelto_at": _now_iso(),
+                          "resuelto_por": "vigia_auto",
+                          "razon": f"renombre de carpeta: «{viejo}» → «{ev.get('proyecto')}»"}})
+
+        # QUÉ cambió en cada lista: bajar SOLO esa lista ($0, sin IA) y compararla
+        # unidad por unidad contra su versión anterior (o contra el catálogo la 1ª vez)
+        if any(ev["tipo"] in ("lista_cambiada", "lista_nueva") for ev in eventos):
+            try:
+                import bulk_ingest_engine as bie
+                import lista_peek
+                conn = await bie._resolve_drive_conn(db, None)
+                for ev in eventos:
+                    if ev["tipo"] not in ("lista_cambiada", "lista_nueva") or not conn:
+                        continue
+                    try:
+                        ev["cambios"] = await lista_peek.peek_evento(db, conn, fuente["id"], ev)
+                    except Exception as e:  # noqa: BLE001
+                        log.warning(f"[vigia] peek lista {((ev.get('archivo') or {}).get('nombre'))}: {e}")
+            except Exception as e:  # noqa: BLE001
+                log.warning(f"[vigia] peek listas: {e}")
+
         # persistir linaje (append-only, hipersegmentado)
         for ev in eventos:
             resumen["por_tipo"][ev["tipo"]] = resumen["por_tipo"].get(ev["tipo"], 0) + 1
@@ -226,6 +351,7 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
                 "fuente_id": fuente["id"], "tipo": ev["tipo"], "dev": ev.get("dev"),
                 "proyecto": ev.get("proyecto"), "archivo": ev.get("archivo"),
                 "detalle": ev.get("detalle"), "antes": ev.get("antes"),
+                "cambios": ev.get("cambios"), "ya_en_catalogo": ev.get("ya_en_catalogo"),
                 "dev_folder_id": dev_meta.get("folder_id"),
                 "created_at": _now_iso(), "resuelto_at": None, "resuelto_por": None,
             })

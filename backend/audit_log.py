@@ -168,7 +168,8 @@ async def log_mutation(
         asyncio.create_task(_persist())
 
     except Exception as exc:
-        log.warning(f"[audit] log_mutation failed (silent): {exc}")
+        # fail-open a propósito (el audit nunca tira la mutación) pero NUNCA mudo: queda el warning
+        log.warning(f"[audit] log_mutation failed (fail-open): {exc}")
 
 
 async def log_agent_action(db, agent: str, action: str, entity_type: str,

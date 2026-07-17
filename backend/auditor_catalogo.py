@@ -612,8 +612,19 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
 async def ultima_auditoria(db, development_id: Optional[str] = None,
                            nivel: Optional[str] = None,
                            severidad: Optional[str] = None) -> Dict[str, Any]:
-    """La corrida más reciente, hipersegmentable por dev/nivel/severidad."""
-    doc = await db.auditoria_hallazgos.find_one({}, {"_id": 0}, sort=[("ts", -1)]) or \
+    """La corrida más reciente, hipersegmentable por dev/nivel/severidad.
+
+    OJO (bug 07-17): una corrida PARCIAL (de un solo desarrollo) no debe hacerse pasar
+    por la foto global — el parte de Telegram llegó a reportar '0 errores' cuando la
+    global traía 16. Sin filtro de dev se busca la última corrida GLOBAL; con filtro,
+    la última que haya incluido a ese dev (global o dedicada)."""
+    if development_id:
+        q: Dict[str, Any] = {"$or": [{"development_id": development_id},
+                                     {"development_id": None}]}
+    else:
+        q = {"development_id": None}
+    doc = await db.auditoria_hallazgos.find_one(q, {"_id": 0}, sort=[("ts", -1)]) or \
+        await db.auditoria_hallazgos.find_one({}, {"_id": 0}, sort=[("ts", -1)]) or \
         {"ts": None, "hallazgos": [], "resumen": {}}
     hs = doc.get("hallazgos") or []
     if development_id:
