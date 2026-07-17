@@ -112,6 +112,13 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             from lista_peek import lineas_de_cambios
             lineas += ["", "<b>Qué cambió exactamente:</b>"]
             lineas += [_esc(x) for x in lineas_de_cambios(p["cambios"], sangria="")][:10]
+        if p.get("aplicado"):
+            ap = p["aplicado"]
+            lineas.append(f"✅ <b>Ya lo apliqué</b>: {ap.get('precios', 0)} precio(s) y "
+                          f"{ap.get('status', 0)} estado(s) actualizados con auditoría"
+                          + (f" · {ap.get('senales_venta')} probable(s) venta(s) anotadas"
+                             if ap.get("senales_venta") else "") +
+                          ". Aprobar solo hace falta si quieres re-leer TODO el proyecto.")
         if ctx.get("ultima_ingesta"):
             lineas.append(f"Última ingesta de este dev: {_esc(ctx['ultima_ingesta'])[:10]}.")
         if ctx.get("n_unidades_proyecto") is not None:

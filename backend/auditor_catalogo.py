@@ -567,6 +567,20 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
                "programas_docs": progs_docs,
                "cotejo": cotejo, "assets": assets, "unidades_en_bitacora": en_bitacora}
         hs = auditar_desarrollo_puro(d, ctx)
+        # jueces de CONTRADICCIÓN entre documentos y de LÓGICA DE NEGOCIO (07-17):
+        # el folleto vs la lista, el plano vs la lista, el esquema vs la etapa…
+        for _juez_mod, _fn in (("juez_cruzado", "juzgar_cruzado"),
+                               ("jueces_negocio", "juzgar_negocio")):
+            try:
+                _m = __import__(_juez_mod)
+                _nuevos = await getattr(_m, _fn)(db, d["id"])
+                for _h_ in _nuevos:      # estos jueces no conocen el nombre del dev
+                    _h_.setdefault("desarrollo", d.get("name"))
+                    _h_.setdefault("development_id", d["id"])
+                hs.extend(_nuevos)
+            except Exception as _e:  # noqa: BLE001 — un juez roto no tira la auditoría
+                import logging
+                logging.getLogger("dmx.auditor").warning(f"{_juez_mod}: {_e}")
         todos.extend(hs)
         # CACHE de readiness (la barra del Inventario lee esto, gratis)
         try:
@@ -592,6 +606,18 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
                                 f"está dormido (¿laptop cerrada?)"))
         except ValueError:
             pass
+    # nivel CATÁLOGO: censo-como-norma — la BD contra la ÚLTIMA lista vigilada de cada
+    # dev, al peso (07-17: el juez muestral queda de respaldo; el censo es la norma)
+    try:
+        from censo_norma import censo_catalogo
+        cn = await censo_catalogo(db)
+        for cf in cn.get("con_fallas", []):
+            todos.append(_h("censo_fuente", "catalogo", ERROR, cf["dev"],
+                            f"{cf['fallas']} dato(s) NO cuadran contra la última lista "
+                            f"del dev que vio el vigía — la fuente manda, revisar"))
+    except Exception as e:  # noqa: BLE001
+        import logging
+        logging.getLogger("dmx.auditor").warning(f"censo_norma falló: {e}")
     # nivel CATÁLOGO: ¿el modelo de precios se degradó tras la última carga?
     try:
         ult = await db.ml_modelos.find({}, {"_id": 0, "r2": 1, "validacion": 1}) \

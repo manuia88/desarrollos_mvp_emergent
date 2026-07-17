@@ -325,6 +325,16 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
                         ev["cambios"] = await lista_peek.peek_evento(db, conn, fuente["id"], ev)
                     except Exception as e:  # noqa: BLE001
                         log.warning(f"[vigia] peek lista {((ev.get('archivo') or {}).get('nombre'))}: {e}")
+                    # AUTO-APLICAR (founder 07-17): precio/estado de unidades EXISTENTES
+                    # se aplican solos con auditoría; lo nuevo sigue pidiendo aprobación
+                    if ev.get("cambios") and ev["tipo"] == "lista_cambiada":
+                        try:
+                            import lista_apply
+                            aplicado = await lista_apply.aplicar_cambios(db, fuente["id"], ev)
+                            if aplicado:
+                                ev["aplicado"] = aplicado
+                        except Exception as e:  # noqa: BLE001
+                            log.warning(f"[vigia] apply: {e}")
             except Exception as e:  # noqa: BLE001
                 log.warning(f"[vigia] peek listas: {e}")
 
@@ -352,6 +362,7 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
                 "proyecto": ev.get("proyecto"), "archivo": ev.get("archivo"),
                 "detalle": ev.get("detalle"), "antes": ev.get("antes"),
                 "cambios": ev.get("cambios"), "ya_en_catalogo": ev.get("ya_en_catalogo"),
+                "aplicado": ev.get("aplicado"),
                 "dev_folder_id": dev_meta.get("folder_id"),
                 "created_at": _now_iso(), "resuelto_at": None, "resuelto_por": None,
             })

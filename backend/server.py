@@ -669,6 +669,16 @@ app.include_router(inventario_router)
 from routes.superadmin_leads import router as superadmin_leads_router
 app.include_router(superadmin_leads_router)
 
+# Protocolo de peleas (registro único de datos en disputa) + expediente de conducta por dev
+from routes.superadmin_peleas import router as superadmin_peleas_router
+app.include_router(superadmin_peleas_router)
+from routes.superadmin_expediente import router as superadmin_expediente_router
+app.include_router(superadmin_expediente_router)
+
+# Película 07-17 — biografía por unidad + película por desarrollo + frescura del catálogo (superadmin)
+from routes.timeline import router as timeline_router
+app.include_router(timeline_router)
+
 # W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)
@@ -1202,6 +1212,13 @@ try:
     app.include_router(favoritos_router)
 except Exception as _exc:  # noqa: BLE001
     logging.warning(f"[copiloto] favoritos include failed: {_exc}")
+
+# Cierre de cableado · alerta de oportunidad (cambio de oferta → quién la busca → bandeja del asesor)
+try:
+    from alerta_oportunidad import router as alerta_oportunidad_router
+    app.include_router(alerta_oportunidad_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] alerta_oportunidad include failed: {_exc}")
 
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router

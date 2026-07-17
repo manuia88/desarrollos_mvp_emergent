@@ -216,6 +216,21 @@ async def peek_evento(db, conn: Dict[str, Any], fuente_id: str,
         return {"base": None, "nota": "el formato de esta lista no se dejó leer sin IA",
                 "totales": {"ahora": 0}}
 
+    # FORENSE (07-17): renglones tapados/omitidos/entrelazados + filas sombreadas
+    # (= apartadas, la marca que el texto no dice) — cada lista que cambia pasa por aquí
+    forense: List[str] = []
+    if "pdf" in (mime or "").lower() or (a.get("nombre") or "").lower().endswith(".pdf"):
+        try:
+            import lista_forense
+            forense = lista_forense.alertas_forenses(data)
+            for uid in lista_forense.unidades_sombreadas(data):
+                k = norm_unidad(uid)
+                if k in actual and not actual[k].get("status"):
+                    actual[k]["status"] = "no_disponible"
+                    actual[k]["status_fuente"] = "fila sombreada (apartada)"
+        except Exception as e:  # noqa: BLE001 — el forense nunca tira el peek
+            log.warning(f"[peek] forense: {e}")
+
     # base: la foto anterior de ESTA lista (huella distinta) — o el catálogo la 1ª vez
     snap_prev = await db.vigia_listas_snapshot.find_one(
         {"archivo_id": a["id"], "huella": {"$ne": a.get("huella")}},
@@ -238,6 +253,8 @@ async def peek_evento(db, conn: Dict[str, Any], fuente_id: str,
                 {"base": None, "totales": {"ahora": len(actual)},
                  "nota": f"primera lectura: {len(actual)} unidades con precio — desde el "
                          f"próximo cambio te digo el diff exacto"}
+    if forense:
+        resultado["alertas_forenses"] = forense
 
     await db.vigia_listas_snapshot.update_one(
         {"archivo_id": a["id"], "huella": a.get("huella")},
@@ -287,4 +304,6 @@ def lineas_de_cambios(cambios: Optional[Dict[str, Any]], sangria: str = "   ") -
                    f"(cambió el archivo, no los datos)")
     elif cambios.get("base"):
         out.append(f"{sangria}(comparado contra {cambios['base']})")
+    for alerta in cambios.get("alertas_forenses") or []:
+        out.append(f"{sangria}{alerta}")
     return out

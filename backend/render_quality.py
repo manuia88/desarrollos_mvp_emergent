@@ -9,6 +9,10 @@ OJO (auditoría 07-16): como señal de PURGA el detector de caras alucina — 27
 fueron falsos positivos (costales de box, maquetas, muebles = "caras"). Regla: es_render_malo
 sirve para FILTRAR EN INGESTA y para MARCAR candidatos; borrar lo ya cargado requiere
 verificación visual humana, nunca purga automática.
+
+07-17 (juez de galería, galeria_judex.py): densidad_texto (flyer/lona colada como foto),
+hash_perceptual + es_duplicado (mismo render repetido). Mismo contrato: $0, sin IA, y
+NUNCA purga automática — solo marcar para ojos humanos.
 """
 from __future__ import annotations
 
@@ -18,6 +22,14 @@ from typing import Optional
 _BLANCO_MIN = 0.90     # fracción casi-blanca a partir de la cual = slide vacía
 _CARA_PCT_MIN = 1.5    # % del área que ocupa una cara para considerarla persona prominente
 _casc = None
+
+# ─── Texto (flyer/lona) — calibrado 07-17 contra assets REALES del catálogo ──
+# Renders de galería reales (24 muestreados, CLASS+GDC): 0.0 palabras/MP.
+# Imágenes con texto del mismo pipeline (planos con cotas / slides): 6.4–44 palabras/MP.
+# Umbral 4.0 = margen amplio sobre el 0.0 de los renders y debajo del peor texty real.
+ES_FLYER_MIN = 4.0     # palabras OCR por megapíxel a partir de las cuales = flyer/lona
+_OCR_LADO_MAX = 1200   # se normaliza a este lado mayor: OCR rápido y densidad comparable
+_OCR_CONF_MIN = 40     # confianza mínima de tesseract para contar una palabra
 
 
 def _cascade():
@@ -76,6 +88,63 @@ def es_render_malo(path: str) -> bool:
     if es_negra_o_texto(path):               # mapa negro / logo / portada de deck
         return True
     return False
+
+
+def densidad_texto(path: str) -> float:
+    """Palabras OCR legibles (conf > 40, ≥2 caracteres) por megapíxel, con la imagen
+    normalizada a lado mayor 1200 px (rápido y comparable entre resoluciones).
+    Un flyer/lona da alto (≥ ES_FLYER_MIN); un render normal da ~0. $0, sin IA."""
+    try:
+        import pytesseract
+        from PIL import Image
+        im = Image.open(path).convert("L")
+    except Exception:  # noqa: BLE001 — sin tesseract/imagen ilegible = sin señal, no truena
+        return 0.0
+    w, h = im.size
+    if max(w, h) > _OCR_LADO_MAX:
+        r = _OCR_LADO_MAX / max(w, h)
+        im = im.resize((max(1, int(w * r)), max(1, int(h * r))))
+    try:
+        d = pytesseract.image_to_data(im, lang="spa", output_type=pytesseract.Output.DICT)
+    except Exception:  # noqa: BLE001
+        return 0.0
+    palabras = sum(
+        1 for conf, txt in zip(d.get("conf", []), d.get("text", []))
+        if str(txt).strip() and len(str(txt).strip()) >= 2 and float(conf) > _OCR_CONF_MIN)
+    mp = (im.width * im.height) / 1e6
+    return palabras / mp if mp else 0.0
+
+
+def es_flyer(path: str) -> bool:
+    """¿Parece flyer/lona (texto denso) colado como foto de galería? Señal para MARCAR
+    y revisar con ojos — regla dura: NUNCA purga automática."""
+    return densidad_texto(path) >= ES_FLYER_MIN
+
+
+def hash_perceptual(path: str) -> Optional[int]:
+    """dHash de 64 bits con PIL puro (sin dependencias nuevas): gris 9×8 y se compara
+    cada píxel con su vecino derecho. Robusto a re-encode/resize/leves ajustes de brillo.
+    None si la imagen no abre."""
+    try:
+        from PIL import Image
+        im = Image.open(path).convert("L").resize((9, 8), Image.LANCZOS)
+    except Exception:  # noqa: BLE001
+        return None
+    px = im.tobytes()   # modo L: un byte por píxel, en orden raster (sin APIs deprecadas)
+    bits = 0
+    for fila in range(8):
+        for col in range(8):
+            i = fila * 9 + col
+            bits = (bits << 1) | (1 if px[i] > px[i + 1] else 0)
+    return bits
+
+
+def es_duplicado(h1: Optional[int], h2: Optional[int], umbral_bits: int = 6) -> bool:
+    """¿Dos dHash son (casi) la misma imagen? ≤ umbral_bits de distancia Hamming.
+    None (imagen ilegible) nunca es duplicado de nada."""
+    if h1 is None or h2 is None:
+        return False
+    return bin(h1 ^ h2).count("1") <= umbral_bits
 
 
 async def purgar_renders(db, dev_id: str) -> dict:
