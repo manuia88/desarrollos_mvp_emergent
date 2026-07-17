@@ -1081,6 +1081,19 @@ async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
 
 
+@router.get("/api/zonas-populares")
+async def zonas_populares_endpoint(request: Request, limit: int = 40):
+    """Zonas donde HAY inventario, ordenadas por CALOR (oferta + demanda + absorción),
+    automático de datos vivos (founder 07-17: 'las colonias con más desarrollos al
+    principio, que se mueva solo por demanda, absorción y oferta'). Cada zona linkea a
+    /zona/{slug}. Fail-open: [] si algo truena, nunca rompe el marketplace."""
+    try:
+        from zona_heat import zonas_populares
+        return await zonas_populares(request.app.state.db, limite=max(1, min(limit, 100)))
+    except Exception:  # noqa: BLE001
+        return []
+
+
 @router.get("/api/colonias-geojson")
 async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, limit: int = 2200):
     """FeatureCollection de las colonias REALES (db.colonias.geometry · 1,811 IECM) para el Mapa de
