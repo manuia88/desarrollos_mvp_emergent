@@ -158,7 +158,14 @@ def _extraer_imagenes(pdf_path: str, dest: pathlib.Path,
             out.append(p)
         except Exception:  # noqa: BLE001
             p.unlink(missing_ok=True)
-    return out
+    from render_quality import es_render_malo   # fuera blancos/personas del deck
+    buenos = []
+    for p in out:
+        if es_render_malo(str(p)):
+            p.unlink(missing_ok=True)
+        else:
+            buenos.append(p)
+    return buenos
 
 
 def url_de_webloc(data: bytes) -> Optional[str]:
@@ -261,6 +268,10 @@ async def ingerir_vistas_pdf(db, dev_id: str, rutas_pdf: List[str],
             continue
         if not destino.exists():
             continue
+        from render_quality import es_render_malo
+        if es_render_malo(str(destino)):     # una vista en blanco/con personas no entra
+            destino.unlink(missing_ok=True)
+            continue
         await db.dev_assets.insert_one({
             "id": aid, "development_id": dev_id,
             "asset_type": "foto_hero" if base + n == 0 else "foto_galeria",
@@ -284,7 +295,9 @@ async def ingerir_renders_archivos(db, dev_id: str, rutas: List[str],
     if ya:
         return {"renders": ya, "estado": "ya_estaban"}
     # el hero preferente es la fachada del edificio
+    from render_quality import es_render_malo
     orden = sorted(rutas, key=lambda r: 0 if "fachad" in pathlib.Path(r).name.lower() else 1)
+    orden = [r for r in orden if not es_render_malo(r)]   # fuera blancos y personas
     n = 0
     for i, ruta in enumerate(orden[:maximo]):
         p = pathlib.Path(ruta)
@@ -341,6 +354,11 @@ async def ingerir_deptos(db, dev_id: str, deptos_pdf_path: str) -> Dict[str, Any
             continue
         if not destino.exists():
             continue
+        try:  # el plano debe leerse horizontal (láminas apaisadas guardadas de lado)
+            from plano_orientacion import enderezar_si_hace_falta
+            enderezar_si_hace_falta(str(destino))
+        except Exception:  # noqa: BLE001
+            pass
         url = f"/api/assets-static/{destino.name}"
         await db.dev_assets.insert_one({
             "id": aid, "development_id": dev_id, "asset_type": "plano_unidad",
@@ -392,6 +410,11 @@ async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str,
             continue
         if not destino.exists():
             continue
+        try:  # el plano debe leerse horizontal (láminas apaisadas guardadas de lado)
+            from plano_orientacion import enderezar_si_hace_falta
+            enderezar_si_hace_falta(str(destino))
+        except Exception:  # noqa: BLE001
+            pass
         url = f"/api/assets-static/{destino.name}"
         await db.dev_assets.insert_one({
             "id": aid, "development_id": dev_id, "asset_type": "plano_nivel",

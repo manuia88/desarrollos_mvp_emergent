@@ -37,6 +37,35 @@ CAMPOS_EXCEL = {"bedrooms": 0.01, "bathrooms": 0.01, "parking_spots": 0.01,
 COL_EXCEL = {"bedrooms": "RECAMARAS", "bathrooms": "BAÑOS",
              "parking_spots": "ESTACIONAMIENTOS", "m2_privative": "M2 HABITABLE",
              "size_m2": "M2 HABITABLE"}
+# Cotas de rango HUMANO por campo (capa 0 del juez; ver lección 07-16 en juzgar_campos):
+# fuera de esto no existe un depto real — es error de extracción, sin importar la fuente.
+PLAUSIBLE = {"bedrooms": (0, 6), "bathrooms": (0.5, 7), "parking_spots": (0, 8),
+             "m2_total": (10, 800), "m2_privative": (10, 800), "size_m2": (10, 800),
+             "price_mxn": (300_000, 200_000_000)}
+
+
+def implausible(campo: str, valor) -> bool:
+    """True si el valor está fuera del rango humano del campo (None/no-numérico no opina)."""
+    if campo not in PLAUSIBLE or valor is None:
+        return False
+    try:
+        v = float(valor)
+    except (TypeError, ValueError):
+        return False
+    lo, hi = PLAUSIBLE[campo]
+    return not (lo <= v <= hi)
+
+
+def implausibles_de_unidades(units) -> List[Dict[str, Any]]:
+    """Barrido COMPLETO (no muestral) de plausibilidad sobre un lote de unidades."""
+    out: List[Dict[str, Any]] = []
+    for u in units or []:
+        for campo in PLAUSIBLE:
+            if implausible(campo, u.get(campo)):
+                out.append({"unidad": u.get("unit_number") or u.get("unidad"),
+                            "campo": campo, "valor": u.get(campo),
+                            "rango": PLAUSIBLE[campo]})
+    return out
 
 
 # ─── comparadores puros (testeables) ──────────────────────────────────────────
@@ -115,6 +144,14 @@ def juzgar_campos(muestra: List[Dict[str, Any]],
     for m in muestra:
         campo, unidad, valor = m["campo"], m["unidad"], m["valor"]
         veredicto, evidencia = "sin_fuente", None
+        # Capa 0 · PLAUSIBILIDAD — corre SIEMPRE, con o sin maestro. Lección 07-16:
+        # 'Lock-Off 1 rec o 2 lofts' llegó como 12 recámaras y el juez no lo cazó porque
+        # rec/baños solo se juzgaban contra el Excel (GDC no tiene). Un valor fuera de
+        # rango humano es error de extracción aunque sea consistente con lo guardado.
+        if implausible(campo, valor):
+            detalles.append({**m, "veredicto": "IMPLAUSIBLE",
+                             "evidencia": f"{campo}={valor} fuera de rango humano {PLAUSIBLE[campo]}"})
+            continue
         if campo in derivados:
             detalles.append({**m, "veredicto": "derivado",
                              "evidencia": "calculado por el extractor (no impreso en la fuente)"})
@@ -221,6 +258,13 @@ async def juzgar_desarrollo(db, development_id: str,
                       "ts": datetime.now(timezone.utc).isoformat(), "estado": "pendiente"}},
             upsert=True)
     v = juzgar_campos(muestra, texto_pdf, filas_excel, campos_derivados)
+    # Capa 0 COMPLETA (no muestral): la plausibilidad es barata → barre TODAS las unidades.
+    # Una sola implausible tumba el gate aunque no haya caído en la muestra (lección 07-16:
+    # 'Lock-Off 1 rec o 2 lofts' → 12 recámaras vivió porque solo se muestreaba).
+    imp = implausibles_de_unidades(units)
+    if imp:
+        v["implausibles"] = imp
+        v["gate_98"] = False
     doc = {"development_id": development_id, "ts": datetime.now(timezone.utc).isoformat(),
            "n_muestra": len(muestra), "semilla": semilla, **v}
     await db.veredictos_juez.insert_one(dict(doc))

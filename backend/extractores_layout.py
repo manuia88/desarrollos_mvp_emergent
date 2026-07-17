@@ -29,6 +29,23 @@ def _num(s) -> Optional[float]:
         return None
 
 
+def _conteo(s) -> tuple:
+    """(valor, flex) para CONTEOS (recámaras/baños/cajones). _num aquí es PELIGROSO:
+    'Lock-Off 1 rec o 2 lofts' → 12 · '1 / OP a 2' → 12 · '(1 rec, 2 rec o 2 lotf)' → 122
+    (bug real Casa Roma 179 / Único Manacar, 07-16: 45 m² con '12 recámaras').
+    Regla: el PRIMER número de la celda es la configuración base; si la celda trae
+    alternativas ('o', '/', 'OP', 'lock'), se conserva el texto crudo como flex."""
+    if s is None:
+        return None, None
+    t = str(s).strip()
+    m = re.search(r"\d+(?:\.\d+)?", t)
+    if not m:
+        return None, None
+    v = float(m.group(0))
+    flex = t if re.search(r"\bo\b|/|\bop\b|lock", t, re.IGNORECASE) else None
+    return v, flex
+
+
 def _norm_h(s) -> str:
     s = "".join(c for c in unicodedata.normalize("NFD", str(s or ""))
                 if unicodedata.category(c) != "Mn")
@@ -303,6 +320,10 @@ _GDC_COL = {
     "TERRAZA": "m2_terrace", "ROOF O JARDIN": "m2_roof_garden", "ROOF": "m2_roof_garden",
     "ROOF/JARDIN": "m2_roof_garden", "ROOF GARDEN": "m2_roof_garden",
     "M2 TOTALES": "m2_total", "M2TOTALES": "m2_total", "M2": "m2_total",
+    # auditoría 07-17 (Casa Roma 269): estas columnas EXISTEN en listas GDC y no estaban
+    # mapeadas — el interior se derivaba mal (jardín sin restar) en vez de leerse impreso
+    "M2 HABITABLES": "m2_privative", "M2HABITABLES": "m2_privative",
+    "JARDIN": "patio_m2", "JARDÍN": "patio_m2",
     "CAJONES": "parking_spots",
     "RECAMARAS": "bedrooms", "RECÁMARAS": "bedrooms",
     "BANOS": "bathrooms", "BAÑOS": "bathrooms",
@@ -369,9 +390,19 @@ def extraer_gdc(pdf_bytes: bytes) -> Dict[str, Any]:
                         elif campo == "level":
                             u[campo] = _num(v)
                         elif v.upper() not in ("NA", "N/A", "-"):
-                            u[campo] = _num(v)
+                            if campo in ("bedrooms", "bathrooms", "parking_spots"):
+                                val, flex = _conteo(v)   # 'Lock-Off 1 rec o 2 lofts' ≠ 12
+                                u[campo] = val
+                                if flex:
+                                    u[f"{campo}_flex"] = flex
+                            else:
+                                u[campo] = _num(v)
                 num = str(u.get("unit_number") or "").strip()
-                if not num or not re.search(r"\d", num):
+                # unidades CON NOMBRE y sin dígitos también existen — auditoría 07-17:
+                # 'ROOF PRIVADO' ($26.5M), 'LOCAL' ($14.3M), 'LOCAL RG' ($43M) se saltaban
+                es_nombrada = bool(re.search(r"\b(ROOF|LOCAL|GARDEN|GH|PH|BODEGA)\b",
+                                             str(num or "").upper()))
+                if not num or (not re.search(r"\d", num) and not es_nombrada):
                     continue
                 es_local = "LOCAL" in num.upper()
                 u["tipo"] = "local" if es_local else "departamento"

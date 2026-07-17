@@ -55,3 +55,15 @@ def test_discrepancias_lista_manda():
     # sin pelea → sin hallazgos
     assert discrepancias_presentacion(
         {"total_units_presentacion": 87}, {"total_units_lista": 87}) == []
+
+
+def test_es_negra_o_texto_caza_slides_de_deck(tmp_path):
+    """Regla founder 07-16: galería = SOLO renders. Mapas negros/logos/portadas fuera."""
+    from PIL import Image
+    from render_quality import es_negra_o_texto
+    negra = tmp_path / "mapa_negro.png"
+    Image.new("RGB", (200, 150), (5, 5, 5)).save(negra)          # mapa/logo fondo negro
+    assert es_negra_o_texto(str(negra)) is True
+    render = tmp_path / "render.png"
+    Image.new("RGB", (200, 150), (170, 150, 120)).save(render)    # tono cálido de render
+    assert es_negra_o_texto(str(render)) is False

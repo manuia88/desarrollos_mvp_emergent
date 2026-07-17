@@ -2261,7 +2261,10 @@ async def get_development(dev_id: str, request: Request):
     try:
         from dev_assets import public_photos_for_dev
         dev_photos = await public_photos_for_dev(db, dev_id)
-        urls = [p.get("url") for p in dev_photos if p.get("url")]
+        # SOLO imágenes al carrusel: video/brochure son públicos pero NO son fotos
+        # (07-16: 11 mp4 + 1 pdf salían como cuadros rotos en la galería de NUA)
+        urls = [p["url"] for p in dev_photos if p.get("url")
+                and p["url"].lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
         if urls:
             seed_photos = [p for p in (out.get("photos") or []) if p not in urls]
             out["photos"] = urls + seed_photos
@@ -2378,7 +2381,8 @@ async def list_dev_units(
 async def get_compliance_badge(dev_id: str, request: Request):
     d = DEVELOPMENTS_BY_ID.get(dev_id)
     if not d:
-        raise HTTPException(404, "Desarrollo no encontrado")
+        # ingeridos (sin seed): sin badge — respuesta vacía, no 404 (ver nota en /rank)
+        return {"badge": None, "disponible": False}
     db = request.app.state.db
     extracted_count = await db.di_documents.count_documents({"development_id": dev_id, "status": "extracted"})
     scores = {}
@@ -2436,7 +2440,9 @@ async def get_similar_developments(dev_id: str):
 async def get_development_rank(dev_id: str, request: Request):
     target = DEVELOPMENTS_BY_ID.get(dev_id)
     if not target:
-        raise HTTPException(404, "Desarrollo no encontrado")
+        # ingeridos (sin seed): sin ranking de colonia — respuesta vacía, no 404 (07-16:
+        # 2 errores de consola POR TARJETA × 50 tarjetas ahogaban el debugging del founder)
+        return {"rank": None, "total": 0, "badge_tier": None}
     peers = [d for d in DEVELOPMENTS if d["colonia_id"] == target["colonia_id"]]
     total = len(peers)
     if total <= 1:

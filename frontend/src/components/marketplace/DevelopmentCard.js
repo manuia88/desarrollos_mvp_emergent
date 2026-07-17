@@ -114,6 +114,12 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   // Renders de la INGESTA llegan como rutas relativas /api/... (los sirve el backend desde el Drive) → prefijo API.
   const seedPhotos = (dev.photos || []).map((p) => (typeof p === 'string' && p.startsWith('/api/') ? `${API}${p}` : p));
   const photos = dev.hero_photo ? [`${API}${dev.hero_photo}`, ...seedPhotos] : seedPhotos;
+  // MINIATURAS (07-16): el carrusel usaba los originales de 5–8 MB → cada flecha tardaba
+  // segundos. Las tarjetas piden <id>_thumb.jpg (720px); si no existe, onError cae al original.
+  const [thumbError, setThumbError] = useState({});
+  const thumbOf = (p) => (typeof p === 'string' && /\/api\/assets-static\/.+\.(jpg|jpeg|png|webp)$/i.test(p)
+    ? p.replace(/\.(jpg|jpeg|png|webp)$/i, '_thumb.jpg') : p);
+  const srcDe = (i) => (thumbError[i] ? photos[i] : thumbOf(photos[i]));
   const hue = dev.developer?.logo_hue || 231;
 
   useEffect(() => {
@@ -180,8 +186,12 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         {showFallback ? (
           <Fallback hue={hue} seed={index} />
         ) : (
-          <img src={photos[slide]} alt={dev.name}
-            onError={() => setImgError(e => ({ ...e, [slide]: true }))}
+          <img src={srcDe(slide)} alt={dev.name}
+            loading={index < 3 ? 'eager' : 'lazy'} decoding="async"
+            onError={() => {
+              if (!thumbError[slide]) setThumbError(e => ({ ...e, [slide]: true }));   // sin thumb → original
+              else setImgError(e => ({ ...e, [slide]: true }));                        // original también falló
+            }}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         )}
 

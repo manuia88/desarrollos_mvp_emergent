@@ -30,7 +30,14 @@ def render_preview(pdf_path: str, salida_dir: pathlib.Path, base: str,
             ["pdftoppm", "-png", "-singlefile", "-r", str(dpi), "-f", "1", "-l", "1",
              str(pdf), str(salida_dir / base)],
             capture_output=True, timeout=60, check=True)
-        return str(destino) if destino.exists() else None
+        if not destino.exists():
+            return None
+        try:  # el plano debe leerse horizontal (láminas apaisadas guardadas de lado)
+            from plano_orientacion import enderezar_si_hace_falta
+            enderezar_si_hace_falta(str(destino))
+        except Exception:  # noqa: BLE001
+            pass
+        return str(destino)
     except Exception:  # noqa: BLE001
         return None
 
