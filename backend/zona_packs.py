@@ -10,13 +10,18 @@ Condesa; Verónica Anzures es Anzures).
 """
 from __future__ import annotations
 
-# las 16 alcaldías como sufijo de slug (orden por longitud para recortar la correcta primero)
-ALCALDIAS = [
+# las 16 alcaldías CDMX + municipios conurbados de Edomex (founder 07-17: "agrega Edo Mex
+# para que salgan los que faltan" — NUA/Zereniti/Dessea están en Huixquilucan/Interlomas).
+# Orden por longitud para recortar el sufijo correcto primero.
+ALCALDIAS = sorted([
     "cuajimalpa-de-morelos", "la-magdalena-contreras", "gustavo-a-madero",
     "venustiano-carranza", "magdalena-contreras", "benito-juarez", "alvaro-obregon",
     "miguel-hidalgo", "azcapotzalco", "cuauhtemoc", "iztapalapa", "iztacalco",
     "xochimilco", "cuajimalpa", "coyoacan", "milpa-alta", "tlahuac", "tlalpan",
-]
+    # Edomex (municipios conurbados)
+    "huixquilucan", "naucalpan-de-juarez", "naucalpan", "tlalnepantla",
+    "atizapan-de-zaragoza", "atizapan", "edomex",
+], key=len, reverse=True)
 
 # tokens que son VARIANTE de una misma colonia, no nombre propio
 _VARIANTES = {
@@ -30,6 +35,11 @@ ALIAS = {
     "hipodromo": "condesa",
     "hipodromo-condesa": "condesa",
     "veronica-anzures": "anzures",
+    # Interlomas (Edomex): sub-zonas de Huixquilucan que se buscan como "Interlomas"
+    "green-house": "interlomas",
+    "hacienda-de-las-palmas": "interlomas",
+    "centro-urbano-san-fernando-la-herradura": "interlomas",
+    "la-herradura": "interlomas",
 }
 
 

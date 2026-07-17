@@ -136,6 +136,14 @@ export async function fetchColonias() {
   return r.json();
 }
 
+// Zonas con más movimiento (calor auto: oferta + demanda + absorción) → tira ordenada.
+export async function fetchZonasPopulares(limit = 12) {
+  try {
+    const r = await fetch(`${API}/api/zonas-populares?limit=${limit}`);
+    return r.ok ? await r.json() : [];
+  } catch { return []; }
+}
+
 export async function fetchColonia(id) {
   const r = await fetch(`${API}/api/colonias/${id}`);
   if (!r.ok) throw new Error('colonia fetch failed');

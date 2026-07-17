@@ -14,7 +14,7 @@ import AtlaxBubble from '../components/landing/AtlaxBubble';
 import OportunidadPanel from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell } from '../components/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple, fetchEspejoCorte } from '../api/marketplace';
+import { fetchColonias, fetchZonasPopulares, fetchDevelopments, aiSearchParse, fetchCasiCumple, fetchEspejoCorte } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
@@ -132,6 +132,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   }, [filters, coloniaFilter]);
 
   useEffect(() => { fetchColonias().then(setColonias); }, []);
+  const [zonasHot, setZonasHot] = useState([]);
+  useEffect(() => { fetchZonasPopulares(12).then((z) => setZonasHot(Array.isArray(z) ? z : [])); }, []);
 
   // Filtros combinados (búsqueda obligatoria + IA + zona + subscores) — compartidos por el fetch inicial y "cargar más".
   const mergedFilters = useMemo(() => {
@@ -471,6 +473,32 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             </div>
           </div>
         </section>
+
+        {/* ZONAS CON MÁS MOVIMIENTO — ranking automático por oferta + demanda + absorción
+            (founder 07-17). Las de más desarrollos primero; se reordena solo con los datos vivos. */}
+        {zonasHot.length > 0 && (
+          <section style={{ maxWidth: 1440, margin: '0 auto', padding: '4px 32px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 16 }}>🔥</span>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)' }}>Zonas con más movimiento</span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>· por oferta, demanda y ventas</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              {zonasHot.map((z) => (
+                <Link key={z.slug} to={`/zona/${z.slug}?ver=propiedades`} style={{
+                  flex: '0 0 auto', textDecoration: 'none', padding: '10px 16px', borderRadius: 12,
+                  background: 'var(--surface-card)', border: '1px solid var(--border)',
+                  display: 'flex', flexDirection: 'column', gap: 2, minWidth: 128,
+                }}>
+                  <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, color: 'var(--cream)', textTransform: 'capitalize' }}>{z.name}</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                    {z.oferta} {z.oferta === 1 ? 'desarrollo' : 'desarrollos'}{z.disponibles ? ` · ${z.disponibles} disp.` : ''}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Prueba social por cierres (moat flywheel · null-safe: invisible si no hay cierres parecidos) */}
         <ParecidosCerraron />
