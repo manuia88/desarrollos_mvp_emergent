@@ -30,12 +30,23 @@ _VARIANTES = {
     "ampl", "ampliacion", "seccion", "secc",
 }
 
-# colonias que pertenecen a una zona pero NO comparten prefijo → alias explícito
+# colonias que pertenecen a una zona pero NO comparten prefijo → alias explícito.
+# Incluye ADYACENCIA de mercado (founder 07-17: "que si se meten a San Miguel Chapultepec
+# no vean solo 1 desarrollo"): las micro-colonias contiguas de un mismo corredor se agrupan
+# en la zona reconocible por el comprador (área Condesa, área Polanco).
 ALIAS = {
+    # ── área CONDESA (corredor contiguo) ──
     "hipodromo": "condesa",
     "hipodromo-condesa": "condesa",
+    "san-miguel-chapultepec": "condesa",   # Casa Condesa vive aquí; es Condesa para el comprador
+    "escandon": "condesa",
+    # ── área POLANCO (Nuevo Polanco = Granada/Ampliación Granada, contiguo a Polanco) ──
+    "granada": "polanco",
+    "ampliacion-granada": "polanco",
+    "amp-granada": "polanco",
+    # ── ANZURES ──
     "veronica-anzures": "anzures",
-    # Interlomas (Edomex): sub-zonas de Huixquilucan que se buscan como "Interlomas"
+    # ── Interlomas (Edomex): sub-zonas de Huixquilucan se buscan como "Interlomas" ──
     "green-house": "interlomas",
     "hacienda-de-las-palmas": "interlomas",
     "centro-urbano-san-fernando-la-herradura": "interlomas",
