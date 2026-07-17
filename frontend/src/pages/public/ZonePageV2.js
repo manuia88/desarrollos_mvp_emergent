@@ -975,7 +975,10 @@ export default function ZonePageV2() {
   const name = (landing && landing.name) || tc((slug || '').replace(/-/g, ' '));
   // Cobertura de CUALQUIER colonia: full (tiene mercado) · descubrimiento (catálogo, sin mercado) · no-encontrada (404).
   const tieneMercado = !!(inv && inv.tiene_mercado);
-  const esReal = !!landing || tieneMercado;
+  // una zona CON DESARROLLOS es real aunque no tenga landing ni mercado (07-17: /zona/roma
+  // decía "no encontrada" pese a 12 desarrollos, porque el landing corto 'roma' daba 404).
+  const tieneDesarrollos = Array.isArray(devs) && devs.length > 0;
+  const esReal = !!landing || tieneMercado || tieneDesarrollos;
   const noEncontrada = !loading && !esReal;                 // ni en SEED ni en catálogo → slug inválido
   const descubrimiento = esReal && !tieneMercado;           // colonia real del catálogo, aún sin precios/desarrollos
   const zScores = (landing && landing.scores_reales) || null;

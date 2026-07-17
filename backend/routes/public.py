@@ -1759,8 +1759,12 @@ async def list_developments(
     except Exception:
         pass  # fail-open: si la lectura de ingeridos falla, el listado sigue con el catálogo curado + wizard
     if colonia:
-        cset = {c.lower() for c in colonia}
-        results = [d for d in results if d["colonia_id"].lower() in cset]
+        # PACKS DE COLONIA (07-17): /zona/juarez agrupa 'juarez-cuauhtemoc'; Roma = Norte+Sur;
+        # Condesa = Condesa+Hipódromo; Del Valle = Norte+Centro+Sur; y TODO caso que coincida
+        # por zona base. Antes el match era exacto (colonia_id == slug) → 0 resultados.
+        from zona_packs import misma_zona
+        results = [d for d in results if d.get("colonia_id")
+                   and any(misma_zona(d["colonia_id"], c) for c in colonia)]
     # ── Filtros a nivel PROYECTO (del DESARROLLO): zona, etapa, tipo, alcaldía, AMENIDADES del edificio, destacado ──
     if stage:
         results = [d for d in results if _norm_stage(d["stage"], d.get("delivery_estimate")) == stage]
@@ -2047,10 +2051,11 @@ async def casi_cumple(
     _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
     pool = list(DEVELOPMENTS)
     if colonia:
-        cset = {c.lower() for c in colonia}
         # La ZONA es sagrada: si el cliente pidió una zona, los "casi" se quedan en esa zona (nunca cruzamos a otra
-        # que NO pidió). Si no hay nada en su zona, devuelve vacío — honesto.
-        pool = [d for d in pool if d["colonia_id"].lower() in cset]
+        # que NO pidió). Pack de colonias (07-17): agrupa sub-colonias de la misma zona base.
+        from zona_packs import misma_zona
+        pool = [d for d in pool if d.get("colonia_id")
+                and any(misma_zona(d["colonia_id"], c) for c in colonia)]
     scored = []
     for d in pool:
         units = [u for u in (d.get("units") or []) if u.get("status") == "disponible"]
