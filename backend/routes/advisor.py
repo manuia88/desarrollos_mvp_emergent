@@ -873,6 +873,13 @@ async def create_contacto(payload: ContactoIn, request: Request):
     except Exception as _e:
         logging.getLogger("dmx.advisor").warning(f"[bridge] sintetizar lead manual falló (cid={item.get('id')}): {_e}")
     item.pop("_id", None)
+    # [AUD flujos] El ALTA también queda en el audit_log CENTRAL (update/delete ya lo hacían;
+    # el create era invisible en la auditoría unificada del superadmin). Fail-open.
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "create", "contacto", item["id"], before=None, after=item, request=request)
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (contacto/%s create): %s", item.get("id"), _e)
     return item
 
 

@@ -1022,6 +1022,38 @@ async def _assert_unit_in_dev(db, dev_id: str, unit_id: str):
     raise HTTPException(404, "Unidad no encontrada en este desarrollo")
 
 
+async def _valores_efectivos_unidad(db, dev_id: str, unit_id: str) -> dict:
+    """Valores EFECTIVOS actuales de la unidad (los que hoy ve el público): db.units para
+    devs reales, seed para demo. Es la fuente del 'antes' en la PRIMERA edición — sin
+    override previo el audit decía antes=None y el delta (p.ej. de precio) se perdía."""
+    doc = await db.units.find_one(
+        {"$and": [{"$or": [{"id": unit_id}, {"unit_number": unit_id}]},
+                  {"$or": [{"dev_id": dev_id}, {"development_id": dev_id}, {"project_id": dev_id}]}]},
+        {"_id": 0}) or {}
+    if not doc:
+        from data_developments import DEVELOPMENTS_BY_ID
+        for u in (DEVELOPMENTS_BY_ID.get(dev_id) or {}).get("units", []):
+            if u.get("id") == unit_id or u.get("unit_number") == unit_id:
+                doc = dict(u)
+                break
+    # el editor del dev habla en 'price'; en db.units el precio puede vivir en price_mxn
+    if doc.get("price") is None and doc.get("price_mxn") is not None:
+        doc["price"] = doc["price_mxn"]
+    return doc
+
+
+async def _antes_efectivo(db, dev_id: str, unit_id: str, prev_ov: dict, campos) -> dict:
+    """El 'antes' del audit por campo: override previo si existía; si no, el valor
+    EFECTIVO actual (db.units/seed) — nunca None por el simple hecho de ser la 1ª edición."""
+    antes = {k: prev_ov.get(k) for k in campos}
+    if any(v is None for v in antes.values()):
+        efectivos = await _valores_efectivos_unidad(db, dev_id, unit_id)
+        for k, v in antes.items():
+            if v is None and efectivos.get(k) is not None:
+                antes[k] = efectivos[k]
+    return antes
+
+
 @router.patch("/inventario/unit-status")
 async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     user = await require_dev_admin(request)
@@ -1036,13 +1068,9 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     prev = await db.developer_unit_overrides.find_one({"unit_id": payload.unit_id}, {"_id": 0, "status": 1})
     old_status = (prev or {}).get("status")
     if old_status is None:
-        # Fallback to seed status
-        from data_developments import DEVELOPMENTS_BY_ID
-        dev = DEVELOPMENTS_BY_ID.get(payload.dev_id) or {}
-        for u in dev.get("units", []):
-            if u.get("id") == payload.unit_id:
-                old_status = u.get("status")
-                break
+        # [AUD flujos] Sin override previo el 'antes' es el estado EFECTIVO actual
+        # (db.units para devs reales, seed para demo) — nunca None en la 1ª edición.
+        old_status = (await _valores_efectivos_unidad(db, payload.dev_id, payload.unit_id)).get("status")
     _set_doc = {
         "unit_id": payload.unit_id, "dev_id": payload.dev_id,
         "status": payload.status, "reason": payload.reason or "",
@@ -1196,6 +1224,9 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     # solo sabía el después (el cambio de precio quedaba sin delta).
     prev_ov = await db.developer_unit_overrides.find_one(
         {"unit_id": payload.unit_id}, {"_id": 0, **{k: 1 for k in fields}}) or {}
+    # [AUD flujos] 1ª edición (sin override previo): el 'antes' es el valor EFECTIVO actual
+    # (db.units/seed — lo que hoy ve el público), no None. El delta de precio queda completo.
+    antes = await _antes_efectivo(db, payload.dev_id, payload.unit_id, prev_ov, fields)
     set_doc = {"unit_id": payload.unit_id, "dev_id": payload.dev_id,
                "updated_by": user.user_id, "updated_at": _now(), **fields}
     await db.developer_unit_overrides.update_one(
@@ -1204,13 +1235,15 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
         "user_id": user.user_id, "action": "unit_fields_change",
-        "payload": fields, "antes": {k: prev_ov.get(k) for k in fields}, "ts": _now(),
+        "payload": fields, "antes": antes, "ts": _now(),
     })
     # CROSS-PORTAL: el superadmin VE la edición de campos (precio/m²/…) del dev en el audit_log central. Fail-open.
     try:
         from audit_log import log_mutation
         await log_mutation(db, {"user_id": user.user_id, "role": "developer", "name": getattr(user, "name", None)},
-                           "update", "unit", entity_id=payload.unit_id, after={"campos": fields, "dev": payload.dev_id})
+                           "update", "unit", entity_id=payload.unit_id,
+                           before={"campos": antes, "dev": payload.dev_id},
+                           after={"campos": fields, "dev": payload.dev_id})
     except Exception as _e:
         logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (unit fields_change unit_id=%s): %s", payload.unit_id, _e)
     return {"ok": True, "unit_id": payload.unit_id, **fields}
@@ -1245,6 +1278,19 @@ async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     if not fields:
         raise HTTPException(400, "Nada que actualizar")
 
+    # F5 (auditoría): N eventos por unidad CON antes — el doc job-level sin unit_id era
+    # invisible en la historia del átomo. [AUD flujos] El 'antes' se captura ANTES de
+    # escribir (se leía después del bulk_write → antes==después) y, sin override previo,
+    # cae al valor EFECTIVO actual (db.units/seed), no a None.
+    _prevs = {}
+    async for _p in db.developer_unit_overrides.find(
+            {"unit_id": {"$in": payload.unit_ids}}, {"_id": 0, "unit_id": 1, **{k: 1 for k in fields}}):
+        _prevs[_p["unit_id"]] = _p
+    _antes_por_unidad = {
+        _u: await _antes_efectivo(db, payload.dev_id, _u, _prevs.get(_u) or {}, fields)
+        for _u in payload.unit_ids
+    }
+
     from pymongo import UpdateOne
     ops = [
         UpdateOne(
@@ -1257,16 +1303,10 @@ async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     ]
     if ops:
         await db.developer_unit_overrides.bulk_write(ops, ordered=False)
-    # F5 (auditoría): N eventos por unidad CON antes — el doc job-level sin unit_id era
-    # invisible en la historia del átomo.
-    _prevs = {}
-    async for _p in db.developer_unit_overrides.find(
-            {"unit_id": {"$in": payload.unit_ids}}, {"_id": 0, "unit_id": 1, **{k: 1 for k in fields}}):
-        _prevs[_p["unit_id"]] = _p
     await db.developer_audit.insert_many([{
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": _u,
         "user_id": user.user_id, "action": "unit_fields_change",
-        "payload": fields, "antes": {k: (_prevs.get(_u) or {}).get(k) for k in fields},
+        "payload": fields, "antes": _antes_por_unidad.get(_u) or {},
         "bulk": True, "ts": _now(),
     } for _u in payload.unit_ids])
     return {"ok": True, "count": len(payload.unit_ids), "fields": fields}

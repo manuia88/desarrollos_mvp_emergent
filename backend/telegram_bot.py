@@ -102,12 +102,16 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
                        [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
     elif tipo in ("lista_cambiada", "lista_nueva"):
         a = p.get("archivo") or {}
-        verbo = "CAMBIÓ" if tipo == "lista_cambiada" else "apareció NUEVA"
+        accion = ("CAMBIÓ la lista" if tipo == "lista_cambiada" else "subió una lista NUEVA:")
         lineas = [
             f"📄 <b>{dev} · {_esc(p.get('proyecto'))}</b>",
-            f"La lista <b>{_esc(a.get('nombre'))}</b> {verbo}"
-            + (f" (modificada {_esc(a.get('modificado'))[:16]})" if a.get("modificado") else "") + ".",
+            f"El DESARROLLADOR {accion} <b>{_esc(a.get('nombre'))}</b> en su Drive"
+            + (f" ({_esc(a.get('modificado'))[:16]})" if a.get("modificado") else "") + ".",
         ]
+        if p.get("cambios"):
+            from lista_peek import lineas_de_cambios
+            lineas += ["", "<b>Qué cambió exactamente:</b>"]
+            lineas += [_esc(x) for x in lineas_de_cambios(p["cambios"], sangria="")][:10]
         if ctx.get("ultima_ingesta"):
             lineas.append(f"Última ingesta de este dev: {_esc(ctx['ultima_ingesta'])[:10]}.")
         if ctx.get("n_unidades_proyecto") is not None:
@@ -125,11 +129,25 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             lineas.append("⚠️ Este dev no está mapeado — aprobar te pedirá el mapeo primero.")
             botones.insert(0, [{"text": "👤 Mapear dev primero", "callback_data": f"mapmenu:{pid}"}])
     elif tipo == "proyecto_nuevo":
-        lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>.",
-                  "▸ <b>Aprobar</b>: la ingiero con IA (gasta API) y entra al catálogo de ese dev.",
-                  "▸ <b>Ignorar</b>: queda fuera (la sigo vigilando)."]
+        lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>."]
+        if p.get("ya_en_catalogo"):
+            ya_c = p["ya_en_catalogo"]
+            lineas += [f"⚠️ <b>OJO: no parece nuevo.</b> Coincide con el proyecto EXISTENTE "
+                       f"<b>{_esc(ya_c.get('name'))}</b> ({ya_c.get('unidades')} unidades ya en "
+                       f"el catálogo). Puede ser carpeta renombrada o duplicada.",
+                       "▸ <b>Aprobar</b>: RE-LEO ese proyecto con IA (gasta API) — útil si el dev lo actualizó.",
+                       "▸ <b>Ignorar</b>: no hago nada (lo sigo vigilando)."]
+        else:
+            lineas += ["▸ <b>Aprobar</b>: la ingiero con IA (gasta API) y entra al catálogo de ese dev.",
+                       "▸ <b>Ignorar</b>: queda fuera (la sigo vigilando)."]
         botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
                     {"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+    elif tipo == "proyecto_renombrado":
+        viejo = _esc((p.get("antes") or {}).get("proyecto"))
+        lineas = [f"📁 <b>{dev}</b> renombró la carpeta «{viejo}» → <b>{_esc(p.get('proyecto'))}</b>.",
+                  "Es el MISMO proyecto de siempre (sus archivos son los mismos) — solo te aviso.",
+                  "▸ <b>Enterado</b>: lo archivo."]
+        botones = [[{"text": "👍 Enterado", "callback_data": f"rj:{pid}"}]]
     elif tipo == "acceso_roto":
         lineas = [f"⚠️ <b>Perdí acceso a la carpeta de {dev}.</b>",
                   "Causas típicas: te quitaron el permiso o borraron/movieron la carpeta.",

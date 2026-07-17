@@ -50,3 +50,35 @@ def test_acceso_roto_explica_causas():
     card = tarjeta_pendiente({"id": "vp5", "tipo": "acceso_roto", "dev": "Deca"}, {})
     assert "Perdí acceso" in card["texto"] and "permiso" in card["texto"]
     assert any("ap:vp5" == b["callback_data"] for fila in card["botones"] for b in fila)
+
+
+def test_lista_cambiada_muestra_el_diff_exacto():
+    """Founder 07-17: 'cuando dicen lista modificada, ¿qué se modificó?' — la tarjeta lo dice."""
+    p = {"id": "vp7", "tipo": "lista_cambiada", "dev": "CLASS", "proyecto": "Avalia",
+         "archivo": {"nombre": "VP_Lista Torre B.pdf"},
+         "cambios": {"base": "la versión anterior de la lista",
+                     "cambios_precio": [{"unidad": "B 204", "antes": 6194300, "ahora": 5981600}],
+                     "cambios_status": [], "ya_no_estan": [], "nuevas": [],
+                     "totales": {"cambios_precio": 1}}}
+    t = tarjeta_pendiente(p, {})["texto"]
+    assert "Qué cambió exactamente" in t
+    assert "B 204" in t and "$6,194,300" in t and "$5,981,600" in t and "-3.4%" in t
+    assert "DESARROLLADOR" in t          # quién: fue el dev en su Drive, no el founder
+
+
+def test_proyecto_nuevo_advierte_si_ya_existe_en_catalogo():
+    """Cordobanes 07-17: carpeta renombrada gritaba 'proyecto nuevo' — la tarjeta ahora avisa."""
+    p = {"id": "vp8", "tipo": "proyecto_nuevo", "dev": "CLASS",
+         "proyecto": "Cordobanes 3, Col. San Jose Insurgentes - ENTREGA INMEDIATA",
+         "ya_en_catalogo": {"dev_id": "d1", "name": "Cordobanes 3", "unidades": 8}}
+    t = tarjeta_pendiente(p, {})["texto"]
+    assert "no parece nuevo" in t and "Cordobanes 3" in t and "8 unidades" in t
+
+
+def test_proyecto_renombrado_solo_informa():
+    p = {"id": "vp9", "tipo": "proyecto_renombrado", "dev": "CLASS",
+         "proyecto": "Cordobanes 3 - ENTREGA", "antes": {"proyecto": "Cordobanes - ENTREGA"}}
+    card = tarjeta_pendiente(p, {})
+    assert "renombró" in card["texto"] and "MISMO proyecto" in card["texto"]
+    botones = [b["callback_data"] for fila in card["botones"] for b in fila]
+    assert "ap:vp9" not in botones       # nada que ingerir: solo 'Enterado'

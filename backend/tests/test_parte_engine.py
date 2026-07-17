@@ -21,8 +21,9 @@ def test_linea_vendida_con_specs_y_precio():
          "recamaras": 2, "banos": 2, "estacionamientos": 2, "m2": 84,
          "precio": 4_850_000, "dev_id": "Almina"}
     l = linea_movimiento(r)
-    assert l.startswith("🔴 Vendida: 105")
-    assert "2R·2B·2E · 84m²" in l and "$4,850,000" in l and "Almina" in l
+    # v2 (founder 07-16): el DESARROLLO va primero — "quién" antes que "qué"
+    assert l.startswith("🔴 Almina · unidad 105: VENDIDA")
+    assert "2R·2B·2E · 84m²" in l and "$4,850,000" in l
 
 
 def test_linea_cambio_precio_con_delta():
@@ -39,7 +40,7 @@ def test_linea_alta_nueva():
     r = {"tipo": "alta", "unit_id": "d__PH1", "recamaras": 3, "m2": 210,
          "precio": 12_000_000, "dev_id": "Reforma 2"}
     l = linea_movimiento(r)
-    assert l.startswith("🆕 Nueva: PH1") and "$12,000,000" in l
+    assert l.startswith("🆕 Reforma 2 · unidad PH1: ALTA en la lista") and "$12,000,000" in l
 
 
 def test_registro_de_cadencias_completo():

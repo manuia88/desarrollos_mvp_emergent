@@ -664,6 +664,11 @@ app.include_router(vigia_router)
 from routes.inventario import router as inventario_router
 app.include_router(inventario_router)
 
+# Auditoría 07-17 — visibilidad: leads del superadmin (la bandeja ya ligaba a /superadmin/leads)
+# + pedidos a los desarrolladores (solicitudes_gdc/_class, antes solo vivían en Mongo)
+from routes.superadmin_leads import router as superadmin_leads_router
+app.include_router(superadmin_leads_router)
+
 # W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)

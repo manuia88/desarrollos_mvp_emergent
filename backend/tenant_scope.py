@@ -91,6 +91,71 @@ def user_dev_ids(user) -> List[str]:
     return []
 
 
+# ─── Resolución por BD (fix auditoría 07-17: los desarrollos REALES no viven en el seed) ─
+async def _user_orgs_db(db, user) -> List[str]:
+    """Org(s)/tenant(s) a los que el usuario pertenece según BD (además de su token):
+    db.users (tenant_id/org_id) y db.dev_orgs reclamadas por él (admin_email del claim,
+    o claimed_by/owner/members si existen). Nunca lanza: devuelve lo que pudo resolver."""
+    orgs: List[str] = []
+
+    def _add(v):
+        if v and v != "default" and v not in orgs:
+            orgs.append(v)
+
+    _add(_field(user, "tenant_id"))
+    _add(_field(user, "org_id"))
+    uid = actor_id(user)
+    email = _field(user, "email")
+    try:
+        if uid:
+            u = await db.users.find_one({"user_id": uid},
+                                        {"_id": 0, "tenant_id": 1, "org_id": 1, "email": 1})
+            if u:
+                _add(u.get("tenant_id"))
+                _add(u.get("org_id"))
+                email = email or u.get("email")
+        # OJO: solo condiciones con valor real ({campo: None} en Mongo matchea docs SIN el campo)
+        ors = []
+        if uid:
+            ors += [{"claimed_by": uid}, {"owner": uid}, {"owner_user_id": uid}, {"members": uid}]
+        if email:
+            ors.append({"admin_email": email})
+        if ors:
+            async for o in db.dev_orgs.find({"$or": ors}, {"_id": 0, "tenant_id": 1}).limit(20):
+                _add(o.get("tenant_id"))
+    except Exception:  # noqa: BLE001 — fail-open al token: la BD caída no debe tirar el scope
+        pass
+    return orgs
+
+
+async def user_dev_ids_db(db, user) -> List[str]:
+    """user_dev_ids resolviendo TAMBIÉN la propiedad real en BD (async).
+
+    El seed en memoria solo conoce los desarrollos demo; los ingeridos viven en
+    db.developments con developer_id = la org del dev (p.ej. 'org_user_b2869298f9f2',
+    orgs GDC). Sin esta resolución el dueño legítimo no veía sus proyectos reales.
+      1. superadmin → todos (seed + BD).
+      2. org(s) del usuario (_user_orgs_db) → db.developments por developer_id/org_id/dev_org_id.
+      3. el seed (user_dev_ids) sigue vivo como base/fallback — nunca se pierde.
+    Fail-open al seed: si la BD no responde, devuelve lo del seed."""
+    base = user_dev_ids(user)
+    try:
+        if is_superadmin(user):
+            reales = [d["id"] async for d in
+                      db.developments.find({}, {"_id": 0, "id": 1}).limit(5000)]
+            return list(dict.fromkeys([*base, *reales]))
+        orgs = await _user_orgs_db(db, user)
+        if not orgs:
+            return base
+        q = {"$or": [{"developer_id": {"$in": orgs}}, {"org_id": {"$in": orgs}},
+                     {"dev_org_id": {"$in": orgs}}]}
+        reales = [d["id"] async for d in
+                  db.developments.find(q, {"_id": 0, "id": 1}).limit(5000)]
+        return list(dict.fromkeys([*base, *reales]))
+    except Exception:  # noqa: BLE001
+        return base
+
+
 # ─── Candados de propiedad (Fase 2.1 · aislamiento cross-dev-org) ────────────────
 def dev_can_access_org(user, dev_org_id) -> bool:
     """¿Puede el usuario tocar un recurso marcado con dev_org_id? superadmin o su mismo tenant."""

@@ -674,6 +674,21 @@ async def _run_antifraude(
     return {"status": "ok", "geo_mismatch": geo_mismatch}
 
 
+async def _lead_reusable_por_email(db, project_id: str, email_norm: str):
+    """[AUD flujos 07-17] Lead existente del MISMO correo en el MISMO desarrollo.
+    El antifraude solo bloquea (409) los ACTIVOS con contact.email_norm; los leads viejos
+    (correo guardado solo en contact.email, sin normalizar) o ya cerrados se escapaban del
+    check y el insert creaba un lead DUPLICADO. Regla: mismo correo + mismo desarrollo →
+    se REUSA el lead (nota + último contacto), nunca se inserta otro."""
+    if not email_norm:
+        return None
+    return await db.leads.find_one(
+        {"project_id": project_id,
+         "$or": [{"contact.email_norm": email_norm},
+                 {"contact.email": {"$regex": f"^{re.escape(email_norm)}$", "$options": "i"}}]},
+        {"_id": 0})
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SUB-CHUNK B: Auto-routing helper
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1108,73 +1123,99 @@ async def create_cita(payload: CitaBody, request: Request):
         contact_dict["phone_norm"] = phone_norm
     if email_norm:
         contact_dict["email_norm"] = email_norm
-    lead = {
-        "id": _uid("lead"),
-        "dev_org_id": dev_org_id,
-        "project_id": payload.project_id,
-        "source": "cita_form",
-        "source_metadata": {"origin_type": origin_type},
-        "contact": contact_dict,
-        "intent": payload.intent,
-        "budget_range": presupuesto_dict,
-        "status": lead_status,
-        # status_v2 canónico desde el inicio (si no, el lead no aparece en smart lists)
-        "status_v2": "perdido" if lead_status in CLOSED_STATUSES else "lead_nuevo",
-        # activo = lead NO cerrado · alimenta el índice único de dedup (1 lead activo por proyecto+contacto)
-        "activo": lead_status not in CLOSED_STATUSES,
-        "assigned_to": asesor_id,
-        "asesor_id": asesor_id,
-        "notes": [],
-        "lost_reason": None,
-        # Extended fields (B4.1)
-        "payment_methods": payload.payment_methods,
-        "lfpdppp_consent": {
-            "accepted_at": now_iso,
-            "ip": request.headers.get("x-forwarded-for", ""),
-            "user_agent": request.headers.get("user-agent", ""),
-        },
-        "presupuesto_min": presupuesto_dict.get("min"),
-        "presupuesto_max": presupuesto_dict.get("max"),
-        # Anti-fraud fields
-        "client_global_id": client_gid,
-        "geo_metadata": {"phone_area_code": _phone_area_code(phone_norm), "mismatch": geo_mismatch},
-        "velocity_flag": fraud_result.get("reason") == "velocity",
-        "suspected_match_id": fraud_result.get("suspected_match_id"),
-        # Origin
-        "origin": {
-            "type": origin_type,
-            "inmobiliaria_id": origin_inmobiliaria_id,
-        },
-        "inmobiliaria_id": lead_inmobiliaria_id,
-        "created_at": now_iso,
-        "updated_at": now_iso,
-        "last_activity_at": now_iso,
-        "created_by": getattr(user, "user_id", "public") if user else "public",
-    }
-    try:
-        await db.leads.insert_one(lead)
-    except DuplicateKeyError:
-        # Backstop de carrera: otro request idéntico ganó entre el check antifraude y
-        # este insert (índice único parcial por proyecto+teléfono/email activo).
-        raise HTTPException(409, detail={
-            "error": "Lead duplicado: ya existe un registro activo para este contacto en el proyecto",
-        })
-    lead.pop("_id", None)
 
-    # E0.7b · Puente: materializa el lead en el CRM rico del asesor asignado (idempotente,
-    # dedup vs alta manual, solo si el dueño es un user_id real). FAIL-OPEN.
-    try:
-        from services.lead_bridge import mirror_lead_to_asesor_contacto
-        await mirror_lead_to_asesor_contacto(db, lead)
-    except Exception as _e:
-        # Si el espejo al CRM falla, el lead puede NO aparecer en "Mis Leads". Lo marcamos
-        # mirror_pending → el reintento en arranque (retry_pending_mirrors) lo repara solo.
-        # (El log.error es para depurar; el founder NO necesita actuar: se autocorrige.)
-        log.error(f"[create_cita] mirror al CRM falló · lead {lead['id']} marcado para reintento: {_e}", exc_info=True)
+    # [AUD flujos 07-17] Dedup por correo ANTES de insertar: mismo email + mismo desarrollo
+    # → se REUSA el lead existente (nota de la nueva cita + refresh de último contacto) en
+    # vez de crear un duplicado (los leads sin email_norm o cerrados se escapaban del 409).
+    lead_reusado = await _lead_reusable_por_email(db, payload.project_id, email_norm)
+    if lead_reusado:
+        lead = lead_reusado
+        nota = {
+            "id": _uid("ln"),
+            "text": f"Nueva cita agendada vía formulario para {payload.datetime} "
+                    f"(lead reusado, sin duplicar)",
+            "by_user_id": getattr(user, "user_id", "public") if user else "public",
+            "by_name": (getattr(user, "name", None) if user else None) or "Formulario de citas",
+            "ts": now_iso,
+        }
+        set_reuso = {"updated_at": now_iso, "last_activity_at": now_iso}
+        # backfill del correo normalizado: el próximo agendado ya lo cacha el antifraude
+        if email_norm and not (lead.get("contact") or {}).get("email_norm"):
+            set_reuso["contact.email_norm"] = email_norm
+        if phone_norm and not (lead.get("contact") or {}).get("phone_norm"):
+            set_reuso["contact.phone_norm"] = phone_norm
+        await db.leads.update_one(
+            {"id": lead["id"]},
+            {"$push": {"notes": {"$each": [nota], "$position": 0}}, "$set": set_reuso})
+        lead_status = lead.get("status") or lead_status
+    else:
+        lead = {
+            "id": _uid("lead"),
+            "dev_org_id": dev_org_id,
+            "project_id": payload.project_id,
+            "source": "cita_form",
+            "source_metadata": {"origin_type": origin_type},
+            "contact": contact_dict,
+            "intent": payload.intent,
+            "budget_range": presupuesto_dict,
+            "status": lead_status,
+            # status_v2 canónico desde el inicio (si no, el lead no aparece en smart lists)
+            "status_v2": "perdido" if lead_status in CLOSED_STATUSES else "lead_nuevo",
+            # activo = lead NO cerrado · alimenta el índice único de dedup (1 lead activo por proyecto+contacto)
+            "activo": lead_status not in CLOSED_STATUSES,
+            "assigned_to": asesor_id,
+            "asesor_id": asesor_id,
+            "notes": [],
+            "lost_reason": None,
+            # Extended fields (B4.1)
+            "payment_methods": payload.payment_methods,
+            "lfpdppp_consent": {
+                "accepted_at": now_iso,
+                "ip": request.headers.get("x-forwarded-for", ""),
+                "user_agent": request.headers.get("user-agent", ""),
+            },
+            "presupuesto_min": presupuesto_dict.get("min"),
+            "presupuesto_max": presupuesto_dict.get("max"),
+            # Anti-fraud fields
+            "client_global_id": client_gid,
+            "geo_metadata": {"phone_area_code": _phone_area_code(phone_norm), "mismatch": geo_mismatch},
+            "velocity_flag": fraud_result.get("reason") == "velocity",
+            "suspected_match_id": fraud_result.get("suspected_match_id"),
+            # Origin
+            "origin": {
+                "type": origin_type,
+                "inmobiliaria_id": origin_inmobiliaria_id,
+            },
+            "inmobiliaria_id": lead_inmobiliaria_id,
+            "created_at": now_iso,
+            "updated_at": now_iso,
+            "last_activity_at": now_iso,
+            "created_by": getattr(user, "user_id", "public") if user else "public",
+        }
         try:
-            await db.leads.update_one({"id": lead["id"]}, {"$set": {"mirror_pending": True}})
-        except Exception:
-            pass
+            await db.leads.insert_one(lead)
+        except DuplicateKeyError:
+            # Backstop de carrera: otro request idéntico ganó entre el check antifraude y
+            # este insert (índice único parcial por proyecto+teléfono/email activo).
+            raise HTTPException(409, detail={
+                "error": "Lead duplicado: ya existe un registro activo para este contacto en el proyecto",
+            })
+        lead.pop("_id", None)
+
+        # E0.7b · Puente: materializa el lead en el CRM rico del asesor asignado (idempotente,
+        # dedup vs alta manual, solo si el dueño es un user_id real). FAIL-OPEN.
+        try:
+            from services.lead_bridge import mirror_lead_to_asesor_contacto
+            await mirror_lead_to_asesor_contacto(db, lead)
+        except Exception as _e:
+            # Si el espejo al CRM falla, el lead puede NO aparecer en "Mis Leads". Lo marcamos
+            # mirror_pending → el reintento en arranque (retry_pending_mirrors) lo repara solo.
+            # (El log.error es para depurar; el founder NO necesita actuar: se autocorrige.)
+            log.error(f"[create_cita] mirror al CRM falló · lead {lead['id']} marcado para reintento: {_e}", exc_info=True)
+            try:
+                await db.leads.update_one({"id": lead["id"]}, {"$set": {"mirror_pending": True}})
+            except Exception:
+                pass
 
     # Phase 4 Batch 4.4 — queue heat recalc on lead create
     try:
@@ -1207,14 +1248,16 @@ async def create_cita(payload: CitaBody, request: Request):
     except Exception as exc:
         # Compensación: la cita no se pudo crear → revertir el lead para no dejarlo
         # huérfano (lead sin cita). Sin transacciones Mongo, esta es la limpieza segura.
-        await db.leads.delete_one({"id": lead["id"]})
-        try:
-            # Solo DESVINCULAR el espejo (no borrarlo): pudo haber enlazado un contacto
-            # creado a mano por el asesor; borrarlo destruiría su dato real.
-            await db.asesor_contactos.update_one(
-                {"source_lead_id": lead["id"]}, {"$unset": {"source_lead_id": ""}})
-        except Exception:
-            pass
+        # OJO: un lead REUSADO nunca se borra (era dato real previo, no nació aquí).
+        if not lead_reusado:
+            await db.leads.delete_one({"id": lead["id"]})
+            try:
+                # Solo DESVINCULAR el espejo (no borrarlo): pudo haber enlazado un contacto
+                # creado a mano por el asesor; borrarlo destruiría su dato real.
+                await db.asesor_contactos.update_one(
+                    {"source_lead_id": lead["id"]}, {"$unset": {"source_lead_id": ""}})
+            except Exception:
+                pass
         log.error(f"[create_cita] appointment insert falló · lead {lead['id']} revertido: {exc}", exc_info=True)
         raise HTTPException(500, "No se pudo crear la cita · intenta de nuevo")
     appointment.pop("_id", None)
@@ -1312,6 +1355,8 @@ async def create_cita(payload: CitaBody, request: Request):
         "appointment_id": appointment["id"],
         "status": status_out,
         "under_review": is_under_review,
+        # [AUD flujos] transparencia del dedup: la cita quedó colgada del lead ya existente
+        "lead_reused": bool(lead_reusado),
         "wa_template_url": wa_url,
         "confirmation_token": confirmation_token,
         "project_name": project_name,

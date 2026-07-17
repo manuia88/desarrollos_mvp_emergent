@@ -590,6 +590,47 @@ function BandejaUnica() {
   );
 }
 
+/* 📋 Lo que les pedimos a los desarrolladores (CLASS/GDC) para completar el catálogo.
+   Antes estas solicitudes solo vivían en Mongo (solicitudes_gdc/_class) — ahora se ven aquí. */
+export function PedidosDevs() {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/api/superadmin/solicitudes-devs`, { credentials: 'include' }).then(_j)
+      .then(setS).catch(() => setS(null));
+  }, []);
+  if (!s || !s.n) return null;
+  return (
+    <div style={{ ...S.card, margin: '4px 0 12px' }} className="dmx-card" data-testid="pedidos-devs">
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>
+          📋 Pedido a los desarrolladores {s.pendientes ? `(${s.pendientes} pendiente${s.pendientes > 1 ? 's' : ''})` : '— al día 🎉'}
+        </h2>
+        <span style={S.mini}>datos que faltan en la fuente — se los pedimos a CLASS y GDC</span>
+      </div>
+      {(s.solicitudes || []).map((p, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', marginTop: 5 }}>
+          <span style={{ ...S.mini, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', flexShrink: 0 }}>{p.desarrollador}</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', flex: 1 }}>
+            <b>{p.proyecto}</b>: falta {(p.que_falta || '').toLowerCase()}
+            {p.por_que ? <span style={{ color: 'rgba(240,235,224,0.75)' }}> — {p.por_que}</span> : null}
+            {(p.proyectos || []).length > 1 && (
+              <span style={{ ...S.mini, display: 'block', marginTop: 2 }} title={p.proyectos.join(' · ')}>
+                {p.proyectos.slice(0, 4).join(' · ')}{p.proyectos.length > 4 ? ` · +${p.proyectos.length - 4} más` : ''}
+              </span>
+            )}
+          </span>
+          <span style={{ ...S.mini, flexShrink: 0, textAlign: 'right' }}>
+            <span style={{ display: 'block', fontWeight: 800, color: p.estado === 'pendiente' ? '#d29922' : '#86efac' }}>
+              {p.estado === 'pendiente' ? '⏳ pendiente' : '✓ resuelto'}
+            </span>
+            {p.fecha}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MercadoCruces() {
   const [mc, setMc] = useState(null);
   useEffect(() => { _get('/mercado-cruces').then(setMc).catch(() => setMc(null)); }, []);
@@ -682,6 +723,7 @@ export default function SuperadminInventario({ user, onLogout }) {
 
         {/* 📥 LA BANDEJA ÚNICA + los cruces de mercado (solo en la raíz) */}
         {!devSel && <BandejaUnica />}
+        {!devSel && <PedidosDevs />}
         {!devSel && <MapaCatalogo />}
         {!devSel && <Corte />}
         {!devSel && <MercadoCruces />}

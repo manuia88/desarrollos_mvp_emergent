@@ -171,6 +171,8 @@ const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/Superadmi
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
 const SuperadminInmobiliariaLeads = lazy(() => import('./pages/superadmin/SuperadminInmobiliariaLeads'));
+// Auditoría 07-17 — vista total de leads (la bandeja ya ligaba aquí; la ruta no existía)
+const SuperadminLeads = lazy(() => import('./pages/superadmin/SuperadminLeads'));
 const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
 const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
@@ -1003,6 +1005,8 @@ function AppRouter() {
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       <Route path="/superadmin/grafo-comprador" element={<Navigate to="/superadmin/inteligencia?tab=grafo-comprador" replace />} />
       <Route path="/superadmin/inmobiliaria-leads" element={<SuperadminRoute Page={SuperadminInmobiliariaLeads} />} />
+      {/* Auditoría 07-17: la bandeja del inventario liga leads calientes aquí */}
+      <Route path="/superadmin/leads" element={<SuperadminRoute Page={SuperadminLeads} />} />
       <Route path="/superadmin/cerebro-mercado" element={<Navigate to="/superadmin/modelo?tab=cerebro" replace />} />
       <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}

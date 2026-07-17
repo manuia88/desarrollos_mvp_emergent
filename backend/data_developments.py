@@ -707,6 +707,35 @@ def is_sold(status) -> bool:
     return (status or "").strip().lower() in SOLD_STATUSES
 
 
+# Formas CANÓNICAS tal como viven en la BD (db.units.distinct('status') → masculino).
+# El editor validaba en femenino ('vendida'/'apartada') y la BD guarda masculino → el
+# mismo estado existía en dos géneros y los conteos/filtros se partían en dos.
+STATUS_CANONICOS = ("disponible", "reservado", "vendido", "bloqueado", "renta")
+_BLOCKED_STATUSES = ("bloqueado", "bloqueada", "blocked")
+_RENTA_STATUSES = ("renta", "rentado", "rentada", "rented")
+
+
+def normalize_unit_status(status):
+    """Normalizador ÚNICO de estatus de unidad → SIEMPRE la forma canónica de la BD.
+    Acepta ambos géneros y sinónimos (available/disponible · sold/vendido/vendida ·
+    reservado/apartada/reserved · bloqueado/bloqueada). Devuelve None si no lo
+    reconoce (el caller decide el 400)."""
+    s = (status or "").strip().lower()
+    if not s:
+        return None
+    if s in AVAILABLE_STATUSES:
+        return "disponible"
+    if s in SOLD_STATUSES:
+        return "vendido"
+    if s in RESERVED_STATUSES:
+        return "reservado"
+    if s in _BLOCKED_STATUSES:
+        return "bloqueado"
+    if s in _RENTA_STATUSES:
+        return "renta"
+    return None
+
+
 def is_available(status) -> bool:
     return (status or "").strip().lower() in AVAILABLE_STATUSES
 
