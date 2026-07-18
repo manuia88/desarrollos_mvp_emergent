@@ -1136,7 +1136,7 @@ function TabGeneral({ dev }) {
         <div style={fg}>
           <Fact icon="🏢" label="Tipo de propiedad" value={tipo} />
           <Fact icon="🏗️" label="Niveles" value={dev.max_level != null ? String(dev.max_level) : (levels || null)} />
-          <Fact icon="🏬" label="Depas por piso" value={dev.depas_por_piso != null ? String(dev.depas_por_piso) : depasPiso} />
+          <Fact icon="🏬" label="Depas por piso" value={dev.depas_por_piso != null ? `${dev.depas_por_piso_aprox ? '~' : ''}${dev.depas_por_piso}` : depasPiso} />
           <Fact icon="🔢" label="Unidades totales" value={nUnits ? String(nUnits) : null} />
           <Fact icon="🗂️" label="Prototipos" value={protos ? String(protos) : null} />
           <Fact icon="🏷️" label="Etapa" value={STAGE[dev.stage] || dev.stage} />
