@@ -461,27 +461,60 @@ def _m2_de(u):
 
 
 def _es_depto_auditor(u):
-    return str(u.get("tipo") or u.get("type") or "departamento").lower() not in \
-        ("local", "bodega", "roof_garden", "roof", "oficina", "estacionamiento", "cajon")
+    t = str(u.get("tipo") or u.get("type") or "departamento").lower()
+    if t in ("local", "bodega", "roof_garden", "roof", "oficina", "estacionamiento",
+             "cajon", "comercial"):
+        return False
+    # Backstop de nombre (07-17): locales mal tipados como 'depto' que inflaban el $/m²
+    # residencial (Casa Roma LC-01, "Local 01"). 'local' en el nombre o prefijo LC = comercial.
+    nom = str(u.get("unit_number") or u.get("nombre") or "").strip().lower()
+    if "local" in nom:
+        return False
+    if nom[:2] == "lc" and (len(nom) == 2 or not nom[2].isalpha()):  # LC-01, LC 1 — no 'LCASA'
+        return False
+    return True
+
+
+def _gemelas_ppm2(u, units):
+    """Gemelas DE VERDAD (afinado 07-17 tras Casa Alpes): mismas recámaras (si ambas las
+    declaran) y m² en banda ±30%. Un edificio con mezcla de tamaños tiene $/m² bimodal
+    legítimo (los chicos valen más por m² que los grandes) — comparar contra la mediana de
+    TODO el edificio castigaba esa mezcla. Comparar solo contra el mismo cohorte de tamaño
+    conserva la caza del dato roto (Colima 509) sin falsos positivos."""
+    m2u = _m2_de(u)
+    if not m2u or m2u < 10:
+        return []
+    recu = u.get("bedrooms")
+    lo, hi = m2u * 0.7, m2u * 1.35
+    out = []
+    for x in units:
+        if x is u or not _es_depto_auditor(x):
+            continue
+        m2x, px = _m2_de(x), (x.get("price_mxn") or x.get("price"))
+        if not m2x or not px or m2x < 10 or not (lo <= m2x <= hi):
+            continue
+        recx = x.get("bedrooms")
+        if recu is not None and recx is not None and recu != recx:
+            continue
+        out.append(px / m2x)
+    return out
 
 
 def r_ppm2_outlier(u, ctx):
-    """VERIFICAR CONTRA LA REALIDAD (aprendizaje 07-17): un $/m² muy lejos de la mediana del
-    edificio delata precio o m² MAL TRANSCRITO. Cazó el penthouse Colima 509 ($145k/m² vs
-    $96k de sus gemelas — le habían puesto specs de un Interior B). Bidireccional: caro→m²
-    subestimado; barato→ya lo ve ganga_sospechosa, aquí solo el desvío grande de arriba."""
+    """VERIFICAR CONTRA LA REALIDAD (aprendizaje 07-17): un $/m² muy lejos de sus GEMELAS
+    delata precio o m² MAL TRANSCRITO. Cazó el penthouse Colima 509 ($145k/m² vs $96k de sus
+    gemelas — le habían puesto specs de un Interior B). Compara contra el cohorte de tamaño,
+    no el edificio entero, para no castigar la mezcla chico-caro/grande-barato (Casa Alpes)."""
     import statistics
     if not _es_depto_auditor(u):
         return None
     m2, precio = _m2_de(u), (u.get("price_mxn") or u.get("price"))
     if not m2 or not precio or m2 < 10:
         return None
-    otros = [(_m2_de(x), (x.get("price_mxn") or x.get("price"))) for x in ctx["units"]
-             if x is not u and _es_depto_auditor(x)]
-    ppm2_otros = [p / m for m, p in otros if m and p and m >= 10]
-    if len(ppm2_otros) < 4:                     # sin gemelas suficientes no hay mediana fiable
+    ppm2_gemelas = _gemelas_ppm2(u, ctx["units"])
+    if len(ppm2_gemelas) < 4:                   # sin gemelas de tamaño suficientes no opina
         return None
-    med = statistics.median(ppm2_otros)
+    med = statistics.median(ppm2_gemelas)
     if med <= 0:
         return None
     desv = (precio / m2 - med) / med
@@ -501,7 +534,10 @@ def r_general_coherente(d, ctx):
     units = ctx["units"]
     if not units:
         return None
-    pisos = [u.get("level") for u in units if isinstance(u.get("level"), (int, float))]
+    # Solo departamentos residenciales cuentan contra el total (afinado 07-17 tras Casa
+    # Condesa: 73 deptos + 1 LOCAL comercial ≠ "74 > total 73"; el local es inventario extra).
+    deptos = [u for u in units if _es_depto_auditor(u)]
+    pisos = [u.get("level") for u in deptos if isinstance(u.get("level"), (int, float))]
     max_piso = max(pisos) if pisos else None
     niveles = d.get("max_level") or d.get("niveles")
     if niveles and max_piso and niveles < max_piso:
@@ -510,16 +546,16 @@ def r_general_coherente(d, ctx):
                   f"niveles subestimado (¿leído de las disponibles, no del brochure?)",
                   development_id=d.get("id"))
     total = d.get("total_units")
-    if total and len(units) > total:
+    if total and len(deptos) > total:
         return _h("general_coherente", "desarrollo", ERROR, d.get("name") or d.get("id"),
-                  f"{len(units)} unidades cargadas pero total_units={total} — el total no "
-                  f"puede ser menor que lo cargado", development_id=d.get("id"))
+                  f"{len(deptos)} departamentos cargados pero total_units={total} — el total "
+                  f"no puede ser menor que lo cargado", development_id=d.get("id"))
     dpp = d.get("depas_por_piso")
-    completo = bool(total) and len(units) >= total * 0.9
+    completo = bool(total) and len(deptos) >= total * 0.9
     if dpp is not None and not d.get("depas_por_piso_aprox") and not completo:
         return _h("general_coherente", "desarrollo", AVISO, d.get("name") or d.get("id"),
                   f"'depas por piso'={dpp} se muestra como exacto pero el roster es PARCIAL "
-                  f"({len(units)}/{total or '?'}) — debe ir marcado aprox (~)",
+                  f"({len(deptos)}/{total or '?'}) — debe ir marcado aprox (~)",
                   development_id=d.get("id"))
     return None
 
