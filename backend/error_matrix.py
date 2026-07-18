@@ -7,7 +7,7 @@ La lista NO es el producto cartesiano (sería ruido): son los riesgos que YA nos
 o que sabemos posibles, curados a mano. El % de cobertura se reporta en el parte."""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # (campo, etapa, modo_de_falla, juez_que_lo_cubre | None, caso_que_lo_motivó)
 CELDAS: List[tuple] = [
@@ -25,6 +25,8 @@ CELDAS: List[tuple] = [
     ("recamaras", "interpretar", "implausible", "juez_automatico.PLAUSIBLE (capa 0)", None),
     ("m2", "interpretar", "convencion_equivocada", "auditor.convencion_m2 por dev", "84 falsas Almina"),
     ("dinero", "interpretar", "columna_corrida", "auditor.dinero_coherencia", "Jai 25L medio-fix"),
+    ("precio", "interpretar", "ppm2_fuera_de_gemelas", "auditor.r_ppm2_outlier", "Colima 509 penthouse mal transcrito"),
+    ("m2", "interpretar", "specs_de_otro_depto", "auditor.r_ppm2_outlier", "Colima 509 Interior B→PH"),
     ("estado", "interpretar", "vocabulario_desconocido", "ingested_reader._STATUS_ES fail-visible", "804 bloqueada→disponible"),
     ("nivel", "interpretar", "prefijo_torre_como_piso", "nivel_vs_numero + nota manual", "Dessea 2-PH01 nivel 2"),
     ("torre", "interpretar", "torres_fusionadas", "unit_number con torre + firma 4D", "The Park 110→164"),
@@ -46,6 +48,10 @@ CELDAS: List[tuple] = [
     ("estado", "publicar", "vendida_como_disponible", "censo_norma (lista ofrece vs BD)", None),
     ("campos", "publicar", "obligatorio_ausente", "auditor.campos_obligatorios tipo/status-aware", None),
     ("ficha", "publicar", "render_no_coincide_api", "verifica_ui local ($0)", "similares sin assetUrl"),
+    ("general", "publicar", "total_derivado_de_disponibles", "auditor.r_general_coherente", "Chilpancingo 1→48, niveles"),
+    ("general", "publicar", "numero_estimado_como_exacto", "auditor.r_general_coherente + flag _aprox (~)", "depas/piso 48÷5"),
+    ("foto", "publicar", "pagina_de_brochure_como_render", "pdfimages imagen embebida (no rasterizar página)", "Chilpancingo texto/mapas"),
+    ("foto", "publicar", "purga_automatica_falsa", "SOLO ojos humanos (galeria FLAG, nunca borra)", "es_flyer borró sala-comedor"),
     # VIGILAR — el mundo cambió y la plataforma no
     ("precio", "vigilar", "desactualizado_vs_lista", "lista_peek + lista_apply auto", "Avalia B-204"),
     ("estado", "vigilar", "desactualizado_vs_lista", "lista_peek + lista_apply auto", "Avalia B-204"),

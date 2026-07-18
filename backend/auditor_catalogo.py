@@ -456,6 +456,74 @@ def r_dueno(d, ctx):
     return None
 
 
+def _m2_de(u):
+    return u.get("m2_total") or u.get("size_m2_total") or u.get("size_m2") or u.get("m2_privative")
+
+
+def _es_depto_auditor(u):
+    return str(u.get("tipo") or u.get("type") or "departamento").lower() not in \
+        ("local", "bodega", "roof_garden", "roof", "oficina", "estacionamiento", "cajon")
+
+
+def r_ppm2_outlier(u, ctx):
+    """VERIFICAR CONTRA LA REALIDAD (aprendizaje 07-17): un $/m² muy lejos de la mediana del
+    edificio delata precio o m² MAL TRANSCRITO. Cazó el penthouse Colima 509 ($145k/m² vs
+    $96k de sus gemelas — le habían puesto specs de un Interior B). Bidireccional: caro→m²
+    subestimado; barato→ya lo ve ganga_sospechosa, aquí solo el desvío grande de arriba."""
+    import statistics
+    if not _es_depto_auditor(u):
+        return None
+    m2, precio = _m2_de(u), (u.get("price_mxn") or u.get("price"))
+    if not m2 or not precio or m2 < 10:
+        return None
+    otros = [(_m2_de(x), (x.get("price_mxn") or x.get("price"))) for x in ctx["units"]
+             if x is not u and _es_depto_auditor(x)]
+    ppm2_otros = [p / m for m, p in otros if m and p and m >= 10]
+    if len(ppm2_otros) < 4:                     # sin gemelas suficientes no hay mediana fiable
+        return None
+    med = statistics.median(ppm2_otros)
+    if med <= 0:
+        return None
+    desv = (precio / m2 - med) / med
+    if abs(desv) >= 0.4:
+        return _h("ppm2_outlier", "unidad", ALERTA, u.get("unit_number") or u.get("id"),
+                  f"${precio / m2:,.0f}/m² vs ${med:,.0f}/m² de sus gemelas ({desv * 100:+.0f}%) "
+                  f"— revisar precio o m² (posible transcripción)", unit_id=u.get("id"))
+    return None
+
+
+def r_general_coherente(d, ctx):
+    """LEER LA FUENTE, NO DERIVAR (aprendizaje 07-17): la info general del edificio venía
+    derivada de las unidades DISPONIBLES → Chilpancingo "1 unidad/1 nivel" siendo 48/5.
+    · niveles debe ser ≥ el piso más alto REAL de la lista (si es menor, se derivó bajo).
+    · total_units ≥ unidades cargadas (nunca colapsar al conteo de disponibles).
+    · 'depas por piso' derivado (roster parcial) debe ir marcado aprox, no como exacto."""
+    units = ctx["units"]
+    if not units:
+        return None
+    pisos = [u.get("level") for u in units if isinstance(u.get("level"), (int, float))]
+    max_piso = max(pisos) if pisos else None
+    niveles = d.get("max_level") or d.get("niveles")
+    if niveles and max_piso and niveles < max_piso:
+        return _h("general_coherente", "desarrollo", ERROR, d.get("name") or d.get("id"),
+                  f"niveles={niveles} pero la lista trae un depto en el piso {max_piso} — "
+                  f"niveles subestimado (¿leído de las disponibles, no del brochure?)",
+                  development_id=d.get("id"))
+    total = d.get("total_units")
+    if total and len(units) > total:
+        return _h("general_coherente", "desarrollo", ERROR, d.get("name") or d.get("id"),
+                  f"{len(units)} unidades cargadas pero total_units={total} — el total no "
+                  f"puede ser menor que lo cargado", development_id=d.get("id"))
+    dpp = d.get("depas_por_piso")
+    completo = bool(total) and len(units) >= total * 0.9
+    if dpp is not None and not d.get("depas_por_piso_aprox") and not completo:
+        return _h("general_coherente", "desarrollo", AVISO, d.get("name") or d.get("id"),
+                  f"'depas por piso'={dpp} se muestra como exacto pero el roster es PARCIAL "
+                  f"({len(units)}/{total or '?'}) — debe ir marcado aprox (~)",
+                  development_id=d.get("id"))
+    return None
+
+
 # ═══ EL REGISTRO (universalidad: regla nueva = renglón nuevo) ══════════════════
 REGLAS: List[Dict[str, Any]] = [
     {"key": "m2_coherencia", "nivel": "unidad", "fn": r_m2_coherencia},
@@ -469,6 +537,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "molde_asignado", "nivel": "unidad", "fn": r_molde_asignado},
     {"key": "estatus_valido", "nivel": "unidad", "fn": r_estatus_valido},
     {"key": "piso_vs_plano", "nivel": "unidad", "fn": r_piso_vs_plano},
+    {"key": "ppm2_outlier", "nivel": "unidad", "fn": r_ppm2_outlier},
     {"key": "molde_sin_rec", "nivel": "molde", "fn": r_molde_sin_rec},
     {"key": "molde_estado", "nivel": "molde", "fn": r_molde_estado_coherente},
     {"key": "molde_planos", "nivel": "molde", "fn": r_molde_planos},
@@ -485,6 +554,7 @@ REGLAS: List[Dict[str, Any]] = [
     {"key": "alias_invisible", "nivel": "desarrollo", "fn": r_alias_invisible},
     {"key": "dev_basicos", "nivel": "desarrollo", "fn": r_dev_basicos},
     {"key": "cobertura_planos", "nivel": "desarrollo", "fn": r_cobertura_planos},
+    {"key": "general_coherente", "nivel": "desarrollo", "fn": r_general_coherente},
     {"key": "dueno", "nivel": "desarrollo", "fn": r_dueno},
 ]
 
