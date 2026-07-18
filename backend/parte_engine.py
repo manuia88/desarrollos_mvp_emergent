@@ -407,6 +407,8 @@ _ACCION_REGLA = {   # qué HACER con cada tipo de hallazgo (el reporte siempre d
     "molde_sin_rec": "marcar rec=0 si son lofts o completar recámaras",
     "flex_pendiente": "nada urgente: config flexible anotada",
     "censo_fuente": "abrir la lista del dev y corregir la plataforma (la fuente manda)",
+    "ppm2_outlier": "verificar precio Y m² contra la lista fuente (posible transcripción)",
+    "general_coherente": "tomar total/niveles del brochure, no derivarlos de las disponibles",
 }
 
 
