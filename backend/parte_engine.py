@@ -140,8 +140,16 @@ async def _sec_novedades(db, desde: str) -> List[str]:
         return re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFKD", str(s or "").lower())
                       .encode("ascii", "ignore").decode()).strip()
 
-    devs = {_n(d.get("name")): d["id"] async for d in
-            db.developments.find({}, {"_id": 0, "id": 1, "name": 1})}
+    devs: Dict[str, str] = {}
+    dev_org: Dict[str, str] = {}
+    async for d in db.developments.find({}, {"_id": 0, "id": 1, "name": 1, "developer_id": 1}):
+        devs[_n(d.get("name"))] = d["id"]
+        dev_org[d["id"]] = d.get("developer_id")
+    org_name: Dict[str, str] = {}
+    async for o in db.dev_orgs.find({}, {"_id": 0, "tenant_id": 1, "id": 1, "name": 1, "display_name": 1}):
+        k = o.get("tenant_id") or o.get("id")
+        if k:
+            org_name[k] = o.get("display_name") or o.get("name") or k
     _cache: Dict[str, Dict[str, Any]] = {}
 
     def _dev_de(proyecto: str) -> Optional[str]:
@@ -150,6 +158,15 @@ async def _sec_novedades(db, desde: str) -> List[str]:
             if nom and (nom in p or (len(nom) > 6 and p.startswith(nom[:14]))):
                 return did
         return None
+
+    def _org_de(did: Optional[str], folder) -> str:
+        """El DESARROLLADOR (hipersegmentación founder 07-20: 'ponme de qué desarrollador es')."""
+        nom = org_name.get(dev_org.get(did or ""))
+        if nom:
+            return nom
+        f = re.sub(r"(?i)^desarrollos[\s\-_]*", "", str(folder or "")).strip()
+        f = re.split(r"\s*\(", f)[0].strip()          # 'QUIERO CASA (Sheets)' → 'QUIERO CASA'
+        return f.title() if f else "?"
 
     async def _precio(did: Optional[str], unidad) -> Optional[str]:
         if not did:
@@ -178,26 +195,27 @@ async def _sec_novedades(db, desde: str) -> List[str]:
         proy = _limpiar(ev.get("proyecto") or ev.get("dev") or "un proyecto")
         c = ev.get("cambios") or {}
         did = _dev_de(proy)
+        dl = _org_de(did, ev.get("dev"))                         # el DESARROLLADOR
         hubo = False
         for x in (c.get("cambios_precio") or [])[:6]:            # 💸 precio → MÍRALO (lo más importante)
             try:
                 pct = (x["ahora"] - x["antes"]) / x["antes"] * 100
                 verbo = "bajó" if pct < 0 else "subió"
-                mira_precio.append(f"💸 <b>{proy}</b> · {x['unidad']} · {verbo} {_mm(x['antes'])}→{_mm(x['ahora'])} ({pct:+.0f}%)")
+                mira_precio.append(f"💸 {dl} · <b>{proy}</b> · {x['unidad']} · {verbo} {_mm(x['antes'])}→{_mm(x['ahora'])} ({pct:+.0f}%)")
             except (TypeError, ValueError, ZeroDivisionError, KeyError):
-                mira_precio.append(f"💸 <b>{proy}</b> · {x.get('unidad')} · cambió de precio")
+                mira_precio.append(f"💸 {dl} · <b>{proy}</b> · {x.get('unidad')} · cambió de precio")
             hubo = True
         for u in (c.get("nuevas") or [])[:6]:                    # 🆕 nuevo → MÍRALO (decisión)
-            mira_nuevo.append(f"🆕 <b>{proy}</b> · {u} · es nuevo — ¿lo agrego?")
+            mira_nuevo.append(f"🆕 {dl} · <b>{proy}</b> · {u} · es nuevo — ¿lo agrego?")
             hubo = True
         for u in (c.get("ya_no_estan") or [])[:6]:               # 🏠 venta → MÍRALO
             pr = await _precio(did, u)
-            mira_venta.append(f"🏠 <b>{proy}</b> · {u} · {pr + ' · ' if pr else ''}se vendió")
+            mira_venta.append(f"🏠 {dl} · <b>{proy}</b> · {u} · {pr + ' · ' if pr else ''}se vendió")
             hubo = True
         for x in (c.get("cambios_status") or [])[:8]:            # estatus → YA LO ARREGLÉ
             ic, txt = _traducir_status(x.get("antes"), x.get("ahora"))
             pr = await _precio(did, x.get("unidad"))
-            arregle.append(f"{ic} <b>{proy}</b> · {x.get('unidad')} · {pr + ' · ' if pr else ''}{txt}")
+            arregle.append(f"{ic} {dl} · <b>{proy}</b> · {x.get('unidad')} · {pr + ' · ' if pr else ''}{txt}")
             hubo = True
         if hubo:
             con_cambios += 1
