@@ -36,6 +36,11 @@ def _dump(m: BaseModel) -> dict:
     return m.model_dump() if hasattr(m, "model_dump") else m.dict()
 
 
+# Tiers que pertenecen a UN tenant (la fila es dato del dev dueño); el resto son de MERCADO
+# (colonia/alcaldia/zona/cdmx) = compartidas, las ve cualquiera. P7 (auditoría 07-20).
+ENTITY_TIERS = frozenset({"unit", "development", "prototype"})
+
+
 class MarketSnapshot(BaseModel):
     tier: str                              # unit/development/prototype/colonia/alcaldia/zona/cdmx
     tier_id: str
@@ -44,7 +49,19 @@ class MarketSnapshot(BaseModel):
     dims: Optional[Dict[str, Any]] = None  # celda del cubo: {tipologia, banda_precio, amenidad...}
     period: str                            # 'YYYY-MM' o 'YYYY-MM-DD'
     source: Optional[str] = None           # crm / avm / live_pulse / manual / ...
+    owner_org: Optional[str] = None        # P7: dueño (org/tenant) en tiers de ENTIDAD; None = mercado (compartido)
     computed_at: Optional[str] = None
+
+
+def scope_filter_for(user_orgs: Optional[List[str]]) -> Dict[str, Any]:
+    """P7: filtro para un lector dev-facing de snapshots. Deja pasar SIEMPRE las filas de mercado
+    (owner_org None/ausente) y, de las de entidad, solo las del/los org(s) del usuario. superadmin
+    pasa user_orgs=None → {} (god-view). Hoy el único lector es superadmin; esto deja el candado listo
+    para cuando un dashboard del dev lea development/unit-tier directo."""
+    if user_orgs is None:
+        return {}
+    return {"$or": [{"owner_org": None}, {"owner_org": {"$exists": False}},
+                    {"owner_org": {"$in": list(user_orgs)}}]}
 
 
 def _dims_hash(dims: Optional[Dict[str, Any]]) -> str:
@@ -119,5 +136,8 @@ async def latest(db, *, tier: str, tier_id: str, measure: str,
                  dims: Optional[Dict[str, Any]] = None) -> Optional[dict]:
     q: Dict[str, Any] = {"tier": tier, "tier_id": tier_id, "measure": measure}
     if dims is not None:
-        q["dims"] = dims
+        # Palanca 5/7: match por SUBCAMPOS (alineado con read_timeseries). Antes q["dims"]=dims exigía
+        # igualdad EXACTA de documento → dims={gran:day} no encontraba la fila {gran:day, recamaras:2}.
+        for k, v in dims.items():
+            q[f"dims.{k}"] = v
     return await db[SNAP].find_one(q, {"_id": 0}, sort=[("period", -1), ("computed_at", -1)])

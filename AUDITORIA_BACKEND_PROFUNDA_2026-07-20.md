@@ -21,6 +21,7 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
 | **P4 · Captura de demanda / espinazo visitor_id** | 16 | visitor_id no se captura (83% null); búsquedas sin `id`; 100% de leads sin development_id; el lead no tiene UN score |
 | **P5 · Índices sobre data REAL (no relleno)** | 16 | DRPI 99.8% sintético; compuesta Liquidez/Ghost come de placeholders; 3 loaders del ETL leen colecciones vacías |
 | **P6 · Un solo rastro + integridad + deshacer** ✅ | 2 | ~~deshacer deja eventos colgando; auditor ciego a huérfanos~~ → writer canónico + reversa + juez integridad (bitácora 100% sana) |
+| **P7 · Multi-tenant / authz analítico** ✅ | 2 | ~~5 endpoints con resolver seed = posible fuga; eventos/snapshots sin org~~ → resolver DB-aware (0 sync), db-first, org sellado, snapshots owner_org, bug audit dev_batch11 |
 | **P7 · Multi-tenant / authz analítico** | 2 | 5 endpoints del dev gatean con el resolver seed → posible fuga cross-inmobiliaria |
 | **P8 · Cubo de dos universos** | 5 | consulta-libre come de `dmx_units` (6,913), motor de cortes come de `db.units` → dos verdades del inventario |
 | _otros (KG, fiscal, AVM, export, censo, cerebro)_ | 29 | subsistemas específicos — ver tabla |
@@ -75,6 +76,23 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
     borra el peso muerto: **−457 huérfanos → bitácora 100% sana**. Los otros stores conservan señal.
   - **Retención**: `podar_auditorias` (3 corridas/dev) −46 de 157; TTL de peso; `ESTADOS_VALIDOS` +'bloqueado'.
   - Tests: `test_p6_rastro_integridad` (12) + regresión **1951 passed**.
+- ✅ **PALANCA 7 COMPLETA (cero deuda)** (multi-tenant / authz analítico) — SEGURIDAD:
+  - **Crítico cerrado**: 13 archivos / 51 callsites gateaban con el resolver SEED (sync) → el dev REAL
+    (ingerido) no veía lo suyo y el fallback demo podía entregar seed ajeno. Ahora `_user_dev_ids` es
+    **async DB-aware** (`user_dev_ids_db` = seed + devs reales del tenant, jamás de otro). Verificado:
+    **0 callsites sync** restantes.
+  - **Data db-first**: 7 endpoints intel traían el proyecto de `DEVELOPMENTS_BY_ID` (seed) → 404 sobre
+    ingerido. Ahora `resolve_dev_doc` (seed→developments→projects + units reales).
+  - **Bug de auditoría encontrado y arreglado** (pre-existente en dev_batch11): `_safe_audit` llamaba
+    `log_mutation(user_id=,role=,org_id=,ip=)` (kwargs inexistentes) → TypeError tragado → TODA la
+    auditoría de dev_batch11 se perdía en silencio. Ahora actor dict + request.
+  - **Namespacing del dueño**: `record_price_event` sella `org_id`/`dev_org_id` (paridad con el status
+    ledger de P6); `price_events`/`unit_status_events`/`dmx_market_snapshots` registradas en
+    `SENSITIVE_COLLECTIONS` (scope por dev_id autorizado aguas-arriba, no fail-closea los jobs de fondo).
+  - **Snapshots**: `owner_org` en tiers de entidad (development/unit) sellado por el cron + `scope_filter_for`
+    listo para lector dev-facing (hoy solo lo lee superadmin → sin fuga activa). `latest()` alineado a match
+    por subcampo (item que faltaba de P5).
+  - Tests: `test_p7_multitenant` (35) + regresión **1986 passed** (incluye aislamiento de tenant).
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).

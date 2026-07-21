@@ -303,7 +303,16 @@ _OWNER_FIELDS = {
 # lecturas SE ACOTAN aguas-arriba por el entity_id que el caller ya tiene autorizado (health_score,
 # insights, copilot_context, team_aggregated acotan entity_id al pool del tenant). Listadas aquí
 # para que el guard de CI sepa que su scope vive en el caller, no en tenant_filter().
-_OWNER_BY_ENTITY = ("health_scores", "health_scores_snapshots")
+# P7 (auditoría 07-20): price_events / unit_status_events son la HISTORIA por proyecto — cada lectura
+# de endpoint se acota por el dev_id que ya pasó el guard user_dev_ids_db (dev real ve solo lo suyo);
+# los snapshots/índices las barren TODAS por diseño (job de fondo). Van aquí, no en _OWNER_FIELDS,
+# para no fail-closear esos jobs. Igual stampan org_id/dev_org_id (paridad, futura consulta directa).
+_OWNER_BY_ENTITY = ("health_scores", "health_scores_snapshots",
+                    "price_events", "unit_status_events",
+                    # dmx_market_snapshots: MIXTA — filas de mercado (colonia/zona, compartidas) +
+                    # de entidad (development/unit, con owner_org). Hoy solo la lee superadmin; un
+                    # lector dev-facing debe usar dmx_snapshots.scope_filter_for(orgs). P7 (07-20).
+                    "dmx_market_snapshots")
 
 
 def tenant_filter(user, collection: str) -> dict:

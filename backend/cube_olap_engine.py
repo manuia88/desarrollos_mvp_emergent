@@ -751,12 +751,19 @@ async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[s
         import dmx_snapshots
         grans = ("day", "week", "quincena", "month")   # granular: diaria/semanal/quincenal/mensual (dims.gran)
         rows: List[Dict[str, Any]] = []
+        # P7: mapa dev→org (owner) para sellar el dueño en los snapshots tier=development (per-tenant).
+        # Las de colonia son de MERCADO (owner None, compartidas). Un lookup, no N.
+        dev_owner: Dict[str, Any] = {}
+        async for _d in db.developments.find({}, {"_id": 0, "id": 1, "developer_id": 1, "org_id": 1, "dev_org_id": 1}):
+            dev_owner[_d["id"]] = _d.get("developer_id") or _d.get("org_id") or _d.get("dev_org_id")
         for scope, field in (("development", "entity_id"), ("colonia", "colonia")):
             acc = await _agg_demand_periods(db, field, cutoff, grans)
             for (gid, gran, period), cell in acc.items():
                 if len(cell["vis"]) < _KANON_MIN:   # K-anon por celda (privacidad)
                     continue
                 base = {"tier": scope, "tier_id": gid, "period": period, "dims": {"gran": gran}, "source": "demand_cron"}
+                if scope == "development":
+                    base["owner_org"] = dev_owner.get(gid)   # P7: dueño de la fila per-tenant
                 rows.append({**base, "measure": "demand_interactions", "value": float(cell["count"])})
                 rows.append({**base, "measure": "demand_visitors", "value": float(len(cell["vis"]))})
                 rows.append({**base, "measure": "interest_score", "value": round(cell["score"], 2)})
