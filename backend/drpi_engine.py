@@ -175,11 +175,14 @@ async def compute_drpi_national(db, period: str = "") -> Dict[str, Any]:
     """Weighted average DRPI across all alcaldías present in latest snapshots."""
     period = period or _period_now()
     cursor = db.drpi_snapshots.find(
-        {"period": period, "available": True},
+        {"period": period, "available": True, "synthetic": {"$ne": True}},   # P5: sin relleno
         {"_id": 0, "zone_id": 1, "tier": 1, "index_value": 1,
          "sample_size": 1, "delta_pct": 1},
     )
     snaps = [s async for s in cursor]
+    # Palanca 5 (auditoría 07-20): el nacional daba 3776.9 (vs base 100) por MEZCLAR escalas —
+    # una zona con index_value fuera de [20,400] descuadraba el promedio. Se excluye esa mezcla.
+    snaps = [s for s in snaps if 20 <= (s.get("index_value") or 0) <= 400]
     if not snaps:
         return {"available": False, "reason": "no_snapshots", "period": period}
 

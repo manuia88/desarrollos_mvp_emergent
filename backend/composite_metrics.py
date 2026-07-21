@@ -314,7 +314,9 @@ def _liquidez_ghost(z, g):
     def _cell(d, label):
         if d is None:
             return None
-        stub = bool(d.get("is_stub"))
+        # Palanca 5 (auditoría 07-20): las recetas DataPending escriben un 50.0 constante con
+        # is_proxy=True; tratarlas como stub (sin número, honesto) para no venderlas como 'vivo'.
+        stub = bool(d.get("is_stub") or d.get("is_proxy"))
         return {
             "valor": None if stub else _n(d.get("value")),
             "tier": d.get("tier"),

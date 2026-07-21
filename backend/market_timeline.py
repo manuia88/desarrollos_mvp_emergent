@@ -79,7 +79,9 @@ async def snapshot_oferta(db, fuente: str = "cron") -> Dict[str, Any]:
     # último EVENTO completo conocido por unidad (hash para dedup + estado para detectar retiros)
     ultimo: Dict[str, Dict[str, Any]] = {}
     try:
-        async for e in db.oferta_timeline.find({}, {"_id": 0}):
+        # Palanca 5 (auditoría 07-20): cargaba TODO oferta_timeline (49k, ~31MB) a memoria sin
+        # proyección en cada snapshot. Solo se usan unit_id/ts/hash → se proyectan esos.
+        async for e in db.oferta_timeline.find({}, {"_id": 0, "unit_id": 1, "ts": 1, "hash": 1}):
             uid = str(e.get("unit_id"))
             if uid not in ultimo or str(e.get("ts", "")) > str(ultimo[uid].get("ts", "")):
                 ultimo[uid] = e

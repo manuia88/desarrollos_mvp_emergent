@@ -179,7 +179,7 @@ async def _load_zones(db, drv, summary) -> int:
     """
     return await _stream_to_neo(
         db, drv, summary,
-        collection="zones",
+        collection="colonias",   # Palanca 5: 'zones' NO existe → la real es 'colonias' (2,788)
         cypher=cypher,
         mapper=lambda d: {
             "slug": d.get("slug") or d.get("zone_slug") or d.get("colonia_slug"),
@@ -280,17 +280,19 @@ async def _load_iescores(db, drv, summary) -> int:
         s.score = row.score,
         s.computed_at = row.computed_at
     """
+    # Palanca 5 (auditoría 07-20): leía 'intelligent_explorer_scores' (INEXISTENTE) → 0 nodos.
+    # La colección real es 'ie_scores' (20,654), con value/zone_id (no score/project_id).
     return await _stream_to_neo(
         db, drv, summary,
-        collection="intelligent_explorer_scores",
+        collection="ie_scores",
         cypher=cypher,
         mapper=lambda d: {
-            "id": d.get("id") or f"{d.get('project_id','')}_{d.get('computed_at','')}",
-            "project_id": d.get("project_id"),
-            "score": d.get("score") or d.get("ie_score"),
+            "id": d.get("id") or f"{d.get('zone_id') or d.get('dev_id','')}_{d.get('computed_at','')}",
+            "project_id": d.get("zone_id") or d.get("dev_id"),
+            "score": d.get("value") if d.get("value") is not None else d.get("score"),
             "computed_at": d.get("computed_at") or d.get("created_at"),
         },
-        skip_if=lambda d: not d.get("project_id"),
+        skip_if=lambda d: not (d.get("zone_id") or d.get("dev_id")) or d.get("is_proxy"),
     )
 
 
