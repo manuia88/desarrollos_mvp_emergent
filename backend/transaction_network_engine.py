@@ -307,6 +307,9 @@ async def compute_price_index(
         "property_type": property_type,
         "period": period,
         "transactions_count": len(docs),
+        # Palanca 5: 74% de las filas tenían 0 transacciones servidas como dato. Marca la
+        # confiabilidad para que los consumidores filtren available:False.
+        "available": len(docs) >= 3,
         "median_price_per_m2": median,
         "p25": p25,
         "p75": p75,
@@ -319,9 +322,10 @@ async def compute_price_index(
     try:
         snap = dict(result)
         snap["period_start"] = cutoff_iso
+        # Palanca 5 (auditoría 07-20): computed_at estaba en la LLAVE → cada corrida creaba un
+        # doc nuevo (660 redundantes) y la serie era ruido. La llave es el periodo CALENDARIO.
         await db.price_index_snapshots.update_one(
-            {"zone_id": zone_id, "tier": tier, "property_type": property_type,
-             "period": period, "computed_at": snap["computed_at"]},
+            {"zone_id": zone_id, "tier": tier, "property_type": property_type, "period": period},
             {"$set": snap},
             upsert=True,
         )

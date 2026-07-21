@@ -315,6 +315,8 @@ async def compute_health_score(entity_type: str, entity_id: str, db,
     result["ttl_minutes"] = TTL_MINUTES
 
     # Trend vs 7-day snapshot
+    # Palanca 5 (auditoría 07-20): con sort DESC agarraba el snapshot de AYER (el más reciente de
+    # la ventana) → trend_7d era en realidad trend_1d. ASC toma el más VIEJO (≈ hace 7 días).
     snap = await db.health_scores_snapshots.find_one(
         {
             "entity_type": entity_type,
@@ -322,7 +324,7 @@ async def compute_health_score(entity_type: str, entity_id: str, db,
             "snapped_at": {"$gte": now - timedelta(days=7)},
         },
         {"_id": 0, "score": 1},
-        sort=[("snapped_at", -1)],
+        sort=[("snapped_at", 1)],
     )
     result["trend_7d"] = (result["score"] - snap["score"]) if snap else 0
 
