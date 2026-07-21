@@ -102,9 +102,10 @@ export async function fetchDevBriefing(id) {
 }
 
 export async function aiSearchParse(query) {
-  // AUDITORÍA E2E: la búsqueda de Atlax viaja CON el visitante — sin esto, los motores
-  // por-persona (termómetro, cohortes, etapa de vida) quedaban ciegos a Atlax.
-  let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch (_) { /* noop */ }
+  // AUDITORÍA E2E + Palanca 4 (07-20): la búsqueda de Atlax viaja CON el visitante. Bug: leía
+  // localStorage DIRECTO, así un visitante nuevo cuya 1ª acción es buscar mandaba visitor_id
+  // vacío (83% null). visitorId() lo SIEMBRA si no existe → el espinazo ya no nace roto.
+  const vid = visitorId();
   const r = await fetch(`${API}/api/properties/search-ai`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

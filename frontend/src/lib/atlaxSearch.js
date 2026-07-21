@@ -4,7 +4,7 @@
 // (aiSearchParse /api/properties/search-ai + fetchCasiCumple /api/developments/casi). Función PURA: el caller maneja
 // los mensajes y el modo comparativa.
 import { aiSearchParse, fetchCasiCumple } from '../api/marketplace';
-import { sendBuyerSignal } from './buyerSignal';
+import { sendBuyerSignal, visitorId } from './buyerSignal';
 import { getDismissedIds } from './atlaxPrefs';  // no-repetir: no volver a mostrar lo que el cliente descartó
 import { tc } from './titleCase';
 
@@ -36,7 +36,7 @@ export async function searchAtlax(query) {
     crossRelax = (parsed && parsed.cross_relax) || null;
   } catch (_) { /* fail-soft: sin filtros */ }
 
-  let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch (_) { /* noop */ }
+  const vid = visitorId();   // Palanca 4: siembra el visitor si no existe (no leer localStorage directo)
   // BUG cazado en auditoría E2E: el parse de IA a veces devuelve colonia como TEXTO ("del valle")
   // y no como lista → .map tronaba y la búsqueda del comprador (y su captura) se perdía.
   // Normalizar SIEMPRE a lista — tolerancia al dato del mundo real, no supuestos.

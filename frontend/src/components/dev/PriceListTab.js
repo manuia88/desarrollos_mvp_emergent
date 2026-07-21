@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
+import { visitorId } from '../../lib/buyerSignal';
 import { unitMatchesCriteria, criteriaSummary } from '../../lib/unitMatch';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
@@ -85,7 +86,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   const agendarUnit = (u) => {
     if (citaUnits.has(u.unit_number)) return;
     let leadId = null; try { leadId = localStorage.getItem('dmx_lead_id'); } catch { /* noop */ }
-    let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch { /* noop */ }
+    const vid = visitorId();   // Palanca 4: siembra el visitor si no existe
     setCitaUnits((s) => new Set(s).add(u.unit_number));
     try {
       fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/favoritos/cita`, {
