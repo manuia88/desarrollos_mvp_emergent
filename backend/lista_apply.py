@@ -82,6 +82,8 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
         return None
 
     from audit_log import log_mutation
+    from unit_status_ledger import record_status_event      # Palanca 2: alimentar el ledger
+    dev_doc = await db.developments.find_one({"id": dev_id}, {"_id": 0}) or {}
     archivo = (ev.get("archivo") or {}).get("nombre")
     res = {"development_id": dev_id, "precios": 0, "status": 0,
            "senales_venta": 0, "peleas": 0}
@@ -120,6 +122,13 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
         await log_mutation(db, _ACTOR, "update", "unit", u["id"],
                            before={"price": u.get("price")},
                            after={"price": c["ahora"], "fuente": archivo}, by_ai=True)
+        try:                                    # Palanca 2: el cambio de precio al ledger vivo
+            from routes.dev_price_history import record_price_event
+            await record_price_event(db, dev_id, u, u.get("price"), c["ahora"],
+                                     dev=dev_doc, source="vigia_lista",
+                                     label=archivo or "lista del dev")
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[lista_apply] price_event: {e}")
         res["precios"] += 1
         # el cierre del flywheel: ¿a quién del radar le cuadra esta baja? → asesor
         if float(c["ahora"]) < float(c["antes"]):
@@ -143,6 +152,8 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
         await log_mutation(db, _ACTOR, "update", "unit", u["id"],
                            before={"status": u.get("status")},
                            after={"status": nuevo, "fuente": archivo}, by_ai=True)
+        await record_status_event(db, dev_id, u, u.get("status"), nuevo,   # Palanca 2: al ledger
+                                  source="vigia_lista", dev=dev_doc)
         res["status"] += 1
         if nuevo == "disponible":       # regresó al mercado → avisar a quien la busca
             try:
@@ -164,6 +175,10 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
         await db.units.update_one({"id": u["id"]}, {"$set": {
             "inventario_pelea": (f"la lista {archivo} ya no la ofrece — probable venta, "
                                  f"confirmar con el dev")}})
+        # Palanca 2: la señal 'probable venta' al ledger — antes vigia_senales_venta era
+        # solo-escritura (nadie la leía); ahora la absorción/velocidad la ven.
+        await record_status_event(db, dev_id, u, u.get("status"), "vendido",
+                                  source="vigia_probable_venta", dev=dev_doc)
         res["senales_venta"] += 1
         res["peleas"] += 1
 
