@@ -17,8 +17,10 @@ def norm_unidad(s: Optional[str]) -> str:
     t = "".join(c for c in unicodedata.normalize("NFD", str(s or ""))
                 if unicodedata.category(c) != "Mn").upper()
     t = re.sub(r"\s+", " ", t).strip()
-    # patrón torre+número pegado o separado: T2-1901 · A-107 · B 304 · 1901
-    m = re.search(r"\b(T\d|[A-Z]{1,2})\s*-?\s*(\d{3,4})([A-Z]?)\b(?!.*\d{3,4})", t)
+    # patrón torre+número: T2-1901 · A-107 · B 304 · Humbolt 201 · 1901. La torre puede ser
+    # T\d, 1-2 letras O un NOMBRE-palabra completo (Humbolt/Madison) — antes [A-Z]{1,2} colapsaba
+    # 'Humbolt 201' y 'Madison 201' a la misma llave '201' (auditoría 07-20, resolvió 152 colisiones).
+    m = re.search(r"\b(T\d|[A-Z]+)\s*-?\s*(\d{3,4})([A-Z]?)\b(?!.*\d{3,4})", t)
     if m:
         return f"{m.group(1)}-{m.group(2)}{m.group(3)}"
     m2 = re.search(r"(\d{3,4})([A-Z]?)\s*$", t.replace(" ", ""))
