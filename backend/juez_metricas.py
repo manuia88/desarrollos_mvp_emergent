@@ -46,7 +46,15 @@ async def juez_metricas(db) -> Dict[str, Any]:
                        else "relleno" if pct_real < 50 else "fuera_de_rango"),
         })
     sano = all(x.get("estado") in ("sano", "vacío") for x in fam_out)
-    return {"familias": fam_out, "sano": sano,
+    # Palanca 6: integridad de la bitácora (eventos huérfanos) va en el mismo reporte de salud.
+    bitacora: Dict[str, Any] = {}
+    try:
+        from dev_lifecycle import juez_integridad_bitacora
+        bitacora = await juez_integridad_bitacora(db)
+    except Exception:  # noqa: BLE001 — fail-open
+        pass
+    return {"familias": fam_out, "sano": sano and bitacora.get("sano", True),
+            "bitacora": bitacora,
             "resumen": {x["familia"]: f"{x.get('pct_real', 0)}% real" for x in fam_out if x.get("total")}}
 
 

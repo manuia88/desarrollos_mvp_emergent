@@ -221,16 +221,14 @@ async def mine(db, conn, folder_url: str, only_project: Optional[str] = None,
                             "label": f"Δ lista {prev.get('fecha')}→{cur.get('fecha')}"})
                         eventos_p += 1
                 elif not cu:   # desapareció de la lista siguiente → vendida en ese intervalo
-                    ya = await db.unit_status_events.find_one({"dev_name": _dname, "unit_number": pu["unit_number"],
-                                                               "changed_at": cur["fecha"], "source": "retro_lista"})
-                    if not ya:
-                        await db.unit_status_events.insert_one({
-                            "dev_id": cur.get("dev_id"), "dev_name": _dname, "colonia_id": _col,
-                            "unit_number": pu["unit_number"],
-                            "old_status": pu.get("status") or "disponible", "new_status": "vendido",
-                            "changed_at": cur["fecha"], "sold_at": cur["fecha"],
-                            "price": pu.get("price"), "source": "retro_lista",
-                            "nota": f"ausente en lista {cur.get('fecha')}"})
+                    # Palanca 6: writer canónico (retro por nombre; idempotente por dev_name+unit+fecha+source)
+                    from unit_status_ledger import record_status_event
+                    _id = await record_status_event(
+                        db, cur.get("dev_id"), dict(pu),
+                        pu.get("status") or "disponible", "vendido", source="retro_lista",
+                        changed_at=cur["fecha"], dev={"name": _dname, "colonia_id": _col},
+                        extra={"nota": f"ausente en lista {cur.get('fecha')}"})
+                    if _id:
                         eventos_v += 1
 
     return {"plan": plan, "ejecutado": True, "listas_minadas": minados,

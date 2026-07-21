@@ -227,7 +227,8 @@ async def juzgar_negocio(db, development_id: str) -> List[Dict[str, Any]]:
     # 3 · precio estancado: días desde el ÚLTIMO evento de precio de cada unidad
     ultimo: Dict[str, str] = {}
     async for e in db.price_events.find(
-            {"dev_id": development_id}, {"_id": 0, "unit_id": 1, "changed_at": 1}):
+            {"dev_id": development_id, "revertido": {"$ne": True}},   # Palanca 6: sin cargas deshechas
+            {"_id": 0, "unit_id": 1, "changed_at": 1}):
         uid, ts = e.get("unit_id"), e.get("changed_at")
         if uid and ts and ts > ultimo.get(uid, ""):
             ultimo[uid] = ts

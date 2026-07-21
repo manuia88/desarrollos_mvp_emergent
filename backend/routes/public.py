@@ -2303,7 +2303,7 @@ async def get_development(dev_id: str, request: Request):
     # sintético como si fuera real. Serie a nivel desarrollo = precio "desde" (mínimo) por fecha de cambio. Fail-open.
     try:
         evs = []
-        async for _e in db.price_events.find({"dev_id": dev_id}, {"_id": 0, "old_price": 1, "new_price": 1, "changed_at": 1}):
+        async for _e in db.price_events.find({"dev_id": dev_id, "revertido": {"$ne": True}}, {"_id": 0, "old_price": 1, "new_price": 1, "changed_at": 1}):
             evs.append(_e)
         if evs:
             evs.sort(key=lambda x: x.get("changed_at") or "")

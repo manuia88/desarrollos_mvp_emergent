@@ -34,7 +34,9 @@ async def cerrar_acta(db, acta_id: str, resultado: Dict[str, Any]) -> None:
 
 async def deshacer_lote(db, acta_id: str) -> Dict[str, Any]:
     """La reversa: restaura las unidades EXACTAS previas a la carga (y borra las nuevas).
-    La bitácora NO se toca (append-only: la historia de que pasó, se queda)."""
+    Palanca 6: además ANULA (soft-delete) los eventos que ESTA carga emitió (ventana desde que se
+    abrió el acta), para que no queden 'ventas' fantasma inflando la absorción tras deshacer. El
+    evento no se borra (la historia se conserva): se marca `revertido` y los motores lo excluyen."""
     acta = await db.actas_ingesta.find_one({"id": acta_id}, {"_id": 0})
     if not acta:
         return {"ok": False, "error": "acta no encontrada"}
@@ -42,10 +44,25 @@ async def deshacer_lote(db, acta_id: str) -> Dict[str, Any]:
     await db.units.delete_many({"development_id": dev})
     for u in acta.get("respaldo_unidades") or []:
         await db.units.insert_one(dict(u))
+    # anular eventos emitidos por la carga (desde ts del acta, fuentes de ingesta) — no doble-contar
+    revertidos = {"unit_status_events": 0, "price_events": 0}
+    ts0 = acta.get("ts")
+    if ts0:
+        now = datetime.now(timezone.utc).isoformat()
+        _fuentes = ["reingesta", "reingesta_ausente", "bulk_ingest", "bulk_ingest_merge",
+                    "superadmin_edit", "retro_lista"]
+        _marca = {"$set": {"revertido": True, "revertido_at": now, "revertido_por_acta": acta_id}}
+        for coll in ("unit_status_events", "price_events"):
+            r = await db[coll].update_many(
+                {"$or": [{"development_id": dev}, {"dev_id": dev}],
+                 "changed_at": {"$gte": ts0}, "source": {"$in": _fuentes},
+                 "revertido": {"$ne": True}}, _marca)
+            revertidos[coll] = r.modified_count
     await db.actas_ingesta.update_one({"id": acta_id},
-                                      {"$set": {"estado": "revertida"}})
+                                      {"$set": {"estado": "revertida", "revertido_at": ts0 and datetime.now(timezone.utc).isoformat()}})
     # re-conciliar al estado restaurado
     import prototype_engine as PE
     await PE.materializar(db, dev)
     return {"ok": True, "development_id": dev,
-            "unidades_restauradas": acta.get("n_previas")}
+            "unidades_restauradas": acta.get("n_previas"),
+            "eventos_revertidos": revertidos}

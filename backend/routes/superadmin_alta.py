@@ -521,21 +521,13 @@ async def editar_unidad(project_id: str, unit_id: str, body: EditUnidadBody, req
     # HISTÓRICO #2 · cambio de estatus → unit_status_events (vendido ⇒ días-para-vender)
     old_st, new_st = unit.get("status"), upd.get("status")
     if new_st and new_st != old_st:
-        try:
-            ev = {"unit_id": unit_id, "dev_id": project_id, "unit_number": unit.get("unit_number"),
-                  "old_status": old_st, "new_status": new_st, "changed_at": _now_iso(),
-                  "changed_by": user.user_id, "source": "superadmin_edit",
-                  "price": new_price if new_price is not None else old_price}
-            if new_st == "vendido":
-                try:
-                    created = dt.datetime.fromisoformat(str(unit.get("created_at")).replace("Z", "+00:00"))
-                    ev["days_to_sell"] = max(0, (dt.datetime.now(dt.timezone.utc) - created).days)
-                except Exception:  # noqa: BLE001
-                    pass
-                ev["sold_at"] = ev["changed_at"]
-            await db.unit_status_events.insert_one(ev)
-        except Exception as e:  # noqa: BLE001
-            log.warning(f"[alta] status_event: {e}")
+        # Palanca 6: writer canónico (id + idempotencia + schema fijo). dev para org/colonia + días reales.
+        from unit_status_ledger import record_status_event
+        _dev_ev = await db.developments.find_one(
+            {"id": project_id}, {"_id": 0, "name": 1, "nombre": 1, "colonia_id": 1, "alcaldia": 1, "developer_id": 1})
+        _price_ev = new_price if new_price is not None else old_price
+        await record_status_event(db, project_id, {**unit, "price": _price_ev}, old_st, new_st,
+                                  source="superadmin_edit", dev=_dev_ev, changed_by=user.user_id)
 
     upd["updated_at"] = _now_iso()
     await db.units.update_one({"id": unit_id}, {"$set": upd})

@@ -126,7 +126,7 @@ async def price_history(project_id: str, request: Request):
     # ── Serie: eventos reales si hay, si no derivar del seed ─────────────────
     real: Dict[str, List[float]] = defaultdict(list)
     try:
-        async for e in db.price_events.find({"dev_id": project_id}, {"_id": 0, "new_price": 1, "changed_at": 1}):
+        async for e in db.price_events.find({"dev_id": project_id, "revertido": {"$ne": True}}, {"_id": 0, "new_price": 1, "changed_at": 1}):
             if e.get("new_price"):
                 real[str(e.get("changed_at"))[:7]].append(e["new_price"])
     except Exception:

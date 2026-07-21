@@ -2078,23 +2078,10 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             old_st = existing.get("status")
             if _new_st and _new_st != old_st:
                 upd["status"] = _new_st
-                try:
-                    ev = {"unit_id": existing.get("id"), "dev_id": target_dev_id, "unit_number": unit_no,
-                          "old_status": old_st, "new_status": _new_st, "changed_at": now,
-                          "source": "reingesta", "price": _price or old_price}
-                    if _new_st == "vendido":
-                        try:
-                            import datetime as _dt
-                            _base = existing.get("listed_at") or existing.get("created_at")   # Palanca 2
-                            created = _dt.datetime.fromisoformat(str(_base).replace("Z", "+00:00"))
-                            ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
-                            ev["days_from"] = "listed_at" if existing.get("listed_at") else "created_at"
-                        except Exception:  # noqa: BLE001
-                            pass
-                        ev["sold_at"] = now
-                    await db.unit_status_events.insert_one(ev)
-                except Exception as e:  # noqa: BLE001
-                    log.warning(f"[bulk_ingest] status_event: {e}")
+                # Palanca 6: writer canónico (id + idempotencia + schema fijo). {**existing, price} para días reales.
+                from unit_status_ledger import record_status_event
+                await record_status_event(db, target_dev_id, {**existing, "price": _price or old_price},
+                                          old_st, _new_st, source="reingesta", dev=dev)
             await db.units.update_one({"id": existing["id"]}, {"$set": upd})
         else:
             _pd = None  # (conteo real vía _parking_count)
@@ -2173,19 +2160,11 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
             if _unit_identity(old.get("unit_number")) in new_nos:
                 continue
             try:
-                ev = {"unit_id": old.get("id"), "dev_id": target_dev_id, "unit_number": old.get("unit_number"),
-                      "old_status": old.get("status"), "new_status": "vendido", "changed_at": now,
-                      "source": "reingesta_ausente", "price": old.get("price") or old.get("price_mxn"),
-                      "sold_at": now, "nota": "ya no aparece en la lista de precios nueva"}
-                try:
-                    import datetime as _dt
-                    _base = old.get("listed_at") or old.get("created_at")                    # Palanca 2
-                    created = _dt.datetime.fromisoformat(str(_base).replace("Z", "+00:00"))
-                    ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
-                except Exception:  # noqa: BLE001
-                    pass
                 await db.units.update_one({"id": old["id"]}, {"$set": {"status": "vendido", "updated_at": now}})
-                await db.unit_status_events.insert_one(ev)
+                from unit_status_ledger import record_status_event   # Palanca 6: writer canónico
+                await record_status_event(db, target_dev_id, old, old.get("status"), "vendido",
+                                          source="reingesta_ausente", dev=dev,
+                                          extra={"nota": "ya no aparece en la lista de precios nueva"})
                 log.info(f"[bulk_ingest] {target_dev_id} unidad {old.get('unit_number')} → VENDIDO (ausente de la lista)")
             except Exception as e:  # noqa: BLE001
                 log.warning(f"[bulk_ingest] ausente→vendido {old.get('unit_number')}: {e}")

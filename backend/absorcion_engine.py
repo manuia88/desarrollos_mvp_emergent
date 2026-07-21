@@ -108,7 +108,8 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
     ventas_ledger: Dict[str, dict] = {}
     try:
         async for r in db.unit_status_events.aggregate([
-            {"$match": {"new_status": "vendido", "days_to_sell": {"$ne": None}}},
+            # Palanca 6: excluye eventos revertidos (deshacer_lote) → absorción sin ventas fantasma.
+            {"$match": {"new_status": "vendido", "days_to_sell": {"$ne": None}, "revertido": {"$ne": True}}},
             {"$group": {"_id": "$dev_id", "n": {"$sum": 1}, "dias": {"$avg": "$days_to_sell"}}}]):
             if r.get("_id"):
                 ventas_ledger[r["_id"]] = {"n": r["n"],

@@ -88,7 +88,8 @@ async def _price_cuts_by_colonia(db) -> Dict[str, Any]:
     ev = defaultdict(list)
     try:
         async for d in db.price_events.find(
-            {}, {"_id": 0, "dev_id": 1, "colonia_id": 1, "delta_pct": 1, "changed_at": 1}
+            {"revertido": {"$ne": True}},   # Palanca 6: ignora eventos de cargas deshechas
+            {"_id": 0, "dev_id": 1, "colonia_id": 1, "delta_pct": 1, "changed_at": 1}
         ):
             col = _slug(d.get("colonia_id"))
             if col:
