@@ -41,15 +41,15 @@ async def marcar_env(db) -> Dict[str, Any]:
     demanda, y estampa dev_id en las señales cuya entidad es un dev real. Idempotente."""
     reales = await _dev_ids_reales(db)
     res: Dict[str, Any] = {}
-    # buyer_signals: demo si su entity no es dev real O el visitor es de prueba
+    # 1) atribuye dev_id donde la entidad es un dev real (SOLO dev_id, sin tocar env todavía)
+    r4 = await db.buyer_signals.update_many(
+        {"entity_id": {"$in": list(reales)}}, [{"$set": {"dev_id": "$entity_id"}}])
+    # 2) demo GANA: entity no-real O visitor de prueba (después del dev_id, para que el demo pise)
     r1 = await db.buyer_signals.update_many({"entity_id": {"$nin": list(reales)}}, {"$set": {"env": "demo"}})
     r2 = await db.buyer_signals.update_many({"visitor_id": {"$regex": _TEST_VISITOR.pattern, "$options": "i"}},
                                             {"$set": {"env": "demo"}})
+    # 3) el resto (con dev_id real y visitor no-prueba) = real
     r3 = await db.buyer_signals.update_many({"env": {"$exists": False}}, {"$set": {"env": "real"}})
-    # dev_id atribuido en las reales
-    r4 = await db.buyer_signals.update_many(
-        {"entity_id": {"$in": list(reales)}},
-        [{"$set": {"dev_id": "$entity_id", "env": "real"}}])
     res["buyer_signals"] = {"demo": r1.modified_count + r2.modified_count, "real": r3.modified_count,
                             "dev_id_atribuido": r4.modified_count}
     # demand_atoms + leads: demo por visitor de prueba (o sin visitor real)
