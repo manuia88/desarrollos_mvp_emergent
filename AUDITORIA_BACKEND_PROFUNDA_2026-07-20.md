@@ -30,6 +30,10 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - `podar_atomos_fantasma` — cubo 6,913→5,672, 0 fantasmas, átomos vivos = db.units EXACTO (commit 230044e7).
   - `purgar_dev()` reaper + `podar_eventos_huerfanos` — 1,932 eventos huérfanos borrados, cableado al vigía (be7bc5b3).
   - `norm_unidad` torres-nombre — Humbolt 201 ≠ Madison 201, resolvió 152 colisiones, 0 nuevas (714b1304).
+- ✅ **PALANCA 2 COMPLETA** (ledger de ventas / moat de velocidad):
+  - `unit_status_ledger.record_status_event` + vigía cableado — el vigía ya alimenta el ledger (org/colonia, idempotente) (500306a1).
+  - `listed_at` real + días-para-vender ya no salen de created_at; backfill 5,176 (fc5b209b).
+  - `curva_absorcion` LEE el ledger (ventas_reales, dias_venta_prom por dev) (d7972905).
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
