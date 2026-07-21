@@ -39,6 +39,11 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - candado de concurrencia por fuente (no más precio_pelea falso en doble corrida).
   - aprende `VENDIDO` de la lista + limpia `inventario_pelea` al reaparecer.
   - destapa `developer_unit_overrides.price` al auto-aplicar (el público ve el precio nuevo).
+- ◐ **PALANCA 4 PARCIAL** (demanda / espinazo) — commit 1b89bb5d (los 2 de mayor valor):
+  - buscador IA: `id` propio + visitor-proxy por IP (antes 340 átomos colapsados / 83% sin visitor).
+  - `lead_score.reconciliar_todos`: UN `leads.score` canónico (antes 59/59 None); cableado al vigía.
+  - PENDIENTE P4: propagar `visitor_id` desde el FRONT (el piso por IP es coarse), resolver
+    slug→dev_id para atribución, flag `is_demo` para filtrar tráfico sintético (roma-norte-85).
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
