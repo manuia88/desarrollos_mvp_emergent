@@ -49,6 +49,13 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - **FRONTEND cerrado** (commit 9ba8a6a7): `aiSearchParse`/`atlaxSearch`/`PriceListTab` leían
     localStorage directo → un visitante nuevo mandaba `visitor_id` vacío. Ahora usan `visitorId()`
     que lo SIEMBRA. El espinazo queda cerrado punta a punta (front + backend). Sin residual.
+- ◐ **PALANCA 5 EN CURSO** (índices reales) — commit 38b96fe3:
+  - `juez_metricas`: mide cuánto de cada índice es REAL vs relleno (DRPI 0%, ie_scores 73%,
+    price_index 26%, health 100%) + caza fuera-de-rango. Guarda en `metricas_salud`, al vigía.
+  - `limpiar_centinelas`: −24 zonas de prueba `___NOPE___` del DRPI.
+  - los 4 lectores públicos del DRPI filtran `synthetic:{$ne:True}` (dejan de servir relleno).
+  - PENDIENTE P5: upsert del índice de precios (nunca actualiza, 660 redundantes), trend_7d=1d,
+    filtro is_proxy en ie_scores, cron de health_scores (7 con 20+ días), idempotencia de snapshots.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
