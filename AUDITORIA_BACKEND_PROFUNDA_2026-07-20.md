@@ -34,6 +34,11 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - `unit_status_ledger.record_status_event` + vigía cableado — el vigía ya alimenta el ledger (org/colonia, idempotente) (500306a1).
   - `listed_at` real + días-para-vender ya no salen de created_at; backfill 5,176 (fc5b209b).
   - `curva_absorcion` LEE el ledger (ventas_reales, dias_venta_prom por dev) (d7972905).
+- ✅ **PALANCA 3 COMPLETA** (ciclo del Vigía / feature estrella) — commit 8031ae0c:
+  - clasificador de listas UNIVERSAL: GDC `_LP.pdf` dejó de ser invisible (auto-apply revivido).
+  - candado de concurrencia por fuente (no más precio_pelea falso en doble corrida).
+  - aprende `VENDIDO` de la lista + limpia `inventario_pelea` al reaparecer.
+  - destapa `developer_unit_overrides.price` al auto-aplicar (el público ve el precio nuevo).
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
