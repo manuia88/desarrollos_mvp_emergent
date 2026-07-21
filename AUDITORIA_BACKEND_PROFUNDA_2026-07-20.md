@@ -108,8 +108,11 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
     sin precio → honestamente sin finance). Dimensión 'financiero' del cubo deja de estar hueca.
   - **Oferta real**: el snapshot OLAP de oferta/tensión excluye los átomos seed (demo) → sin oferta fantasma.
   - **Enriquecido**: piso/orientación/terraza/roof/balcón mapeados (antes None → dims 'sin_dato' siempre).
-  - Honesto: 366 átomos con colonia vacía = 5 devs QC de **Edomex** (Jilotepec/Tlalnepantla) cuyo dev.colonia_id
-    es None en la fuente (fuera del catálogo CDMX) → no es bug, el juez lo reporta.
+  - Colonia: los 366 átomos que quedaban sin colonia eran 5 devs QC de **Edomex** (Naucalpan/Tlalnepantla,
+    fuera del catálogo CDMX). **Cerrado 07-21** con la fuente del founder: Fraccionamiento El Mirador
+    (Naucalpan, CP 53050) y San Jerónimo Tepetlacalco (Tlalnepantla de Baz, CP 54090). Slug calificado por
+    municipio (`el-mirador-naucalpan`, no el `el-mirador` de CDMX/Coyoacán) para no heredar zona ajena.
+    → **0 átomos reales sin colonia** (2 colonias Edomex creadas, sin scores fabricados).
   - Tests: `test_p8_cubo_universos` (8) + regresión **1994 passed**.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
