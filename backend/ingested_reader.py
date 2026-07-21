@@ -273,6 +273,39 @@ async def attach_planos(db, dev_id: str, units: List[Dict[str, Any]]) -> int:
         return 0
 
 
+async def sanar_colonia_desde_nombre(db) -> Dict[str, int]:
+    """Self-healer (07-21): resuelve `colonia_id` desde el NOMBRE de colonia vía db.colonias para devs
+    (y sus units) que traen la colonia por nombre pero sin id. Cierra el hueco Edomex de forma GENERAL
+    y DURABLE — una re-ingesta de QC borraría el colonia_id, esto lo vuelve a poner. Solo amarra cuando
+    el nombre mapea a UNA sola colonia del catálogo (evita 'El Mirador' ambiguo). Nunca pisa un id ya
+    puesto. Idempotente."""
+    cat: Dict[str, str] = {}
+    ambig: set = set()
+    async for c in db.colonias.find({}, {"_id": 0, "id": 1, "name": 1}):
+        nm = str(c.get("name") or "").strip().lower()
+        if nm and c.get("id"):
+            if nm in cat and cat[nm] != c["id"]:
+                ambig.add(nm)
+            cat.setdefault(nm, c["id"])
+    res = {"devs": 0, "units": 0}
+    async for d in db.developments.find(
+            {"colonia": {"$nin": [None, ""]},
+             "$or": [{"colonia_id": None}, {"colonia_id": {"$exists": False}}]},
+            {"_id": 0, "id": 1, "colonia": 1}):
+        nm = str(d.get("colonia")).strip().lower()
+        cid = cat.get(nm)
+        if not cid or nm in ambig:
+            continue
+        await db.developments.update_one({"id": d["id"]}, {"$set": {"colonia_id": cid}})
+        ru = await db.units.update_many(
+            {"development_id": d["id"],
+             "$or": [{"colonia_id": None}, {"colonia_id": {"$exists": False}}]},
+            {"$set": {"colonia_id": cid}})
+        res["devs"] += 1
+        res["units"] += ru.modified_count
+    return res
+
+
 async def _resolver_cv(db, colonia_id, colonia_name=None, alcaldia=None):
     """Resuelve el doc colonia_valoracion probando varias formas de llave: el colonia_id tal cual,
     la llave '{colonia}-{alcaldia}' (formato real de la colección) y match por nombre. Cierra el mismatch

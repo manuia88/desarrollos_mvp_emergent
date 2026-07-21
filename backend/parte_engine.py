@@ -18,12 +18,15 @@ log = logging.getLogger("dmx.parte")
 # ─── el registro de cadencias (universal) ─────────────────────────────────────
 CADENCIAS: Dict[str, Dict[str, Any]] = {
     "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["novedades"]},
-    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
-    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
-    "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
-    "trimestral": {"dias": 91,  "titulo": "📈 Parte trimestral",    "secciones": ["catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
-    "semestral":  {"dias": 182, "titulo": "📈 Parte semestral",     "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
-    "anual":      {"dias": 365, "titulo": "🏆 Parte anual",         "secciones": ["catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
+    # 07-21: todo periodo LIDERA con el titular numérico (resumen) e hipersegmentado; el detalle día-a-día
+    # va en el 3-cajón (novedades) donde la ventana es corta. Se soltó 'movimientos'/'listas' (muro redundante
+    # que el rediseño del diario ya resolvió — una sola verdad, no dos listas del mismo evento).
+    "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["resumen", "novedades", "absorcion", "ritmo", "meses_inventario", "gangas", "salud"]},
+    "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["resumen", "novedades", "absorcion", "ritmo", "frescura", "gangas", "salud"]},
+    "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["resumen", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes", "salud"]},
+    "trimestral": {"dias": 91,  "titulo": "📈 Parte trimestral",    "secciones": ["resumen", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
+    "semestral":  {"dias": 182, "titulo": "📈 Parte semestral",     "secciones": ["resumen", "catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
+    "anual":      {"dias": 365, "titulo": "🏆 Parte anual",         "secciones": ["resumen", "catalogo", "absorcion", "meses_inventario", "demanda", "moldes"]},
 }
 
 _EMOJI_TIPO = {"alta": "🆕", "salida": "🔴", "cambio": "✏️", "reaparicion": "↩️"}
@@ -124,6 +127,73 @@ def _traducir_status(antes, despues):
     if any(x in d for x in ("apartad", "reservad", "no_disp", "bloq")):
         return "🔴", "se apartó"
     return "•", f"{a or '?'} → {d or '?'}"
+
+
+async def _sec_resumen(db, desde: str) -> List[str]:
+    """LA SEMANA EN NÚMEROS (founder 07-21): el titular numérico e HIPERSEGMENTADO por desarrollador,
+    ANTES del detalle. Vive del ledger canónico (unit_status_events + price_events, ya sin revertidos
+    tras P6) y de db.units — la MISMA verdad que el resto de la plataforma. Cada número dice de quién es."""
+    nombres = await _nombres_devs(db)
+
+    def _dl(did):
+        return nombres.get(did) or "otros"
+
+    def _top(d: Dict[str, int], k: int = 4) -> str:
+        # '(n)' para que el conteo NO se pegue al nombre ('Casa Condesa 14' parecía un proyecto; es 14 ventas)
+        return " · ".join(f"{_dl(x)} ({n})" for x, n in sorted(d.items(), key=lambda kv: -kv[1])[:k])
+
+    # 1) VENTAS del periodo (ledger real; excluye eventos revertidos por deshacer_lote)
+    ventas = 0
+    monto = 0.0
+    v_dev: Dict[str, int] = {}
+    async for e in db.unit_status_events.find(
+            {"new_status": "vendido", "changed_at": {"$gte": desde}, "revertido": {"$ne": True}},
+            {"_id": 0, "dev_id": 1, "price": 1}):
+        ventas += 1
+        monto += float(e.get("price") or 0)
+        v_dev[e.get("dev_id") or "?"] = v_dev.get(e.get("dev_id") or "?", 0) + 1
+    # 2) CAMBIOS DE PRECIO del periodo
+    subio = bajo = 0
+    p_dev: Dict[str, int] = {}
+    async for e in db.price_events.find(
+            {"changed_at": {"$gte": desde}, "revertido": {"$ne": True}},
+            {"_id": 0, "dev_id": 1, "delta_pct": 1, "old_price": 1, "new_price": 1}):
+        dp = e.get("delta_pct")
+        if dp is None and e.get("old_price") and e.get("new_price"):
+            try:
+                dp = (float(e["new_price"]) / float(e["old_price"]) - 1) * 100
+            except (TypeError, ValueError, ZeroDivisionError):
+                dp = None
+        if dp is None:
+            continue
+        subio += dp > 0
+        bajo += dp < 0
+        p_dev[e.get("dev_id") or "?"] = p_dev.get(e.get("dev_id") or "?", 0) + 1
+    # 3) NUEVAS unidades del periodo
+    nuevas = 0
+    n_dev: Dict[str, int] = {}
+    async for u in db.units.find({"created_at": {"$gte": desde}}, {"_id": 0, "development_id": 1}):
+        nuevas += 1
+        n_dev[u.get("development_id") or "?"] = n_dev.get(u.get("development_id") or "?", 0) + 1
+    # 4) inventario AHORA
+    disp = await db.units.count_documents({"status": {"$in": [None, "", "disponible", "available"]}})
+    vend_tot = await db.units.count_documents({"status": {"$in": ["vendida", "vendido", "sold"]}})
+    base = disp + vend_tot
+    colocado = round(vend_tot * 100 / base) if base else 0
+
+    out = ["<b>🧮 El periodo en números</b>",
+           "<i>(cada número dice de qué desarrollador es)</i>"]
+    out.append(f"🏠 <b>{ventas}</b> vendidas" + (f" · {_mm(monto)}" if monto else "")
+               + (f" — {_top(v_dev)}" if v_dev else " esta semana"))
+    if subio or bajo:
+        out.append(f"💸 <b>{subio + bajo}</b> cambios de precio (↑{subio} subieron · ↓{bajo} bajaron)"
+                   + (f" — {_top(p_dev)}" if p_dev else ""))
+    else:
+        out.append("💸 0 cambios de precio")
+    if nuevas:
+        out.append(f"🆕 <b>{nuevas}</b> unidades nuevas — {_top(n_dev)}")
+    out.append(f"📦 Inventario hoy: <b>{disp}</b> disponibles · {colocado}% colocado del catálogo")
+    return out
 
 
 async def _sec_novedades(db, desde: str) -> List[str]:
@@ -439,10 +509,17 @@ async def _sec_catalogo(db, desde: str) -> List[str]:
     return lineas
 
 
+async def _ventas_ledger(db, desde: str) -> List[Dict[str, Any]]:
+    """Ventas del periodo desde el LEDGER CANÓNICO (unit_status_events, P2/P6) — la misma fuente que el
+    titular numérico. Antes absorción/ritmo leían market_timeline y contradecían al resumen ('15 vendidas'
+    arriba, '0 salieron' abajo). Excluye revertidos (deshacer_lote)."""
+    return await db.unit_status_events.find(
+        {"new_status": "vendido", "changed_at": {"$gte": desde}, "revertido": {"$ne": True}},
+        {"_id": 0, "dev_id": 1}).to_list(5000)
+
+
 async def _sec_absorcion(db, desde: str) -> List[str]:
-    from market_timeline import transiciones
-    t = await transiciones(db, desde=desde, tipo="salida", limite=1000)
-    vendidas = len(t.get("registros") or t.get("eventos") or [])
+    vendidas = len(await _ventas_ledger(db, desde))
     disp = await db.units.count_documents({"status": {"$in": [None, "", "disponible", "available"]}})
     base = disp + vendidas
     pct = (vendidas / base * 100) if base else 0
@@ -453,17 +530,16 @@ async def _sec_absorcion(db, desde: str) -> List[str]:
 
 
 async def _sec_ritmo(db, desde: str) -> List[str]:
-    """Ritmo por proyecto: quién se mueve y quién está parado."""
-    from market_timeline import transiciones
-    t = await transiciones(db, desde=desde, limite=1000)
+    """Ritmo por proyecto: quién se mueve y quién está parado. Del ledger (mismo que el titular)."""
+    nombres = await _nombres_devs(db)
     por_proy: Dict[str, int] = {}
-    for r in (t.get("registros") or t.get("eventos") or []):
+    for r in await _ventas_ledger(db, desde):
         k = r.get("dev_id") or "?"
         por_proy[k] = por_proy.get(k, 0) + 1
     if not por_proy:
         return []
     top = sorted(por_proy.items(), key=lambda x: -x[1])[:5]
-    return ["<b>🔥 Los que más se mueven</b>"] + [f"· {k}: {n} movimientos" for k, n in top]
+    return ["<b>🔥 Los que más venden</b>"] + [f"· {nombres.get(k) or k}: {n} vendidas" for k, n in top]
 
 
 async def _sec_frescura(db, desde: str) -> List[str]:
@@ -482,9 +558,7 @@ async def _sec_frescura(db, desde: str) -> List[str]:
 
 
 async def _sec_meses_inventario(db, desde: str) -> List[str]:
-    from market_timeline import transiciones
-    t = await transiciones(db, desde=desde, tipo="salida", limite=2000)
-    vendidas = len(t.get("registros") or t.get("eventos") or [])
+    vendidas = len(await _ventas_ledger(db, desde))     # ledger canónico (coherente con el titular)
     dias = max((_now() - datetime.fromisoformat(desde.replace("Z", "+00:00"))).days, 1)
     ritmo_mensual = vendidas / dias * 30
     disp = await db.units.count_documents({"status": {"$in": [None, "", "disponible", "available"]}})
@@ -620,7 +694,7 @@ async def _sec_salud(db, desde: str) -> List[str]:
     return out
 
 
-_SECCIONES = {"novedades": _sec_novedades,
+_SECCIONES = {"resumen": _sec_resumen, "novedades": _sec_novedades,
               "movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
               "absorcion": _sec_absorcion, "ritmo": _sec_ritmo, "frescura": _sec_frescura,
               "meses_inventario": _sec_meses_inventario, "demanda": _sec_demanda,

@@ -437,3 +437,65 @@ async def ingerir_plantas(db, dev_id: str, planta_pdf_path: str,
             sin_nivel += 1
     return {"niveles": len(nivel_png), "unidades_con_plano": n_u,
             "unidades_sin_nivel": sin_nivel, "estado": "ingeridas"}
+
+
+async def bind_plantas_nivel(db, dev_id: str) -> Dict[str, Any]:
+    """Re-amarra cada unidad a la PLANTA de su nivel usando los `plano_nivel` que YA existen en
+    dev_assets (sin re-extraer del PDF). Idempotente y self-healing: The Park quedó con
+    `plano_recorte_pendiente=True` pero SIN `plano_url` (amarre a medias, 07-21). Respeta la torre si
+    la lámina la declara; si no (plantas del conjunto), amarra por nivel. Fail-open."""
+    nivel_url: Dict[int, str] = {}
+    nivel_url_torre: Dict[tuple, str] = {}
+    async for a in db.dev_assets.find(
+            {"development_id": dev_id, "asset_type": "plano_nivel", "nivel": {"$ne": None}},
+            {"_id": 0, "nivel": 1, "torre": 1, "tower": 1, "storage_path": 1}):
+        sp = a.get("storage_path")
+        if not sp:
+            continue
+        from pathlib import Path
+        url = f"/api/assets-static/{Path(sp).name}"
+        tor = (a.get("torre") or a.get("tower"))
+        if tor:
+            nivel_url_torre[(int(a["nivel"]), str(tor).strip().upper())] = url
+        nivel_url[int(a["nivel"])] = url          # fallback tower-agnóstico (planta del conjunto)
+    if not nivel_url and not nivel_url_torre:
+        return {"amarradas": 0, "sin_planta": 0, "estado": "sin_plantas"}
+    amarradas = sin_planta = 0
+    async for u in db.units.find({"development_id": dev_id},
+                                 {"_id": 0, "id": 1, "unit_number": 1, "level": 1, "tower": 1, "torre": 1}):
+        niv = nivel_de_unidad(u.get("unit_number"), u.get("level"))
+        if niv is None:
+            sin_planta += 1
+            continue
+        tor = str(u.get("tower") or u.get("torre") or "").strip().upper()
+        url = nivel_url_torre.get((niv, tor)) or nivel_url.get(niv)
+        if url:
+            await db.units.update_one(
+                {"id": u["id"]},
+                {"$set": {"plano_url": url, "plano_nivel": niv, "plano_fuente": "planta_nivel",
+                          "plano_recorte_pendiente": True}})   # el recorte por-depto queda de mejora
+            amarradas += 1
+        else:
+            sin_planta += 1     # nivel sin planta (p.ej. PB/piso 2 sin lámina en la fuente) — honesto
+    return {"amarradas": amarradas, "sin_planta": sin_planta,
+            "niveles_disponibles": sorted(nivel_url), "estado": "amarradas"}
+
+
+async def sanar_plantas_nivel(db) -> Dict[str, int]:
+    """Self-healer del vigía (07-21): re-amarra las plantas de nivel a las unidades que las PERDIERON
+    (una re-ingesta les da id nuevo y borra plano_url). Solo actúa si hay hueco REAL — una unidad cuyo
+    nivel SÍ tiene planta pero quedó sin plano_url — así no re-escribe cada hora sin necesidad."""
+    res: Dict[str, int] = {}
+    for did in await db.dev_assets.distinct("development_id", {"asset_type": "plano_nivel"}):
+        niveles = [n for n in await db.dev_assets.distinct(
+            "nivel", {"development_id": did, "asset_type": "plano_nivel"}) if n is not None]
+        if not niveles:
+            continue
+        hueco = await db.units.count_documents(
+            {"development_id": did, "level": {"$in": niveles},
+             "$or": [{"plano_url": None}, {"plano_url": {"$exists": False}}]})
+        if hueco:
+            r = await bind_plantas_nivel(db, did)
+            if r.get("amarradas"):
+                res[did] = r["amarradas"]
+    return res

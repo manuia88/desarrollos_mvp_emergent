@@ -2636,6 +2636,17 @@ async def startup():
                                      f"faltan_en_atomo={jc.get('faltan_en_atomo')}")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[cubo] sync/juez universos falló: {e}")
+                # SANADORES (07-21): colonia_id desde nombre vía catálogo (hueco Edomex, general y durable
+                # ante re-ingesta) + re-amarre de plantas de nivel a unidades que perdieron plano_url.
+                try:
+                    from ingested_reader import sanar_colonia_desde_nombre
+                    from presentacion_gdc import sanar_plantas_nivel
+                    sc = await sanar_colonia_desde_nombre(db)
+                    sp = await sanar_plantas_nivel(db)
+                    if sc.get("devs") or sp:
+                        logging.info(f"[sanadores] colonia={sc} plantas={sp}")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[sanadores] colonia/plantas falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
