@@ -17,7 +17,7 @@ log = logging.getLogger("dmx.parte")
 
 # ─── el registro de cadencias (universal) ─────────────────────────────────────
 CADENCIAS: Dict[str, Dict[str, Any]] = {
-    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "moldes", "gangas", "salud"]},
+    "diario":     {"dias": 1,   "titulo": "📆 Parte del día",       "secciones": ["novedades"]},
     "semanal":    {"dias": 7,   "titulo": "🗓 Parte semanal",       "secciones": ["movimientos", "listas", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
     "quincenal":  {"dias": 15,  "titulo": "🗓 Parte quincenal",     "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "frescura", "moldes", "gangas", "salud"]},
     "mensual":    {"dias": 30,  "titulo": "📊 Parte mensual",       "secciones": ["movimientos", "catalogo", "absorcion", "ritmo", "meses_inventario", "demanda", "moldes"]},
@@ -31,6 +31,23 @@ _EMOJI_TIPO = {"alta": "🆕", "salida": "🔴", "cambio": "✏️", "reaparicio
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _paginar(texto: str, tope: int = 3800) -> List[str]:
+    """Parte a Telegram (límite 4096): corta en frontera de BLOQUE (\\n\\n), nunca a media
+    palabra. Puro y testeable — arregla el corte '…lo cambió el' del parte viejo."""
+    bloques = texto.split("\n\n")
+    partes: List[str] = []
+    actual = ""
+    for b in bloques:
+        if actual and len(actual) + len(b) + 2 > tope:
+            partes.append(actual)
+            actual = b
+        else:
+            actual = f"{actual}\n\n{b}" if actual else b
+    if actual:
+        partes.append(actual)
+    return partes or [texto[:tope]]
 
 
 def _fmt_precio(v) -> str:
@@ -86,6 +103,138 @@ def linea_movimiento(r: Dict[str, Any], nombres: Optional[Dict[str, str]] = None
 async def _nombres_devs(db) -> Dict[str, str]:
     return {d["id"]: (d.get("name") or d["id"]) async for d in
             db.developments.find({}, {"_id": 0, "id": 1, "name": 1})}
+
+
+def _mm(v) -> Optional[str]:
+    """Precio corto y humano: 6,064,800 → '$6.06M'."""
+    try:
+        f = float(v)
+        return f"${f / 1e6:.2f}M" if f >= 1e6 else f"${f:,.0f}"
+    except (TypeError, ValueError):
+        return None
+
+
+def _traducir_status(antes, despues):
+    """Transición técnica → palabras de niño (icono, texto)."""
+    a, d = str(antes or "").lower(), str(despues or "").lower()
+    if "vendid" in d:
+        return "🏠", "se vendió"
+    if d in ("disponible", "available", "libre"):
+        return "🟢", "volvió a estar en venta"
+    if any(x in d for x in ("apartad", "reservad", "no_disp", "bloq")):
+        return "🔴", "se apartó"
+    return "•", f"{a or '?'} → {d or '?'}"
+
+
+async def _sec_novedades(db, desde: str) -> List[str]:
+    """EL PARTE EN 3 CAJONES (rediseño founder 07-20: 'que un niño de 5 años lo entienda').
+    UNA sola verdad — se acabó la contradicción 'sin movimientos' + 20 cambios. Agrupa TODO lo
+    que vio el vigía por QUÉ TIENES QUE HACER: 👀 míralo / ✅ ya lo arreglé / 😴 nada. Cada línea
+    en humano e HIPERSEGMENTADA (proyecto · depa · precio · qué pasó — nunca 'A201' a secas: hay
+    3 A201 en el catálogo). Sin nombres de PDF, sin el bug 'salta N renglones'."""
+    import re
+    import unicodedata
+    from lista_peek import norm_unidad
+
+    def _n(s):
+        return re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFKD", str(s or "").lower())
+                      .encode("ascii", "ignore").decode()).strip()
+
+    devs = {_n(d.get("name")): d["id"] async for d in
+            db.developments.find({}, {"_id": 0, "id": 1, "name": 1})}
+    _cache: Dict[str, Dict[str, Any]] = {}
+
+    def _dev_de(proyecto: str) -> Optional[str]:
+        p = _n(proyecto)
+        for nom, did in devs.items():
+            if nom and (nom in p or (len(nom) > 6 and p.startswith(nom[:14]))):
+                return did
+        return None
+
+    async def _precio(did: Optional[str], unidad) -> Optional[str]:
+        if not did:
+            return None
+        if did not in _cache:
+            _cache[did] = {norm_unidad(u.get("unit_number")): u.get("price")
+                           async for u in db.units.find({"development_id": did},
+                                                        {"_id": 0, "unit_number": 1, "price": 1})}
+        return _mm(_cache[did].get(norm_unidad(str(unidad))))
+
+    def _limpiar(nombre: str) -> str:
+        p = re.split(r"\s*[-–]\s*", str(nombre or ""))[0]
+        p = re.sub(r"\s+(zona|col\.?|colonia)\b.*$", "", p, flags=re.I).strip()
+        return p or str(nombre or "un proyecto")
+
+    mira_precio: List[str] = []
+    mira_nuevo: List[str] = []
+    mira_venta: List[str] = []
+    arregle: List[str] = []
+    resubidas = primeras = revisadas = con_cambios = 0
+    ultima = None
+    async for ev in db.vigia_eventos.find(
+            {"ts": {"$gte": desde}, "tipo": "lista_cambiada"}, {"_id": 0}).sort("ts", -1).limit(80):
+        revisadas += 1
+        ultima = ultima or ev.get("ts")
+        proy = _limpiar(ev.get("proyecto") or ev.get("dev") or "un proyecto")
+        c = ev.get("cambios") or {}
+        did = _dev_de(proy)
+        hubo = False
+        for x in (c.get("cambios_precio") or [])[:6]:            # 💸 precio → MÍRALO (lo más importante)
+            try:
+                pct = (x["ahora"] - x["antes"]) / x["antes"] * 100
+                verbo = "bajó" if pct < 0 else "subió"
+                mira_precio.append(f"💸 <b>{proy}</b> · {x['unidad']} · {verbo} {_mm(x['antes'])}→{_mm(x['ahora'])} ({pct:+.0f}%)")
+            except (TypeError, ValueError, ZeroDivisionError, KeyError):
+                mira_precio.append(f"💸 <b>{proy}</b> · {x.get('unidad')} · cambió de precio")
+            hubo = True
+        for u in (c.get("nuevas") or [])[:6]:                    # 🆕 nuevo → MÍRALO (decisión)
+            mira_nuevo.append(f"🆕 <b>{proy}</b> · {u} · es nuevo — ¿lo agrego?")
+            hubo = True
+        for u in (c.get("ya_no_estan") or [])[:6]:               # 🏠 venta → MÍRALO
+            pr = await _precio(did, u)
+            mira_venta.append(f"🏠 <b>{proy}</b> · {u} · {pr + ' · ' if pr else ''}se vendió")
+            hubo = True
+        for x in (c.get("cambios_status") or [])[:8]:            # estatus → YA LO ARREGLÉ
+            ic, txt = _traducir_status(x.get("antes"), x.get("ahora"))
+            pr = await _precio(did, x.get("unidad"))
+            arregle.append(f"{ic} <b>{proy}</b> · {x.get('unidad')} · {pr + ' · ' if pr else ''}{txt}")
+            hubo = True
+        if hubo:
+            con_cambios += 1
+        elif c.get("nota") or (c.get("totales") or {}).get("ahora"):
+            primeras += 1                                        # primera lectura (sin diff aún)
+        else:
+            resubidas += 1                                       # re-subida igual
+
+    mira = mira_precio + mira_nuevo + mira_venta      # dinero primero, luego decisiones, luego ventas
+    total = len(mira) + len(arregle)
+    out: List[str] = []
+    if total:
+        out.append(f"Revisé las listas de tus desarrollos. Cambiaron {total} cosas — "
+                   f"ya arreglé lo rutinario." + (f" Mira las {len(mira)} de arriba 👇" if mira else ""))
+    else:
+        out.append("Revisé las listas de tus desarrollos. Hoy no cambió nada. 😴")
+    if mira:
+        out += ["", "━━━━━ 👀 <b>MÍRALO</b> ━━━━━"] + mira[:14]
+        if len(mira) > 14:
+            out.append(f"… y {len(mira) - 14} más")
+    if arregle:
+        out += ["", "━━━━━ ✅ <b>YA LO ARREGLÉ</b> ━━━━━ <i>(no hagas nada)</i>"] + arregle[:14]
+        if len(arregle) > 14:
+            out.append(f"… y {len(arregle) - 14} más")
+    quietas = resubidas + primeras
+    if quietas:
+        det = " · ".join(x for x in [f"{resubidas} listas iguales" if resubidas else "",
+                                     f"{primeras} primeras lecturas" if primeras else ""] if x)
+        out += ["", f"━━━━━ 😴 <b>AQUÍ NO PASÓ NADA</b> ({quietas}) ━━━━━", det]
+    hh = ""
+    if ultima:
+        try:
+            hh = datetime.fromisoformat(str(ultima)).astimezone().strftime("%d %b %H:%M")
+        except (ValueError, TypeError):
+            hh = str(ultima)[:16]
+    out += ["", f"<i>Revisé {revisadas} listas · {con_cambios} con cambios · última revisión {hh}</i>"]
+    return out
 
 
 # ─── las secciones (cada una: datos reales → líneas con emoji) ───────────────
@@ -453,7 +602,8 @@ async def _sec_salud(db, desde: str) -> List[str]:
     return out
 
 
-_SECCIONES = {"movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
+_SECCIONES = {"novedades": _sec_novedades,
+              "movimientos": _sec_movimientos, "listas": _sec_listas, "catalogo": _sec_catalogo,
               "absorcion": _sec_absorcion, "ritmo": _sec_ritmo, "frescura": _sec_frescura,
               "meses_inventario": _sec_meses_inventario, "demanda": _sec_demanda,
               "moldes": _sec_moldes, "gangas": _sec_gangas, "salud": _sec_salud}
@@ -513,8 +663,13 @@ async def enviar_parte(db, periodo: str = "diario") -> Dict[str, Any]:
         from telegram_bot import _tg, _chat_vinculado
         chat = await _chat_vinculado(db)
         if chat:
-            enviado["telegram"] = bool(await _tg("sendMessage", {
-                "chat_id": chat, "text": texto[:4000], "parse_mode": "HTML"}))
+            partes = _paginar(texto, 3800)      # nunca cortar a media palabra (límite 4096 TG)
+            ok = True
+            for i, parte in enumerate(partes):
+                sufijo = f"\n\n<i>({i + 1}/{len(partes)})</i>" if len(partes) > 1 else ""
+                ok = bool(await _tg("sendMessage", {
+                    "chat_id": chat, "text": parte + sufijo, "parse_mode": "HTML"})) and ok
+            enviado["telegram"] = ok
     except Exception as e:  # noqa: BLE001
         log.warning(f"[parte] telegram: {e}")
     try:
