@@ -26,6 +26,10 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
 | _otros (KG, fiscal, AVM, export, censo, cerebro)_ | 29 | subsistemas específicos — ver tabla |
 
 ## Ya arreglado en esta sesión (de esta misma lista)
+- ✅ **PALANCA 1 COMPLETA** (identidad + poda):
+  - `podar_atomos_fantasma` — cubo 6,913→5,672, 0 fantasmas, átomos vivos = db.units EXACTO (commit 230044e7).
+  - `purgar_dev()` reaper + `podar_eventos_huerfanos` — 1,932 eventos huérfanos borrados, cableado al vigía (be7bc5b3).
+  - `norm_unidad` torres-nombre — Humbolt 201 ≠ Madison 201, resolvió 152 colisiones, 0 nuevas (714b1304).
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
