@@ -138,10 +138,15 @@ def db_unit_to_atom(u: Dict[str, Any], dev: Dict[str, Any]) -> Dict[str, Any]:
         "org_id": u.get("developer_id") or dev.get("developer_id"),
         "developer_id": u.get("developer_id") or dev.get("developer_id"),
         "tipologia": tipologia_from_beds(beds),
-        "position": {"piso": None, "orientacion": None},
-        "areas": {"m2_construido": u.get("size_m2_total") or u.get("size_m2"),
-                  "m2_privativo": u.get("size_m2"), "m2_terraza": None, "m2_balcon": None,
-                  "m2_roof_garden_privado": None},
+        # P8: mapear piso/orientación (antes None → dims 'sin_dato' siempre). Normaliza vía _ORIENT.
+        "position": {"piso": u.get("level"),
+                     "orientacion": _ORIENT.get(str(u.get("orientacion") or u.get("orientation") or "").strip().lower())
+                     or u.get("orientacion") or u.get("orientation")},
+        # P8: terraza/balcón/roof reales (antes None → has_terraza/has_roof siempre False en el cubo)
+        "areas": {"m2_construido": u.get("size_m2_total") or u.get("m2_total") or u.get("size_m2"),
+                  "m2_privativo": u.get("size_m2") or u.get("m2_privative"),
+                  "m2_terraza": u.get("m2_terrace"), "m2_balcon": u.get("m2_balcony"),
+                  "m2_roof_garden_privado": u.get("m2_roof_garden")},
         "interior": {"recamaras": beds, "banos_completos": u.get("bathrooms")},
         "parking": parking,
         "storage": storage,
@@ -156,8 +161,12 @@ def db_unit_to_atom(u: Dict[str, Any], dev: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[str, Any]:
-    """CABLE #3: mete las unidades INGERIDAS (db.units) al átomo dmx_units para que el Cubo OLAP,
-    Demanda y Absorción las vean. Idempotente (upsert por unit_id). Filtra por developer_id si se pasa."""
+    """CABLE #3 · RUTA CANÓNICA del inventario al cubo (Palanca 8, auditoría 07-20):
+        db.units (+ developer_unit_overrides) = unidades_efectivas → proyección FIEL en dmx_units.
+    Antes el átomo se construía del db.units CRUDO (sin overrides) → el cubo OLAP contaba como
+    'disponible' una unidad que el dev ya marcó 'vendido' en su portal (dos universos). Ahora se
+    funden los overrides ANTES de proyectar, así TODO lector del átomo (OLAP, demanda, absorción,
+    query-libre) ve lo mismo que corte_engine (que lee unidades_efectivas). Idempotente."""
     q: Dict[str, Any] = {"developer_id": developer_id} if developer_id else {}
     devs: Dict[str, Dict[str, Any]] = {}
     # TODOS los devs REALES (07-20): antes solo 'bulk_ingest' → QC/Punto Destino (ingesta_en_sesion)
@@ -166,9 +175,19 @@ async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[
         devs[d["id"]] = d
     if not devs:
         return {"synced": 0, "collection": UNITS}
+    # overrides del portal dev (misma fusión canónica que unidades_efectivas) — átomo FIEL
+    from unidades_efectivas import fusionar
+    overrides: Dict[str, Dict[str, Any]] = {}
+    async for ov in db.developer_unit_overrides.find(
+            {"$or": [{"dev_id": {"$in": list(devs.keys())}}, {"development_id": {"$in": list(devs.keys())}}]},
+            {"_id": 0}):
+        if ov.get("unit_id"):
+            overrides[ov["unit_id"]] = ov
     n = 0
     async for u in db.units.find({"development_id": {"$in": list(devs.keys())}}, {"_id": 0}):
         dev = devs.get(u.get("development_id")) or {}
+        if overrides.get(u.get("id")):                       # P8: aplica la edición del portal dev
+            u = fusionar([u], {u["id"]: overrides[u["id"]]})[0]
         atom = db_unit_to_atom(u, dev)
         if not atom.get("unit_id"):
             continue
@@ -179,7 +198,16 @@ async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[
         )
         n += 1
     pruned = await podar_atomos_fantasma(db)     # global: caza también devs borrados
-    return {"synced": n, "pruned": pruned, "collection": UNITS}
+    # P8: materializa el bloque finance (mens/enganche/ticket) sobre los átomos con precio → la
+    # dimensión 'financiero' del cubo deja de estar en 30%. Idempotente, fail-open.
+    fin = None
+    try:
+        from dmx_finance_atom import materialize_finance
+        fin = await materialize_finance(db)
+    except Exception as e:  # noqa: BLE001
+        import logging
+        logging.getLogger("dmx.cube_feed").warning(f"[sync] finance materialize: {e}")
+    return {"synced": n, "pruned": pruned, "finance": fin, "collection": UNITS}
 
 
 async def podar_atomos_fantasma(db, dev_ids: Optional[list] = None) -> int:
@@ -199,6 +227,31 @@ async def podar_atomos_fantasma(db, dev_ids: Optional[list] = None) -> int:
         r = await db[UNITS].delete_many(lote)
         total += r.deleted_count
     return total
+
+
+async def juez_cubo_universos(db) -> Dict[str, Any]:
+    """Palanca 8 · el juez que TRAZA las dos rutas del inventario y verifica que convergen:
+    el átomo REAL (dmx_units sin seed) debe ser 1:1 con db.units; el seed queda como demo. Reporta
+    desalineación, cobertura de colonia y de finance. Corre en el vigía (metricas_salud.cubo)."""
+    live = {u["id"] async for u in db.units.find({}, {"_id": 0, "id": 1})}
+    total = await db[UNITS].estimated_document_count()
+    seed = await db[UNITS].count_documents({"sources._origin": "seed_backfill"})
+    real_ids = {a["unit_id"] async for a in db[UNITS].find(
+        {"sources._origin": {"$ne": "seed_backfill"}}, {"_id": 0, "unit_id": 1})}
+    fantasmas = len(real_ids - live)          # átomo real sin unidad viva → debe ser 0 (prune)
+    faltan_en_atomo = len(live - real_ids)    # unidad viva sin átomo → sync incompleto
+    col_vacia = await db[UNITS].count_documents(
+        {"$or": [{"geo.colonia_id": None}, {"geo.colonia_id": ""}, {"geo.colonia_id": {"$exists": False}}]})
+    con_finance = await db[UNITS].count_documents({"finance.mens_80_20": {"$exists": True, "$ne": None}})
+    con_precio = await db[UNITS].count_documents({"commercial.precio_lista_mxn": {"$exists": True, "$ne": None}})
+    return {
+        "db_units_vivas": len(live), "atomo_total": total, "atomo_seed": seed,
+        "atomo_real": len(real_ids), "fantasmas": fantasmas, "faltan_en_atomo": faltan_en_atomo,
+        "colonia_vacia": col_vacia,
+        "finance_cobertura_pct": round(con_finance * 100 / con_precio) if con_precio else 0,
+        # convergen: el átomo real = db.units viva (sin fantasmas ni faltantes)
+        "convergen": fantasmas == 0 and faltan_en_atomo == 0,
+    }
 
 
 # ─── átomo → plano (para el agregador del cubo) ──────────────────────────────

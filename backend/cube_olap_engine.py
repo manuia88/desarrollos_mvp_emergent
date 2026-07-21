@@ -773,7 +773,10 @@ async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[s
         try:
             import demand_intelligence as di
             oferta: Dict[tuple, int] = {}
-            async for u in db.dmx_units.find({"commercial.status": "disponible"},
+            # P8 (auditoría 07-20): la OFERTA del snapshot de mercado cuenta solo inventario REAL — excluye
+            # los átomos seed (demo) que inflaban 'disponibles' con unidades que no están en venta de verdad.
+            async for u in db.dmx_units.find({"commercial.status": "disponible",
+                                              "sources._origin": {"$ne": "seed_backfill"}},
                                              {"_id": 0, "geo.colonia_id": 1, "interior.recamaras": 1}):
                 col = (u.get("geo") or {}).get("colonia_id")
                 rec = (u.get("interior") or {}).get("recamaras")

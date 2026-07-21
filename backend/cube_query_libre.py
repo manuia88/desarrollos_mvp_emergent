@@ -382,10 +382,22 @@ async def consulta(db, filtros: List[Dict[str, Any]],
     # contexto de zona SOLO si algún filtro/agrupación lo pide (join barato, 1 vez por consulta)
     usa_zona = any(f["campo"] in _CAMPOS_ZONA for f in filtros) or any(g in _CAMPOS_ZONA for g in agrupar_por)
     zctx = await _zone_context(db, usa_zona)
+    # P8 (auditoría 07-20): metadata del dev (etapa/entrega/desarrolladora) desde db.developments
+    # (los 86 devs REALES ingeridos) ∪ seed (demo). Antes SOLO el seed → 0% de solapamiento con los
+    # átomos reales → etapa/entrega/desarrolladora = 'sin_dato' para todo lo ingerido. El real gana.
+    dev_map: Dict[str, Any] = {}
     try:
         from data_developments import DEVELOPMENTS_BY_ID
+        dev_map.update(DEVELOPMENTS_BY_ID)
     except Exception:  # noqa: BLE001
-        DEVELOPMENTS_BY_ID = {}
+        pass
+    try:
+        async for d in db.developments.find(
+                {}, {"_id": 0, "id": 1, "stage": 1, "delivery_estimate": 1,
+                     "developer_id": 1, "amenities": 1, "colonia_id": 1, "alcaldia": 1}):
+            dev_map[d["id"]] = d
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[query_libre] dev_map: {e}")
 
     # Resolución de zona: los stores usan slug LARGO (colonia-alcaldía); el átomo, corto.
     # exacto → colonia-alcaldía → prefijo (memoizado por (colonia, alcaldía)).
@@ -415,7 +427,7 @@ async def consulta(db, filtros: List[Dict[str, Any]],
 
     rows: List[Dict[str, Any]] = []
     async for a in db[UNITS].find({}, {"_id": 0}):
-        dev = DEVELOPMENTS_BY_ID.get(a.get("development_id"))
+        dev = dev_map.get(a.get("development_id"))
         r = _normalize_row(a, ov_map.get(a.get("unit_id")), dev)
         if usa_zona:
             r["_z"] = _z_de(r["colonia"], r["alcaldia"])

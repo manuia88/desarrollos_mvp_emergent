@@ -22,6 +22,7 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
 | **P5 · Índices sobre data REAL (no relleno)** | 16 | DRPI 99.8% sintético; compuesta Liquidez/Ghost come de placeholders; 3 loaders del ETL leen colecciones vacías |
 | **P6 · Un solo rastro + integridad + deshacer** ✅ | 2 | ~~deshacer deja eventos colgando; auditor ciego a huérfanos~~ → writer canónico + reversa + juez integridad (bitácora 100% sana) |
 | **P7 · Multi-tenant / authz analítico** ✅ | 2 | ~~5 endpoints con resolver seed = posible fuga; eventos/snapshots sin org~~ → resolver DB-aware (0 sync), db-first, org sellado, snapshots owner_org, bug audit dev_batch11 |
+| **P8 · Cubo de dos universos** ✅ | 5 | ~~dmx_units vs db.units divergen; átomo sin overrides; join al seed; finance 30%~~ → átomo = proyección FIEL (overrides), juez convergen True, finance 93%, dev real, oferta sin seed |
 | **P7 · Multi-tenant / authz analítico** | 2 | 5 endpoints del dev gatean con el resolver seed → posible fuga cross-inmobiliaria |
 | **P8 · Cubo de dos universos** | 5 | consulta-libre come de `dmx_units` (6,913), motor de cortes come de `db.units` → dos verdades del inventario |
 | _otros (KG, fiscal, AVM, export, censo, cerebro)_ | 29 | subsistemas específicos — ver tabla |
@@ -93,6 +94,23 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
     listo para lector dev-facing (hoy solo lo lee superadmin → sin fuga activa). `latest()` alineado a match
     por subcampo (item que faltaba de P5).
   - Tests: `test_p7_multitenant` (35) + regresión **1986 passed** (incluye aislamiento de tenant).
+- ✅ **PALANCA 8 COMPLETA (cero deuda)** (cubo de UN solo universo) — traza de rutas:
+  - **RUTA CANÓNICA única**: `db.units (+ overrides del portal dev) = unidades_efectivas → proyección
+    FIEL en dmx_units`. Antes el átomo se construía del db.units CRUDO → el cubo OLAP contaba como
+    'disponible' una unidad que el dev ya marcó 'vendido' (dos universos). Ahora `sync_ingested_to_atom`
+    **funde los overrides** antes de proyectar → TODO lector del átomo (OLAP, demanda, absorción, query-libre)
+    ve lo mismo que corte_engine.
+  - **Juez de universos** `juez_cubo_universos`: verifica átomo REAL == db.units → **convergen: True**
+    (5176=5176, 0 fantasmas, 0 faltantes). Corre en el vigía (`metricas_salud.cubo`).
+  - **Metadata del dev**: cube_query_libre unía al SEED (0% solapamiento) → 86 devs reales daban 'sin_dato'.
+    Ahora `dev_map` = db.developments ∪ seed (el real gana).
+  - **Finance materializado**: 36% → **93%** (`materialize_finance` en el sync; el 7% restante son unidades
+    sin precio → honestamente sin finance). Dimensión 'financiero' del cubo deja de estar hueca.
+  - **Oferta real**: el snapshot OLAP de oferta/tensión excluye los átomos seed (demo) → sin oferta fantasma.
+  - **Enriquecido**: piso/orientación/terraza/roof/balcón mapeados (antes None → dims 'sin_dato' siempre).
+  - Honesto: 366 átomos con colonia vacía = 5 devs QC de **Edomex** (Jilotepec/Tlalnepantla) cuyo dev.colonia_id
+    es None en la fuente (fuera del catálogo CDMX) → no es bug, el juez lo reporta.
+  - Tests: `test_p8_cubo_universos` (8) + regresión **1994 passed**.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).

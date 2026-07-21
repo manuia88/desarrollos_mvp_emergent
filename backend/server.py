@@ -2622,6 +2622,20 @@ async def startup():
                         logging.info(f"[juez_metricas] índices con relleno: {jm.get('resumen')}")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[juez_metricas] falló: {e}")
+                # CUBO DE UN SOLO UNIVERSO (Palanca 8): re-proyecta db.units(+overrides del portal)→dmx_units
+                # (átomo FIEL), poda fantasmas y materializa finance; el juez verifica que el átomo REAL == db.units
+                # (un dev que edita su portal sin re-ingerir mantiene el cubo alineado). Idempotente, $0.
+                try:
+                    from dmx_cube_feed import sync_ingested_to_atom, juez_cubo_universos
+                    await sync_ingested_to_atom(db)
+                    jc = await juez_cubo_universos(db)
+                    await db.metricas_salud.update_one(
+                        {"id": "cubo"}, {"$set": {"id": "cubo", **jc}}, upsert=True)
+                    if not jc.get("convergen"):
+                        logging.info(f"[cubo] universos NO convergen: fantasmas={jc.get('fantasmas')} "
+                                     f"faltan_en_atomo={jc.get('faltan_en_atomo')}")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[cubo] sync/juez universos falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
