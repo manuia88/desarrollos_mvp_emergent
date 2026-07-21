@@ -72,6 +72,33 @@ def _compute_diff_keys(before: Optional[Dict], after: Optional[Dict]) -> List[st
     return [k for k in all_keys if b.get(k) != a.get(k)]
 
 
+# Entidades sensibles: borrarlas/mutarlas es de máxima gravedad (usuarios, orgs, devs, precios, roles).
+_ENTIDADES_CRITICAS = {"user", "usuario", "developer", "development", "dev", "inmobiliaria",
+                       "tenant", "org", "role", "permiso", "lead"}
+
+
+def _derive_severity(action: str, entity_type: Optional[str],
+                     before: Optional[Dict], after: Optional[Dict], diff_keys: List[str]) -> str:
+    """Palanca 6: deriva severity del audit (antes NUNCA se escribía → critical_24h siempre 0).
+    critical = borrado de entidad sensible / autorización denegada.  high = delete/revert o cambio de
+    precio grande (>20%).  info = el resto. Determinista, sin dependencias."""
+    a = (action or "").lower()
+    ent = (entity_type or "").lower()
+    if "deny" in a or "denied" in a or "forbidden" in a or ent in {"authz", "authorization"}:
+        return "critical"
+    if a in {"delete", "purge", "revert"}:
+        return "critical" if ent in _ENTIDADES_CRITICAS else "high"
+    if "price" in diff_keys or "price_mxn" in diff_keys:
+        try:
+            ov = float((before or {}).get("price") or (before or {}).get("price_mxn") or 0)
+            nv = float((after or {}).get("price") or (after or {}).get("price_mxn") or 0)
+            if ov and nv and abs(nv - ov) / ov > 0.20:
+                return "high"
+        except (TypeError, ValueError):
+            pass
+    return "info"
+
+
 def _safe_strip(doc: Optional[Dict]) -> Optional[Dict]:
     """Remove _id and binary fields from a MongoDB document before storing."""
     if doc is None:
@@ -153,6 +180,7 @@ async def log_mutation(
             "before": before_clean,
             "after": after_clean,
             "diff_keys": diff_keys,
+            "severity": _derive_severity(action, entity_type, before_clean, after_clean, diff_keys),
             "ip": meta["ip"],
             "user_agent": meta["user_agent"],
             "route": meta["route"],

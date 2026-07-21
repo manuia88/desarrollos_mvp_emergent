@@ -272,15 +272,12 @@ async def submit_landing_lead(body: LandingLeadIn, request: Request) -> Dict[str
         log.warning(f"[landings] lead insert failed: {e}")
         raise HTTPException(500, "No se pudo registrar la suscripción")
 
-    # Audit / observability hook (best effort).
+    # Audit / observability hook (best effort). Palanca 6: al canónico `audit_log` (no al `audit_logs` retirado).
     try:
-        await db.audit_logs.insert_one({
-            "user_id": None,
-            "action": "landing_lead_subscribed",
-            "resource": zone,
-            "data": {"email": email, "source_url": doc["source_url"]},
-            "ts": datetime.now(timezone.utc),
-        })
+        from audit_log import log_mutation
+        await log_mutation(db, {"user_id": "system", "role": "system"}, "landing_lead_subscribed",
+                           "landing_lead", entity_id=doc.get("lead_id"),
+                           after={"zone": zone, "email": email, "source_url": doc["source_url"]})
     except Exception:
         pass
 

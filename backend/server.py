@@ -1737,10 +1737,10 @@ def require_role(*roles):
 
 # ─── Audit log ────────────────────────────────────────────────────────────────
 async def audit(user_id: str, action: str, resource: str, data: dict = None):
-    await db.audit_logs.insert_one({
-        "user_id": user_id, "action": action, "resource": resource,
-        "data": data or {}, "ts": datetime.now(timezone.utc)
-    })
+    # Palanca 6: un solo store de auditoría. Antes escribía en `audit_logs` (plural) que ningún
+    # panel leía (split-brain) → ahora todo pasa por el canónico `audit_log` vía log_mutation.
+    from audit_log import log_mutation
+    await log_mutation(db, {"user_id": user_id, "role": "system"}, action, resource, after=data or {})
 
 # ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
@@ -1755,7 +1755,7 @@ async def startup():
         logging.warning(f"[startup] kill-switch global de IA no instalado: {_kse}")
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id")
-    await db.audit_logs.create_index("ts")
+    # Palanca 6: `audit_logs` (plural) retirado → el índice/escritura vive en el canónico `audit_log`.
     # P2.3 · índices que faltaban (rapidez de consultas calientes). Idempotente.
     try:
         from pymongo import DESCENDING as _DESC
@@ -2589,10 +2589,14 @@ async def startup():
                 # REAPER (Palanca 1): barre eventos huérfanos de devs re-ingeridos/borrados
                 # para que no se re-acumulen y ensucien las métricas (auditoría 07-20).
                 try:
-                    from dev_lifecycle import podar_eventos_huerfanos
+                    from dev_lifecycle import podar_eventos_huerfanos, podar_bitacora_unit_huerfanos
                     h = await podar_eventos_huerfanos(db)
                     if h:
                         logging.info(f"[reaper] eventos huérfanos podados: {h}")
+                    # Palanca 6: unit-huérfanos de oferta_timeline (re-ancla o borra el peso muerto)
+                    ub = await podar_bitacora_unit_huerfanos(db)
+                    if ub.get("reanclados") or ub.get("borrados"):
+                        logging.info(f"[reaper] oferta_timeline unit-huérfanos: {ub}")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[reaper] poda de huérfanos falló: {e}")
                 # ESPINAZO DE DEMANDA (Palanca 4): marca env=demo/real + atribuye dev_id, y

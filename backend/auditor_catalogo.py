@@ -31,7 +31,7 @@ from typing import Any, Callable, Dict, List, Optional
 ERROR, ALERTA, AVISO = "error", "alerta", "aviso"
 PM2_MIN, PM2_MAX = 15_000, 250_000          # banda sana CDMX (fuera de esto: dato roto)
 ESTADOS_VALIDOS = {"disponible", "apartada", "apartado", "vendida", "vendido",
-                   "bloqueada", "renta", "available", "sold", "reservado"}
+                   "bloqueada", "bloqueado", "renta", "available", "sold", "reservado"}
 
 
 def _h(regla: str, nivel: str, severidad: str, ref: str, detalle: str,
@@ -741,7 +741,30 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
            "hallazgos": todos, "resumen": resumen_hallazgos(todos),
            "reglas_evaluadas": len(REGLAS)}
     await db.auditoria_hallazgos.insert_one(dict(doc))
+    await podar_auditorias(db)   # Palanca 6: retención (cada corrida pesa ~136KB; no acumular 157)
     return doc
+
+
+async def podar_auditorias(db, conservar_por_dev: int = 3) -> int:
+    """Palanca 6 · retención de `auditoria_hallazgos` (cada corrida ~136KB → 21MB sin poda). Conserva
+    las últimas `conservar_por_dev` corridas por desarrollo (y las globales, development_id=None) y
+    borra el resto. Determinista, idempotente, $0. Devuelve cuántas corridas borró."""
+    borrados = 0
+    try:
+        grupos: Dict[Any, List] = {}
+        async for d in db.auditoria_hallazgos.find({}, {"_id": 1, "development_id": 1, "ts": 1}) \
+                .sort("ts", -1):
+            grupos.setdefault(d.get("development_id"), []).append(d["_id"])
+        sobran: List = []
+        for _dev, ids in grupos.items():
+            sobran.extend(ids[conservar_por_dev:])   # ya vienen ordenados desc por ts
+        if sobran:
+            r = await db.auditoria_hallazgos.delete_many({"_id": {"$in": sobran}})
+            borrados = r.deleted_count
+    except Exception as e:  # noqa: BLE001 — fail-open (jamás rompe la auditoría)
+        import logging
+        logging.getLogger("dmx.auditor").warning(f"podar_auditorias: {e}")
+    return borrados
 
 
 async def ultima_auditoria(db, development_id: Optional[str] = None,

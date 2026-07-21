@@ -20,7 +20,7 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
 | **P3 · Cerrar el ciclo del Vigía** | 9 | listas `_LP.pdf` INVISIBLES (feature estrella muerta en GDC); sin candado idempotente; no aprende "vendido"; override tapa el precio nuevo |
 | **P4 · Captura de demanda / espinazo visitor_id** | 16 | visitor_id no se captura (83% null); búsquedas sin `id`; 100% de leads sin development_id; el lead no tiene UN score |
 | **P5 · Índices sobre data REAL (no relleno)** | 16 | DRPI 99.8% sintético; compuesta Liquidez/Ghost come de placeholders; 3 loaders del ETL leen colecciones vacías |
-| **P6 · Un solo rastro + integridad + deshacer** | 2 | deshacer deja eventos colgando; auditor ciego a huérfanos |
+| **P6 · Un solo rastro + integridad + deshacer** ✅ | 2 | ~~deshacer deja eventos colgando; auditor ciego a huérfanos~~ → writer canónico + reversa + juez integridad (bitácora 100% sana) |
 | **P7 · Multi-tenant / authz analítico** | 2 | 5 endpoints del dev gatean con el resolver seed → posible fuga cross-inmobiliaria |
 | **P8 · Cubo de dos universos** | 5 | consulta-libre come de `dmx_units` (6,913), motor de cortes come de `db.units` → dos verdades del inventario |
 | _otros (KG, fiscal, AVM, export, censo, cerebro)_ | 29 | subsistemas específicos — ver tabla |
@@ -60,6 +60,21 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - Nota honesta: DRPI/price_index siguen 0-10% "real" porque **no existe fuente de transacciones**
     (transactions_history/transaction_network ausentes) — no es bug, el juez lo REPORTA en vez de
     fingirlo. Conseguir esa fuente es tarea de datos, no de código. Todo lo de código: cerrado.
+- ✅ **PALANCA 6 COMPLETA (cero deuda)** (un solo rastro + integridad + deshacer):
+  - **Writer canónico único** `record_status_event`: los 4 escritores (vigía, reingesta, retro por
+    nombre, edición superadmin) pasan por él → `id` propio + idempotencia (por unit_id o por
+    dev_name+unit+fecha) + schema fijo. Mata el doble-'vendido'. Saneo BD: 28 eventos con `id`, 0 dups.
+  - **audit_log split-brain retirado**: `audit_logs` (plural, que ningún panel leía) migrado al
+    canónico `audit_log` (6 docs) + escritores reapuntados (server.py, landings.py).
+  - **severity vivo**: `_derive_severity` en `log_mutation` (delete/authz→critical, precio>20%→high) →
+    `critical_24h` deja de ser 0. Backfill 287 (17 critical / 7 high / 269 info).
+  - **deshacer_lote reversa**: anula (soft-delete `revertido`) los eventos que emitió la carga →
+    absorción/precio sin ventas fantasma. Absorción + 4 lectores de precio filtran `revertido`.
+  - **Juez de integridad de bitácora** (AUDITAR ya no es ciego): cuenta dev/unit-huérfanos por store
+    (va en `juez_metricas`→`metricas_salud`). Cleaner de `oferta_timeline` re-ancla por unit_number o
+    borra el peso muerto: **−457 huérfanos → bitácora 100% sana**. Los otros stores conservan señal.
+  - **Retención**: `podar_auditorias` (3 corridas/dev) −46 de 157; TTL de peso; `ESTADOS_VALIDOS` +'bloqueado'.
+  - Tests: `test_p6_rastro_integridad` (12) + regresión **1951 passed**.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
