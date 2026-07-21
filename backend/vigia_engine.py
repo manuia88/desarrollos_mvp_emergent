@@ -25,7 +25,10 @@ log = logging.getLogger("dmx.vigia")
 
 FOLDER_MIME = "application/vnd.google-apps.folder"
 # ¿Este archivo parece una LISTA DE PRECIOS/disponibilidad? (nombre + tipo)
-_LISTA_NOMBRE = re.compile(r"lista|precio|price|disponib|inventario|avail|stock", re.I)
+# UNIVERSAL (Palanca 3, auditoría 07-20): antes solo 'lista/precio' → CLASS (VP_Lista) se
+# detectaba pero GDC (<PROYECTO>_LP.pdf) NO → su auto-apply estaba MUERTO. El '_' no es frontera
+# \b, por eso el LP va con separador explícito. No es GDC-específico: caza cualquier convención.
+_LISTA_NOMBRE = re.compile(r"lista|precio|price|disponib|inventario|avail|stock|[_ .\-]lp[_ .\-]|^lp[_ .\-]|cotiza", re.I)
 _LISTA_MIMES = ("spreadsheet", "excel", "sheet", "csv", "pdf")
 
 # Tipos de evento que SÍ van a la bandeja (accionables). El resto queda solo como linaje.
@@ -53,7 +56,7 @@ def etapa_de_nombre(nombre_carpeta: str) -> Optional[str]:
 
 # clasificador de documentos: cada archivo del Drive con su TIPO (el eje que faltaba:
 # 'Lista de Acabados.pdf' = fuente del nivel ELEMENTO que dábamos por inexistente)
-_TIPOS_DOC = [("acabados", r"acabado"), ("lista_precios", r"lista|precio|price|disponib|inventario|avail|stock"),
+_TIPOS_DOC = [("acabados", r"acabado"), ("lista_precios", r"lista|precio|price|disponib|inventario|avail|stock|[_ .\-]lp[_ .\-]|^lp[_ .\-]|cotiza"),
               ("brochure", r"brochure|folleto|presentaci[oó]n"), ("plano", r"plano|arq|floor|planta"),
               ("reglamento", r"reglamento|condominio"), ("render", r"render|foto|img|image"),
               ("avance_obra", r"avance|obra|progreso")]
@@ -262,11 +265,25 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
     resumen = {"ts": _now_iso(), "fuentes": len(fuentes), "eventos": 0, "pendientes_nuevos": 0,
                "por_tipo": {}, "errores": []}
 
+    from datetime import datetime as _dtm, timezone as _tz, timedelta as _td
     for fuente in fuentes:
+        # CANDADO (Palanca 3b, auditoría 07-20): dos rondas a la vez re-aplicaban el mismo diff
+        # y estampaban un precio_pelea FALSO. Lock por fuente con expiración (auto-libera si la
+        # ronda murió). El cron ya usa max_instances=1; esto cubre cron+trigger manual simultáneos.
+        _ahora = _dtm.now(_tz.utc)
+        _lk = await db.vigia_locks.find_one({"fuente_id": fuente["id"]}, {"_id": 0, "hasta": 1})
+        if _lk and str(_lk.get("hasta") or "") > _ahora.isoformat():
+            resumen["errores"].append({"fuente": fuente["id"], "error": "ronda en curso (candado)"})
+            continue
+        await db.vigia_locks.update_one(
+            {"fuente_id": fuente["id"]},
+            {"$set": {"fuente_id": fuente["id"], "desde": _ahora.isoformat(),
+                      "hasta": (_ahora + _td(minutes=15)).isoformat()}}, upsert=True)
         try:
             nueva = await escanear_fuente(db, fuente)
         except Exception as e:  # noqa: BLE001
             resumen["errores"].append({"fuente": fuente["id"], "error": str(e)[:200]})
+            await db.vigia_locks.delete_one({"fuente_id": fuente["id"]})   # libera al fallar
             continue
         prev = await db.vigia_fotos.find_one({"fuente_id": fuente["id"]}, {"_id": 0})
         # ANTI-FALSA-ALARMA (founder 07-14: el token OAuth murió y alarmó a la primera): un dev
@@ -391,6 +408,7 @@ async def ronda(db, fuente_id: Optional[str] = None, notificar: bool = True) -> 
                                           {"$set": {"last_ronda_at": nueva["ts"],
                                                     "last_resumen": {k: v for k, v in resumen.items()
                                                                      if k != "errores"}}})
+        await db.vigia_locks.delete_one({"fuente_id": fuente["id"]})   # Palanca 3b: libera el candado
 
     if notificar and resumen["pendientes_nuevos"] > 0:
         await _notificar(db, resumen)

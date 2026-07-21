@@ -32,6 +32,19 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _status_lista(s):
+    """El estatus que dice la lista → canónico. Palanca 3c: antes 'no_disponible'→'reservado'
+    era lo único; ahora APRENDE 'vendido/sold' explícito de la lista (no lo degrada a reservado)."""
+    t = str(s or "").lower()
+    if "vend" in t or "sold" in t:
+        return "vendido"
+    if "apart" in t or "reserv" in t or "no_dispon" in t or "no disp" in t:
+        return "reservado"
+    if "dispon" in t or "libre" in t or "avail" in t:
+        return "disponible"
+    return None
+
+
 def activo() -> bool:
     return (os.environ.get("VIGIA_AUTO_APPLY") or "1").strip() != "0"
 
@@ -129,6 +142,14 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
                                      label=archivo or "lista del dev")
         except Exception as e:  # noqa: BLE001
             log.warning(f"[lista_apply] price_event: {e}")
+        # Palanca 3d: el precio viejo del portal (developer_unit_overrides) TAPABA el nuevo en la
+        # vista pública → el feature nació para matar ese precio viejo y se lo servía igual. Se limpia.
+        try:
+            await db.developer_unit_overrides.update_many(
+                {"unit_id": u["id"], "price": {"$exists": True}},
+                {"$unset": {"price": ""}, "$set": {"price_override_limpiado_por": f"vigía · {archivo}"}})
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[lista_apply] limpiar override: {e}")
         res["precios"] += 1
         # el cierre del flywheel: ¿a quién del radar le cuadra esta baja? → asesor
         if float(c["ahora"]) < float(c["antes"]):
@@ -139,16 +160,18 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
             except Exception as e:  # noqa: BLE001
                 log.warning(f"[lista_apply] alerta oportunidad: {e}")
 
-    _MAPA_STATUS = {"disponible": "disponible", "no_disponible": "reservado"}
     for c in cambios.get("cambios_status") or []:
         u = await _unidad(c.get("unidad"))
-        nuevo = _MAPA_STATUS.get(c.get("ahora"))
+        nuevo = _status_lista(c.get("ahora"))    # Palanca 3c: aprende 'VENDIDO' de la lista
         if not u or not nuevo or u.get("status") in ("vendido", nuevo):
             continue                        # una vendida no revive sola: eso sí pide ojos
-        await db.units.update_one({"id": u["id"]}, {"$set": {
-            "status": nuevo,
-            "status_nota": (f"aplicado por el vigía desde {archivo}: "
-                            f"{c.get('antes')} → {c.get('ahora')}")}})
+        _set = {"status": nuevo,
+                "status_nota": (f"aplicado por el vigía desde {archivo}: "
+                                f"{c.get('antes')} → {c.get('ahora')}")}
+        _unset = {}
+        if nuevo == "disponible":           # Palanca 3c: reapareció → ya no es 'probable venta'
+            _unset["inventario_pelea"] = ""
+        await db.units.update_one({"id": u["id"]}, {"$set": _set, **({"$unset": _unset} if _unset else {})})
         await log_mutation(db, _ACTOR, "update", "unit", u["id"],
                            before={"status": u.get("status")},
                            after={"status": nuevo, "fuente": archivo}, by_ai=True)
