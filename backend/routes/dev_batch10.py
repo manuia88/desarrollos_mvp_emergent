@@ -37,10 +37,10 @@ def _tenant(user) -> str:
     return tenant_of(user)
 
 
-def _user_dev_ids(user) -> List[str]:
-    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope). P7: seed + devs REALES del tenant."""
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 async def _real_weekly_sales_map(db, dev_ids: List[str]) -> Dict[str, List[int]]:
@@ -112,7 +112,7 @@ async def list_projects_with_stats(request: Request):
     from data_developments import DEVELOPMENTS
     from data_seed import COLONIAS
 
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
 
     # Build quick lookup: colonia_id → colonia name
     colonia_map = {c["id"]: c["name"] for c in COLONIAS}

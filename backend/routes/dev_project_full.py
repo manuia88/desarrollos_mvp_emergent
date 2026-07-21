@@ -32,9 +32,10 @@ async def _auth(req: Request):
     return user
 
 
-def _user_dev_ids(user) -> List[str]:
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(db, user) -> List[str]:
+    # P7 (auditoría 07-20): seed + devs REALES del tenant (db.developments), no solo el seed.
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(db, user)
 
 
 async def _owns_project(db, user, pid: str) -> bool:
@@ -44,7 +45,7 @@ async def _owns_project(db, user, pid: str) -> bool:
     from tenant_scope import tenant_of
     if getattr(user, "role", None) == "superadmin":
         return True
-    if pid in _user_dev_ids(user):
+    if pid in await _user_dev_ids(db, user):
         return True
     tenant = tenant_of(user)
     try:

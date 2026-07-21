@@ -43,11 +43,12 @@ async def require_dev_admin(request: Request):
     return user
 
 
-def _user_dev_ids(user) -> List[str]:
+async def _user_dev_ids(request, user) -> List[str]:
     """Desarrollos visibles para este usuario (multi-tenant · fuente única tenant_scope).
-    Antes: fuga — devolvía TODOS a cualquier dev. Ahora scope-a al slice del tenant."""
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+    Antes: fuga — devolvía TODOS a cualquier dev. Ahora scope-a al slice del tenant.
+    P7 (auditoría 07-20): DB-aware → suma los devs REALES del tenant (db.developments), no solo el seed."""
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(get_db(request), user)
 
 
 @router.post("/proyecto/{project_id}/publicar")
@@ -174,7 +175,7 @@ async def dev_elasticidad(request: Request):
 async def dashboard(request: Request):
     from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
     my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
 
@@ -235,7 +236,7 @@ def _slug(s):
 async def portfolio_reading(request: Request):
     from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
     my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
@@ -445,7 +446,7 @@ def _next_action_dev(lead):
 async def leads_cockpit(request: Request):
     from data_developments import DEVELOPMENTS_BY_ID
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     rows = []
     heat_real = False
@@ -512,7 +513,7 @@ async def leads_cockpit(request: Request):
 @router.get("/comportamiento")
 async def dev_comportamiento(request: Request):
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     from routes.superadmin_devmaster import _comportamiento
     return await _comportamiento(db, dev_ids=dev_ids)
@@ -525,7 +526,7 @@ async def dev_comportamiento(request: Request):
 @router.get("/pricing-inteligente")
 async def dev_pricing_inteligente(request: Request):
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     from routes.superadmin_devmaster import _stock_soldout
     ss = await _stock_soldout(db, dev_ids=dev_ids)
@@ -577,7 +578,7 @@ async def dev_pricing_inteligente(request: Request):
 @router.get("/red-salud")
 async def dev_red_salud(request: Request):
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     WON = ("vendido", "won", "ganado", "cerrado", "cerrado_ganado")
     amap = {}
@@ -646,7 +647,7 @@ async def dev_red_salud(request: Request):
 @router.get("/marketing-jugadas")
 async def dev_marketing_jugadas(request: Request):
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     from routes.superadmin_devmaster import _stock_soldout
     ss = await _stock_soldout(db, dev_ids=dev_ids)
@@ -714,7 +715,7 @@ _MESES_ES = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
 async def dev_reporte_ejecutivo(request: Request):
     from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     now = _now()
     periodo = f"{_MESES_ES[now.month]} {now.year}"
@@ -813,7 +814,7 @@ async def dev_ciclo_renta(request: Request):
     from data_developments import DEVELOPMENTS
     from data_seed import COLONIAS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     db = get_db(request)
     import zone_cycle_engine as zce
 
@@ -863,7 +864,7 @@ async def dev_indices(request: Request):
     from data_developments import DEVELOPMENTS
     from data_seed import COLONIAS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     import dmx_indices_engine as ix
 
     # Absorción real del dev por zona (vendido / total de SUS unidades en la colonia)
@@ -948,7 +949,7 @@ async def dev_indices(request: Request):
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
     from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids and (not dev_id or d["id"] == dev_id)]
 
     # Merge any runtime overrides (status changes made in this portal)
@@ -1335,7 +1336,7 @@ async def generate_report(request: Request, month: Optional[str] = None):
     db = get_db(request)
 
     month_key = month or (_now() - timedelta(days=30)).strftime("%Y-%m")
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
     my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
 
@@ -1458,7 +1459,7 @@ async def dev_bancabilidad(request: Request):
     """F5.1 · Score de Bancabilidad de los proyectos del dev (qué tan financiables son)."""
     user = await require_dev_admin(request)
     from bancabilidad_engine import portfolio_bancabilidad
-    return await portfolio_bancabilidad(get_db(request), _user_dev_ids(user))
+    return await portfolio_bancabilidad(get_db(request), await _user_dev_ids(request, user))
 
 
 # ─── D4: Dynamic Pricing AI ───────────────────────────────────────────────────
@@ -1467,7 +1468,7 @@ async def list_pricing_suggestions(request: Request):
     from data_developments import DEVELOPMENTS, ALL_UNITS
     user = await require_dev_admin(request)
     db = get_db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
 
     # UPGRADE C.1→Dev: ancla las sugerencias a la VALUACIÓN REAL de la zona (4-fuentes con
     # CIERRES reales · resale_data.colonia_valuation), no a la mediana de precios de LISTA (que
@@ -1598,7 +1599,7 @@ async def act_on_suggestion(sid: str, payload: PricingAction, request: Request):
 async def pricing_cross_check_warnings(request: Request):
     user = await require_dev_admin(request)
     db = get_db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     pipe = [
         {"$match": {"development_id": {"$in": dev_ids}, "severity": "critical", "result": "fail"}},
         {"$group": {"_id": "$development_id", "rules": {"$push": "$rule_id"}, "count": {"$sum": 1}}},
@@ -1624,7 +1625,7 @@ async def pricing_cross_check_warnings(request: Request):
 async def competitor_radar(request: Request, dev_id: Optional[str] = None, radius_km: float = 2.0):
     from data_developments import DEVELOPMENTS
     user = await require_dev_admin(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
 
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids and (not dev_id or d["id"] == dev_id)]
     if not my_devs:

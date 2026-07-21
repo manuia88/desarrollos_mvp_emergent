@@ -20,8 +20,8 @@ def _tenant_of(user) -> Any:
 async def _dev_colonias(db, user) -> Set[str]:
     """Colonias donde el dev tiene proyectos — para priorizar las acciones que le tocan."""
     try:
-        from routes.developer import _user_dev_ids
-        dev_ids = _user_dev_ids(user)
+        from tenant_scope import user_dev_ids_db   # P7: seed + devs REALES del tenant (tiene db aquí)
+        dev_ids = await user_dev_ids_db(db, user)
     except Exception:
         dev_ids = []
     cols: Set[str] = set()
@@ -64,14 +64,15 @@ async def dev_cube_action_estado(action_id: str, request: Request) -> Any:
 async def dev_memory(request: Request) -> Any:
     """Contexto persistente del DEV (lente Personal): sus zonas de foco + historial de decisiones + tesis inferida.
     La memoria propia del dev (no depende del Cerebro, que está off por flag)."""
-    from routes.developer import require_dev_admin, _user_dev_ids
+    from routes.developer import require_dev_admin
+    from tenant_scope import user_dev_ids_db   # P7: seed + devs REALES del tenant
     user = await require_dev_admin(request)
     db = request.app.state.db
     import dev_memory_engine as dm
     return await dm.get_dev_context(
         db, user_id=getattr(user, "user_id", None),
         org_id=getattr(user, "tenant_id", None) or getattr(user, "org_id", None),
-        dev_ids=_user_dev_ids(user),
+        dev_ids=await user_dev_ids_db(db, user),
     )
 
 

@@ -47,17 +47,19 @@ def _tenant(user) -> str:
     return tenant_of(user)
 
 
-def _user_dev_ids(user) -> List[str]:
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    # P7 (auditoría 07-20): seed + devs REALES del tenant (db.developments), no solo el seed.
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
-def _resolve_project_zone(project_id: str) -> Dict[str, Any]:
-    """Proyecto → zona. colonia_id del seed ya es el slug canónico de los motores."""
-    from data_developments import DEVELOPMENTS_BY_ID
+async def _resolve_project_zone(db, project_id: str) -> Dict[str, Any]:
+    """Proyecto → zona. colonia_id del seed/BD ya es el slug canónico de los motores.
+    P7: db-first (resolve_dev_doc) → el dev REAL ingerido también resuelve su zona, no solo el seed."""
     import dmx_margin
+    from ingested_reader import resolve_dev_doc
 
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    dev = await resolve_dev_doc(db, project_id, with_units=False)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 
@@ -192,10 +194,10 @@ def _airbnb_from_traditional(renta_bruta_mensual: float) -> Dict[str, Any]:
 async def location_intel(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
 
-    z = _resolve_project_zone(project_id)
+    z = await _resolve_project_zone(db, project_id)
     slug = z["colonia_slug"]
     dev_org_id = _tenant(user)
 

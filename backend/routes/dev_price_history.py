@@ -38,9 +38,11 @@ async def _auth(req: Request):
     return user
 
 
-def _user_dev_ids(user) -> List[str]:
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    # P7 (auditoría 07-20): seed + devs REALES del tenant (db.developments). Antes solo el seed →
+    # el dev real (ingerido) no veía lo suyo y el fallback demo podía filtrar seed ajeno.
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 def _month_str(base: datetime, months: int) -> str:
@@ -73,9 +75,13 @@ async def record_price_event(db, dev_id: str, unit: Dict[str, Any], old_price: O
             return
         m2 = unit.get("m2_privative") or unit.get("m2_total") or 0
         doc = {k: unit.get(k) for k in _UNIT_FINGERPRINT}
+        _d = dev or {}
         doc.update({
             "dev_id": dev_id, "unit_id": unit.get("id"),
-            "colonia_id": (dev or {}).get("colonia_id"), "alcaldia": (dev or {}).get("alcaldia"),
+            "colonia_id": _d.get("colonia_id"), "alcaldia": _d.get("alcaldia"),
+            # P7: sella el dueño (org/tenant) — paridad con record_status_event. Antes solo dev_id (namespace).
+            "org_id": _d.get("developer_id") or _d.get("org_id") or _d.get("dev_org_id"),
+            "dev_org_id": _d.get("dev_org_id") or _d.get("developer_id"),
             "old_price": old_price, "new_price": new_price,
             "price_per_m2": round(new_price / m2) if m2 else None,
             "delta_abs": round(new_price - old_price) if old_price else None,
@@ -92,10 +98,10 @@ async def record_price_event(db, dev_id: str, unit: Dict[str, Any], old_price: O
 async def price_history(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
-    from data_developments import DEVELOPMENTS_BY_ID
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    from ingested_reader import resolve_dev_doc   # P7: db-first (seed→developments→projects), no solo seed
+    dev = await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
     now = datetime.now(timezone.utc)

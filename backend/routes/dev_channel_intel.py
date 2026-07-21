@@ -38,9 +38,10 @@ async def _auth(req: Request):
     return user
 
 
-def _user_dev_ids(user) -> List[str]:
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    # P7 (auditoría 07-20): seed + devs REALES del tenant (db.developments), no solo el seed.
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 def _mean(vals: List[float]):
@@ -51,13 +52,20 @@ def _mean(vals: List[float]):
 async def channel_intel(request: Request, project_id: Optional[str] = None):
     user = await _auth(request)
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if project_id and project_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
     scope = [project_id] if project_id else dev_ids
 
+    # P7: nombres del seed + de los devs REALES ingeridos (db.developments), no solo el seed
     from data_developments import DEVELOPMENTS_BY_ID
-    projects = [{"id": pid, "name": (DEVELOPMENTS_BY_ID.get(pid) or {}).get("name", pid)} for pid in dev_ids]
+    _names = {pid: (DEVELOPMENTS_BY_ID.get(pid) or {}).get("name", pid) for pid in dev_ids}
+    try:
+        async for d in db.developments.find({"id": {"$in": dev_ids}}, {"_id": 0, "id": 1, "name": 1, "nombre": 1}):
+            _names[d["id"]] = d.get("name") or d.get("nombre") or _names.get(d["id"], d["id"])
+    except Exception:
+        pass
+    projects = [{"id": pid, "name": _names.get(pid, pid)} for pid in dev_ids]
 
     leads = await db.leads.find(
         {"development_id": {"$in": scope}},
@@ -127,7 +135,7 @@ async def channel_intel(request: Request, project_id: Optional[str] = None):
 
     return {
         "scope": "proyecto" if project_id else "portafolio",
-        "scope_label": (DEVELOPMENTS_BY_ID.get(project_id) or {}).get("name", project_id) if project_id else "Todos tus proyectos",
+        "scope_label": _names.get(project_id, project_id) if project_id else "Todos tus proyectos",
         "project_id": project_id, "projects": projects,
         "leads_total": len(leads), "channels": channels, "asesores": asesores,
     }

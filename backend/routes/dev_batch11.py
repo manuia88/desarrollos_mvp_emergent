@@ -64,10 +64,10 @@ def _uid(prefix: str = "b11") -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
 
-def _user_dev_ids(user) -> List[str]:
-    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope). P7: seed + devs REALES del tenant."""
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 async def _safe_audit(db, user, action: str, entity_type: str, entity_id: str,
@@ -76,10 +76,13 @@ async def _safe_audit(db, user, action: str, entity_type: str, entity_id: str,
     try:
         import audit_log as al
         import asyncio
+        # P7/P6: log_mutation espera (db, actor, action, entity_type, ...) — antes se llamaba con
+        # user_id=/role=/org_id=/ip= (kwargs inexistentes) → TypeError tragado por el except → TODA la
+        # auditoría de dev_batch11 se perdía en silencio. Ahora actor dict + request (la IP sale de ahí).
         asyncio.create_task(al.log_mutation(
-            db, user_id=user.user_id, role=user.role, org_id=_tenant(user),
-            action=action, entity_type=entity_type, entity_id=entity_id,
-            before=before, after=after, ip=request.client.host if request.client else None,
+            db, {"user_id": user.user_id, "role": user.role, "tenant_id": _tenant(user)},
+            action, entity_type, entity_id=entity_id,
+            before=before, after=after, request=request,
         ))
         from observability import emit_ml_event
         asyncio.create_task(emit_ml_event(
@@ -278,7 +281,7 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede editar amenidades")
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if project_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -348,7 +351,7 @@ async def patch_memoria(project_id: str, payload: MemoriaPatch, request: Request
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede editar la memoria de acabados")
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
     memoria = _clean_memoria(payload.memoria)
     now_iso = _now().isoformat()
@@ -413,7 +416,7 @@ async def patch_tecnica(project_id: str, payload: TecnicaPatch, request: Request
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede editar la ficha técnica")
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
     tecnica = _clean_tecnica(payload.tecnica)
     now_iso = _now().isoformat()
@@ -468,7 +471,7 @@ async def patch_creditos(project_id: str, payload: CreditosPatch, request: Reque
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede editar los créditos aceptados")
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
     creditos = _clean_creditos(payload.creditos)
     now_iso = _now().isoformat()
@@ -555,7 +558,7 @@ async def patch_commercialization(project_id: str, payload: CommercializationPat
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede editar política comercial")
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if project_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -609,7 +612,7 @@ async def create_preassignment(project_id: str, payload: PreAssignCreate, reques
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede pre-asignar asesores")
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if project_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -839,7 +842,7 @@ class UnitPatch(BaseModel):
 async def patch_unit(dev_id: str, unit_id: str, payload: UnitPatch, request: Request):
     user = await _auth(request)
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if dev_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -906,7 +909,7 @@ Responde SÓLO con JSON. Usa español es-MX para strings. No inventes datos de c
 async def get_unit_ai_prediction(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if dev_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -1000,7 +1003,7 @@ async def get_unit_ai_prediction(dev_id: str, unit_id: str, request: Request):
 async def get_unit_avm(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if dev_id not in dev_ids:
         raise HTTPException(403, "Proyecto no accesible")
 
@@ -1225,7 +1228,7 @@ async def dev_valor_mercado_zona(
 async def get_unit_engagement(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if dev_id not in dev_ids:
         raise HTTPException(403)
 

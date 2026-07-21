@@ -36,9 +36,10 @@ async def _auth(req: Request):
     return user
 
 
-def _user_dev_ids(user) -> List[str]:
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    # P7 (auditoría 07-20): seed + devs REALES del tenant (db.developments), no solo el seed.
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 def _tenant(user) -> str:
@@ -50,10 +51,10 @@ def _tenant(user) -> str:
 async def broker_intel(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if project_id not in await _user_dev_ids(request, user):
         raise HTTPException(403, "Proyecto no accesible")
-    from data_developments import DEVELOPMENTS_BY_ID
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    from ingested_reader import resolve_dev_doc   # P7: db-first (seed→developments→projects), no solo seed
+    dev = await resolve_dev_doc(db, project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 

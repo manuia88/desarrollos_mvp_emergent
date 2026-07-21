@@ -60,10 +60,10 @@ def _tenant(user) -> str:
     return tenant_of(user)
 
 
-def _user_dev_ids(user) -> List[str]:
-    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
-    from tenant_scope import user_dev_ids
-    return user_dev_ids(user)
+async def _user_dev_ids(request, user) -> List[str]:
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope). P7: seed + devs REALES del tenant."""
+    from tenant_scope import user_dev_ids_db
+    return await user_dev_ids_db(_db(request), user)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -113,7 +113,7 @@ async def get_project_location(project_id: str, request: Request):
 async def absorption_analytics(request: Request, project_id: Optional[str] = None):
     """Multi-widget absorption analytics. Deterministic seeded synthetic data."""
     user = await _auth(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     if project_id and project_id in dev_ids:
         dev_ids = [project_id]
 
@@ -263,7 +263,7 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
 @router.get("/analytics/forecast")
 async def forecast_analytics(request: Request, consolidated: bool = False):
     user = await _auth(request)
-    dev_ids = _user_dev_ids(user)
+    dev_ids = await _user_dev_ids(request, user)
     from data_developments import DEVELOPMENTS_BY_ID, ALL_UNITS, is_sold  # P1.7 · vocabulario único
     my_devs = [DEVELOPMENTS_BY_ID[d] for d in dev_ids if d in DEVELOPMENTS_BY_ID]
     if not my_devs:
