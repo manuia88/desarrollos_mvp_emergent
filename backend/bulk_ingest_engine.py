@@ -1967,6 +1967,9 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
             "status": _ST.get((u.get("status") or "").lower().strip(), "disponible"),
             "source": "bulk_ingest",
             "created_at": now,
+            # listed_at = cuándo entró a la venta (Palanca 2): días-para-vender REALES, no
+            # desde created_at que se resetea en cada re-ingesta (68% salían '0 días').
+            "listed_at": now,
         }
         await db.units.insert_one(dict(unit_doc))
 
@@ -2082,8 +2085,10 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                     if _new_st == "vendido":
                         try:
                             import datetime as _dt
-                            created = _dt.datetime.fromisoformat(str(existing.get("created_at")).replace("Z", "+00:00"))
+                            _base = existing.get("listed_at") or existing.get("created_at")   # Palanca 2
+                            created = _dt.datetime.fromisoformat(str(_base).replace("Z", "+00:00"))
                             ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
+                            ev["days_from"] = "listed_at" if existing.get("listed_at") else "created_at"
                         except Exception:  # noqa: BLE001
                             pass
                         ev["sold_at"] = now
@@ -2174,7 +2179,8 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                       "sold_at": now, "nota": "ya no aparece en la lista de precios nueva"}
                 try:
                     import datetime as _dt
-                    created = _dt.datetime.fromisoformat(str(old.get("created_at")).replace("Z", "+00:00"))
+                    _base = old.get("listed_at") or old.get("created_at")                    # Palanca 2
+                    created = _dt.datetime.fromisoformat(str(_base).replace("Z", "+00:00"))
                     ev["days_to_sell"] = max(0, (_dt.datetime.now(_dt.timezone.utc) - created).days)
                 except Exception:  # noqa: BLE001
                     pass
