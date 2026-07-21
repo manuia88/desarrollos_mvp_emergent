@@ -2586,6 +2586,15 @@ async def startup():
                                      f"con cambios · {r.get('precios')} precio · {r.get('estatus')} estatus")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[quiero_casa] sync horario falló: {e}")
+                # REAPER (Palanca 1): barre eventos huérfanos de devs re-ingeridos/borrados
+                # para que no se re-acumulen y ensucien las métricas (auditoría 07-20).
+                try:
+                    from dev_lifecycle import podar_eventos_huerfanos
+                    h = await podar_eventos_huerfanos(db)
+                    if h:
+                        logging.info(f"[reaper] eventos huérfanos podados: {h}")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[reaper] poda de huérfanos falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
