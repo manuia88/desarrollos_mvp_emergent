@@ -433,25 +433,36 @@ async def explotar_senales(db, limite: int = 20000) -> Dict[str, Any]:
         log.warning("[genoma] señales oferta fail-open: %s", e)
         return {"senales_procesadas": 0, "atomos": 0, "error": "sin inventario"}
 
+    # Palanca 4 (auditoría 07-20): el entity_id de la señal es un DESARROLLO, no una unidad → el
+    # join contra el mapa de unidades daba 0 átomos SIEMPRE. Se resuelve dev→sus unidades.
+    dev_a_units: Dict[str, list] = {}
+    async for _u in db.units.find({}, {"_id": 0, "id": 1, "development_id": 1}):
+        dev_a_units.setdefault(str(_u.get("development_id") or ""), []).append(str(_u["id"]))
+
     n_sig, n_atomos = 0, 0
     try:
-        async for s in db.buyer_signals.find({}, {"_id": 0, "type": 1, "visitor_id": 1,
-                                                  "entity_id": 1, "created_at_dt": 1}):
+        from demand_mirror import _llaves_oferta as _lo
+        async for s in db.buyer_signals.find(
+                {"env": {"$ne": "demo"}},                      # excluye tráfico sintético/seed
+                {"_id": 0, "type": 1, "visitor_id": 1, "entity_id": 1, "created_at_dt": 1}):
             t = s.get("type")
             peso = PESO_SENAL.get(t)
-            u = unidades.get(str(s.get("entity_id") or ""))
-            if not peso or not u or not s.get("visitor_id"):
+            eid = str(s.get("entity_id") or "")
+            # unidad directa, o las unidades del desarrollo (hasta 8, para no explotar)
+            us = ([unidades[eid]] if eid in unidades
+                  else [unidades[uid] for uid in dev_a_units.get(eid, [])[:8] if uid in unidades])
+            if not peso or not us or not s.get("visitor_id"):
                 continue
             n_sig += 1
-            base_id = f"sig:{s['visitor_id']}:{t}:{s['entity_id']}"
-            from demand_mirror import _llaves_oferta as _lo
-            for dim, val in _lo(u["vector"]):
-                a = _atomo(base_id, u["colonia"], dim, val, visitor=s["visitor_id"],
-                           fuente=f"senal:{t}", ts=s.get("created_at_dt"), peso=peso)
-                key = {"search_id": a["search_id"], "colonia": a["colonia"],
-                       "dimension": a["dimension"], "valor": a["valor"]}
-                await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
-                n_atomos += 1
+            for u in us:
+                base_id = f"sig:{s['visitor_id']}:{t}:{u['unit_id']}"
+                for dim, val in _lo(u["vector"]):
+                    a = _atomo(base_id, u["colonia"], dim, val, visitor=s["visitor_id"],
+                               fuente=f"senal:{t}", ts=s.get("created_at_dt"), peso=peso)
+                    key = {"search_id": a["search_id"], "colonia": a["colonia"],
+                           "dimension": a["dimension"], "valor": a["valor"]}
+                    await db.demand_atoms.update_one(key, {"$set": a}, upsert=True)
+                    n_atomos += 1
             if n_sig >= limite:
                 break
     except Exception as e:

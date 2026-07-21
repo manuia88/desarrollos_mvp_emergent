@@ -18,6 +18,19 @@ from typing import Any, Dict, Optional
 log = logging.getLogger("unit_status_ledger")
 
 
+async def ensure_event_store_indexes(db) -> None:
+    """Índices de los stores de eventos (Palanca 2/4): unit_status_events y vigia_senales_venta
+    no tenían NINGUNO (full scan en cada lectura del moat). Idempotente."""
+    try:
+        await db.unit_status_events.create_index([("dev_id", 1), ("changed_at", -1)])
+        await db.unit_status_events.create_index([("colonia_id", 1), ("sold_at", -1)])
+        await db.unit_status_events.create_index([("unit_id", 1)])
+        await db.vigia_senales_venta.create_index([("development_id", 1), ("ts", -1)])
+        await db.buyer_signals.create_index([("dev_id", 1), ("env", 1)])
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[ledger] índices: {e}")
+
+
 async def record_status_event(db, dev_id: str, unit: Dict[str, Any], old_status: Optional[str],
                               new_status: str, *, source: str,
                               dev: Optional[Dict[str, Any]] = None) -> Optional[str]:

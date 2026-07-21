@@ -91,6 +91,23 @@ async def compute_user_score(db, user_id: str) -> Dict[str, Any]:
             "user_id": user_id,
             "timestamp": {"$gte": since_30d},
         })
+        # Palanca 4 (auditoría 07-20): la actividad REAL vive en buyer_signals (por visitor_id),
+        # NO en behavioral_events (0 visitor). Suma las señales reales del user (excluye demo).
+        try:
+            vids = set()
+            async for _l in db.leads.find({"$or": [{"user_id": user_id}, {"created_by": user_id}]},
+                                          {"_id": 0, "visitor_id": 1}):
+                if _l.get("visitor_id"):
+                    vids.add(_l["visitor_id"])
+            async for _vi in db.visitor_identity.find({"user_id": user_id}, {"_id": 0, "visitor_id": 1}):
+                if _vi.get("visitor_id"):
+                    vids.add(_vi["visitor_id"])
+            if vids:
+                event_count += await db.buyer_signals.count_documents(
+                    {"visitor_id": {"$in": list(vids)}, "env": {"$ne": "demo"},
+                     "created_at_dt": {"$gte": since_30d}})
+        except Exception:  # noqa: BLE001 — fail-open
+            pass
         comps["behavioral_pct"] = min(event_count / _BEHAVIORAL_P90, 1.0) * 100
     except Exception as exc:
         log.warning(f"[buyer_score] behavioral failed for {user_id}: {exc}")

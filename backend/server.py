@@ -2595,12 +2595,17 @@ async def startup():
                         logging.info(f"[reaper] eventos huérfanos podados: {h}")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[reaper] poda de huérfanos falló: {e}")
-                # SCORE DE LEADS (Palanca 4): reconcilia los marcadores dispersos en UN leads.score
+                # ESPINAZO DE DEMANDA (Palanca 4): marca env=demo/real + atribuye dev_id, y
+                # reconcilia UN score de lead. Índices de los event-stores (idempotente).
                 try:
+                    from demanda_espinazo import marcar_env
                     from lead_score import reconciliar_todos
+                    from unit_status_ledger import ensure_event_store_indexes
+                    await ensure_event_store_indexes(db)
+                    await marcar_env(db)
                     await reconciliar_todos(db)
                 except Exception as e:  # noqa: BLE001 — fail-open
-                    logging.warning(f"[lead_score] reconciliación falló: {e}")
+                    logging.warning(f"[espinazo] falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
