@@ -39,11 +39,15 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
   - candado de concurrencia por fuente (no más precio_pelea falso en doble corrida).
   - aprende `VENDIDO` de la lista + limpia `inventario_pelea` al reaparecer.
   - destapa `developer_unit_overrides.price` al auto-aplicar (el público ve el precio nuevo).
-- ◐ **PALANCA 4 PARCIAL** (demanda / espinazo) — commit 1b89bb5d (los 2 de mayor valor):
+- ✅ **PALANCA 4 COMPLETA (backend)** (demanda / espinazo) — commits 1b89bb5d + c81a897a + 0df2586e:
   - buscador IA: `id` propio + visitor-proxy por IP (antes 340 átomos colapsados / 83% sin visitor).
-  - `lead_score.reconciliar_todos`: UN `leads.score` canónico (antes 59/59 None); cableado al vigía.
-  - PENDIENTE P4: propagar `visitor_id` desde el FRONT (el piso por IP es coarse), resolver
-    slug→dev_id para atribución, flag `is_demo` para filtrar tráfico sintético (roma-norte-85).
+  - `lead_score.reconciliar_todos`: UN `leads.score` canónico (antes 59/59 None).
+  - `demanda_espinazo.marcar_env`: env=demo/real + `dev_id` atribuido — 1,123 demo aislados
+    (roma-norte-85 sintético) vs 236 reales; la demanda dejó de mentir.
+  - `explotar_senales`: join dev→unidades → **5,478 átomos (era 0)**; `buyer_score` lee buyer_signals;
+    índices de event-stores; señal→ledger. Todo cableado al vigía horario.
+  - RESIDUAL (SOLO frontend, ya mitigado con piso por IP): que el navegador emita su `visitor_id`
+    real en el buscador/behavioral_events — cambio de 1 línea en el front, nada bloqueado.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
