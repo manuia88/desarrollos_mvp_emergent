@@ -2606,6 +2606,18 @@ async def startup():
                     await reconciliar_todos(db)
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[espinazo] falló: {e}")
+                # JUEZ DE MÉTRICAS (Palanca 5): limpia centinelas de prueba + mide cuánto de cada
+                # índice/score es REAL vs relleno sintético (el sistema deja de creerse su relleno).
+                try:
+                    from juez_metricas import juez_metricas, limpiar_centinelas
+                    await limpiar_centinelas(db)
+                    jm = await juez_metricas(db)
+                    await db.metricas_salud.update_one(
+                        {"id": "actual"}, {"$set": {"id": "actual", **jm}}, upsert=True)
+                    if not jm.get("sano"):
+                        logging.info(f"[juez_metricas] índices con relleno: {jm.get('resumen')}")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[juez_metricas] falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:

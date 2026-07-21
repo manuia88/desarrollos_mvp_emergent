@@ -1801,7 +1801,7 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                 prof["feature_lift"] = lift_global
             # BUILD-READY (colecciones existen, se llenan con dato de prod): forecast · clima · fraude · reseñas · brokers
             try:
-                fc = await db.drpi_snapshots.find_one({"zone_id": cid, "available": True}, {"_id": 0})
+                fc = await db.drpi_snapshots.find_one({"zone_id": cid, "available": True, "synthetic": {"$ne": True}}, {"_id": 0})  # P5: no relleno
                 if fc:
                     prof["forecast_pct"] = fc.get("forecast_12m_pct") or fc.get("drpi_delta_pct") or fc.get("delta_pct")
             except Exception:

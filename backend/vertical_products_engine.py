@@ -68,7 +68,7 @@ async def _drpi_yoy_pct(db, zone_id: str) -> Optional[float]:
     anualiza el cambio total sobre los meses transcurridos. None si no hay historia suficiente."""
     try:
         latest = await db.drpi_snapshots.find_one(
-            {"zone_id": zone_id, "available": True},
+            {"zone_id": zone_id, "available": True, "synthetic": {"$ne": True}},  # Palanca 5: no relleno
             {"_id": 0, "index_value": 1, "period": 1},
             sort=[("computed_at_dt", -1)],
         )
@@ -78,14 +78,14 @@ async def _drpi_yoy_pct(db, zone_id: str) -> Optional[float]:
         year_ago = _period_shift(period, 12)
         if year_ago:
             prev = await db.drpi_snapshots.find_one(
-                {"zone_id": zone_id, "available": True, "period": year_ago},
+                {"zone_id": zone_id, "available": True, "period": year_ago, "synthetic": {"$ne": True}},
                 {"_id": 0, "index_value": 1},
             )
             if prev and prev.get("index_value"):
                 return (latest["index_value"] / prev["index_value"] - 1) * 100.0
         # Fallback: el más antiguo disponible, anualizado por los meses transcurridos.
         oldest = await db.drpi_snapshots.find_one(
-            {"zone_id": zone_id, "available": True},
+            {"zone_id": zone_id, "available": True, "synthetic": {"$ne": True}},  # Palanca 5: no relleno
             {"_id": 0, "index_value": 1, "period": 1},
             sort=[("computed_at_dt", 1)],
         )

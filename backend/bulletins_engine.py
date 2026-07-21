@@ -260,7 +260,7 @@ async def generate_bulletin_zone(db, zone_id: str, period: str = "") -> Dict[str
     period = period or drpi._period_now()
 
     snap = await db.drpi_snapshots.find_one(
-        {"zone_id": zone_id, "tier": "colonia", "period": period},
+        {"zone_id": zone_id, "tier": "colonia", "period": period, "synthetic": {"$ne": True}},  # P5: no relleno
         {"_id": 0},
     )
     if not snap:
