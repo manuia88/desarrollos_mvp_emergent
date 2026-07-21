@@ -2575,6 +2575,17 @@ async def startup():
             async def _vigia_hourly():
                 import vigia_engine as _ve
                 await _ve.ronda(db)
+                # Quiero Casa publica en un Google Sheet PÚBLICO ("cualquiera con el enlace"):
+                # su export headless responde 200 sin auth, así que el robot lo baja y sincroniza
+                # solo — sin conector ni sesión (founder 07-20). Reusa lista_apply.
+                try:
+                    import quiero_casa_sync as _qc
+                    r = await _qc.sincronizar(db)
+                    if r.get("proyectos_con_cambios"):
+                        logging.info(f"[quiero_casa] {r['proyectos_con_cambios']} proyecto(s) "
+                                     f"con cambios · {r.get('precios')} precio · {r.get('estatus')} estatus")
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[quiero_casa] sync horario falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
