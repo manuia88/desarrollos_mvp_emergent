@@ -3499,9 +3499,11 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     # cubo de demanda para dev/superadmin (no perdemos ninguna intención del comprador).
     try:
         import hashlib as _hl
+        import secrets
         from datetime import datetime as _dt
         _amen = filters.get("amenity") or []
         _ip = (request.client.host if request.client else "") or "x"
+        _iph = _hl.sha256(_ip.encode()).hexdigest()[:16]   # visitor-proxy estable si el front no manda visitor_id
         # Supply coarse: ¿cuántos desarrollos ofrecen TODAS las amenidades pedidas? (0 = hueco claro)
         _supply = sum(1 for d in DEVELOPMENTS if set(_amen).issubset(set(d.get("amenities", [])))) if _amen else None
         # A · CAPTURA TOTAL: los 4 obligatorios marcan si la intención fue COMPLETA o exploratoria/abandonada (las
@@ -3515,8 +3517,12 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _cols = [s for s in (_cslug(c) for c in _cols_raw) if s]   # canonicaliza ANTES de persistir
         _miss = _parse_misses(q, filters)   # bucle de fallas de lectura
         await db.marketplace_searches.insert_one({
+            # Palanca 4 (auditoría 07-20): sin `id` los átomos de demanda colapsaban en la llave
+            # natural (340 con search_id=""); y visitor_id caía a None (83%) si el front no lo mandaba
+            # → el espinazo nacía roto. id propio + visitor-proxy por IP como piso.
+            "id": f"mks_{secrets.token_urlsafe(10)}",
             "source": "ai_search",
-            "visitor_id": (payload.visitor_id or "")[:64] or None,
+            "visitor_id": (payload.visitor_id or "")[:64] or f"ip_{_iph}",
             "colonias": _cols,
             "colonia_id": (_cols[0] if _cols else None),
             "parse_miss": _miss,

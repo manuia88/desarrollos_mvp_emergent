@@ -2595,6 +2595,12 @@ async def startup():
                         logging.info(f"[reaper] eventos huérfanos podados: {h}")
                 except Exception as e:  # noqa: BLE001 — fail-open
                     logging.warning(f"[reaper] poda de huérfanos falló: {e}")
+                # SCORE DE LEADS (Palanca 4): reconcilia los marcadores dispersos en UN leads.score
+                try:
+                    from lead_score import reconciliar_todos
+                    await reconciliar_todos(db)
+                except Exception as e:  # noqa: BLE001 — fail-open
+                    logging.warning(f"[lead_score] reconciliación falló: {e}")
                 # tras cada ronda, el AUTOPILOTO recorre la línea (póliza A1-A4, $0):
                 # aprueba portones limpios, publica con gates verdes, prepara pedidos
                 try:
