@@ -46,8 +46,9 @@ causas raíz (palancas)** — si se atacan en orden, cae el 80%.
     (roma-norte-85 sintético) vs 236 reales; la demanda dejó de mentir.
   - `explotar_senales`: join dev→unidades → **5,478 átomos (era 0)**; `buyer_score` lee buyer_signals;
     índices de event-stores; señal→ledger. Todo cableado al vigía horario.
-  - RESIDUAL (SOLO frontend, ya mitigado con piso por IP): que el navegador emita su `visitor_id`
-    real en el buscador/behavioral_events — cambio de 1 línea en el front, nada bloqueado.
+  - **FRONTEND cerrado** (commit 9ba8a6a7): `aiSearchParse`/`atlaxSearch`/`PriceListTab` leían
+    localStorage directo → un visitante nuevo mandaba `visitor_id` vacío. Ahora usan `visitorId()`
+    que lo SIEMBRA. El espinazo queda cerrado punta a punta (front + backend). Sin residual.
 - ✅ **Hipersegmentación del parte** (líneas sin specs / "$?") → rediseño 3 cajones con dev·proyecto·depa·precio.
 - ✅ **Truncado a 4000 de Telegram** → `_paginar` por bloques.
 - ◐ **Bug "salta N renglones"** → el parte ya no lo renderiza (raíz en `lista_forense` pendiente).
