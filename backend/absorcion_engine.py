@@ -102,6 +102,20 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
     except Exception as e:
         log.warning(f"[absorcion] fail-open: {e}")
 
+    # LEDGER REAL (Palanca 2, auditoría 07-20): ventas reales de unit_status_events — el vigía y
+    # las ingestas ahora las escriben ahí. Antes NINGÚN motor de absorción lo leía (solo un panel).
+    # Da días-para-vender REALES por dev (desde listed_at), no el proxy _MESES_STAGE.
+    ventas_ledger: Dict[str, dict] = {}
+    try:
+        async for r in db.unit_status_events.aggregate([
+            {"$match": {"new_status": "vendido", "days_to_sell": {"$ne": None}}},
+            {"$group": {"_id": "$dev_id", "n": {"$sum": 1}, "dias": {"$avg": "$days_to_sell"}}}]):
+            if r.get("_id"):
+                ventas_ledger[r["_id"]] = {"n": r["n"],
+                                           "dias_prom": round(r["dias"]) if r.get("dias") is not None else None}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[absorcion] ledger fail-open: {e}")
+
     # INGESTA / WIZARD: además de la semilla, la oferta REAL vive en db.developments (+ db.projects) con unidades en
     # db.units. Sin esto la absorción de una zona ignoraba los proyectos ingeridos → curva incompleta (auditoría 07-07).
     try:
@@ -126,12 +140,16 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
             b = cohortes[coh]
             b["n"] += 1; b["total"] += total; b["sold"] += sold; b["avail"] += avail; b["stage_key"] = stage
             b["meses_acc"] += meses * total
+            lg = ventas_ledger.get(d.get("id"))          # ventas REALES del ledger (Palanca 2)
             comparables.append({
                 "nombre": _nom, "stage": stage, "cohorte": coh,
                 "unidades": total, "vendidas": sold, "disponibles": avail,
                 "absorcion_pct": round(100 * sold / total) if total else 0,
                 "velocidad_mensual": round(sold / meses, 1) if meses else 0,
                 "precio_desde": d.get("price_from") or (min((u.get("price") for u in units if u.get("price")), default=None)),
+                "ventas_reales": (lg or {}).get("n"),                  # None si aún no hay dato real
+                "dias_venta_prom": (lg or {}).get("dias_prom"),        # días-para-vender REALES (listed_at)
+                "fuente_velocidad": "ledger" if lg else "proxy_stage",
             })
             _seen_names.add(_nom)
     except Exception as e:
