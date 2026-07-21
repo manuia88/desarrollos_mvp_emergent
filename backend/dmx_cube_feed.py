@@ -160,7 +160,9 @@ async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[
     Demanda y Absorción las vean. Idempotente (upsert por unit_id). Filtra por developer_id si se pasa."""
     q: Dict[str, Any] = {"developer_id": developer_id} if developer_id else {}
     devs: Dict[str, Dict[str, Any]] = {}
-    async for d in db.developments.find(q if developer_id else {"source": "bulk_ingest"}, {"_id": 0}):
+    # TODOS los devs REALES (07-20): antes solo 'bulk_ingest' → QC/Punto Destino (ingesta_en_sesion)
+    # nunca entraban al cubo. Los del seed no están en db.developments, no se tocan.
+    async for d in db.developments.find(q, {"_id": 0}):
         devs[d["id"]] = d
     if not devs:
         return {"synced": 0, "collection": UNITS}
@@ -176,7 +178,27 @@ async def sync_ingested_to_atom(db, developer_id: Optional[str] = None) -> Dict[
             upsert=True,
         )
         n += 1
-    return {"synced": n, "collection": UNITS}
+    pruned = await podar_atomos_fantasma(db)     # global: caza también devs borrados
+    return {"synced": n, "pruned": pruned, "collection": UNITS}
+
+
+async def podar_atomos_fantasma(db, dev_ids: Optional[list] = None) -> int:
+    """Borra átomos INGERIDOS (sources._origin ≠ seed_backfill) cuyo unit_id ya no existe en
+    db.units — la re-ingesta les daba id nuevo y el átomo viejo quedaba FANTASMA (32% del cubo
+    inflado, 07-20). NUNCA toca los átomos del seed (fallback demo). Idempotente. Scoped a
+    dev_ids si se pasa; global si no."""
+    live = {u["id"] async for u in db.units.find({}, {"id": 1})}
+    base: Dict[str, Any] = {"sources._origin": {"$ne": "seed_backfill"}}
+    if dev_ids is not None:
+        base["development_id"] = {"$in": dev_ids}
+    stale = [a["unit_id"] async for a in db[UNITS].find(base, {"unit_id": 1})
+             if a.get("unit_id") not in live]
+    total = 0
+    for i in range(0, len(stale), 500):
+        lote = dict(base, **{"unit_id": {"$in": stale[i:i + 500]}})
+        r = await db[UNITS].delete_many(lote)
+        total += r.deleted_count
+    return total
 
 
 # ─── átomo → plano (para el agregador del cubo) ──────────────────────────────
