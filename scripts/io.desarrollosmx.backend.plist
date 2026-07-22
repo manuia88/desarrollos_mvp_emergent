@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.desarrollosmx.backend</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/manuelacosta/Developer/desarrollos_mvp_emergent/scripts/backend-daemon.sh</string>
+  </array>
+
+  <!-- Prender al iniciar sesión -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- KeepAlive: si el proceso muere (crash, sleep, lo que sea) → lo reprende solo -->
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- Esperar 10s entre reintentos para no entrar en bucle si algo está mal -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/manuelacosta/Developer/desarrollos_mvp_emergent/backend</string>
+
+  <key>StandardOutPath</key>
+  <string>/Users/manuelacosta/Developer/desarrollos_mvp_emergent/scripts/logs/backend.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/manuelacosta/Developer/desarrollos_mvp_emergent/scripts/logs/backend.log</string>
+</dict>
+</plist>
