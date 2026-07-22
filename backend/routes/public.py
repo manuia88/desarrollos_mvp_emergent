@@ -2196,7 +2196,10 @@ async def get_development(dev_id: str, request: Request):
     if not out.get("units"):
         try:
             from ingested_reader import units_for_dev, attach_planos, sobre_mercado_pct, public_photos
-            out["units"] = await units_for_dev(db, dev_id)
+            # `oculto_ficha`: unidades marcadas para NO salir en la ficha pública (reservadas sin
+            # m²/rec/baños que crean tarjetas malformadas). Los motores ven TODO vía units_for_dev
+            # directo; este filtro es SOLO para lo público. (07-22)
+            out["units"] = [u for u in await units_for_dev(db, dev_id) if not u.get("oculto_ficha")]
             # plano del prototipo por unidad (depa 102 → plano del 'Tipo 02') + "sobre mercado %" (vs AVM colonia)
             await attach_planos(db, dev_id, out["units"])
             await sobre_mercado_pct(db, out.get("colonia_id"), out["units"],
@@ -2221,6 +2224,9 @@ async def get_development(dev_id: str, request: Request):
     # Conteos + rangos + desde/hasta coherentes con las unidades vivas (si el dev edita precio/estado/m²/etc., el doc no puede
     # seguir mostrando cifras viejas del seed: 'desde' inexistente, 'X disponibles' que ya no aplica, rangos de búsqueda viejos).
     out.update(_aggregates_from_units(out.get("units"), out.get("total_units") or 0))
+    # Founder 07-22: las unidades ocultas (reservadas sin datos) NO se cuentan en la ficha pública →
+    # el total refleja lo realmente mostrado, no el conteo del edificio.
+    out["total_units"] = len(out.get("units") or [])
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay

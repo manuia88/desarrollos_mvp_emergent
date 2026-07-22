@@ -398,7 +398,10 @@ async def resolve_dev_doc(db, dev_id: str, with_units: bool = True) -> Optional[
         return None
     doc = dict(doc)
     if with_units and not doc.get("units"):
-        doc["units"] = await units_for_dev(db, dev_id)
+        # `oculto_ficha`: unidades marcadas para NO mostrarse en la ficha pública (p.ej. reservadas
+        # SIN m²/rec/baños que crean tarjetas malformadas). Los motores (absorción/demanda/score)
+        # siguen viendo TODO vía units_for_dev directo — este filtro es SOLO para lo público. (07-22)
+        doc["units"] = [u for u in await units_for_dev(db, dev_id) if not u.get("oculto_ficha")]
     return doc
 
 
@@ -417,7 +420,7 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
             card = dev_doc_to_card(d)
             if not card:
                 continue
-            units = await units_for_dev(db, d.get("id"))
+            units = [u for u in await units_for_dev(db, d.get("id")) if not u.get("oculto_ficha")]
             card["units"] = units
             apply_unit_aggregates(card, units)
             # fotos de la TARJETA del marketplace = renders clasificados (antes salía el placeholder oscuro)
