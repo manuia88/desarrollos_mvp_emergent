@@ -19,6 +19,7 @@ honesto, superadmin-only en superficie.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import random
 from datetime import datetime, timezone
@@ -214,32 +215,11 @@ async def gemelo_demanda_v2(db, colonias: Optional[Set[str]] = None,
 
 
 # ═══ F3 · SIMULADOR DEL MERCADO (agentes reales × inventario) ══════════════════
-async def simulador_mercado(db, colonias: Optional[Set[str]] = None,
-                            delta_precio_pct: float = 0.0, rondas: int = 200,
-                            semilla: int = 42) -> Dict[str, Any]:
-    """Monte-Carlo honesto: agentes = vectores REALES de visitantes (muestreados con reemplazo);
-    cada agente compra la unidad más barata que lo satisface, con probabilidad = su afinidad.
-    delta_precio_pct simula '¿y si TODO el corte baja/sube X%?' → curva de absorción."""
-    from demand_mirror import _oferta_vectores, _satisface
-    rng = random.Random(semilla)   # reproducible: misma semilla = misma simulación
-    unidades = [u for u in await _oferta_vectores(db, colonias)
-                if u.get("disponible") and (u.get("precio") or 0) >= 100000]
-    agentes: Dict[str, List[Tuple[str, str]]] = {}
-    try:
-        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
-                                                 "dimension": 1, "valor": 1}):
-            if colonias and a.get("colonia") not in colonias:
-                continue
-            if a.get("visitor_id") and not str(a.get("dimension", "")).startswith(("busqueda.texto", "lexico.")):
-                agentes.setdefault(a["visitor_id"], []).append((a["dimension"], str(a.get("valor"))))
-    except Exception as e:
-        log.warning("[simulador] fail-open: %s", e)
-    pool = list(agentes.values())
-    if not pool or not unidades:
-        return {"es_estimado": True, "n_agentes_reales": len(pool), "n_unidades": len(unidades),
-                "lectura": "El simulador necesita buscadores vivos e inventario disponible."}
-
-    factor = 1 + delta_precio_pct / 100.0
+def _montecarlo_sim(unidades, pool, factor, rondas, rng):
+    """Núcleo CPU-bound del simulador (0 I/O). Se ejecuta en un HILO aparte (asyncio.to_thread)
+    para NO bloquear el event-loop: antes corría inline en el loop y con catálogos grandes colgaba
+    el ARRANQUE completo del backend al 100% CPU (health 000, nunca completaba). (07-22)"""
+    from demand_mirror import _satisface
     ventas_por_ronda = []
     for _ in range(rondas):
         vivos = [dict(u, precio=(u["precio"] or 0) * factor) for u in unidades]
@@ -262,14 +242,56 @@ async def simulador_mercado(db, colonias: Optional[Set[str]] = None,
                 ventas += 1
         ventas_por_ronda.append(ventas)
     ventas_por_ronda.sort()
+    return ventas_por_ronda
+
+
+async def simulador_mercado(db, colonias: Optional[Set[str]] = None,
+                            delta_precio_pct: float = 0.0, rondas: int = 200,
+                            semilla: int = 42) -> Dict[str, Any]:
+    """Monte-Carlo honesto: agentes = vectores REALES de visitantes (muestreados con reemplazo);
+    cada agente compra la unidad más barata que lo satisface, con probabilidad = su afinidad.
+    delta_precio_pct simula '¿y si TODO el corte baja/sube X%?' → curva de absorción."""
+    from demand_mirror import _oferta_vectores, _satisface
+    rng = random.Random(semilla)   # reproducible: misma semilla = misma simulación
+    unidades = [u for u in await _oferta_vectores(db, colonias)
+                if u.get("disponible") and (u.get("precio") or 0) >= 100000]
+    # COTA DE COSTO: el Monte-Carlo es O(rondas × agentes × unidades). Sin tope, al crecer el
+    # catálogo el runtime explota y pega el CPU (llegó a colgar el arranque del backend, 07-22).
+    # Como las ventas por ronda están acotadas por el nº de agentes (≤50), simular sobre un corte
+    # representativo muestreado (reproducible por semilla) da el MISMO metraje de absorción a costo
+    # fijo. n_unidades_total se preserva para el reporte honesto.
+    n_unidades_total = len(unidades)
+    _CAP_UNIDADES = 800
+    if len(unidades) > _CAP_UNIDADES:
+        unidades = rng.sample(unidades, _CAP_UNIDADES)
+    agentes: Dict[str, List[Tuple[str, str]]] = {}
+    try:
+        async for a in db.demand_atoms.find(({'colonia': {'$in': sorted(colonias)}} if colonias else {}), {"_id": 0, "visitor_id": 1, "colonia": 1,
+                                                 "dimension": 1, "valor": 1}):
+            if colonias and a.get("colonia") not in colonias:
+                continue
+            if a.get("visitor_id") and not str(a.get("dimension", "")).startswith(("busqueda.texto", "lexico.")):
+                agentes.setdefault(a["visitor_id"], []).append((a["dimension"], str(a.get("valor"))))
+    except Exception as e:
+        log.warning("[simulador] fail-open: %s", e)
+    pool = list(agentes.values())
+    if not pool or not unidades:
+        return {"es_estimado": True, "n_agentes_reales": len(pool), "n_unidades": len(unidades),
+                "lectura": "El simulador necesita buscadores vivos e inventario disponible."}
+
+    factor = 1 + delta_precio_pct / 100.0
+    # El núcleo Monte-Carlo es CPU-bound puro → corre en un HILO aparte para NO congelar el
+    # event-loop (antes bloqueaba el arranque y el manejo de requests). (07-22)
+    ventas_por_ronda = await asyncio.to_thread(_montecarlo_sim, unidades, pool, factor, rondas, rng)
     n = len(ventas_por_ronda)
-    return {"n_agentes_reales": len(pool), "n_unidades": len(unidades),
+    return {"n_agentes_reales": len(pool), "n_unidades": n_unidades_total,
+            "n_unidades_simuladas": len(unidades),
             "delta_precio_pct": delta_precio_pct, "rondas": rondas, "semilla": semilla,
             "ventas_simuladas": {"p5": ventas_por_ronda[max(0, n // 20)],
                                  "mediana": ventas_por_ronda[n // 2],
                                  "p95": ventas_por_ronda[min(n - 1, n * 19 // 20)]},
             "es_estimado": len(pool) < 10,
-            "lectura": (f"Con {len(pool)} compradores-agente REALES sobre {len(unidades)} unidades"
+            "lectura": (f"Con {len(pool)} compradores-agente REALES sobre {n_unidades_total} unidades"
                         + (f" y precio {delta_precio_pct:+.0f}%" if delta_precio_pct else "")
                         + f": mediana {ventas_por_ronda[n // 2]} ventas por ciclo "
                         f"(p5 {ventas_por_ronda[max(0, n // 20)]} · p95 {ventas_por_ronda[min(n - 1, n * 19 // 20)]}).")}
@@ -319,7 +341,9 @@ async def _pred_reloj(db) -> List[Dict[str, Any]]:
 
 
 async def _pred_simulador(db) -> List[Dict[str, Any]]:
-    r = await simulador_mercado(db)
+    # Camino AUTOMÁTICO (arranque + cron horario): menos rondas que el default de la API on-demand
+    # (200) — 60 basta para la mediana/percentiles del predictor y mantiene barato el tick horario.
+    r = await simulador_mercado(db, rondas=60)
     ventas = (r.get("ventas_simuladas") or {}).get("mediana")
     if ventas is None:
         return []

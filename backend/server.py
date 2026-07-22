@@ -3042,17 +3042,27 @@ async def startup():
             _t1 = await snapshot_oferta(db, fuente="arranque")
             _t2 = await snapshot_contexto(db)
             logging.info("[startup] bitácora oferta: %s · contexto: %s", _t1, _t2)
-            try:   # la báscula y la campana no esperan al primer tick horario (auditoría D-G)
-                from ola_f_engines import registrar_predicciones
-                from ola_d_engines import revisar_termometro
-                from demand_genome import explotar_busquedas_asesor, explotar_registros_interes
-                await explotar_busquedas_asesor(db)
-                await explotar_registros_interes(db)
-                _b1 = await registrar_predicciones(db)
-                _b2 = await revisar_termometro(db)
-                logging.info("[startup] báscula: %s · termómetro: %s", _b1, _b2)
-            except Exception as _e:  # noqa: BLE001
-                logging.warning("[startup] báscula/termómetro fail-open: %s", _e)
+            # La báscula/campana NO deben BLOQUEAR el arranque: registrar_predicciones corre un
+            # simulador Monte-Carlo O(rondas×agentes×unidades) que crece con el catálogo. Al ingerir
+            # muchas unidades (QC, torres consolidadas) llegó a colgar el startup ENTERO al 100% CPU
+            # (health 000, nunca completaba). Se difiere a segundo plano — el "arranque en caliente"
+            # es solo un adelanto del tick horario, así que diferirlo no pierde nada. (07-22)
+            import asyncio as _aio_warm
+
+            async def _warm_bascula():
+                try:
+                    from ola_f_engines import registrar_predicciones
+                    from ola_d_engines import revisar_termometro
+                    from demand_genome import explotar_busquedas_asesor, explotar_registros_interes
+                    await explotar_busquedas_asesor(db)
+                    await explotar_registros_interes(db)
+                    _b1 = await registrar_predicciones(db)
+                    _b2 = await revisar_termometro(db)
+                    logging.info("[startup] báscula: %s · termómetro: %s", _b1, _b2)
+                except Exception as _e:  # noqa: BLE001
+                    logging.warning("[startup] báscula/termómetro fail-open: %s", _e)
+
+            _aio_warm.create_task(_warm_bascula())
 
             # PRODUCCIÓN EN MASA: cron horario como RED DE SEGURIDAD (el dedup por hash hace
             # gratis la corrida sin cambios); los cambios reales disparan el snapshot AL
