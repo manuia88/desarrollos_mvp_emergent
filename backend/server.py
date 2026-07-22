@@ -2766,6 +2766,26 @@ async def startup():
                           id="parte_diario", replace_existing=True, misfire_grace_time=3600)
         except Exception as e:
             logging.warning(f"[parte] cron register failed: {e}")
+        # CATCH-UP del parte (07-22): en hosting local el backend puede NO estar arriba a las 14:00
+        # (Mac dormido, Mongo caído, reinicio) → el founder no recibía nada. Al arrancar, si ya pasó
+        # la hora y el parte de hoy no se mandó, se manda ahora. Idempotente (partes_enviados) → cero duplicados.
+        try:
+            import asyncio as _aio_cu
+
+            async def _catch_up_partes():
+                from datetime import datetime as _dt
+                from parte_engine import enviar_partes_del_dia
+                try:
+                    from zoneinfo import ZoneInfo
+                    ahora = _dt.now(ZoneInfo("America/Mexico_City"))
+                except Exception:  # noqa: BLE001
+                    ahora = _dt.now()
+                if ahora.hour >= 14:      # ya pasó la hora del parte diario → reenvía lo que falte
+                    await enviar_partes_del_dia(db, catch_up=True)
+
+            _aio_cu.create_task(_catch_up_partes())
+        except Exception as e:  # noqa: BLE001
+            logging.warning(f"[parte] catch-up no arrancó: {e}")
         try:
             from gentrification_engine import schedule_gentrification_cron
             schedule_gentrification_cron(sched, db)

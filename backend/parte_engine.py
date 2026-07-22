@@ -775,7 +775,30 @@ async def enviar_parte(db, periodo: str = "diario") -> Dict[str, Any]:
                 correo, CADENCIAS[periodo]["titulo"], plano.replace("\n", "<br>"), "")
     except Exception as e:  # noqa: BLE001
         log.warning(f"[parte] correo: {e}")
+    # registro del envío (idempotencia + catch-up): un parte por (periodo, día). Solo se marca
+    # 'enviado' si llegó por ALGÚN canal — si ambos fallaron, queda pendiente y el catch-up reintenta.
+    try:
+        if enviado["telegram"] or enviado["correo"]:
+            fecha = _now().astimezone().strftime("%Y-%m-%d")
+            await db.partes_enviados.update_one(
+                {"periodo": periodo, "fecha": fecha},
+                {"$set": {"periodo": periodo, "fecha": fecha, "ts": _now().isoformat(),
+                          "telegram": enviado["telegram"], "correo": enviado["correo"]}},
+                upsert=True)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[parte] registro: {e}")
     return {"periodo": periodo, "texto": texto, "enviado": enviado}
+
+
+async def _ya_enviado_hoy(db, periodo: str) -> bool:
+    """¿El parte de este periodo ya se mandó (por algún canal) HOY? — para no duplicar en el catch-up."""
+    try:
+        fecha = _now().astimezone().strftime("%Y-%m-%d")
+        d = await db.partes_enviados.find_one({"periodo": periodo, "fecha": fecha},
+                                              {"_id": 0, "telegram": 1, "correo": 1})
+        return bool(d and (d.get("telegram") or d.get("correo")))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def cadencias_de_hoy(hoy: Optional[datetime] = None) -> List[str]:
@@ -797,9 +820,17 @@ def cadencias_de_hoy(hoy: Optional[datetime] = None) -> List[str]:
     return toca
 
 
-async def enviar_partes_del_dia(db) -> List[str]:
+async def enviar_partes_del_dia(db, catch_up: bool = False) -> List[str]:
+    """Manda los partes que tocan hoy. Idempotente: si uno ya se mandó hoy (por algún canal) lo SALTA
+    — así el job de las 14:00 y el catch-up de arranque nunca duplican. `catch_up=True` solo cambia el
+    log (para distinguir el reenvío de arranque tras un backend caído a la hora del parte)."""
     enviados = []
     for periodo in cadencias_de_hoy():
-        await enviar_parte(db, periodo)
-        enviados.append(periodo)
+        if await _ya_enviado_hoy(db, periodo):
+            continue
+        r = await enviar_parte(db, periodo)
+        if r["enviado"]["telegram"] or r["enviado"]["correo"]:
+            enviados.append(periodo)
+    if enviados:
+        log.info(f"[parte] {'catch-up' if catch_up else 'programado'}: {enviados}")
     return enviados
