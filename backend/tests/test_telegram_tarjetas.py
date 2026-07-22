@@ -23,8 +23,12 @@ def test_dev_nuevo_mapeado_explica_consecuencia():
 
 
 def test_lista_cambiada_trae_contexto_para_decidir():
+    # Cambio REAL (bajó un precio) → tarjeta de DECISIÓN con contexto y botón Aprobar.
     p = {"id": "vp3", "tipo": "lista_cambiada", "dev": "CLASS", "proyecto": "Almina",
-         "archivo": {"nombre": "PRECIOS JULIO.xlsx", "modificado": "2026-07-14T02:14:00Z"}}
+         "archivo": {"nombre": "PRECIOS JULIO.xlsx", "modificado": "2026-07-14T02:14:00Z"},
+         "cambios": {"base": "la versión anterior", "cambios_precio": [
+             {"unidad": "A 101", "antes": 5000000, "ahora": 4800000}],
+             "cambios_status": [], "ya_no_estan": [], "nuevas": [], "totales": {"cambios_precio": 1}}}
     ctx = {"mapeado_a": "Class Bienes Raíces", "n_unidades_proyecto": 24,
            "eventos_previos": 3, "ultima_ingesta": "2026-07-01T10:00:00Z"}
     card = tarjeta_pendiente(p, ctx)
@@ -35,7 +39,23 @@ def test_lista_cambiada_trae_contexto_para_decidir():
     assert "SOLO este proyecto" in t               # alcance de aprobar
     assert "bitácora" in t                         # consecuencia
     botones = [b["callback_data"] for fila in card["botones"] for b in fila]
-    assert "det:vp3" in botones                    # detalle sin gastar
+    assert "det:vp3" in botones and "ap:vp3" in botones   # detalle + aprobar (es cambio real)
+
+
+def test_lista_resubida_sin_cambios_es_honesta_y_no_ofrece_aprobar():
+    """UX 07-22: el dev re-subió el MISMO archivo (mismos datos). La tarjeta NO debe gritar
+    'CAMBIÓ' ni ofrecer 'Aprobar (gasta API)' — es honesta y solo deja archivar/ver linaje."""
+    p = {"id": "vp3b", "tipo": "lista_cambiada", "dev": "CLASS", "proyecto": "Avalia",
+         "archivo": {"nombre": "VP_Torre A.pdf", "modificado": "2026-07-22T01:00:00Z"},
+         "cambios": {"base": "la versión anterior", "cambios_precio": [], "cambios_status": [],
+                     "ya_no_estan": [], "nuevas": [], "totales": {}}}
+    card = tarjeta_pendiente(p, {"mapeado_a": "Class Bienes Raíces"})
+    t = card["texto"]
+    assert "re-subió (mismos datos)" in t and "CAMBIÓ" not in t
+    assert "nada que aprobar" in t.lower()
+    botones = [b["callback_data"] for fila in card["botones"] for b in fila]
+    assert "ap:vp3b" not in botones                 # NO Aprobar: no gasta API que el founder no tiene
+    assert "det:vp3b" in botones and "rj:vp3b" in botones
 
 
 def test_lista_sin_mapeo_avisa_y_ofrece_mapear():

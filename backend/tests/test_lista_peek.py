@@ -1,7 +1,8 @@
 """Lista peek: 'lista modificada' debe decir QUÉ se modificó. Parsers deterministas ($0,
 sin IA) + diff puro. Caso real validado 07-17: Avalia Torre B — B 204 bajó -3.4% y volvió
 a disponible; Torre A cambió el archivo pero no los datos."""
-from lista_peek import (diff_unidades, lineas_de_cambios, norm_unidad, unidades_de_texto)
+from lista_peek import (diff_unidades, es_cambio_real, lineas_de_cambios, norm_unidad,
+                        unidades_de_texto)
 
 
 def test_norm_unidad_unifica_plumas():
@@ -59,3 +60,18 @@ def test_peek_fallido_avisa_honesto():
     assert any("primera lectura" in l for l in
                lineas_de_cambios({"nota": "primera lectura: 9 unidades con precio — desde el "
                                           "próximo cambio te digo el diff exacto"}))
+
+
+def test_es_cambio_real_distingue_accionable_de_no_op():
+    """El partidor de la bandeja Telegram (07-22): cambio de datos = accionable; re-subida
+    idéntica = no-op que se colapsa. Primera lectura cuenta como accionable (hay algo que ver)."""
+    assert es_cambio_real({"cambios_precio": [{"unidad": "A1"}]}) is True
+    assert es_cambio_real({"cambios_status": [{"unidad": "A1"}]}) is True
+    assert es_cambio_real({"nuevas": ["B2"]}) is True
+    assert es_cambio_real({"ya_no_estan": ["C3"]}) is True
+    assert es_cambio_real({"nota": "primera lectura: 9 unidades con precio"}) is True
+    # no-op: re-subida sin cambios de datos (mismos precios/estados, nada nuevo/ido)
+    assert es_cambio_real({"cambios_precio": [], "cambios_status": [], "nuevas": [],
+                           "ya_no_estan": [], "totales": {}}) is False
+    assert es_cambio_real({}) is False
+    assert es_cambio_real(None) is False

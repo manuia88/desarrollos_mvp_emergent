@@ -101,40 +101,55 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             botones = [[{"text": "👤 ¿De quién es? (elegir dev)", "callback_data": f"mapmenu:{pid}"}],
                        [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
     elif tipo in ("lista_cambiada", "lista_nueva"):
+        from lista_peek import lineas_de_cambios, es_cambio_real
         a = p.get("archivo") or {}
-        accion = ("CAMBIÓ la lista" if tipo == "lista_cambiada" else "subió una lista NUEVA:")
+        c = p.get("cambios") or {}
+        # header HONESTO: "CAMBIÓ" solo si hubo cambio de datos; re-subida idéntica NO se anuncia como cambio.
+        real = tipo == "lista_nueva" or es_cambio_real(c)
+        primera = "primera lectura" in str(c.get("nota") or "")
+        accion = ("subió una lista NUEVA:" if tipo == "lista_nueva"
+                  else "CAMBIÓ la lista" if real else "re-subió (mismos datos) la lista")
         lineas = [
             f"📄 <b>{dev} · {_esc(p.get('proyecto'))}</b>",
             f"El DESARROLLADOR {accion} <b>{_esc(a.get('nombre'))}</b> en su Drive"
             + (f" ({_esc(a.get('modificado'))[:16]})" if a.get("modificado") else "") + ".",
         ]
-        if p.get("cambios"):
-            from lista_peek import lineas_de_cambios
+        if c:
             lineas += ["", "<b>Qué cambió exactamente:</b>"]
-            lineas += [_esc(x) for x in lineas_de_cambios(p["cambios"], sangria="")][:10]
+            lineas += [_esc(x) for x in lineas_de_cambios(c, sangria="")][:10]
+        # AVISO DE PARSEO: primera lectura con muy pocas unidades = probable PDF mal extraído, no realidad.
+        if primera and (c.get("n_leidas") or 99) <= 2:
+            lineas.append(f"⚠️ Solo leí <b>{c.get('n_leidas')} unidad(es)</b> — parece pocas para una lista de "
+                          f"preventa; puede ser un problema al extraer el PDF. Vale revisar el archivo.")
         if p.get("aplicado"):
             ap = p["aplicado"]
             lineas.append(f"✅ <b>Ya lo apliqué</b>: {ap.get('precios', 0)} precio(s) y "
                           f"{ap.get('status', 0)} estado(s) actualizados con auditoría"
                           + (f" · {ap.get('senales_venta')} probable(s) venta(s) anotadas"
                              if ap.get("senales_venta") else "") +
-                          ". Aprobar solo hace falta si quieres re-leer TODO el proyecto.")
+                          ". No tienes que hacer nada.")
+        if ctx.get("n_unidades_proyecto"):
+            lineas.append(f"Estado del proyecto: {ctx['n_unidades_proyecto']} unidades en el catálogo.")
         if ctx.get("ultima_ingesta"):
             lineas.append(f"Última ingesta de este dev: {_esc(ctx['ultima_ingesta'])[:10]}.")
-        if ctx.get("n_unidades_proyecto") is not None:
-            lineas.append(f"El proyecto tiene <b>{ctx['n_unidades_proyecto']} unidades</b> en el catálogo.")
         if ctx.get("eventos_previos"):
-            lineas.append(f"Historial: {ctx['eventos_previos']} eventos previos de este archivo (linaje completo con /detalle).")
-        lineas += ["",
-                   "▸ <b>Aprobar</b>: re-leo SOLO este proyecto con IA (gasta API) y los cambios por unidad quedan en la bitácora.",
-                   "▸ <b>Detalle</b>: te muestro el linaje sin gastar nada.",
-                   "▸ <b>Ignorar</b>: lo archivo (el archivo sigue vigilado)."]
-        botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
-                    {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
-                   [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
-        if not ctx.get("mapeado_a"):
-            lineas.append("⚠️ Este dev no está mapeado — aprobar te pedirá el mapeo primero.")
-            botones.insert(0, [{"text": "👤 Mapear dev primero", "callback_data": f"mapmenu:{pid}"}])
+            lineas.append(f"Historial: {ctx['eventos_previos']} eventos previos de este archivo (linaje con /detalle).")
+        if real:
+            lineas += ["",
+                       "▸ <b>Aprobar</b>: re-leo SOLO este proyecto con IA (gasta API) y los cambios por unidad quedan en la bitácora.",
+                       "▸ <b>Detalle</b>: el linaje, sin gastar nada.",
+                       "▸ <b>Ignorar</b>: lo archivo (sigue vigilado)."]
+            botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
+                        {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
+                       [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
+            if not ctx.get("mapeado_a"):
+                lineas.append("⚠️ Este dev no está mapeado — aprobar te pedirá el mapeo primero.")
+                botones.insert(0, [{"text": "👤 Mapear dev primero", "callback_data": f"mapmenu:{pid}"}])
+        else:
+            # re-subida idéntica: NO se ofrece 'Aprobar' (nada que re-leer, no gasta API que no tienes).
+            lineas += ["", "<i>Mismos datos que antes — nada que aprobar. El archivo sigue vigilado.</i>"]
+            botones = [[{"text": "🔍 Detalle (linaje)", "callback_data": f"det:{pid}"},
+                        {"text": "❌ Archivar", "callback_data": f"rj:{pid}"}]]
     elif tipo == "proyecto_nuevo":
         lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>."]
         if p.get("ya_en_catalogo"):
@@ -197,21 +212,54 @@ async def _contexto_de(db, p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ─── envío de tarjetas ────────────────────────────────────────────────────────
+def _resumen_reupload(noop: List[Dict[str, Any]]) -> str:
+    """Colapsa N re-subidas SIN cambios en UNA línea callada, agrupada por desarrollador (UX 07-22):
+    el dev volvió a subir el mismo archivo con los mismos datos → no amerita una tarjeta cada una."""
+    por_dev: Dict[str, List[str]] = {}
+    for p in noop:
+        por_dev.setdefault(_esc(p.get("dev") or "?"), []).append(_esc(p.get("proyecto") or ""))
+    lineas = [f"😴 <b>{len(noop)} lista(s) re-subida(s) SIN cambios</b> — el desarrollador volvió a subir el mismo "
+              f"archivo (mismos datos). Nada que aprobar:"]
+    for d, proys in por_dev.items():
+        vistos = [x for x in dict.fromkeys(proys) if x]
+        lineas.append(f"· <b>{d}</b>" + (f": {', '.join(vistos)}" if vistos else ""))
+    lineas.append("<i>Ya vigilados · el linaje quedó registrado (/detalle si quieres verlo).</i>")
+    return "\n".join(lineas)
+
+
 async def notificar_pendientes(db, limite: int = 5) -> int:
-    """Manda tarjeta por cada pendiente NUEVO (marca telegram_sent para no repetir)."""
+    """Manda las tarjetas de decisión. UX (07-22): las re-subidas SIN cambio de datos (el dev volvió a subir
+    el mismo PDF) NO gritan una tarjeta cada una — se COLAPSAN en una sola línea callada y se archivan. Solo
+    lo ACCIONABLE (cambio real de precio/estado/altas-bajas o primera lectura) llega como tarjeta con botones."""
+    from lista_peek import es_cambio_real
     chat = await _chat_vinculado(db)
     if not chat:
         return 0
+    pend = [p async for p in db.vigia_pendientes.find(
+        {"estado": "pendiente", "telegram_sent": {"$ne": True}}, {"_id": 0}).limit(40)]
+    accionables, noop = [], []
+    for p in pend:
+        # no-op = re-subida de lista idéntica que el vigía NO aplicó nada (mismos datos)
+        if p.get("tipo") == "lista_cambiada" and not p.get("aplicado") and not es_cambio_real(p.get("cambios")):
+            noop.append(p)
+        else:
+            accionables.append(p)
     enviados = 0
-    cur = db.vigia_pendientes.find({"estado": "pendiente",
-                                    "telegram_sent": {"$ne": True}}, {"_id": 0}).limit(limite)
-    async for p in cur:
+    # 1) ACCIONABLES → tarjeta individual (cap `limite`)
+    for p in accionables[:limite]:
         card = tarjeta_pendiente(p, await _contexto_de(db, p))
-        r = await _tg("sendMessage", {"chat_id": chat, "text": card["texto"],
-                                      "parse_mode": "HTML",
+        r = await _tg("sendMessage", {"chat_id": chat, "text": card["texto"], "parse_mode": "HTML",
                                       "reply_markup": {"inline_keyboard": card["botones"]}})
         if r:
             await db.vigia_pendientes.update_one({"id": p["id"]}, {"$set": {"telegram_sent": True}})
+            enviados += 1
+    # 2) NO-OPS → UNA sola línea callada + auto-archivar (el archivo sigue vigilado; el linaje queda)
+    if noop:
+        r = await _tg("sendMessage", {"chat_id": chat, "text": _resumen_reupload(noop), "parse_mode": "HTML"})
+        if r:
+            for p in noop:
+                await db.vigia_pendientes.update_one(
+                    {"id": p["id"]}, {"$set": {"telegram_sent": True, "estado": "sin_cambios"}})
             enviados += 1
     return enviados
 

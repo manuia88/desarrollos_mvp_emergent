@@ -249,8 +249,8 @@ async def peek_evento(db, conn: Dict[str, Any], fuente_id: str,
             base = {k: v for k, v in base.items()
                     if re.match(r"^[A-Z]*", k).group(0) in prefijos}
 
-    resultado = {"base": base_origen, **diff_unidades(base, actual)} if base else \
-                {"base": None, "totales": {"ahora": len(actual)},
+    resultado = {"base": base_origen, "n_leidas": len(actual), **diff_unidades(base, actual)} if base else \
+                {"base": None, "n_leidas": len(actual), "totales": {"ahora": len(actual)},
                  "nota": f"primera lectura: {len(actual)} unidades con precio — desde el "
                          f"próximo cambio te digo el diff exacto"}
     if forense:
@@ -270,6 +270,18 @@ def _fmt_precio(v) -> str:
         return f"${float(v):,.0f}"
     except (TypeError, ValueError):
         return "$?"
+
+
+def es_cambio_real(cambios: Optional[Dict[str, Any]]) -> bool:
+    """¿El peek trae un cambio de DATOS que amerita decisión del founder? (precio/estado/altas/bajas,
+    o primera lectura de una lista nueva). False = re-subida IDÉNTICA (mismo archivo, mismos datos) →
+    NO amerita tarjeta: el dev volvió a subir el PDF sin cambiar nada. Puro, testeable."""
+    c = cambios or {}
+    if c.get("cambios_precio") or c.get("cambios_status") or c.get("nuevas") or c.get("ya_no_estan"):
+        return True
+    if "primera lectura" in str(c.get("nota") or ""):
+        return True
+    return False
 
 
 def lineas_de_cambios(cambios: Optional[Dict[str, Any]], sangria: str = "   ") -> List[str]:
