@@ -546,7 +546,7 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
                       const td = { padding: '8px 8px', fontSize: 12, color: C.ink2, whiteSpace: 'nowrap' };
                       const mm = (v) => (v ? `${v} m²` : '—');
                       return (
-                        <tr key={u.id || u.unit_number} className="dmx-row" onClick={() => onSelectUnit(u)} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
+                        <tr key={u.id || u.unit_number} className="dmx-row" onClick={() => { onSelectUnit(u); onOpenModel(u); }} style={{ cursor: 'pointer', background: sel ? C.accentSoft : '#fff', borderBottom: `1px solid ${C.line2}` }}>
                           <td style={{ ...td, fontWeight: 700, fontSize: 12.5, color: C.ink }}>{u.unit_number}</td>
                           <td style={td}>{mm(u.m2_privative)}</td>
                           <td style={td}>{mm(u.m2_balcony)}</td>
@@ -1061,7 +1061,7 @@ function TabGeneral({ dev }) {
   const bedR = rng(units.map((u) => u.bedrooms)) || dev.bedrooms_range;
   const bathR = rng(units.map((u) => u.bathrooms)) || dev.bathrooms_range;
   const parkR = rng(units.map((u) => u.parking_spots)) || dev.parking_range;
-  const m2R = rng(units.map(m2of)) || dev.m2_range;
+  const m2R = rng(units.map(m2round)) || dev.m2_range;   // m² a números cerrados (founder: 40.06–72.46 → 40–72)
   // Unidades TOTALES del edificio = el dato del brochure (total_units) MANDA sobre el agregado
   // de unidades cargadas (units_total): un edificio de 48 deptos con 1 disponible mostraba "1".
   const nUnits = dev.total_units || dev.units_total || units.length || null;
@@ -1542,7 +1542,7 @@ export default function FichaVenta() {
   const rangeOf = (arr, suf = '') => { const v = [...new Set(arr.filter((x) => x != null))].sort((a, b) => a - b); return v.length ? (v[0] === v[v.length - 1] ? `${v[0]}${suf}` : `${v[0]}–${v[v.length - 1]}${suf}`) : null; };
   const bedR = rangeOf(units.map((u) => u.bedrooms));
   const bathR = rangeOf(units.map((u) => u.bathrooms));
-  const m2R = rangeOf(units.map(m2of));
+  const m2R = rangeOf(units.map(m2round));   // m² a números cerrados (founder: 40.06–72.46 → 40–72)
 
   return (
     <LightScope>
