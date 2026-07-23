@@ -738,6 +738,54 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
                 <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, padding: '14px 0 6px' }}>Ficha de la unidad</div>
                 {fichaRows.map(([k, v], i) => <DataRow key={i} k={k} v={v} last={i === fichaRows.length - 1} />)}
               </div>
+              {/* Desglose por espacio (del plano CAD oficial) */}
+              {u.desglose && (() => {
+                const D = u.desglose;
+                const rooms = [['Sala / comedor', D.sala_comedor], ['Recámara 1', D.recamara_1], ['Recámara 2', D.recamara_2],
+                  ['Recámara 3', D.recamara_3], ['Baño 1', D.bano_1], ['Baño 2', D.bano_2], ['Clóset de lavado', D.closet_lavado],
+                  ['Pasillo', D.pasillo], ['Muros y ductos', D.muros_ductos], ['Superficie habitable', D.habitable],
+                  ['Terraza', D.terraza], ['Balcón', D.balcon_1], ['Azotea privada', D.azotea], ['Total vendible', D.vendible],
+                ].filter(([, v]) => v != null);
+                return rooms.length ? (
+                  <div className="dmx-card" style={{ ...box, padding: '2px 18px 8px' }}>
+                    <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, padding: '14px 0 6px' }}>Desglose por espacio</div>
+                    {rooms.map(([k, v], i) => <DataRow key={i} k={k} v={`${v} m²`} last={i === rooms.length - 1} />)}
+                  </div>
+                ) : null;
+              })()}
+              {/* Cómo se usan tus metros (hipergranular · del plano CAD) */}
+              {u.metricas && (() => {
+                const M = u.metricas;
+                const items = [
+                  ['Metros vivibles', M.vivible != null ? `${M.vivible} m²` : null, 'donde realmente vives (sin muros ni pasillos)'],
+                  ['Eficiencia del espacio', M.eficiencia_pct != null ? `${M.eficiencia_pct}%` : null, 'del total que pagas es interior vivible'],
+                  ['Precio por m² vivible', M.precio_m2_vivible ? money(M.precio_m2_vivible) : null, M.precio_m2_vendible ? `vs ${money(M.precio_m2_vendible)} por m² anunciado` : ''],
+                  ['Aire libre', M.aire_libre_pct != null ? `${M.aire_libre_pct}%` : null, M.aire_libre_m2 ? `${M.aire_libre_m2} m² de terraza/balcón` : ''],
+                  ['Muros y ductos', M.muros_pct != null ? `${M.muros_pct}%` : null, 'cuánto pagas de pared'],
+                  ['Recámara principal', M.recamara_principal_m2 ? `${M.recamara_principal_m2} m²` : null, M.recamara_principal_tier || ''],
+                ].filter(([, v]) => v != null);
+                return items.length ? (
+                  <div className="dmx-card" style={{ ...box, padding: 16 }}>
+                    <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 3 }}>Cómo se usan tus metros</div>
+                    <div style={{ fontFamily: FONT, fontSize: 11.5, color: C.faint, marginBottom: 10 }}>Del plano oficial. Un dato que nadie más te muestra.</div>
+                    {items.map(([k, v, hint], i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '7px 0', borderBottom: i < items.length - 1 ? `1px solid ${C.line2}` : 'none' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontFamily: FONT, fontSize: 13.5, color: C.ink2 }}>{k}</div>
+                          {hint && <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint }}>{hint}</div>}
+                        </div>
+                        <b style={{ fontFamily: HEAD, fontSize: 15, color: C.ink, whiteSpace: 'nowrap' }}>{v}</b>
+                      </div>
+                    ))}
+                    {M.score_calidad != null && (
+                      <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: R_CARD, background: C.accentSoft, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>Score de producto</span>
+                        <span style={{ fontFamily: HEAD, fontSize: 18, fontWeight: 800, color: C.accent }}>{M.score_calidad}<span style={{ fontSize: 12, color: C.ink2 }}>/100</span></span>
+                      </div>
+                    )}
+                  </div>
+                ) : null;
+              })()}
               {/* Precio */}
               <div className="dmx-card" style={{ ...box, padding: 16 }}>
                 <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 8 }}>Precio</div>

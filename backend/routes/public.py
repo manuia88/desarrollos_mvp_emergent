@@ -2233,6 +2233,19 @@ async def get_development(dev_id: str, request: Request):
     out.update(_aggregates_from_units(out.get("units"), _total_hint))
     # Founder 07-22: las unidades ocultas NO se cuentan en la ficha pública → el total refleja lo mostrado.
     out["total_units"] = len(out.get("units") or [])
+    # HIPERGRANULARIDAD (07-22): métricas por unidad desde el desglose por cuarto del plano CAD
+    # (eficiencia, metros vivibles, $/m² vivible, aire libre, muros%, score) + perfil de producto del dev.
+    try:
+        from granular_engine import metricas_unidad, agregado_dev
+        for _u in out.get("units") or []:
+            _m = metricas_unidad(_u)
+            if _m:
+                _u["metricas"] = _m
+        _perfil = agregado_dev(out.get("units") or [])
+        if _perfil:
+            out["perfil_producto"] = _perfil
+    except Exception:  # noqa: BLE001 — fail-open, nunca rompe la ficha
+        pass
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay
