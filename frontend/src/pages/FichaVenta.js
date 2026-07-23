@@ -697,7 +697,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
         {tab === 'detalles' && (() => {
           const fichaRows = [
             ['Prototipo', uLabel],
-            ['Nivel', u.level != null ? `Piso ${u.level}` : null],
+            ['Nivel', u.level != null ? (Number(u.level) === 0 ? 'Planta Baja' : `Piso ${u.level}`) : null],
             ['M² privativos', u.m2_privative ? `${u.m2_privative} m²` : null],
             ['Balcón', u.m2_balcony ? `${u.m2_balcony} m²` : null],
             ['Terraza', u.m2_terrace ? `${u.m2_terrace} m²` : null],
@@ -764,7 +764,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
           );
         })()}
         {tab === 'precio' && <StandbyPanel icon="🧮" title="Tus números de esta unidad" body="El enganche, las mensualidades durante obra, el crédito, la escrituración (ISAI) y el retorno de inversión de esta unidad están en las pestañas «Planes de pago» e «Inversión» de la ficha (calculadoras en vivo). Un asesor también te los arma al detalle." />}
-        {tab === 'mapa' && <StandbyPanel icon="🗺️" title="Mapa de la unidad" body={`Ubicación de la unidad ${u.unit_number}${u.level != null ? ` (piso ${u.level})` : ''} dentro del plano del edificio. El plano interactivo del nivel llega pronto.`} />}
+        {tab === 'mapa' && <StandbyPanel icon="🗺️" title="Mapa de la unidad" body={`Ubicación de la unidad ${u.unit_number}${u.level != null ? ` (${Number(u.level) === 0 ? 'planta baja' : `piso ${u.level}`})` : ''} dentro del plano del edificio. El plano interactivo del nivel llega pronto.`} />}
         <style>{`@media(max-width:760px){ .dmx-modelo-grid{ grid-template-columns: 1fr !important; } }`}</style>
       </div>
       {expand && plano && (
