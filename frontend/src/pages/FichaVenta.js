@@ -497,7 +497,9 @@ function VentaPrecios({ dev, selectedUnit, onSelectUnit, onAgendar, avm, onOpenM
   // El thumb usa el plano de la PRIMERA unidad del grupo que tenga uno — nunca una foto del desarrollo
   // (una amenidad no es un plano, regla founder 07-16). Sin plano → placeholder.
   const renderModelo = (m, bajoTorre = false) => {
-    const rep = m.us.find((u) => u.status === 'disponible') || m.us[0];
+    // rep DETERMINISTA: la unidad disponible MÁS BARATA (coincide con el "Desde $" mostrado) — antes
+    // era la primera 'disponible' en orden de arreglo → se sentía aleatoria al abrir el modal (founder 07-22).
+    const rep = [...m.us].filter((u) => u.status === 'disponible').sort((a, b) => (a.price || Infinity) - (b.price || Infinity))[0] || m.us[0];
     const uPlano = m.us.find((x) => planoOf(dev, x));
     const plano = uPlano ? planoOf(dev, uPlano) : null;
     // bajo el sub-encabezado "Torre X" el prefijo en el título sobra
