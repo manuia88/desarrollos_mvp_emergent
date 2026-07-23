@@ -284,8 +284,19 @@ def es_cambio_real(cambios: Optional[Dict[str, Any]]) -> bool:
     return False
 
 
-def lineas_de_cambios(cambios: Optional[Dict[str, Any]], sangria: str = "   ") -> List[str]:
-    """El diff → líneas humanas para el parte/tarjeta (puro, testeable)."""
+def forense_humano(cambios: Optional[Dict[str, Any]]) -> str:
+    """Las alertas forenses (tokens crudos, 'caso Jai 25L'…) son para el DEV, no para el founder.
+    Si el peek marcó algo raro en el PDF, esto lo dice en UNA línea humana, sin jerga ni basura."""
+    if (cambios or {}).get("alertas_forenses"):
+        return ("⚠️ La lista venía con el texto encimado o renglones tapados — puede faltar "
+                "algún detalle; la reviso a fondo si me lo pides.")
+    return ""
+
+
+def lineas_de_cambios(cambios: Optional[Dict[str, Any]], sangria: str = "   ",
+                      forense: bool = True) -> List[str]:
+    """El diff → líneas humanas para el parte/tarjeta (puro, testeable).
+    forense=False oculta los tokens crudos de la capa forense (los ve el dev, no el founder)."""
     if not cambios:
         return [f"{sangria}(no pude leer el detalle del archivo — se re-lee al aprobar)"]
     if cambios.get("nota"):
@@ -316,6 +327,7 @@ def lineas_de_cambios(cambios: Optional[Dict[str, Any]], sangria: str = "   ") -
                    f"(cambió el archivo, no los datos)")
     elif cambios.get("base"):
         out.append(f"{sangria}(comparado contra {cambios['base']})")
-    for alerta in cambios.get("alertas_forenses") or []:
-        out.append(f"{sangria}{alerta}")
+    if forense:
+        for alerta in cambios.get("alertas_forenses") or []:
+            out.append(f"{sangria}{alerta}")
     return out

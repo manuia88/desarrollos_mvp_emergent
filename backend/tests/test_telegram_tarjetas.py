@@ -1,5 +1,6 @@
 """Bot de Telegram — las TARJETAS DE DECISIÓN son puras: datos → texto con contexto + botones."""
-from telegram_bot import tarjeta_pendiente
+from telegram_bot import (tarjeta_pendiente, _resumen_auto, _resumen_primeras,
+                          _cambios_humanos, _es_primera, _tiene_nuevas)
 
 
 def test_dev_nuevo_sin_mapeo_pide_identidad_primero():
@@ -102,3 +103,54 @@ def test_proyecto_renombrado_solo_informa():
     assert "renombró" in card["texto"] and "MISMO proyecto" in card["texto"]
     botones = [b["callback_data"] for fila in card["botones"] for b in fila]
     assert "ap:vp9" not in botones       # nada que ingerir: solo 'Enterado'
+
+
+# ─── DIGEST del parte (UX 07-23): lo auto-aplicado y las primeras lecturas NO gritan tarjetas ───
+def test_cambios_humanos_no_confunde_no_disponible_con_disponible():
+    """Bug real: 'dispon' es substring de 'no_disponible'. Un depa que pasó a no_disponible
+    NO debe leerse 'volvió a estar disponible' — debe leerse 'se apartó'."""
+    aparta = _cambios_humanos({"cambios_status": [{"unidad": "101", "antes": "disponible", "ahora": "no_disponible"}]})
+    assert aparta == ["101 se apartó"]
+    vuelve = _cambios_humanos({"cambios_status": [{"unidad": "C-105", "antes": "no_disponible", "ahora": "disponible"}]})
+    assert vuelve == ["C-105 volvió a estar disponible"]
+    vendido = _cambios_humanos({"cambios_status": [{"unidad": "B2", "antes": "disponible", "ahora": "vendido"}]})
+    assert vendido == ["B2 se vendió"]
+
+
+def test_resumen_auto_dice_que_ya_quedo_sin_pedir_nada():
+    auto = [{"proyecto": "Bau", "aplicado": {"precios": 0, "status": 1, "senales_venta": 1},
+             "cambios": {"cambios_status": [{"unidad": "101", "antes": "disponible", "ahora": "no_disponible"}],
+                         "ya_no_estan": ["201"]}}]
+    t = _resumen_auto(auto)
+    assert "Ya lo actualicé solo" in t and "no tienes que hacer nada" in t
+    assert "101 se apartó" in t and "probable" in t
+    assert "gasta API" not in t and "Aprobar" not in t   # NO botón, NO amenaza de costo
+
+
+def test_resumen_primeras_no_es_alarma_de_cambio():
+    primeras = [{"proyecto": "Dessea 1", "cambios": {"nota": "primera lectura: 1 unidades", "n_leidas": 1}},
+                {"proyecto": "Dessea 2", "cambios": {"nota": "primera lectura: 1 unidades", "n_leidas": 1}}]
+    t = _resumen_primeras(primeras)
+    assert "Empecé a vigilar" in t and "CAMBIÓ" not in t
+    assert "poquitos depas" in t          # aviso de PDF flaco, humano
+    assert "Dessea 1" in t and "Dessea 2" in t
+
+
+def test_helpers_de_cubeta():
+    assert _es_primera({"cambios": {"nota": "primera lectura: 3 unidades"}}) is True
+    assert _es_primera({"cambios": {"cambios_precio": [{"unidad": "A1"}]}}) is False
+    assert _tiene_nuevas({"cambios": {"nuevas": ["B2"]}}) is True
+    assert _tiene_nuevas({"cambios": {"nuevas": []}}) is False
+
+
+def test_tarjeta_decision_no_filtra_jerga_forense():
+    """El founder NO debe ver tokens crudos ('caso Jai 25L', 'DD-4E0P6TO') — solo la línea humana."""
+    p = {"id": "vpF", "tipo": "lista_cambiada", "dev": "CLASS", "proyecto": "Panorama",
+         "archivo": {"nombre": "L D.pdf"},
+         "cambios": {"base": "la versión anterior", "nuevas": ["X-9"],
+                     "cambios_precio": [], "cambios_status": [], "ya_no_estan": [],
+                     "totales": {"nuevas": 1},
+                     "alertas_forenses": ["⚠️ texto ENTRELAZADO (['DD-4E0P6TO']) — caso Jai 25L: leer por coordenadas"]}}
+    t = tarjeta_pendiente(p, {"mapeado_a": "Class"})["texto"]
+    assert "Jai 25L" not in t and "DD-4E0P6TO" not in t and "coordenadas" not in t
+    assert "texto encimado" in t          # la versión humana sí

@@ -101,7 +101,7 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             botones = [[{"text": "👤 ¿De quién es? (elegir dev)", "callback_data": f"mapmenu:{pid}"}],
                        [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
     elif tipo in ("lista_cambiada", "lista_nueva"):
-        from lista_peek import lineas_de_cambios, es_cambio_real
+        from lista_peek import lineas_de_cambios, es_cambio_real, forense_humano
         a = p.get("archivo") or {}
         c = p.get("cambios") or {}
         # header HONESTO: "CAMBIÓ" solo si hubo cambio de datos; re-subida idéntica NO se anuncia como cambio.
@@ -116,7 +116,11 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
         ]
         if c:
             lineas += ["", "<b>Qué cambió exactamente:</b>"]
-            lineas += [_esc(x) for x in lineas_de_cambios(c, sangria="")][:10]
+            # forense=False: los tokens crudos ('caso Jai 25L') son del dev, no del founder.
+            lineas += [_esc(x) for x in lineas_de_cambios(c, sangria="", forense=False)][:10]
+        fh = forense_humano(c)   # si el PDF venía raro, UNA línea humana (sin jerga)
+        if fh:
+            lineas.append(fh)
         # AVISO DE PARSEO: primera lectura con muy pocas unidades = probable PDF mal extraído, no realidad.
         if primera and (c.get("n_leidas") or 99) <= 2:
             lineas.append(f"⚠️ Solo leí <b>{c.get('n_leidas')} unidad(es)</b> — parece pocas para una lista de "
@@ -227,39 +231,156 @@ def _resumen_reupload(noop: List[Dict[str, Any]]) -> str:
     return "\n".join(lineas)
 
 
+_MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def _hoy_corto() -> str:
+    try:
+        from zoneinfo import ZoneInfo
+        d = datetime.now(ZoneInfo("America/Mexico_City"))
+    except Exception:  # noqa: BLE001
+        d = datetime.now(timezone.utc)
+    return f"{d.day} {_MESES[d.month - 1]}"
+
+
+def _es_primera(p: Dict[str, Any]) -> bool:
+    return "primera lectura" in str((p.get("cambios") or {}).get("nota") or "")
+
+
+def _tiene_nuevas(p: Dict[str, Any]) -> bool:
+    return bool((p.get("cambios") or {}).get("nuevas"))
+
+
+def _cambios_humanos(c: Dict[str, Any]) -> List[str]:
+    """Diff → frases cortas de español de a pie (sin jerga, sin flechas técnicas)."""
+    out: List[str] = []
+    for x in c.get("cambios_precio") or []:
+        try:
+            pct = (x["ahora"] - x["antes"]) / x["antes"] * 100
+            verbo = "bajó" if pct < 0 else "subió"
+            out.append(f"{_esc(x['unidad'])} {verbo} a ${float(x['ahora']):,.0f} ({pct:+.1f}%)")
+        except (TypeError, ValueError, ZeroDivisionError, KeyError):
+            out.append(f"{_esc(x.get('unidad'))} cambió de precio")
+    for x in c.get("cambios_status") or []:
+        ah = str(x.get("ahora") or "").lower()
+        # OJO: 'dispon' es substring de 'no_disponible' → los casos negativos van PRIMERO.
+        if "vend" in ah or "sold" in ah:
+            out.append(f"{_esc(x['unidad'])} se vendió")
+        elif "no dispon" in ah or "no_dispon" in ah or "apart" in ah or "reserv" in ah or "bloq" in ah:
+            out.append(f"{_esc(x['unidad'])} se apartó")
+        elif "dispon" in ah or "libre" in ah or "avail" in ah:
+            out.append(f"{_esc(x['unidad'])} volvió a estar disponible")
+        else:
+            out.append(f"{_esc(x['unidad'])} cambió de estatus")
+    ynz = c.get("ya_no_estan") or []
+    if ynz:
+        us = ", ".join(_esc(x) for x in ynz[:6])
+        out.append(f"ya no aparece(n) {us} (probable venta)")
+    return out
+
+
+def _resumen_auto(auto: List[Dict[str, Any]]) -> str:
+    """Colapsa lo que el vigía YA aplicó solo (gratis) en un digest humano por proyecto — sin botones,
+    porque no hay nada que decidir. Es la respuesta a '¿se actualizó?': sí, esto ya quedó."""
+    lineas = ["✅ <b>Ya lo actualicé solo</b> (gratis, con respaldo — no tienes que hacer nada):"]
+    tot_p = tot_s = tot_v = 0
+    for p in auto:
+        c = p.get("cambios") or {}
+        frases = _cambios_humanos(c)
+        etq = _esc(p.get("proyecto") or p.get("dev"))
+        ap = p.get("aplicado") or {}
+        tot_p += ap.get("precios") or 0
+        tot_s += ap.get("status") or 0
+        tot_v += ap.get("senales_venta") or 0
+        if frases:
+            lineas.append(f"· <b>{etq}</b>: " + " · ".join(frases[:5]))
+        else:
+            n = (ap.get("precios") or 0) + (ap.get("status") or 0)
+            lineas.append(f"· <b>{etq}</b>: {n} cambio(s) aplicado(s)")
+    resumen = []
+    if tot_s:
+        resumen.append(f"{tot_s} de estatus")
+    if tot_p:
+        resumen.append(f"{tot_p} de precio")
+    total = tot_s + tot_p
+    if total:
+        lineas.append(f"→ <b>{total} cambio(s)</b> ({', '.join(resumen)}) quedaron en el catálogo"
+                      + (f" · {tot_v} probable(s) venta(s) anotada(s)" if tot_v else "") + ".")
+    return "\n".join(lineas)
+
+
+def _resumen_primeras(primeras: List[Dict[str, Any]]) -> str:
+    """Las 'primeras lecturas' NO son cambios — el vigía apenas empezó a vigilar ese archivo.
+    No merecen tarjeta de alarma; van en una línea calmada (con aviso si el PDF salió flaco)."""
+    nombres = list(dict.fromkeys(_esc(p.get("proyecto") or p.get("dev")) for p in primeras))
+    lineas = [f"👀 <b>Empecé a vigilar {len(primeras)} lista(s) nueva(s)</b> — aún sin nada que reportar:",
+              "· " + ", ".join(nombres)]
+    pocas = [p for p in primeras if ((p.get("cambios") or {}).get("n_leidas") or 99) <= 2]
+    if pocas:
+        lineas.append(f"⚠️ {len(pocas)} de esas traían muy poquitos depas leídos — puede que el PDF no se "
+                      f"dejó leer bien. Dime si las reviso a fondo (eso sí usa IA).")
+    return "\n".join(lineas)
+
+
 async def notificar_pendientes(db, limite: int = 5) -> int:
-    """Manda las tarjetas de decisión. UX (07-22): las re-subidas SIN cambio de datos (el dev volvió a subir
-    el mismo PDF) NO gritan una tarjeta cada una — se COLAPSAN en una sola línea callada y se archivan. Solo
-    lo ACCIONABLE (cambio real de precio/estado/altas-bajas o primera lectura) llega como tarjeta con botones."""
+    """Manda el parte del vigía SIN ruido (UX 07-23). Tres cubetas calladas se colapsan en UN solo
+    digest (sin botones, nada que decidir): (a) lo que YA apliqué solo, (b) listas que apenas empecé a
+    vigilar, (c) re-subidas idénticas. Solo lo que DE VERDAD necesita tu OK (unidades nuevas por ingerir,
+    dev/carpeta por mapear, acceso roto) llega como tarjeta con botones."""
     from lista_peek import es_cambio_real
     chat = await _chat_vinculado(db)
     if not chat:
         return 0
     pend = [p async for p in db.vigia_pendientes.find(
-        {"estado": "pendiente", "telegram_sent": {"$ne": True}}, {"_id": 0}).limit(40)]
-    accionables, noop = [], []
+        {"estado": "pendiente", "telegram_sent": {"$ne": True}}, {"_id": 0}).limit(60)]
+    auto, decision, primeras, noop = [], [], [], []
     for p in pend:
-        # no-op = re-subida de lista idéntica que el vigía NO aplicó nada (mismos datos)
-        if p.get("tipo") == "lista_cambiada" and not p.get("aplicado") and not es_cambio_real(p.get("cambios")):
-            noop.append(p)
+        if p.get("tipo") in ("lista_cambiada", "lista_nueva"):
+            c = p.get("cambios") or {}
+            if p.get("aplicado") and not _tiene_nuevas(p):
+                auto.append(p)                      # el vigía ya lo aplicó → digest, sin botones
+            elif _es_primera(p) and not p.get("aplicado"):
+                primeras.append(p)                  # apenas empezó a vigilar → digest
+            elif es_cambio_real(c):
+                decision.append(p)                  # cambio real que SÍ necesita tu OK (ej. unidades nuevas)
+            else:
+                noop.append(p)                      # re-subida idéntica → digest de una línea
         else:
-            accionables.append(p)
+            decision.append(p)                      # dev_nuevo, proyecto_nuevo, acceso_roto…
     enviados = 0
-    # 1) ACCIONABLES → tarjeta individual (cap `limite`)
-    for p in accionables[:limite]:
+
+    # 1) DIGEST callado (auto + primeras + noop) — UN solo mensaje, sin botones
+    quiet = bool(auto or primeras or noop)
+    if quiet:
+        bloques = [f"🤖 <b>Vigía · {_hoy_corto()}</b>"]
+        if auto:
+            bloques.append(_resumen_auto(auto))
+        if primeras:
+            bloques.append(_resumen_primeras(primeras))
+        if noop:
+            bloques.append(_resumen_reupload(noop))
+        bloques.append("👉 <i>Lo que SÍ necesita tu decisión te lo mando abajo.</i>" if decision
+                       else "<i>Nada requiere tu decisión hoy. /detalle para ver el linaje.</i>")
+        r = await _tg("sendMessage", {"chat_id": chat, "text": "\n\n".join(bloques), "parse_mode": "HTML"})
+        if r:
+            enviados += 1
+            for p in auto:
+                await db.vigia_pendientes.update_one(
+                    {"id": p["id"]}, {"$set": {"telegram_sent": True, "estado": "aplicado"}})
+            for p in primeras:
+                await db.vigia_pendientes.update_one(
+                    {"id": p["id"]}, {"$set": {"telegram_sent": True, "estado": "vigilando"}})
+            for p in noop:
+                await db.vigia_pendientes.update_one(
+                    {"id": p["id"]}, {"$set": {"telegram_sent": True, "estado": "sin_cambios"}})
+
+    # 2) DECISIONES → tarjeta individual con botones (cap `limite`; quedan 'pendiente' hasta que actúes)
+    for p in decision[:limite]:
         card = tarjeta_pendiente(p, await _contexto_de(db, p))
         r = await _tg("sendMessage", {"chat_id": chat, "text": card["texto"], "parse_mode": "HTML",
                                       "reply_markup": {"inline_keyboard": card["botones"]}})
         if r:
             await db.vigia_pendientes.update_one({"id": p["id"]}, {"$set": {"telegram_sent": True}})
-            enviados += 1
-    # 2) NO-OPS → UNA sola línea callada + auto-archivar (el archivo sigue vigilado; el linaje queda)
-    if noop:
-        r = await _tg("sendMessage", {"chat_id": chat, "text": _resumen_reupload(noop), "parse_mode": "HTML"})
-        if r:
-            for p in noop:
-                await db.vigia_pendientes.update_one(
-                    {"id": p["id"]}, {"$set": {"telegram_sent": True, "estado": "sin_cambios"}})
             enviados += 1
     return enviados
 
