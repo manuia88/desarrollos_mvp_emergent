@@ -741,8 +741,10 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
               {/* Desglose por espacio (del plano CAD oficial) */}
               {u.desglose && (() => {
                 const D = u.desglose;
-                const rooms = [['Sala / comedor', D.sala_comedor], ['Recámara 1', D.recamara_1], ['Recámara 2', D.recamara_2],
-                  ['Recámara 3', D.recamara_3], ['Baño 1', D.bano_1], ['Baño 2', D.bano_2], ['Clóset de lavado', D.closet_lavado],
+                const rooms = [['Sala / comedor', D.sala_comedor], ['Cocina / área de lavado', D.cocina_lavado],
+                  ['Recámara 1', D.recamara_1], ['Recámara 2', D.recamara_2],
+                  ['Recámara 3', D.recamara_3], ['Baño 1', D.bano_1], ['Baño 2', D.bano_2], ['Medio baño', D.medio_bano],
+                  ['Clóset de lavado', D.closet_lavado], ['Circulaciones', D.circulaciones],
                   ['Pasillo', D.pasillo], ['Muros y ductos', D.muros_ductos], ['Superficie habitable', D.habitable],
                   ['Terraza', D.terraza], ['Balcón', D.balcon_1], ['Azotea privada', D.azotea], ['Total vendible', D.vendible],
                 ].filter(([, v]) => v != null);
