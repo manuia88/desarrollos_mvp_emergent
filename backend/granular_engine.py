@@ -27,19 +27,27 @@ def _s(*vals) -> float:
 def metricas_unidad(u: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Métricas hipergranulares de UNA unidad desde su desglose. None si no hay desglose CAD."""
     d = u.get("desglose") or {}
-    hab = _f(d.get("habitable")) or _f(u.get("m2_privative"))
-    vend = _f(d.get("vendible")) or _f(u.get("m2_total"))
+    # PREFIERE los m² top-level (reconciliados desde el plano, confiables) sobre las llaves del desglose:
+    # distintos agentes/plantillas nombran los cuartos distinto (muros/muros_ductos, pasillo/circulacion…),
+    # así que muros/pasillo/social se leen con SINÓNIMOS y el exterior desde los campos top-level. (07-23)
+    hab = _f(u.get("m2_privative")) or _f(d.get("habitable"))
+    vend = _f(u.get("m2_total")) or _f(d.get("vendible"))
     if not hab or not vend:
         return None
-    muros = _f(d.get("muros_ductos")) or 0.0
-    pasillo = _f(d.get("pasillo")) or 0.0
+    # muros/pasillo: None si el plano NO los desglosa (no 0 — sería engañoso: todo depa TIENE muros).
+    # Las métricas que dependen de muros (vivible, eficiencia, %muros, $/m² vivible) SOLO se reportan
+    # cuando hay dato real; si no, van None y el front no las muestra. (07-23)
+    muros = _f(d.get("muros_ductos")) or _f(d.get("muros"))
+    pasillo = _f(d.get("pasillo")) or _f(d.get("circulacion")) or _f(d.get("circulaciones")) or _f(d.get("vestibulo"))
+    tiene_muros = muros is not None
     recs = [_f(d.get(f"recamara_{i}")) for i in (1, 2, 3)]
-    recs = [r for r in recs if r]
+    recs = [r for r in recs if r] or ([_f(d.get("recamara_principal"))] if _f(d.get("recamara_principal")) else [])
     banos = [_f(d.get(f"bano_{i}")) for i in (1, 2)]
     n_banos = sum(1 for b in banos if b) or (int(u.get("bathrooms")) if u.get("bathrooms") else 0)
-    social = _f(d.get("sala_comedor")) or 0.0
-    outdoor = _s(d.get("terraza"), d.get("balcon_1"), d.get("balcon_2"), d.get("azotea"))
-    vivible = max(0.0, hab - muros - pasillo)     # metros donde REALMENTE vives
+    social = _f(d.get("sala_comedor")) or _f(d.get("estancia_comedor")) or _f(d.get("sala_comedor_cocineta")) or 0.0
+    outdoor = _s(u.get("m2_terrace"), u.get("m2_balcony"), u.get("m2_roof_garden")) or \
+        _s(d.get("terraza"), d.get("balcon_1"), d.get("balcon_2"), d.get("azotea"))
+    vivible = max(0.0, hab - (muros or 0) - (pasillo or 0)) if tiene_muros else None   # solo con dato real de muros
     precio = _f(u.get("price"))
     n_rec = len(recs) or (int(u.get("bedrooms")) if u.get("bedrooms") else 0)
 
@@ -50,11 +58,13 @@ def metricas_unidad(u: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 else "amplia" if rec_ppal < 14 else "master")
 
     m = {
-        "habitable": round(hab, 2), "vendible": round(vend, 2), "vivible": round(vivible, 2),
-        "muros_m2": round(muros, 2), "muros_pct": round(100 * muros / hab, 1) if hab else None,
-        "circulacion_pct": round(100 * pasillo / hab, 1) if hab else None,
-        "metros_muertos_pct": round(100 * (muros + pasillo) / vend, 1) if vend else None,  # pared+pasillo que pagas
-        "eficiencia_pct": round(100 * vivible / vend, 1) if vend else None,                 # IEE: vivible / vendible
+        "habitable": round(hab, 2), "vendible": round(vend, 2),
+        "vivible": round(vivible, 2) if vivible is not None else None,
+        "muros_m2": round(muros, 2) if tiene_muros else None,
+        "muros_pct": round(100 * muros / hab, 1) if tiene_muros and hab else None,
+        "circulacion_pct": round(100 * pasillo / hab, 1) if pasillo is not None and hab else None,
+        "metros_muertos_pct": round(100 * ((muros or 0) + (pasillo or 0)) / vend, 1) if tiene_muros and vend else None,
+        "eficiencia_pct": round(100 * vivible / vend, 1) if vivible is not None and vend else None,
         "aire_libre_m2": round(outdoor, 2), "aire_libre_pct": round(100 * outdoor / vend, 1) if vend else None,
         "recamara_principal_m2": round(rec_ppal, 2) if rec_ppal else None, "recamara_principal_tier": tier,
         "recamaras_m2": [round(r, 2) for r in recs], "n_recamaras": n_rec,

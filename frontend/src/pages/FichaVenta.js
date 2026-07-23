@@ -738,16 +738,26 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
                 <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, padding: '14px 0 6px' }}>Ficha de la unidad</div>
                 {fichaRows.map(([k, v], i) => <DataRow key={i} k={k} v={v} last={i === fichaRows.length - 1} />)}
               </div>
-              {/* Desglose por espacio (del plano CAD oficial) */}
+              {/* Desglose por espacio (del plano CAD oficial) — robusto a cómo cada plantilla nombra los cuartos */}
               {u.desglose && (() => {
                 const D = u.desglose;
-                const rooms = [['Sala / comedor', D.sala_comedor], ['Cocina / área de lavado', D.cocina_lavado],
-                  ['Recámara 1', D.recamara_1], ['Recámara 2', D.recamara_2],
-                  ['Recámara 3', D.recamara_3], ['Baño 1', D.bano_1], ['Baño 2', D.bano_2], ['Medio baño', D.medio_bano],
-                  ['Clóset de lavado', D.closet_lavado], ['Circulaciones', D.circulaciones],
-                  ['Pasillo', D.pasillo], ['Muros y ductos', D.muros_ductos], ['Superficie habitable', D.habitable],
-                  ['Terraza', D.terraza], ['Balcón', D.balcon_1], ['Azotea privada', D.azotea], ['Total vendible', D.vendible],
-                ].filter(([, v]) => v != null);
+                const LBL = { sala_comedor: 'Sala / comedor', estancia_comedor: 'Estancia / comedor', 'sala_comedor_cocineta': 'Sala / comedor / cocineta',
+                  cocina_lavado: 'Cocina / área de lavado', cocineta: 'Cocineta', cocina: 'Cocina',
+                  recamara_1: 'Recámara 1', recamara_2: 'Recámara 2', recamara_3: 'Recámara 3', recamara_principal: 'Recámara principal',
+                  bano_1: 'Baño 1', bano_2: 'Baño 2', bano_3: 'Baño 3', bano_4: 'Baño 4', medio_bano: 'Medio baño', bano_medio: 'Medio baño',
+                  closet_lavado: 'Clóset de lavado', walk_in_closet: 'Walk-in clóset', vestidor: 'Vestidor', vestidor_2: 'Vestidor 2', alacena: 'Alacena', estudio: 'Estudio', sala_tv: 'Sala de TV',
+                  pasillo: 'Pasillo', circulacion: 'Circulaciones', circulaciones: 'Circulaciones', vestibulo: 'Vestíbulo', escalera: 'Escalera',
+                  muros_ductos: 'Muros y ductos', muros: 'Muros y ductos', habitable: 'Superficie habitable',
+                  terraza: 'Terraza', terraza_1: 'Terraza', terraza_2: 'Terraza 2', balcon_1: 'Balcón', balcon: 'Balcón', 'balcón_1': 'Balcón', balcon_2: 'Balcón 2', volado: 'Volado',
+                  azotea: 'Azotea privada', roof_garden: 'Roof garden', bodega: 'Bodega', vendible: 'Total vendible' };
+                const ORDER = ['sala_comedor', 'estancia_comedor', 'sala_comedor_cocineta', 'cocina_lavado', 'cocineta', 'cocina',
+                  'recamara_principal', 'recamara_1', 'recamara_2', 'recamara_3', 'estudio', 'sala_tv',
+                  'bano_1', 'bano_2', 'bano_3', 'bano_4', 'medio_bano', 'bano_medio', 'closet_lavado', 'walk_in_closet', 'vestidor', 'vestidor_2', 'alacena',
+                  'pasillo', 'circulacion', 'circulaciones', 'vestibulo', 'escalera', 'muros_ductos', 'muros', 'habitable',
+                  'terraza', 'terraza_1', 'terraza_2', 'balcon_1', 'balcon', 'balcón_1', 'balcon_2', 'volado', 'azotea', 'roof_garden', 'bodega', 'vendible'];
+                const seen = new Set(); const rooms = [];
+                ORDER.forEach((k) => { if (D[k] != null && typeof D[k] === 'number' && !seen.has(k)) { seen.add(k); rooms.push([LBL[k] || k, D[k]]); } });
+                Object.keys(D).forEach((k) => { if (D[k] != null && typeof D[k] === 'number' && !seen.has(k)) { seen.add(k); rooms.push([LBL[k] || k.replace(/_/g, ' '), D[k]]); } });
                 return rooms.length ? (
                   <div className="dmx-card" style={{ ...box, padding: '2px 18px 8px' }}>
                     <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: C.ink, padding: '14px 0 6px' }}>Desglose por espacio</div>
