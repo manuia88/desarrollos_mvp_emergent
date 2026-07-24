@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import secrets
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -71,6 +72,15 @@ def _esc(s: Any) -> str:
     return str(s or "").replace("<", "‹").replace(">", "›")
 
 
+def _lista_limpia(nombre: Any) -> str:
+    """Nombre de archivo → etiqueta legible de la lista (sin ruido). Conserva lo que distingue
+    (ej. la torre 'Panorama L C'), quita 'VP_Lista_de_Precios', '_SF', '_LP', la extensión y los _."""
+    n = re.sub(r"\.(pdf|xlsx?|xlsm|csv)$", "", str(nombre or ""), flags=re.I)
+    n = n.replace("_", " ")
+    n = re.sub(r"(?i)\bvp\b|lista\s*de\s*precios|\blp\b|\bsf\b", " ", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
 def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
     """Arma la tarjeta con CONTEXTO: qué pasó · datos para decidir · consecuencia de cada botón.
     ctx = {mapeado_a, n_proyectos_dev, n_unidades_dev, eventos_previos, ultima_ingesta}."""
@@ -105,22 +115,31 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
         # español + máx. la pregunta con botones. SIN nombre de archivo, .pdf, fechas, "Historial",
         # "en su Drive", "comparado contra", ni jerga forense — todo eso confundía al founder.
         from lista_peek import es_cambio_real
+        a = p.get("archivo") or {}
         c = p.get("cambios") or {}
         real = tipo == "lista_nueva" or es_cambio_real(c)
         primera = "primera lectura" in str(c.get("nota") or "")
         proy = _esc(p.get("proyecto") or p.get("dev"))
         origen = ctx.get("mapeado_a") or (p.get("dev") if p.get("dev") and p.get("dev") != p.get("proyecto") else None)
+        lista = _lista_limpia(a.get("nombre"))
+        # la etiqueta de lista solo si AGREGA info que el nombre del proyecto no da (ej. torre "Panorama L C")
+        etq = f" «{_esc(lista)}»" if lista and lista.lower() not in str(p.get("proyecto") or "").lower() else ""
         lineas = [f"🏢 <b>{proy}</b>"]
         if origen:
             lineas.append(f"<i>vía {_esc(origen)}</i>")
+        # QUÉ SUBIÓ EL DESARROLLADOR (la acción, en claro — sin nombre de archivo crudo ni fechas)
+        if tipo == "lista_nueva" or primera:
+            lineas += ["", f"📄 Subió una lista de precios nueva{etq} — apenas la empiezo a vigilar."]
+        elif not real:
+            lineas += ["", f"📄 Volvió a subir su lista{etq}, pero con los <b>mismos datos</b> — nada cambió."]
+        else:
+            lineas += ["", f"📄 Actualizó su lista de precios{etq}."]
+        # QUÉ CAMBIÓ (en viñetas, claro)
         frases = _cambios_humanos(c)
         if frases:
-            lineas += ["", "Cambio: " + " · ".join(frases[:6]) + "."]
-        elif primera or tipo == "lista_nueva":
-            lineas += ["", "Nueva lista de precios del desarrollador; apenas la empiezo a vigilar."]
-        else:
-            lineas += ["", "El desarrollador volvió a subir su lista con los mismos datos."]
-
+            lineas.append("<b>Esto cambió:</b>")
+            lineas += [f"· {f}" for f in frases[:8]]
+        # QUÉ HACER
         if p.get("aplicado"):
             lineas += ["", "✅ <b>Ya lo actualicé solo.</b> No tienes que hacer nada."]
             botones = [[{"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"},
@@ -135,7 +154,6 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
                         {"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"}],
                        [{"text": "🔕 No hace falta", "callback_data": f"rj:{pid}"}]]
         else:
-            lineas += ["", "Nada cambió — no hay que hacer nada."]
             botones = [[{"text": "👍 Ok", "callback_data": f"rj:{pid}"}]]
     elif tipo == "proyecto_nuevo":
         lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>."]

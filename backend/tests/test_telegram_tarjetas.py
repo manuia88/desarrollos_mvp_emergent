@@ -82,7 +82,7 @@ def test_lista_cambiada_muestra_el_diff_exacto():
                      "cambios_status": [], "ya_no_estan": [], "nuevas": [],
                      "totales": {"cambios_precio": 1}}}
     t = tarjeta_pendiente(p, {})["texto"]
-    assert "Cambio:" in t
+    assert "Esto cambió" in t
     assert "B 204" in t and "$5,981,600" in t and "-3.4%" in t
 
 
