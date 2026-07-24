@@ -226,49 +226,89 @@ function ParteCard() {
 
 /* ── SEMÁFORO DE SALUD: cada dev revisado solo, 🔴🟡🟢, con drill a QUÉ está mal (07-24) ── */
 function SaludCard() {
+  const [vista, setVista] = useState('dev');       // 'dev' | 'tipo'
   const [data, setData] = useState(null);
+  const [tipos, setTipos] = useState(null);
   const [sel, setSel] = useState(null);
   const [det, setDet] = useState(null);
-  useEffect(() => { fetch(`${API}/api/superadmin/health/catalogo`, { credentials: 'include' }).then(_j).then(setData).catch(() => setData({ resumen: {}, devs: [] })); }, []);
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback(() => {
+    _get('/health/catalogo').then(setData).catch(() => setData({ resumen: {}, devs: [] }));
+    _get('/health/por-tipo').then((r) => setTipos(r.tipos)).catch(() => setTipos([]));
+  }, []);
+  useEffect(() => { cargar(); }, [cargar]);
   const abrir = async (d) => {
     if (sel === d.id) { setSel(null); return; }
     setSel(d.id); setDet(null);
-    try { setDet(await fetch(`${API}/api/superadmin/health/catalogo/${d.id}`, { credentials: 'include' }).then(_j)); }
-    catch (e) { setDet({ hallazgos: [] }); }
+    try { setDet(await _get(`/health/catalogo/${d.id}`)); } catch (e) { setDet({ hallazgos: [] }); }
+  };
+  const silenciar = async (d, h) => {
+    try { await _post('/health/catalogo/silenciar', { development_id: d.id, regla: h.regla, ref: h.unidad || null }); setMsg(`🔇 Silenciado "${h.regla}" en ${d.name}. Corre el auditor para verlo bajar.`); }
+    catch (e) { setMsg(String(e.message)); }
+  };
+  const arreglar = async (d) => {
+    setMsg(`Arreglando lo mecánico de ${d.name}…`);
+    try { const r = await _post(`/health/catalogo/${d.id}/arreglar`); setMsg(`🔧 ${d.name}: ${r.nivel_arreglados} piso(s) + ${r.m2_arreglados} m² arreglados. Re-auditando…`); }
+    catch (e) { setMsg(String(e.message)); }
   };
   if (!data) return null;
   const r = data.resumen || {};
   const problem = (data.devs || []).filter((d) => d.luz !== '🟢');
   const pill = (bg) => ({ padding: '2px 10px', borderRadius: 9999, background: bg, fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13 });
+  const tab = (v, txt) => (
+    <button onClick={() => setVista(v)} style={{ ...mini, padding: '4px 12px', borderRadius: 9999, cursor: 'pointer', fontWeight: vista === v ? 800 : 600,
+      background: vista === v ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)', border: `1px solid ${vista === v ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.1)'}`, color: vista === v ? 'var(--theme)' : 'rgba(240,235,224,0.7)' }}>{txt}</button>
+  );
   return (
     <div style={card}>
       <div style={h3}>🩺 Semáforo de salud del catálogo</div>
-      <p style={p13}>Cada desarrollo, revisado solo (gratis): 🔴 tiene un error que impide publicar · 🟡 alerta a revisar · 🟢 limpio. Toca uno para ver <b>qué</b> tiene.</p>
-      <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
+      <p style={p13}>Cada desarrollo, revisado solo (gratis): 🔴 error que impide publicar · 🟡 alerta · 🟢 limpio.</p>
+      <div style={{ display: 'flex', gap: 10, margin: '10px 0', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={pill('rgba(248,113,113,0.16)')}>🔴 {r.rojo || 0}</span>
         <span style={pill('rgba(210,153,34,0.16)')}>🟡 {r.amarillo || 0}</span>
         <span style={pill('rgba(74,222,128,0.16)')}>🟢 {r.verde || 0}</span>
-        <span style={{ ...mini, alignSelf: 'center' }}>{r.total || 0} desarrollos</span>
+        <span style={{ flex: 1 }} />
+        {tab('dev', 'Por desarrollo')}{tab('tipo', 'Por tipo')}
       </div>
-      <div style={{ maxHeight: 320, overflowY: 'auto', display: 'grid', gap: 3 }}>
-        {problem.length === 0 ? <p style={p13}>Todo en verde 🟢</p> : problem.map((d) => (
-          <div key={d.id}>
-            <div onClick={() => abrir(d)} style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 8, background: sel === d.id ? 'rgba(255,255,255,0.05)' : 'transparent', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>
-              {d.luz} <b>{d.name}</b> <span style={mini}>· {d.dev}</span> · <span style={{ color: d.errores ? '#fca5a5' : '#d29922' }}>{d.errores}E / {d.alertas}A</span> · listo {d.readiness_pct ?? '—'}%
+      {r.bloqueados > 0 && <p style={{ ...p13, color: '#fca5a5' }}>🛑 <b>{r.bloqueados}</b> cambio(s) que el guardián bloqueó esperan tu revisión (te llegaron por Telegram).</p>}
+      {msg && <p style={{ ...p13, color: '#86efac' }}>{msg}</p>}
+      {vista === 'tipo' ? (
+        <div style={{ maxHeight: 340, overflowY: 'auto', display: 'grid', gap: 4 }}>
+          <p style={mini}>Mismo problema agrupado — arregla una CLASE de un jalón, no dev por dev.</p>
+          {(tipos || []).map((t, i) => (
+            <div key={i} style={{ padding: '6px 8px', borderRadius: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>
+              {t.peor === 'error' ? '🔴' : t.peor === 'alerta' ? '🟡' : '·'} <b>{t.label}</b> {t.arreglable && <span style={{ color: '#86efac' }}>🔧 arreglable</span>}
+              <div style={mini}>{t.n} hallazgo(s) en {t.n_devs} desarrollo(s){t.devs && t.devs.length ? ` · ${t.devs.slice(0, 5).join(', ')}${t.n_devs > 5 ? '…' : ''}` : ''}</div>
             </div>
-            {sel === d.id && (
-              <div style={{ padding: '4px 8px 8px 22px', display: 'grid', gap: 3 }}>
-                {!det ? <span style={mini}>Cargando…</span> : (det.hallazgos || []).length === 0 ? <span style={mini}>Sin detalle guardado.</span> :
-                  det.hallazgos.slice(0, 15).map((x, i) => (
-                    <div key={i} style={{ ...mini, color: x.severidad === 'error' ? '#fca5a5' : x.severidad === 'alerta' ? '#e8c37a' : 'rgba(240,235,224,0.5)' }}>
-                      {x.severidad === 'error' ? '🔴' : x.severidad === 'alerta' ? '🟡' : '·'} <b>{x.unidad || ''}</b> {x.mensaje}
-                    </div>
-                  ))}
+          ))}
+        </div>
+      ) : (
+        <div style={{ maxHeight: 340, overflowY: 'auto', display: 'grid', gap: 3 }}>
+          {problem.length === 0 ? <p style={p13}>Todo en verde 🟢</p> : problem.map((d) => (
+            <div key={d.id}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div onClick={() => abrir(d)} style={{ flex: 1, cursor: 'pointer', padding: '6px 8px', borderRadius: 8, background: sel === d.id ? 'rgba(255,255,255,0.05)' : 'transparent', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>
+                  {d.luz} <b>{d.name}</b> <span style={mini}>· {d.dev}</span> · <span style={{ color: d.errores ? '#fca5a5' : '#d29922' }}>{d.errores}E / {d.alertas}A</span> · listo {d.readiness_pct ?? '—'}%
+                </div>
+                <button style={{ ...mini, cursor: 'pointer', padding: '3px 8px', borderRadius: 8, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.4)', color: '#86efac' }} onClick={() => arreglar(d)}>🔧 Arreglar</button>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+              {sel === d.id && (
+                <div style={{ padding: '4px 8px 8px 22px', display: 'grid', gap: 3 }}>
+                  {!det ? <span style={mini}>Cargando…</span> : (det.hallazgos || []).length === 0 ? <span style={mini}>Sin detalle guardado.</span> :
+                    det.hallazgos.slice(0, 15).map((x, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                        <div style={{ ...mini, flex: 1, color: x.severidad === 'error' ? '#fca5a5' : x.severidad === 'alerta' ? '#e8c37a' : 'rgba(240,235,224,0.5)' }}>
+                          {x.severidad === 'error' ? '🔴' : x.severidad === 'alerta' ? '🟡' : '·'} <b>{x.unidad || ''}</b> {x.mensaje}
+                        </div>
+                        <button title="Esto está bien, no lo marques" style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'rgba(240,235,224,0.4)', fontSize: 12 }} onClick={() => silenciar(d, x)}>🔇</button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

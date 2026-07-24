@@ -657,6 +657,11 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
     devs = await db.developments.find(q, {"_id": 0}).to_list(500)
     todos: List[Dict[str, Any]] = []
     ts = datetime.now(timezone.utc).isoformat()
+    # SILENCIOS (07-24): el founder marcó "esto está bien" → el juez APRENDE y deja de gritarlo.
+    # Clave: (development_id, regla, ref) — ref="*" silencia toda la regla en ese dev.
+    silencios: Dict[str, set] = {}
+    async for s in db.auditoria_silencios.find({}, {"_id": 0}):
+        silencios.setdefault(s.get("development_id"), set()).add((s.get("regla"), s.get("ref") or "*"))
     for d in devs:
         units = await unidades_efectivas(db, {"development_id": d["id"]})
         if not units:
@@ -690,6 +695,11 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
             except Exception as _e:  # noqa: BLE001 — un juez roto no tira la auditoría
                 import logging
                 logging.getLogger("dmx.auditor").warning(f"{_juez_mod}: {_e}")
+        # aplicar SILENCIOS del founder (esto está bien → no marcarlo) antes de contar/guardar
+        _sil = silencios.get(d["id"])
+        if _sil:
+            hs = [h for h in hs if (h.get("regla"), h.get("ref")) not in _sil
+                  and (h.get("regla"), "*") not in _sil]
         todos.extend(hs)
         # CACHE de readiness (la barra del Inventario lee esto, gratis)
         try:

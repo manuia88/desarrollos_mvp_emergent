@@ -21,6 +21,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
+from pydantic import BaseModel
 
 from cron_heartbeat import (
     SCHEDULE_LABELS,
@@ -492,9 +493,13 @@ async def catalogo_salud(request: Request):
         })
     orden = {"🔴": 0, "🟡": 1, "🟢": 2}
     out.sort(key=lambda x: (orden.get(x["luz"], 3), -x["errores"], -x["alertas"]))
+    # S4: los cambios que el GUARDIÁN bloqueó (diff absurdo) esperan tu ojo — un solo lugar
+    bloqueados = await db.vigia_pendientes.count_documents(
+        {"estado": "pendiente", "aplicado.bloqueado": True})
     resumen = {"rojo": sum(x["luz"] == "🔴" for x in out),
                "amarillo": sum(x["luz"] == "🟡" for x in out),
-               "verde": sum(x["luz"] == "🟢" for x in out), "total": len(out)}
+               "verde": sum(x["luz"] == "🟢" for x in out), "total": len(out),
+               "bloqueados": bloqueados}
     return {"resumen": resumen, "devs": out}
 
 
@@ -516,3 +521,106 @@ async def catalogo_salud_dev(dev_id: str, request: Request):
     items = [{"severidad": h.get("severidad"), "regla": h.get("regla"),
               "unidad": h.get("ref"), "mensaje": h.get("detalle")} for h in hs[:80]]
     return {"development_id": dev_id, "n": len(hs), "auditado_at": ts, "hallazgos": items}
+
+
+# ─── S1-S3 (07-24): silenciar falsos positivos · ver por TIPO · arreglar lo mecánico ──────────
+_REGLA_LABEL = {
+    "campos_obligatorios": "Faltan campos básicos (rec/baños/m²) para publicar",
+    "molde_asignado": "Unidad sin molde/prototipo asignado", "molde_programa": "Molde sin programa de obra",
+    "molde_planos": "Molde sin plano", "m2_coherencia": "Los m² no cuadran (priv+ext ≠ total)",
+    "dev_basicos": "Faltan datos básicos del desarrollo", "censo_fuente": "El catálogo no cuadra con la lista fuente",
+    "huella_duplicada": "Posible unidad duplicada", "molde_sin_rec": "Molde sin recámaras en el dato",
+    "cobertura_planos": "Faltan planos por cubrir", "nivel_vs_numero": "El piso no cuadra con el número de depto",
+    "piso_vs_plano": "El piso no cuadra con el plano", "cotejo_fresco": "El cotejo está viejo",
+    "general_coherente": "Datos generales incoherentes", "plano_vs_lista": "El plano no cuadra con la lista",
+    "conteo_consistente": "El conteo de unidades no es consistente", "flex_pendiente": "Molde flexible pendiente",
+    "nombre_vs_colonia": "Nombre vs colonia no cuadra", "assets_en_disco": "Falta un archivo en disco",
+    "bitacora_cubre": "La bitácora no cubre todas las unidades", "molde_estado": "Estado del molde inconsistente",
+    "robot_vivo": "El robot vigía está dormido", "unidades_duplicadas": "Unidades duplicadas",
+    "folleto_vs_lista": "El folleto no cuadra con la lista", "alias_invisible": "Alias/nombre invisible",
+    "precio_rango": "Precio fuera de rango", "estatus_valido": "Estatus inválido",
+    "plausibilidad": "Valor imposible (extracción rota)", "ppm2_outlier": "Precio por m² atípico",
+    "dinero_coherencia": "Esquema de pago incoherente", "total_edificio": "El total del edificio no cuadra",
+}
+
+
+class SilencioIn(BaseModel):
+    development_id: str
+    regla: str
+    ref: Optional[str] = None       # unidad específica; None/"*" = toda la regla en ese dev
+    motivo: Optional[str] = None
+
+
+@router.post(PREFIX + "/catalogo/silenciar")
+async def silenciar_hallazgo(body: SilencioIn, request: Request):
+    """S1: el founder marca 'esto está bien' → el juez APRENDE y deja de marcarlo (por dev/regla/unidad)."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    await db.auditoria_silencios.update_one(
+        {"development_id": body.development_id, "regla": body.regla, "ref": body.ref or "*"},
+        {"$set": {"development_id": body.development_id, "regla": body.regla, "ref": body.ref or "*",
+                  "motivo": body.motivo, "por": getattr(user, "email", None), "ts": _now().isoformat()}},
+        upsert=True)
+    return {"ok": True, "silenciado": {"dev": body.development_id, "regla": body.regla, "ref": body.ref or "*"}}
+
+
+@router.get(PREFIX + "/por-tipo")
+async def catalogo_por_tipo(request: Request):
+    """S2: los hallazgos agrupados por TIPO de problema (no por dev) — arreglas una CLASE de un jalón.
+    Agrega en Mongo ($unwind+$group) para que sea rápido aun con decenas de miles de hallazgos."""
+    await _require_superadmin(request)
+    db = _db(request)
+    pipeline = [
+        {"$unwind": "$hallazgos"},
+        {"$group": {"_id": "$hallazgos.regla", "n": {"$sum": 1},
+                    "devs": {"$addToSet": "$name"}, "sevs": {"$addToSet": "$hallazgos.severidad"}}},
+    ]
+    out = []
+    async for g in db.auditoria_hallazgos.aggregate(pipeline):
+        k = g["_id"] or "?"
+        sevs = set(g.get("sevs") or [])
+        peor = "error" if "error" in sevs else ("alerta" if "alerta" in sevs else "aviso")
+        devs = [d for d in (g.get("devs") or []) if d]
+        out.append({"regla": k, "label": _REGLA_LABEL.get(k, k), "n": g["n"],
+                    "n_devs": len(devs), "devs": sorted(devs)[:20], "peor": peor,
+                    "arreglable": k in ("nivel_vs_numero",)})
+    orden = {"error": 0, "alerta": 1, "aviso": 2}
+    out.sort(key=lambda x: (orden.get(x["peor"], 3), -x["n"]))
+    return {"tipos": out}
+
+
+@router.post(PREFIX + "/catalogo/{dev_id}/arreglar")
+async def arreglar_mecanicos(dev_id: str, request: Request):
+    """S3: arregla los hallazgos MECÁNICOS y seguros (nivel derivable del número; m² con hueco chico de
+    redondeo). NO toca lo que necesita la fuente (campos faltantes). Re-audita el dev al terminar."""
+    await _require_superadmin(request)
+    db = _db(request)
+    import re
+    fix_nivel = fix_m2 = 0
+    async for u in db.units.find({"development_id": dev_id}, {"_id": 0}):
+        set_: Dict[str, Any] = {}
+        num = str(u.get("unit_number") or "").replace(" ", "").replace("-", "")
+        m = re.search(r"(\d{3,4})$", num)
+        if m:
+            piso = int(m.group(1)[:-2]) if len(m.group(1)) >= 3 else None
+            if piso is not None and u.get("level") != piso:
+                set_["level"] = piso; fix_nivel += 1
+        p, tot = u.get("m2_privative"), u.get("m2_total")
+        if p and tot:
+            b = u.get("m2_balcony") or 0; t = u.get("m2_terrace") or 0; rg = u.get("m2_roof_garden") or 0
+            gap = round(tot - (p + b + t + rg), 2)
+            if 0.5 < abs(gap) <= 3:          # solo hueco chico = redondeo/indiviso (no un error grande)
+                set_.update({"m2_terrace": round(t + gap, 2)} if gap > 0 else {"m2_total": round(p + b + t + rg, 2)})
+                fix_m2 += 1
+        if set_:
+            await db.units.update_one({"id": u["id"]}, {"$set": set_})
+
+    async def _reaudit():
+        try:
+            from auditor_catalogo import auditar
+            await auditar(db, dev_id)     # re-audita → el semáforo se actualiza en unos segundos
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[salud] reaudit {dev_id}: {e}")
+    import asyncio
+    asyncio.create_task(_reaudit())        # en segundo plano: la respuesta vuelve ya
+    return {"ok": True, "nivel_arreglados": fix_nivel, "m2_arreglados": fix_m2, "reauditando": True}

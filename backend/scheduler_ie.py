@@ -458,6 +458,17 @@ def start_scheduler(db):
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # AUDITOR DEL CATÁLOGO — diario 04:00 MX (07-24): refresca salud_dato + hallazgos por dev para que
+    # el SEMÁFORO no se pudra (antes solo corría tras ingesta o a mano → salud vieja).
+    async def _run_auditoria(db):
+        from auditor_catalogo import auditar
+        return await auditar(db)
+    _scheduler.add_job(
+        wrap_apscheduler_job(_run_auditoria, "auditor_catalogo_daily"),
+        CronTrigger(hour=4, minute=0, timezone=TZ),
+        args=[db], id="auditor_catalogo_daily", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     # Moat feeders (agua/crimen/sísmico) — refresco SEMANAL desde CKAN, dom 01:30 MX (antes del
     # recompute 02:00 para que vea dato fresco). Antes: solo manual → dato stale.
     _scheduler.add_job(
