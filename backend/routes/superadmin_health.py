@@ -461,3 +461,58 @@ def schedule_health_critical_check(scheduler, db) -> None:
         )
     except Exception as e:
         log.warning(f"[health-critical] schedule failed: {e}")
+
+
+# ─── SEMÁFORO DE SALUD DEL CATÁLOGO (07-24) ──────────────────────────────────
+# Muestra lo que el auditor YA calcula y guarda (salud_dato por dev) como 🔴/🟡/🟢, rojo primero,
+# y con drill al detalle (qué está mal, en lenguaje humano). No re-calcula la lista: lee salud_dato.
+def _luz(sd: Dict[str, Any]) -> str:
+    sd = sd or {}
+    return "🔴" if (sd.get("error") or 0) else ("🟡" if (sd.get("alerta") or 0) else "🟢")
+
+
+@router.get(PREFIX + "/catalogo")
+async def catalogo_salud(request: Request):
+    """Semáforo por desarrollo: 🔴 error · 🟡 alerta · 🟢 limpio (rojo primero)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    orgs = {o["tenant_id"]: o.get("name") for o in
+            await db.dev_orgs.find({}, {"_id": 0, "tenant_id": 1, "name": 1}).to_list(500)}
+    out: List[Dict[str, Any]] = []
+    async for d in db.developments.find(
+            {}, {"_id": 0, "id": 1, "name": 1, "developer_id": 1, "salud_dato": 1,
+                 "readiness_pct": 1, "auditado_at": 1}):
+        sd = d.get("salud_dato") or {}
+        out.append({
+            "id": d["id"], "name": d.get("name"),
+            "dev": orgs.get(d.get("developer_id")) or d.get("developer_id"),
+            "luz": _luz(sd), "errores": sd.get("error") or 0,
+            "alertas": sd.get("alerta") or 0, "avisos": sd.get("aviso") or 0,
+            "readiness_pct": d.get("readiness_pct"), "auditado_at": d.get("auditado_at"),
+        })
+    orden = {"🔴": 0, "🟡": 1, "🟢": 2}
+    out.sort(key=lambda x: (orden.get(x["luz"], 3), -x["errores"], -x["alertas"]))
+    resumen = {"rojo": sum(x["luz"] == "🔴" for x in out),
+               "amarillo": sum(x["luz"] == "🟡" for x in out),
+               "verde": sum(x["luz"] == "🟢" for x in out), "total": len(out)}
+    return {"resumen": resumen, "devs": out}
+
+
+@router.get(PREFIX + "/catalogo/{dev_id}")
+async def catalogo_salud_dev(dev_id: str, request: Request):
+    """Los hallazgos REALES de un desarrollo (qué está mal, en lenguaje humano). Lee lo persistido por
+    el auditor (rápido); si aún no hay, re-audita ese dev solo (fallback)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    doc = await db.auditoria_hallazgos.find_one({"development_id": dev_id}, {"_id": 0})
+    if doc:
+        hs, ts = doc.get("hallazgos") or [], doc.get("ts")
+    else:
+        from auditor_catalogo import auditar
+        r = await auditar(db, dev_id)
+        hs, ts = r.get("hallazgos") or [], r.get("ts")
+    orden = {"error": 0, "alerta": 1, "aviso": 2}
+    hs.sort(key=lambda h: orden.get(str(h.get("severidad")), 3))
+    items = [{"severidad": h.get("severidad"), "regla": h.get("regla"),
+              "unidad": h.get("ref"), "mensaje": h.get("detalle")} for h in hs[:80]]
+    return {"development_id": dev_id, "n": len(hs), "auditado_at": ts, "hallazgos": items}

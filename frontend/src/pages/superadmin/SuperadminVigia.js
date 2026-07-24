@@ -224,6 +224,55 @@ function ParteCard() {
   );
 }
 
+/* ── SEMÁFORO DE SALUD: cada dev revisado solo, 🔴🟡🟢, con drill a QUÉ está mal (07-24) ── */
+function SaludCard() {
+  const [data, setData] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [det, setDet] = useState(null);
+  useEffect(() => { fetch(`${API}/api/superadmin/health/catalogo`, { credentials: 'include' }).then(_j).then(setData).catch(() => setData({ resumen: {}, devs: [] })); }, []);
+  const abrir = async (d) => {
+    if (sel === d.id) { setSel(null); return; }
+    setSel(d.id); setDet(null);
+    try { setDet(await fetch(`${API}/api/superadmin/health/catalogo/${d.id}`, { credentials: 'include' }).then(_j)); }
+    catch (e) { setDet({ hallazgos: [] }); }
+  };
+  if (!data) return null;
+  const r = data.resumen || {};
+  const problem = (data.devs || []).filter((d) => d.luz !== '🟢');
+  const pill = (bg) => ({ padding: '2px 10px', borderRadius: 9999, background: bg, fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13 });
+  return (
+    <div style={card}>
+      <div style={h3}>🩺 Semáforo de salud del catálogo</div>
+      <p style={p13}>Cada desarrollo, revisado solo (gratis): 🔴 tiene un error que impide publicar · 🟡 alerta a revisar · 🟢 limpio. Toca uno para ver <b>qué</b> tiene.</p>
+      <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
+        <span style={pill('rgba(248,113,113,0.16)')}>🔴 {r.rojo || 0}</span>
+        <span style={pill('rgba(210,153,34,0.16)')}>🟡 {r.amarillo || 0}</span>
+        <span style={pill('rgba(74,222,128,0.16)')}>🟢 {r.verde || 0}</span>
+        <span style={{ ...mini, alignSelf: 'center' }}>{r.total || 0} desarrollos</span>
+      </div>
+      <div style={{ maxHeight: 320, overflowY: 'auto', display: 'grid', gap: 3 }}>
+        {problem.length === 0 ? <p style={p13}>Todo en verde 🟢</p> : problem.map((d) => (
+          <div key={d.id}>
+            <div onClick={() => abrir(d)} style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 8, background: sel === d.id ? 'rgba(255,255,255,0.05)' : 'transparent', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>
+              {d.luz} <b>{d.name}</b> <span style={mini}>· {d.dev}</span> · <span style={{ color: d.errores ? '#fca5a5' : '#d29922' }}>{d.errores}E / {d.alertas}A</span> · listo {d.readiness_pct ?? '—'}%
+            </div>
+            {sel === d.id && (
+              <div style={{ padding: '4px 8px 8px 22px', display: 'grid', gap: 3 }}>
+                {!det ? <span style={mini}>Cargando…</span> : (det.hallazgos || []).length === 0 ? <span style={mini}>Sin detalle guardado.</span> :
+                  det.hallazgos.slice(0, 15).map((x, i) => (
+                    <div key={i} style={{ ...mini, color: x.severidad === 'error' ? '#fca5a5' : x.severidad === 'alerta' ? '#e8c37a' : 'rgba(240,235,224,0.5)' }}>
+                      {x.severidad === 'error' ? '🔴' : x.severidad === 'alerta' ? '🟡' : '·'} <b>{x.unidad || ''}</b> {x.mensaje}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Telegram: tarjetas de decisión en el celular ── */
 function TelegramCard() {
   const [tg, setTg] = useState(null);
@@ -308,6 +357,7 @@ export function VigiaTab() {
         )}
       </div>
 
+      <SaludCard />
       <TelegramCard />
         <FabricaCard />
         <AutopilotoCard />

@@ -702,6 +702,14 @@ async def auditar(db, development_id: Optional[str] = None) -> Dict[str, Any]:
                           "auditado_at": ts}})
         except Exception:  # noqa: BLE001
             pass
+        # PERSISTIR los hallazgos por dev (07-24) → el semáforo hace drill sin re-auditar (rápido)
+        try:
+            await db.auditoria_hallazgos.replace_one(
+                {"development_id": d["id"]},
+                {"development_id": d["id"], "name": d.get("name"), "ts": ts, "hallazgos": hs},
+                upsert=True)
+        except Exception:  # noqa: BLE001
+            pass
     # nivel CATÁLOGO: ¿el robot está vivo?
     fuente = await db.vigia_fuentes.find_one({"activa": True}, {"_id": 0})
     if fuente and fuente.get("last_ronda_at"):
