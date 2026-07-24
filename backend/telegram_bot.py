@@ -101,59 +101,42 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             botones = [[{"text": "👤 ¿De quién es? (elegir dev)", "callback_data": f"mapmenu:{pid}"}],
                        [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
     elif tipo in ("lista_cambiada", "lista_nueva"):
-        from lista_peek import lineas_de_cambios, es_cambio_real, forense_humano
-        a = p.get("archivo") or {}
+        # TARJETA "SIMPLE CON CONTEXTO" (founder 07-24): proyecto + de quién viene + el cambio en
+        # español + máx. la pregunta con botones. SIN nombre de archivo, .pdf, fechas, "Historial",
+        # "en su Drive", "comparado contra", ni jerga forense — todo eso confundía al founder.
+        from lista_peek import es_cambio_real
         c = p.get("cambios") or {}
-        # header HONESTO: "CAMBIÓ" solo si hubo cambio de datos; re-subida idéntica NO se anuncia como cambio.
         real = tipo == "lista_nueva" or es_cambio_real(c)
         primera = "primera lectura" in str(c.get("nota") or "")
-        accion = ("subió una lista NUEVA:" if tipo == "lista_nueva"
-                  else "CAMBIÓ la lista" if real else "re-subió (mismos datos) la lista")
-        lineas = [
-            f"📄 <b>{dev} · {_esc(p.get('proyecto'))}</b>",
-            f"El DESARROLLADOR {accion} <b>{_esc(a.get('nombre'))}</b> en su Drive"
-            + (f" ({_esc(a.get('modificado'))[:16]})" if a.get("modificado") else "") + ".",
-        ]
-        if c:
-            lineas += ["", "<b>Qué cambió exactamente:</b>"]
-            # forense=False: los tokens crudos ('caso Jai 25L') son del dev, no del founder.
-            lineas += [_esc(x) for x in lineas_de_cambios(c, sangria="", forense=False)][:10]
-        fh = forense_humano(c)   # si el PDF venía raro, UNA línea humana (sin jerga)
-        if fh:
-            lineas.append(fh)
-        # AVISO DE PARSEO: primera lectura con muy pocas unidades = probable PDF mal extraído, no realidad.
-        if primera and (c.get("n_leidas") or 99) <= 2:
-            lineas.append(f"⚠️ Solo leí <b>{c.get('n_leidas')} unidad(es)</b> — parece pocas para una lista de "
-                          f"preventa; puede ser un problema al extraer el PDF. Vale revisar el archivo.")
-        if p.get("aplicado"):
-            ap = p["aplicado"]
-            lineas.append(f"✅ <b>Ya lo apliqué</b>: {ap.get('precios', 0)} precio(s) y "
-                          f"{ap.get('status', 0)} estado(s) actualizados con auditoría"
-                          + (f" · {ap.get('senales_venta')} probable(s) venta(s) anotadas"
-                             if ap.get("senales_venta") else "") +
-                          ". No tienes que hacer nada.")
-        if ctx.get("n_unidades_proyecto"):
-            lineas.append(f"Estado del proyecto: {ctx['n_unidades_proyecto']} unidades en el catálogo.")
-        if ctx.get("ultima_ingesta"):
-            lineas.append(f"Última ingesta de este dev: {_esc(ctx['ultima_ingesta'])[:10]}.")
-        if ctx.get("eventos_previos"):
-            lineas.append(f"Historial: {ctx['eventos_previos']} eventos previos de este archivo (linaje con /detalle).")
-        if real:
-            lineas += ["",
-                       "▸ <b>Aprobar</b>: re-leo SOLO este proyecto con IA (gasta API) y los cambios por unidad quedan en la bitácora.",
-                       "▸ <b>Detalle</b>: el linaje, sin gastar nada.",
-                       "▸ <b>Ignorar</b>: lo archivo (sigue vigilado)."]
-            botones = [[{"text": "✅ Aprobar e ingerir", "callback_data": f"ap:{pid}"},
-                        {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
-                       [{"text": "❌ Ignorar", "callback_data": f"rj:{pid}"}]]
-            if not ctx.get("mapeado_a"):
-                lineas.append("⚠️ Este dev no está mapeado — aprobar te pedirá el mapeo primero.")
-                botones.insert(0, [{"text": "👤 Mapear dev primero", "callback_data": f"mapmenu:{pid}"}])
+        proy = _esc(p.get("proyecto") or p.get("dev"))
+        origen = ctx.get("mapeado_a") or (p.get("dev") if p.get("dev") and p.get("dev") != p.get("proyecto") else None)
+        lineas = [f"🏢 <b>{proy}</b>"]
+        if origen:
+            lineas.append(f"<i>vía {_esc(origen)}</i>")
+        frases = _cambios_humanos(c)
+        if frases:
+            lineas += ["", "Cambio: " + " · ".join(frases[:6]) + "."]
+        elif primera or tipo == "lista_nueva":
+            lineas += ["", "Nueva lista de precios del desarrollador; apenas la empiezo a vigilar."]
         else:
-            # re-subida idéntica: NO se ofrece 'Aprobar' (nada que re-leer, no gasta API que no tienes).
-            lineas += ["", "<i>Mismos datos que antes — nada que aprobar. El archivo sigue vigilado.</i>"]
-            botones = [[{"text": "🔍 Detalle (linaje)", "callback_data": f"det:{pid}"},
-                        {"text": "❌ Archivar", "callback_data": f"rj:{pid}"}]]
+            lineas += ["", "El desarrollador volvió a subir su lista con los mismos datos."]
+
+        if p.get("aplicado"):
+            lineas += ["", "✅ <b>Ya lo actualicé solo.</b> No tienes que hacer nada."]
+            botones = [[{"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"},
+                        {"text": "👍 Ok", "callback_data": f"rj:{pid}"}]]
+        elif real and not ctx.get("mapeado_a"):
+            lineas += ["", "Este dev todavía no está ligado a un desarrollo tuyo — dime de quién es:"]
+            botones = [[{"text": "👤 Ligar a un dev", "callback_data": f"mapmenu:{pid}"}],
+                       [{"text": "🔕 Después", "callback_data": f"rj:{pid}"}]]
+        elif real:
+            lineas += ["", "¿Reviso a fondo con IA? (cuesta)"]
+            botones = [[{"text": "✅ Sí, revísalo", "callback_data": f"ap:{pid}"},
+                        {"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"}],
+                       [{"text": "🔕 No hace falta", "callback_data": f"rj:{pid}"}]]
+        else:
+            lineas += ["", "Nada cambió — no hay que hacer nada."]
+            botones = [[{"text": "👍 Ok", "callback_data": f"rj:{pid}"}]]
     elif tipo == "proyecto_nuevo":
         lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>."]
         if p.get("ya_en_catalogo"):
@@ -276,6 +259,10 @@ def _cambios_humanos(c: Dict[str, Any]) -> List[str]:
     if ynz:
         us = ", ".join(_esc(x) for x in ynz[:6])
         out.append(f"ya no aparece(n) {us} (probable venta)")
+    nv = c.get("nuevas") or []
+    if nv:
+        us = ", ".join(_esc(x) for x in nv[:6])
+        out.append(f"deptos nuevos en la lista: {us}")
     return out
 
 

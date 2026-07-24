@@ -34,13 +34,13 @@ def test_lista_cambiada_trae_contexto_para_decidir():
            "eventos_previos": 3, "ultima_ingesta": "2026-07-01T10:00:00Z"}
     card = tarjeta_pendiente(p, ctx)
     t = card["texto"]
-    assert "PRECIOS JULIO.xlsx" in t and "CAMBIÓ" in t
-    assert "24 unidades" in t                      # estado actual del proyecto
-    assert "2026-07-01" in t                       # última ingesta
-    assert "SOLO este proyecto" in t               # alcance de aprobar
-    assert "bitácora" in t                         # consecuencia
+    assert "Almina" in t and "Class Bienes Raíces" in t       # proyecto + de quién viene
+    assert "A 101" in t and "$4,800,000" in t and "-4.0%" in t  # el cambio, en español
+    assert "IA" in t                               # la pregunta: ¿reviso con IA?
+    # SIN ruido (07-24): nombre de archivo, fechas, "Historial", jerga
+    assert "PRECIOS JULIO.xlsx" not in t and "2026-07" not in t and "bitácora" not in t
     botones = [b["callback_data"] for fila in card["botones"] for b in fila]
-    assert "det:vp3" in botones and "ap:vp3" in botones   # detalle + aprobar (es cambio real)
+    assert "det:vp3" in botones and "ap:vp3" in botones
 
 
 def test_lista_resubida_sin_cambios_es_honesta_y_no_ofrece_aprobar():
@@ -52,18 +52,18 @@ def test_lista_resubida_sin_cambios_es_honesta_y_no_ofrece_aprobar():
                      "ya_no_estan": [], "nuevas": [], "totales": {}}}
     card = tarjeta_pendiente(p, {"mapeado_a": "Class Bienes Raíces"})
     t = card["texto"]
-    assert "re-subió (mismos datos)" in t and "CAMBIÓ" not in t
-    assert "nada que aprobar" in t.lower()
+    assert "mismos datos" in t and "CAMBIÓ" not in t
+    assert "nada cambió" in t.lower()
     botones = [b["callback_data"] for fila in card["botones"] for b in fila]
     assert "ap:vp3b" not in botones                 # NO Aprobar: no gasta API que el founder no tiene
-    assert "det:vp3b" in botones and "rj:vp3b" in botones
+    assert "rj:vp3b" in botones
 
 
 def test_lista_sin_mapeo_avisa_y_ofrece_mapear():
     p = {"id": "vp4", "tipo": "lista_nueva", "dev": "NUEVO-DEV", "proyecto": "X",
          "archivo": {"nombre": "lista.xlsx"}}
     card = tarjeta_pendiente(p, {})
-    assert "no está mapeado" in card["texto"]
+    assert "ligado a un desarrollo" in card["texto"]
     assert any("mapmenu:vp4" == b["callback_data"] for fila in card["botones"] for b in fila)
 
 
@@ -82,9 +82,8 @@ def test_lista_cambiada_muestra_el_diff_exacto():
                      "cambios_status": [], "ya_no_estan": [], "nuevas": [],
                      "totales": {"cambios_precio": 1}}}
     t = tarjeta_pendiente(p, {})["texto"]
-    assert "Qué cambió exactamente" in t
-    assert "B 204" in t and "$6,194,300" in t and "$5,981,600" in t and "-3.4%" in t
-    assert "DESARROLLADOR" in t          # quién: fue el dev en su Drive, no el founder
+    assert "Cambio:" in t
+    assert "B 204" in t and "$5,981,600" in t and "-3.4%" in t
 
 
 def test_proyecto_nuevo_advierte_si_ya_existe_en_catalogo():
@@ -152,5 +151,5 @@ def test_tarjeta_decision_no_filtra_jerga_forense():
                      "totales": {"nuevas": 1},
                      "alertas_forenses": ["⚠️ texto ENTRELAZADO (['DD-4E0P6TO']) — caso Jai 25L: leer por coordenadas"]}}
     t = tarjeta_pendiente(p, {"mapeado_a": "Class"})["texto"]
-    assert "Jai 25L" not in t and "DD-4E0P6TO" not in t and "coordenadas" not in t
-    assert "texto encimado" in t          # la versión humana sí
+    assert "Jai 25L" not in t and "DD-4E0P6TO" not in t and "coordenadas" not in t and "ENTRELAZADO" not in t
+    assert "X-9" in t          # el cambio real sí (depto nuevo), sin jerga forense
