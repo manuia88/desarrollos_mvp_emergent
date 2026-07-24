@@ -53,7 +53,7 @@ def test_lista_resubida_sin_cambios_es_honesta_y_no_ofrece_aprobar():
     card = tarjeta_pendiente(p, {"mapeado_a": "Class Bienes Raíces"})
     t = card["texto"]
     assert "mismos datos" in t and "CAMBIÓ" not in t
-    assert "nada cambió" in t.lower()
+    assert "no cambió nada" in t.lower()
     botones = [b["callback_data"] for fila in card["botones"] for b in fila]
     assert "ap:vp3b" not in botones                 # NO Aprobar: no gasta API que el founder no tiene
     assert "rj:vp3b" in botones
@@ -63,7 +63,7 @@ def test_lista_sin_mapeo_avisa_y_ofrece_mapear():
     p = {"id": "vp4", "tipo": "lista_nueva", "dev": "NUEVO-DEV", "proyecto": "X",
          "archivo": {"nombre": "lista.xlsx"}}
     card = tarjeta_pendiente(p, {})
-    assert "ligado a un desarrollo" in card["texto"]
+    assert "ligado a un proyecto" in card["texto"]
     assert any("mapmenu:vp4" == b["callback_data"] for fila in card["botones"] for b in fila)
 
 
@@ -82,8 +82,8 @@ def test_lista_cambiada_muestra_el_diff_exacto():
                      "cambios_status": [], "ya_no_estan": [], "nuevas": [],
                      "totales": {"cambios_precio": 1}}}
     t = tarjeta_pendiente(p, {})["texto"]
-    assert "Esto cambió" in t
-    assert "B 204" in t and "$5,981,600" in t and "-3.4%" in t
+    assert "Qué cambió" in t
+    assert "B 204" in t and "$6,194,300" in t and "$5,981,600" in t and "-3.4%" in t
 
 
 def test_proyecto_nuevo_advierte_si_ya_existe_en_catalogo():

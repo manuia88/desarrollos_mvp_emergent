@@ -81,6 +81,59 @@ def _lista_limpia(nombre: Any) -> str:
     return re.sub(r"\s+", " ", n).strip()
 
 
+def _fecha_bonita(iso: Any) -> Optional[str]:
+    """'2026-07-24T00:45Z' → '23 jul, 6:45 p.m.' (hora CDMX, legible para el founder)."""
+    s = str(iso or "").strip()
+    if not s:
+        return None
+    try:
+        d = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        try:
+            from zoneinfo import ZoneInfo
+            d = d.astimezone(ZoneInfo("America/Mexico_City"))
+        except Exception:  # noqa: BLE001
+            pass
+        h = d.hour % 12 or 12
+        return f"{d.day} {_MESES[d.month - 1]}, {h}:{d.minute:02d} {'a.m.' if d.hour < 12 else 'p.m.'}"
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _cambios_detallados(c: Dict[str, Any]) -> List[str]:
+    """Diff → viñetas DETALLADAS y etiquetadas para la tarjeta (el founder quiere el detalle, claro)."""
+    out: List[str] = []
+    for x in c.get("cambios_precio") or []:
+        try:
+            pct = (x["ahora"] - x["antes"]) / x["antes"] * 100
+            verbo = "bajó" if pct < 0 else "subió"
+            out.append(f"Depto {_esc(x['unidad'])}: {verbo} de ${float(x['antes']):,.0f} → "
+                       f"${float(x['ahora']):,.0f} ({pct:+.1f}%)")
+        except (TypeError, ValueError, ZeroDivisionError, KeyError):
+            out.append(f"Depto {_esc(x.get('unidad'))}: cambió de precio")
+    for x in c.get("cambios_status") or []:
+        ah = str(x.get("ahora") or "").lower()
+        an = str(x.get("antes") or "disponible").lower()
+        antes = "disponible" if ("dispon" in an or not an.strip()) else "no disponible"
+        if "vend" in ah:
+            ahora = "ya NO disponible (se vendió)"
+        elif "no dispon" in ah or "no_dispon" in ah or "apart" in ah or "reserv" in ah or "bloq" in ah:
+            ahora = "ya NO disponible (apartado/reservado)"
+        elif "dispon" in ah or "libre" in ah:
+            ahora = "disponible otra vez"
+        else:
+            ahora = ah or "cambió"
+        out.append(f"Depto {_esc(x['unidad'])}: {antes} → {ahora}")
+    ynz = c.get("ya_no_estan") or []
+    if ynz:
+        out.append(f"Ya NO aparecen (probable venta): {', '.join(_esc(x) for x in ynz[:8])}")
+    nv = c.get("nuevas") or []
+    if nv:
+        out.append(f"Deptos NUEVOS en la lista: {', '.join(_esc(x) for x in nv[:8])}")
+    return out
+
+
 def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
     """Arma la tarjeta con CONTEXTO: qué pasó · datos para decidir · consecuencia de cada botón.
     ctx = {mapeado_a, n_proyectos_dev, n_unidades_dev, eventos_previos, ultima_ingesta}."""
@@ -114,47 +167,66 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
         # TARJETA "SIMPLE CON CONTEXTO" (founder 07-24): proyecto + de quién viene + el cambio en
         # español + máx. la pregunta con botones. SIN nombre de archivo, .pdf, fechas, "Historial",
         # "en su Drive", "comparado contra", ni jerga forense — todo eso confundía al founder.
+        # TARJETA ETIQUETADA (founder 07-24: "no le entiendo al formato, NO me quites info"). Cada dato
+        # con su etiqueta clara + el detalle completo (lista, cuándo, qué cambió unidad por unidad, historial).
         from lista_peek import es_cambio_real
         a = p.get("archivo") or {}
         c = p.get("cambios") or {}
         real = tipo == "lista_nueva" or es_cambio_real(c)
         primera = "primera lectura" in str(c.get("nota") or "")
         proy = _esc(p.get("proyecto") or p.get("dev"))
-        origen = ctx.get("mapeado_a") or (p.get("dev") if p.get("dev") and p.get("dev") != p.get("proyecto") else None)
+        origen = ctx.get("mapeado_a") or p.get("dev")
+        externo = "externo" in str(p.get("dev") or "").lower()
         lista = _lista_limpia(a.get("nombre"))
-        # la etiqueta de lista solo si AGREGA info que el nombre del proyecto no da (ej. torre "Panorama L C")
-        etq = f" «{_esc(lista)}»" if lista and lista.lower() not in str(p.get("proyecto") or "").lower() else ""
-        lineas = [f"🏢 <b>{proy}</b>"]
+        fecha = _fecha_bonita(a.get("modificado"))
+
+        lineas = [f"🏢 <b>Proyecto:</b> {proy}"]
         if origen:
-            lineas.append(f"<i>vía {_esc(origen)}</i>")
-        # QUÉ SUBIÓ EL DESARROLLADOR (la acción, en claro — sin nombre de archivo crudo ni fechas)
-        if tipo == "lista_nueva" or primera:
-            lineas += ["", f"📄 Subió una lista de precios nueva{etq} — apenas la empiezo a vigilar."]
-        elif not real:
-            lineas += ["", f"📄 Volvió a subir su lista{etq}, pero con los <b>mismos datos</b> — nada cambió."]
+            lineas.append(f"👤 <b>Desarrollador:</b> {_esc(origen)}" + (" (cliente externo)" if externo else ""))
+        if lista:
+            lineas.append(f"📄 <b>Lista de precios:</b> «{_esc(lista)}»")
+        if fecha:
+            lineas.append(f"📅 <b>Cuándo la subió:</b> {fecha}")
+
+        # QUÉ SUBIÓ + QUÉ CAMBIÓ (detalle completo, unidad por unidad)
+        detalle = _cambios_detallados(c)
+        if detalle:
+            lineas += ["", f"<b>Qué cambió</b> ({len(detalle)}):"]
+            lineas += [f"· {d}" for d in detalle[:10]]
+            if c.get("base"):
+                lineas.append(f"<i>(comparado contra {_esc(c['base'])})</i>")
+        elif tipo == "lista_nueva" or primera:
+            lineas += ["", "📥 Es la <b>primera vez</b> que veo esta lista — la empiezo a vigilar. "
+                           "Desde el próximo cambio te digo exactamente qué se movió."]
         else:
-            lineas += ["", f"📄 Actualizó su lista de precios{etq}."]
-        # QUÉ CAMBIÓ (en viñetas, claro)
-        frases = _cambios_humanos(c)
-        if frases:
-            lineas.append("<b>Esto cambió:</b>")
-            lineas += [f"· {f}" for f in frases[:8]]
-        # QUÉ HACER
+            lineas += ["", "🔁 Volvió a subir la <b>misma</b> lista (mismos datos) — no cambió nada."]
+        if ctx.get("eventos_previos"):
+            lineas.append(f"📜 <b>Historial:</b> {ctx['eventos_previos']} cambio(s) previos en esta lista.")
+
+        # QUÉ PUEDES HACER (cada opción explicada + botones)
         if p.get("aplicado"):
-            lineas += ["", "✅ <b>Ya lo actualicé solo.</b> No tienes que hacer nada."]
+            ap = p["aplicado"]
+            n = (ap.get("precios") or 0) + (ap.get("status") or 0)
+            lineas += ["", f"✅ <b>Ya lo actualicé solo</b> — {n} cambio(s) quedaron en tu catálogo con "
+                           "respaldo. <b>No tienes que hacer nada.</b>"]
             botones = [[{"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"},
-                        {"text": "👍 Ok", "callback_data": f"rj:{pid}"}]]
+                        {"text": "👍 Enterado", "callback_data": f"rj:{pid}"}]]
         elif real and not ctx.get("mapeado_a"):
-            lineas += ["", "Este dev todavía no está ligado a un desarrollo tuyo — dime de quién es:"]
+            lineas += ["", "⚠️ Este desarrollador aún no está ligado a un proyecto tuyo. Dime de quién es "
+                           "para poder aplicar sus cambios."]
             botones = [[{"text": "👤 Ligar a un dev", "callback_data": f"mapmenu:{pid}"}],
                        [{"text": "🔕 Después", "callback_data": f"rj:{pid}"}]]
         elif real:
-            lineas += ["", "¿Reviso a fondo con IA? (cuesta)"]
-            botones = [[{"text": "✅ Sí, revísalo", "callback_data": f"ap:{pid}"},
-                        {"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"}],
-                       [{"text": "🔕 No hace falta", "callback_data": f"rj:{pid}"}]]
+            lineas += ["", "<b>¿Qué quieres hacer?</b>",
+                       "✅ <b>Revisar con IA</b> — releo el proyecto completo y anoto cada cambio (tiene un costo).",
+                       "🔍 <b>Ver detalle</b> — te muestro el historial completo, sin costo.",
+                       "🔕 <b>Ignorar</b> — lo archivo (lo sigo vigilando)."]
+            botones = [[{"text": "✅ Revisar con IA", "callback_data": f"ap:{pid}"},
+                        {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
+                       [{"text": "🔕 Ignorar", "callback_data": f"rj:{pid}"}]]
         else:
-            botones = [[{"text": "👍 Ok", "callback_data": f"rj:{pid}"}]]
+            botones = [[{"text": "🔍 Ver detalle", "callback_data": f"det:{pid}"},
+                        {"text": "👍 Enterado", "callback_data": f"rj:{pid}"}]]
     elif tipo == "proyecto_nuevo":
         lineas = [f"📁 <b>{dev}</b> subió carpeta de proyecto nueva: <b>{_esc(p.get('proyecto'))}</b>."]
         if p.get("ya_en_catalogo"):
