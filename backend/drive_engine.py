@@ -269,6 +269,27 @@ def _revoke_token_sync(refresh_token: str) -> bool:
         return False
 
 
+# ─── Historial de versiones de un archivo (07-24) ────────────────────────────
+def _list_revisions_sync(conn: Dict[str, Any], file_id: str, n: int = 5) -> List[Dict[str, Any]]:
+    """Últimas n revisiones de un archivo de Drive (más nueva primero). Requiere OAuth (la API key
+    NO sirve para revisiones). OJO: de archivos que NO son tuyos, Google suele exponer solo la
+    versión ACTUAL — el historial completo lo ve el dueño. Devuelve lo que haya, sin reventar."""
+    try:
+        svc = _drive_service(conn)
+        resp = svc.revisions().list(
+            fileId=file_id, pageSize=200,
+            fields="revisions(id,modifiedTime,lastModifyingUser/displayName,size)").execute()
+        revs = resp.get("revisions", []) or []
+        return list(reversed(revs))[:n]
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[drive] revisions {file_id}: {type(e).__name__}: {str(e)[:100]}")
+        return []
+
+
+async def list_revisions(conn: Dict[str, Any], file_id: str, n: int = 5) -> List[Dict[str, Any]]:
+    return await asyncio.to_thread(_list_revisions_sync, conn, file_id, n)
+
+
 # ─── Drive Activity Webhooks (push notifications) ────────────────────────────
 def _webhook_url() -> str:
     backend = os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("BACKEND_PUBLIC_URL", "")

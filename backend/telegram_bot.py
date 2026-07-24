@@ -493,14 +493,29 @@ async def _detalle(db, pid: str) -> str:
     p = await db.vigia_pendientes.find_one({"id": pid}, {"_id": 0})
     if not p:
         return "Ese pendiente ya no existe."
-    lineas = [f"🔍 <b>Linaje de {_esc(p.get('dev'))} · {_esc(p.get('proyecto') or '')}</b>"]
+    lineas = [f"🔍 <b>{_esc(p.get('proyecto') or p.get('dev'))}</b> — historial"]
     arch = (p.get("archivo") or {}).get("id")
+    # QUIÉN Y CUÁNDO la subió, directo de Drive (07-24, ya con OAuth). De archivos ajenos Google solo
+    # da la versión actual, pero el "quién" (la persona del dev que la subió) es info nueva y útil.
+    if arch:
+        try:
+            import bulk_ingest_engine as bie, drive_engine as de
+            conn = await bie._resolve_drive_conn(db, None)
+            if conn and conn.get("status") == "connected":
+                revs = await de.list_revisions(conn, arch, 3)
+                for rv in revs:
+                    quien = (rv.get("lastModifyingUser") or {}).get("displayName") or "alguien del dev"
+                    lineas.append(f"📄 {_fecha_bonita(rv.get('modificado') or rv.get('modifiedTime')) or _esc(rv.get('modifiedTime'))[:16]}"
+                                  f" · la subió <b>{_esc(quien)}</b>")
+                if revs:
+                    lineas.append("<i>(Drive solo muestra la última versión de archivos que no son tuyos.)</i>")
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[telegram] detalle revisions: {e}")
+    # HISTORIAL PROPIO (lo que la plataforma sí acumula desde que lo vigila)
+    lineas.append("<b>Lo que la plataforma ha visto:</b>")
     q = {"archivo.id": arch} if arch else {"dev": p.get("dev")}
     async for ev in db.vigia_eventos.find(q, {"_id": 0}).sort("ts", -1).limit(6):
-        lineas.append(f"· {_esc(ev.get('ts'))[:16]} — {_esc(ev.get('tipo'))}"
-                      + (f" · {_esc((ev.get('archivo') or {}).get('nombre'))}" if ev.get("archivo") else ""))
-    if p.get("antes"):
-        lineas.append(f"Huella anterior: {_esc(p['antes'].get('huella'))[:18]}… (cambió de verdad, no solo lo abrieron)")
+        lineas.append(f"· {_esc(ev.get('ts'))[:16]} — {_esc(ev.get('tipo'))}")
     return "\n".join(lineas)
 
 
