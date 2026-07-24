@@ -286,6 +286,10 @@ export function VigiaTab() {
           <button style={btn()} data-testid="vigia-ronda" onClick={ronda} disabled={rondando}><RefreshCw size={13} /> {rondando ? 'Rondando…' : 'Correr ronda ahora'}</button>
         </div>
         {msg && <p style={{ ...p13, marginTop: 8, color: msg.includes('✓') || msg.startsWith('Ronda') ? '#86efac' : '#fca5a5' }}>{msg}</p>}
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={mini}>🔑 Conexión de Drive con tu Google (opcional — hoy ronda con la llave pública; conectar suma historial de cambios y blindaje):</span>
+          <button style={btn()} data-testid="vigia-drive-connect" onClick={() => { window.location.href = `${API}/api/superadmin/drive/connect`; }}>Conectar mi Google Drive</button>
+        </div>
         {estado?.fuentes?.filter((f) => f.activa).map((f) => (
           <div key={f.id} style={{ ...mini, marginTop: 8 }}>
             👁 {f.nombre} · vigilada cada {f.cadencia_min} min · última ronda: {f.last_ronda_at ? new Date(f.last_ronda_at).toLocaleString('es-MX') : 'nunca (corre una ahora)'}

@@ -541,6 +541,29 @@ async def drive_oauth_url(development_id: str = Query(...), request: Request = N
     return {"ok": True, "configured": True, "authorization_url": auth_url}
 
 
+# ─── 1b. Atajo de UN clic para el superadmin (conexión maestra de Drive) ──────
+@router.get("/api/superadmin/drive/connect")
+async def drive_connect_redirect(request: Request):
+    """Un solo clic: arma el flujo OAuth de Drive y REDIRIGE directo a Google (sin JSON intermedio).
+    La conexión se ata al primer development, pero _resolve_drive_conn la usa como conexión GLOBAL
+    (fallback 'cualquiera connected') para rondar la carpeta maestra. Pensado para que el founder
+    lo abra desde el navegador ya logueado como superadmin."""
+    user = await _get_user(request)
+    if getattr(user, "role", None) != "superadmin":
+        raise HTTPException(403, "Sólo superadmin")
+    if not _has_keys():
+        raise HTTPException(503, "Configura GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET en el .env del backend.")
+    db = request.app.state.db
+    dev = await db.developments.find_one({}, {"_id": 0, "id": 1})
+    dev_id = (dev or {}).get("id") or "__master__"
+    from google_auth_oauthlib.flow import Flow
+    flow = Flow.from_client_config(_client_config(), scopes=DRIVE_SCOPES, redirect_uri=_redirect_uri())
+    state = _make_state(dev_id, user.user_id)
+    auth_url, _ = flow.authorization_url(
+        access_type="offline", include_granted_scopes="true", prompt="consent", state=state)
+    return RedirectResponse(auth_url)
+
+
 # ─── 2. OAuth callback ────────────────────────────────────────────────────────
 @router.get("/api/auth/google/drive-callback")
 async def drive_callback(
@@ -549,7 +572,7 @@ async def drive_callback(
     state: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
 ):
-    fe = os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("FRONTEND_URL") or ""
+    fe = os.environ.get("FRONTEND_URL") or os.environ.get("REACT_APP_BACKEND_URL") or ""
     if error:
         return RedirectResponse(f"{fe}/desarrollador?drive_error={error}")
     if not code or not state:
