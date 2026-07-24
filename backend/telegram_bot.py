@@ -217,7 +217,17 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             botones = [[{"text": "👤 Ligar a un dev", "callback_data": f"mapmenu:{pid}"}],
                        [{"text": "🔕 Después", "callback_data": f"rj:{pid}"}]]
         elif real:
-            lineas += ["", "<b>¿Qué quieres hacer?</b>",
+            # POR QUÉ no se aplicó solo (founder 07-24: "si ya detectó el cambio, ¿qué reviso?").
+            nuevas = c.get("nuevas") or []
+            if nuevas:
+                razon = ("ℹ️ El dev agregó deptos que <b>aún no tienes</b> (" +
+                         ", ".join(_esc(x) for x in nuevas[:6]) + "). Solo puedo meterlos leyendo el "
+                         "proyecto con IA.")
+            else:
+                razon = ("ℹ️ Los cambios de <b>precio/estatus</b> de deptos que ya tienes los aplico "
+                         "solo y gratis. Aquí NO pude solo: este proyecto todavía no está completo en tu "
+                         "catálogo (o cambió algo a fondo), y para dejarlo al día necesito leerlo con IA.")
+            lineas += ["", razon, "", "<b>¿Qué quieres hacer?</b>",
                        "✅ <b>Revisar con IA</b> — releo el proyecto completo y anoto cada cambio (tiene un costo).",
                        "🔍 <b>Ver detalle</b> — te muestro el historial completo, sin costo.",
                        "🔕 <b>Ignorar</b> — lo archivo (lo sigo vigilando)."]
