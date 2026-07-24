@@ -393,6 +393,8 @@ def _resumen_auto(auto: List[Dict[str, Any]]) -> str:
     if total:
         lineas.append(f"→ <b>{total} cambio(s)</b> ({', '.join(resumen)}) quedaron en el catálogo"
                       + (f" · {tot_v} probable(s) venta(s) anotada(s)" if tot_v else "") + ".")
+    lineas.append("<i>ℹ️ Estos los apliqué solo (gratis) porque esos deptos ya están en tu catálogo. "
+                  "Cuando algo NO se pueda solo, te lo mando aparte con el porqué.</i>")
     return "\n".join(lineas)
 
 
