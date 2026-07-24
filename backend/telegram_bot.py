@@ -204,7 +204,18 @@ def tarjeta_pendiente(p: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
             lineas.append(f"📜 <b>Historial:</b> {ctx['eventos_previos']} cambio(s) previos en esta lista.")
 
         # QUÉ PUEDES HACER (cada opción explicada + botones)
-        if p.get("aplicado"):
+        _apl = p.get("aplicado") or {}
+        if _apl.get("bloqueado"):
+            # GUARDIÁN: el diff se vio absurdo → NO se aplicó solo (evita corromper en silencio, caso The Park)
+            lineas += ["", f"⚠️ <b>Esto se ve raro y NO lo apliqué solo:</b> {_esc(_apl.get('motivo'))}.",
+                       "Puede ser un <b>error al leer la lista</b> (no un cambio real). Mejor revísalo antes.",
+                       "", "<b>¿Qué quieres hacer?</b>",
+                       "✅ <b>Revisar con IA</b> — la releo bien y aplico solo lo verdadero (tiene un costo).",
+                       "🔍 <b>Ver detalle</b> — sin costo.   🔕 <b>Ignorar</b> — la archivo."]
+            botones = [[{"text": "✅ Revisar con IA", "callback_data": f"ap:{pid}"},
+                        {"text": "🔍 Detalle", "callback_data": f"det:{pid}"}],
+                       [{"text": "🔕 Ignorar", "callback_data": f"rj:{pid}"}]]
+        elif p.get("aplicado"):
             ap = p["aplicado"]
             n = (ap.get("precios") or 0) + (ap.get("status") or 0)
             lineas += ["", f"✅ <b>Ya lo actualicé solo</b> — {n} cambio(s) quedaron en tu catálogo con "
@@ -426,9 +437,12 @@ async def notificar_pendientes(db, limite: int = 5) -> int:
     for p in pend:
         if p.get("tipo") in ("lista_cambiada", "lista_nueva"):
             c = p.get("cambios") or {}
-            if p.get("aplicado") and not _tiene_nuevas(p):
+            apl = p.get("aplicado") or {}
+            if apl.get("bloqueado"):
+                decision.append(p)                  # guardián lo bloqueó (diff absurdo) → necesita tu revisión
+            elif apl and not _tiene_nuevas(p):
                 auto.append(p)                      # el vigía ya lo aplicó → digest, sin botones
-            elif _es_primera(p) and not p.get("aplicado"):
+            elif _es_primera(p) and not apl:
                 primeras.append(p)                  # apenas empezó a vigilar → digest
             elif es_cambio_real(c):
                 decision.append(p)                  # cambio real que SÍ necesita tu OK (ej. unidades nuevas)

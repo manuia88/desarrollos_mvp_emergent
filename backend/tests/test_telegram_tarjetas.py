@@ -153,3 +153,14 @@ def test_tarjeta_decision_no_filtra_jerga_forense():
     t = tarjeta_pendiente(p, {"mapeado_a": "Class"})["texto"]
     assert "Jai 25L" not in t and "DD-4E0P6TO" not in t and "coordenadas" not in t and "ENTRELAZADO" not in t
     assert "X-9" in t          # el cambio real sí (depto nuevo), sin jerga forense
+
+
+def test_tarjeta_bloqueada_por_guardian_avisa_y_pide_revisar():
+    """El guardián bloqueó el diff (se veía absurdo) → la tarjeta avisa 'se ve raro, NO lo apliqué' + pide revisar."""
+    p = {"id": "vpB", "tipo": "lista_cambiada", "dev": "CLASS", "proyecto": "The Park", "archivo": {"nombre": "tp.pdf"},
+         "aplicado": {"bloqueado": True, "motivo": "aparecen 141 deptos 'nuevos' de golpe — huele a lista mal leída"},
+         "cambios": {"totales": {"nuevas": 141}}}
+    t = tarjeta_pendiente(p, {"mapeado_a": "GDC"})["texto"]
+    assert "se ve raro" in t and "NO lo apliqué solo" in t and "141" in t
+    botones = [b["callback_data"] for fila in tarjeta_pendiente(p, {})["botones"] for b in fila]
+    assert "ap:vpB" in botones and "rj:vpB" in botones

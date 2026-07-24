@@ -75,3 +75,16 @@ def test_es_cambio_real_distingue_accionable_de_no_op():
                            "ya_no_estan": [], "totales": {}}) is False
     assert es_cambio_real({}) is False
     assert es_cambio_real(None) is False
+
+
+def test_diff_plausible_guardian_bloquea_parseo_absurdo():
+    """GUARDIÁN 07-24: el caso The Park (141 'nuevas' contra 153) se BLOQUEA; lo chico pasa."""
+    from lista_peek import diff_plausible
+    ok, motivo = diff_plausible({"totales": {"antes": 79, "ahora": 153, "nuevas": 141, "ya_no_estan": 67}}, 153)
+    assert ok is False and "nuevos" in motivo
+    ok2, _ = diff_plausible({"totales": {"ya_no_estan": 80}}, 100)          # pérdida masiva
+    assert ok2 is False
+    ok3, m3 = diff_plausible({"totales": {"ya_no_estan": 5, "nuevas": 0}}, 100)  # 5 ventas normales
+    assert ok3 is True and m3 is None
+    ok4, _ = diff_plausible({"totales": {"ya_no_estan": 3}}, 5)             # dev chico no se bloquea
+    assert ok4 is True

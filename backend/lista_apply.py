@@ -94,6 +94,16 @@ async def aplicar_cambios(db, fuente_id: str, ev: Dict[str, Any]) -> Optional[Di
     if not dev_id:
         return None
 
+    # GUARDIÁN DE PLAUSIBILIDAD (07-24): antes de tocar el catálogo, ¿el diff es creíble? Si el peek
+    # se ve roto (ej. The Park 79→153, 141 'nuevas'), NO se aplica solo — se BLOQUEA y va a tu revisión.
+    from lista_peek import diff_plausible
+    n_cat = await db.units.count_documents({"development_id": dev_id})
+    ok_plaus, motivo_plaus = diff_plausible(cambios, n_cat)
+    if not ok_plaus:
+        log.warning(f"[lista_apply] BLOQUEADO por plausibilidad dev={dev_id}: {motivo_plaus}")
+        return {"development_id": dev_id, "bloqueado": True, "motivo": motivo_plaus,
+                "precios": 0, "status": 0, "senales_venta": 0, "peleas": 0}
+
     from audit_log import log_mutation
     from unit_status_ledger import record_status_event      # Palanca 2: alimentar el ledger
     dev_doc = await db.developments.find_one({"id": dev_id}, {"_id": 0}) or {}

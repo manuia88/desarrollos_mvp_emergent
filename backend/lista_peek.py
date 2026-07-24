@@ -272,6 +272,26 @@ def _fmt_precio(v) -> str:
         return "$?"
 
 
+def diff_plausible(cambios: Optional[Dict[str, Any]], n_catalogo: int) -> tuple:
+    """GUARDIÁN DE PLAUSIBILIDAD (07-24): ¿el diff es CREÍBLE o huele a mal parseo? (ok, motivo).
+    A diferencia de la Capa 0 del auditor (que mide VALOR por unidad), esto mide el TAMAÑO DEL CAMBIO
+    y BLOQUEA el auto-apply ANTES de tocar el catálogo. Caso The Park: 79→153 con 141 'nuevas' y 67
+    'desaparecidas' contra 153 en catálogo = lista re-numerada o mal leída, NO 141 altas + 67 ventas.
+    Bloquear = NO aplicar solo, mandarlo a revisión (conservador: un falso positivo solo pide tu OK)."""
+    t = (cambios or {}).get("totales") or {}
+    n = max(int(n_catalogo or 0), int(t.get("antes") or 0), 1)
+    nuevas = int(t.get("nuevas") or 0)
+    fueron = int(t.get("ya_no_estan") or 0)
+    tope = max(8, 0.4 * n)   # nadie agrega/pierde >40% (o >8) de su inventario de un jalón sin re-numerar
+    if nuevas > tope:
+        return False, (f"aparecen {nuevas} deptos 'nuevos' de golpe (tu catálogo tiene {n_catalogo}) — "
+                       f"huele a lista re-numerada o mal leída, no a {nuevas} altas reales")
+    if fueron > tope:
+        return False, (f"desaparecen {fueron} deptos de golpe (tu catálogo tiene {n_catalogo}) — "
+                       f"probable mal parseo del PDF, no {fueron} ventas de un jalón")
+    return True, None
+
+
 def es_cambio_real(cambios: Optional[Dict[str, Any]]) -> bool:
     """¿El peek trae un cambio de DATOS que amerita decisión del founder? (precio/estado/altas/bajas,
     o primera lectura de una lista nueva). False = re-subida IDÉNTICA (mismo archivo, mismos datos) →
