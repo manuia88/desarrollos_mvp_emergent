@@ -254,6 +254,10 @@ async def trigger_drift_check(request: Request, zone_slug: str):
 @router.get("/api/accuracy/export.csv")
 async def export_csv(request: Request, period: str = "30d"):
     _rate_limit(request, "export")
+    # SEGURIDAD (auditoría A–Z 07-24): esta exportación entrega, propiedad por propiedad,
+    # lo que el modelo predijo contra el precio real de cierre. Respondía sin sesión.
+    from permissions import require_superadmin
+    await require_superadmin(request)
     days_map = {"30d": 30, "90d": 90, "365d": 365}
     if period not in days_map:
         raise HTTPException(status_code=422, detail="period debe ser 30d, 90d o 365d")
@@ -296,6 +300,10 @@ async def export_csv(request: Request, period: str = "30d"):
 
 @router.get("/api/accuracy/export.pdf")
 async def export_pdf(request: Request, period: str = "30d"):
+    # SEGURIDAD (auditoría A–Z 07-24): mismo caso que export.csv — entrega predicho vs precio real
+    # de cierre por propiedad, y respondía sin sesión.
+    from permissions import require_superadmin
+    await require_superadmin(request)
     # Rate-limit mas estricto: 10/min/IP
     _rate_limit_pdf(request)
     days_map = {"30d": 30, "90d": 90, "365d": 365}

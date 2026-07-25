@@ -93,6 +93,10 @@ async def plusvalia_colonias(request: Request):
 @router.get("/api/plusvalia/_admin/estado")
 async def plusvalia_estado(request: Request, colonia_id: Optional[str] = Query(None)):
     """Estado de la grid (superadmin): celdas materializadas + procedencia. Solo lectura."""
+    # SEGURIDAD (auditoría A–Z 07-24): el docstring decía "superadmin" pero el handler nunca lo
+    # comprobaba — esta pantalla interna respondía a cualquiera sin sesión.
+    from permissions import require_superadmin
+    await require_superadmin(request)
     _rate(request, limit=30)
     db = _db(request)
     q = {"colonia_id": colonia_id} if colonia_id else {}

@@ -1765,7 +1765,10 @@ async def startup():
     except Exception as _kse:
         logging.warning(f"[startup] kill-switch global de IA no instalado: {_kse}")
     await db.users.create_index("email", unique=True)
-    await db.users.create_index("user_id")
+    # único y CON NOMBRE: dos cuentas llegaron a compartir identificador (auditoría A–Z 07-25) y eso
+    # rompe cualquier atribución por usuario. El nombre explícito evita chocar con el índice viejo
+    # auto-nombrado `user_id_1` y hace la creación idempotente entre arranques.
+    await db.users.create_index("user_id", unique=True, name="idx_users_user_id_unico")
     # Palanca 6: `audit_logs` (plural) retirado → el índice/escritura vive en el canónico `audit_log`.
     # P2.3 · índices que faltaban (rapidez de consultas calientes). Idempotente.
     try:
