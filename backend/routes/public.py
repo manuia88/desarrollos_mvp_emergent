@@ -135,9 +135,70 @@ def _aggregates_from_units(units: list, total_edificio: int = 0) -> dict:
     return agg
 
 
+# ── Campos INTERNOS que NUNCA deben salir en una respuesta pública ──────────────────────────
+# Auditoría 2026-07-24: la ficha pública filtraba la comisión que DMX le cobra al cliente, la
+# carpeta de Drive del cliente, el nombre de su Excel interno, la ruta del disco, las notas
+# forenses del equipo y la valuación del modelo propio. La causa era que _dev_public copiaba
+# TODOS los campos salvo dos, así que cualquier campo interno nuevo salía al público solo.
+# Verificado antes de bloquear: el frontend NO lee ninguno de estos campos.
+_INTERNOS_DEV = {
+    "comision_pct",            # cuánto cobra DMX por venta  ← la fuga más grave
+    "drive_folder_id",         # carpeta de Drive del cliente
+    "fuente", "fuente_unidad", "source_job_id", "solicitud_gdc",
+    "dev_org_id", "published_via",
+    "auditado_at", "censo_at", "censo_pct", "censo_discrepancias",
+    "juez_at", "juez_gate", "juez_pct", "salud_dato", "readiness_pct",
+    "columnas_no_mapeadas", "campos_derivados",
+}
+# Campos internos a nivel UNIDAD: fuente_lista/fuente_maestro llevan la FILA CRUDA de la lista
+# de precios del cliente (crédito, enganche, nombre del PDF). plano_archivo/storage exponen
+# nombres de archivo y rutas internas.
+_INTERNOS_UNIT = {
+    "fuente_lista", "fuente_maestro", "plano_archivo", "plano_fuente",
+    "notas", "storage", "storage_count", "reparado_censo_at",
+}
+
+
+def _es_interno(k: str, extra: set = frozenset()) -> bool:
+    """Interno = lista explícita + CONVENCIÓN del equipo (`*_fuente` = procedencia forense,
+    `*_nota` = nota interna del equipo). Con la convención, un campo interno nuevo queda
+    bloqueado por default en vez de filtrarse hasta que alguien lo note."""
+    return k in extra or k.endswith("_fuente") or k.endswith("_nota")
+
+
+def _sin_internos(d: dict, extra: set) -> dict:
+    """Quita los campos internos de un documento antes de servirlo al público."""
+    return {k: v for k, v in d.items() if not _es_interno(k, extra)}
+
+
+def _rango(v) -> list:
+    """Normaliza cualquier `*_range` a una lista [min, max] de números.
+
+    Los filtros del marketplace indexan estos campos por posición (`[0]`, `[1]`). Si llega un
+    texto vacío o un valor suelto, `""[1]` revienta y tumba el listado ENTERO con 500 — bastaba
+    un proyecto malformado para envenenar la respuesta de los 116 (auditoría 07-24).
+    """
+    if isinstance(v, (list, tuple)):
+        nums = [x for x in v if isinstance(x, (int, float))]
+        if not nums:
+            return [0, 0]
+        return [min(nums), max(nums)]
+    if isinstance(v, (int, float)):
+        return [v, v]
+    return [0, 0]
+
+
+def unit_public(u: dict) -> dict:
+    """Unidad lista para el comprador: sin la fila cruda de la lista del cliente ni rutas internas."""
+    return {k: v for k, v in u.items() if k != "_id" and not _es_interno(k, _INTERNOS_UNIT)}
+
+
 def _dev_public(d: dict, include_units: bool = False) -> dict:
     d = _apply_overlay(d)
-    out = {k: v for k, v in d.items() if k != "_id" and (include_units or k != "units")}
+    out = {k: v for k, v in d.items()
+           if k != "_id" and not _es_interno(k, _INTERNOS_DEV) and (include_units or k != "units")}
+    if include_units and isinstance(out.get("units"), list):
+        out["units"] = [unit_public(u) for u in out["units"] if isinstance(u, dict)]
     if not include_units:
         out["units_sample"] = d.get("units", [])[:0]
     dev = DEVELOPERS_BY_ID.get(d["developer_id"])
@@ -274,7 +335,7 @@ async def _enrich_listing(db, devs: list) -> list:
         card.update(_aggregates_from_units(_eff_units, d.get("total_units") or d.get("units_total") or 0))
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
-        m2lo = (d.get("m2_range") or [0])[0] or 0
+        m2lo = _rango(d.get("m2_range"))[0] or 0
         dev_pm2 = (card.get("price_from") or 0) / m2lo if m2lo else 0
         if dev_pm2:
             card["price_m2_dev"] = round(dev_pm2)
@@ -1711,8 +1772,12 @@ def _project_to_dev_card(p):
         "address_full": p.get("calle") or "", "street": p.get("calle") or "", "postal_code": p.get("cp") or "",
         "delivery_estimate": p.get("delivery_estimate") or "", "fecha_lanzamiento": p.get("created_at") or "",
         "description": p.get("description") or "", "developer_id": p.get("developer_id") or p.get("dev_org_id"),
-        "contact_phone": "", "m2_range": p.get("m2_range") or "", "bedrooms_range": "", "bathrooms_range": "",
-        "parking_range": "", "orientations": [], "max_level": None, "construction_progress": None,
+        # Los *_range son RANGOS [min, max] y el filtro del marketplace los indexa por posición.
+        # Antes iban como "" (texto) y bastaba un proyecto del wizard en el pool para que filtrar
+        # por recámaras/baños/m²/cajones tirara TODO el listado con error 500 (auditoría 07-24).
+        "contact_phone": "", "m2_range": _rango(p.get("m2_range")), "bedrooms_range": [0, 0],
+        "bathrooms_range": [0, 0],
+        "parking_range": [0, 0], "orientations": [], "max_level": None, "construction_progress": None,
         "memoria_acabados": None, "tecnica": None, "tour360_url": None, "video_url": None,
         "featured": False, "verified": False, "source": "wizard", "price_history": [],
     }
@@ -1882,15 +1947,17 @@ async def list_developments(
 
         def _range_ok(d: dict) -> bool:
             # Sin lista de precios → cae a los rangos del proyecto (no perder desarrollos sin inventario detallado).
-            if beds is not None and d.get("bedrooms_range", [0, 0])[1] < beds:
+            # `_rango()` blinda contra rangos malformados: un solo proyecto con "" tiraba el listado
+            # completo con 500 al filtrar por recámaras/baños/cajones/m² (auditoría 07-24).
+            if beds is not None and _rango(d.get("bedrooms_range"))[1] < beds:
                 return False
-            if baths is not None and d.get("bathrooms_range", [0, 0])[1] < baths:
+            if baths is not None and _rango(d.get("bathrooms_range"))[1] < baths:
                 return False
-            if parking is not None and d.get("parking_range", [0, 0])[1] < parking:
+            if parking is not None and _rango(d.get("parking_range"))[1] < parking:
                 return False
-            if min_sqm is not None and d.get("m2_range", [0, 0])[1] < min_sqm:
+            if min_sqm is not None and _rango(d.get("m2_range"))[1] < min_sqm:
                 return False
-            if max_sqm is not None and d.get("m2_range", [0, 0])[0] > max_sqm:
+            if max_sqm is not None and _rango(d.get("m2_range"))[0] > max_sqm:
                 return False
             if max_price is not None and d.get("price_from", 0) > max_price:
                 return False
@@ -1979,7 +2046,7 @@ async def list_developments(
     elif sort == "price_desc":
         results.sort(key=lambda d: -d["price_from"])
     elif sort == "sqm_desc":
-        results.sort(key=lambda d: -d["m2_range"][1])
+        results.sort(key=lambda d: -_rango(d.get("m2_range"))[1])
     elif sort == "taste" and visitor_id:
         # 'Para ti' · lente de gusto: reordena por afinidad a lo que el visitante ha likeado (reusa el motor de parecidos).
         try:
@@ -2086,7 +2153,7 @@ async def casi_cumple(
         for a in (amenity or []):
             crit.append((_AML.get(a, a.replace("_", " ")), a in (d.get("amenities") or [])))
         if beds is not None:
-            crit.append((f"{beds} recámaras", any((u.get("bedrooms") or 0) >= beds for u in units) or (d.get("bedrooms_range", [0, 0])[1] >= beds)))
+            crit.append((f"{beds} recámaras", any((u.get("bedrooms") or 0) >= beds for u in units) or (_rango(d.get("bedrooms_range"))[1] >= beds)))
         if baths is not None:
             crit.append((f"{baths} baños", any((u.get("bathrooms") or 0) >= baths for u in units) or (d.get("bathrooms_range", [0, 0])[1] >= baths)))
         if parking is not None:
@@ -2098,7 +2165,7 @@ async def casi_cumple(
         if min_sqm is not None:
             crit.append((f"≥{min_sqm}m²", any((u.get("m2_total") or u.get("m2_privative") or 0) >= min_sqm for u in units) or (d.get("m2_range", [0, 0])[1] >= min_sqm)))
         if max_sqm is not None:
-            crit.append((f"≤{max_sqm}m²", any((u.get("m2_total") or u.get("m2_privative") or 10**9) <= max_sqm for u in units) or (d.get("m2_range", [0, 0])[0] <= max_sqm)))
+            crit.append((f"≤{max_sqm}m²", any((u.get("m2_total") or u.get("m2_privative") or 10**9) <= max_sqm for u in units) or (_rango(d.get("m2_range"))[0] <= max_sqm)))
         for f in (unit_feature or []):
             crit.append((_UFL.get(f, f), any(u.get(f) for u in units) or (f in (d.get("unit_features") or []))))
         for o in (orientacion or []):
@@ -2347,6 +2414,13 @@ async def get_development(dev_id: str, request: Request):
     except Exception:
         out.setdefault("price_history_source", "estimado")
     out["stage"] = _norm_stage(out.get("stage"), out.get("delivery_estimate"))   # por fecha de entrega real
+    # ── CANDADO FINAL (auditoría 07-24) ────────────────────────────────────────────────────
+    # Se limpia AQUÍ, en la salida, para cubrir las DOS ramas (seed y proyecto ingerido). La rama
+    # de ingeridos copiaba todo el documento y por eso la ficha pública servía la comisión de DMX,
+    # la carpeta de Drive del cliente, el nombre de su Excel y las notas forenses del equipo.
+    _units_limpias = [unit_public(u) for u in (out.get("units") or []) if isinstance(u, dict)]
+    out = _sin_internos(out, _INTERNOS_DEV)
+    out["units"] = _units_limpias
     return out
 
 
@@ -2428,7 +2502,11 @@ async def list_dev_units(
         units = [u for u in units if (u.get("bathrooms") or 0) >= baths]
     if parking is not None:
         units = [u for u in units if (u.get("parking_spots") or 0) >= parking]
-    return units
+    # Respeta el candado del equipo: lo marcado `oculto_ficha` NO se sirve al comprador
+    # (auditoría 07-24: salían 1,512 unidades marcadas para no mostrarse).
+    units = [u for u in units if not u.get("oculto_ficha")]
+    # Limpia campos internos (la fila cruda de la lista del cliente, rutas y notas del equipo).
+    return [unit_public(u) for u in units if isinstance(u, dict)]
 
 
 @router.get("/api/developments/{dev_id}/compliance-badge")
@@ -3415,7 +3493,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         def _dev_fits(d):
             if not _budget_ok(d):
                 return False
-            if _beds and ((d.get("bedrooms_range") or [0, 0])[-1] or 0) < _beds:
+            if _beds and _rango(d.get("bedrooms_range"))[1] < _beds:
                 return False
             if _baths and ((d.get("bathrooms_range") or [0, 0])[-1] or 0) < _baths:
                 return False
@@ -3446,7 +3524,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                     falta += [_FTN.get(f, f) for f in sorted(missf)]
             return max(1, min(10, round(sc / mx * 10))), falta[:3]
         def _specs_ok(d):   # rec/baños/estac/tipo SIN presupuesto (para relajar después)
-            if _beds and ((d.get("bedrooms_range") or [0, 0])[-1] or 0) < _beds:
+            if _beds and _rango(d.get("bedrooms_range"))[1] < _beds:
                 return False
             if _baths and ((d.get("bathrooms_range") or [0, 0])[-1] or 0) < _baths:
                 return False

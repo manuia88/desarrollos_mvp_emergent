@@ -126,6 +126,13 @@ app = FastAPI(
 # "https://desarrollosmx.io,https://www.desarrollosmx.io"). Dev: regex localhost.
 # Si CORS_ORIGINS no está seteada → solo localhost (comportamiento previo).
 _CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+
+# Compresión de respuestas (auditoría 07-24: NINGUNA respuesta iba comprimida y se tiraba ~93%
+# del ancho de banda; el listado del marketplace y la ficha son JSON grandes y muy repetitivos).
+# minimum_size evita gastar CPU comprimiendo respuestas diminutas.
+from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
 app.add_middleware(
     CORSMiddleware,
     # Spec: si allow_credentials=True NO se puede usar "*" en allow_origins
