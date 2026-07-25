@@ -484,8 +484,19 @@ class ScoreEngine:
 
     async def _persist(self, r: ScoreResult) -> None:
         """Upsert to ie_scores, append prior state to ie_score_history for audit."""
+        # RELLENO NO ES MEDICIÓN (auditoría A–Z 07-24). Un score sin observaciones
+        # (`inputs_used` vacío) o marcado `confidence: proxy` NO es un dato medido, pero se guardaba
+        # con `is_stub: False` y por tanto se publicaba y se archivaba como si lo fuera: el índice de
+        # calidad del aire llevaba 51 días diciendo exactamente 50 en las 17 colonias, firmado como
+        # medición, con un "histórico" de 49 renglones que sólo repetía el mismo relleno.
+        _sin_observaciones = not (r.inputs_used or {})
+        if _sin_observaciones or str(r.confidence or "").lower() == "proxy":
+            r.is_stub = True
+
         prior = await self.db.ie_scores.find_one({"zone_id": r.zone_id, "code": r.code}, {"_id": 0})
-        if prior:
+        # Sólo se archiva historia de scores MEDIDOS: archivar relleno fabrica una serie de tiempo
+        # falsa que después se lee como tendencia.
+        if prior and not prior.get("is_stub"):
             await self.db.ie_score_history.insert_one({**prior, "archived_at": datetime.now(timezone.utc)})
         doc = {
             "zone_id": r.zone_id, "code": r.code,
