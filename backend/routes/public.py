@@ -128,21 +128,30 @@ def _aggregates_from_units(units: list, total_edificio: int = 0) -> dict:
     # vendidas no detalladas (07-17: Chilpancingo 48 deptos, 1 cargado, mostraba 'total 1').
     total = max(len(deptos), total_edificio or 0)
     disp, resv = sc.get("disponible", 0), sc.get("reservado", 0)
-    # `bloqueado` = el dev la retiró de la venta (no está vendida). Antes se contaba como VENDIDA
-    # porque las vendidas se calculaban por resta: 38 unidades bloqueadas de Wish Residencial se
-    # publicaban como vendidas, y Chilpancingo 57 anunciaba "47 vendidas" teniendo 1 unidad cargada
-    # de un edificio de 48 (auditoría A–Z 07-24). Sólo la DIFERENCIA contra el total del brochure
-    # se puede presumir vendida: son las que ya no aparecen en la lista de disponibilidad.
+    # REGLA DEL FOUNDER (07-25): el brochure da el TOTAL del edificio y la lista de precios da las
+    # DISPONIBLES. Si el brochure dice 150 y la lista trae 50, las otras 100 **no están a la venta**:
+    # están apartadas O ya se vendieron, y no hay forma de saber cuál. Por eso NO se les llama
+    # "vendidas" — antes la resta las metía todas ahí y el marketplace anunciaba ventas que nadie
+    # hizo (Chilpancingo: "47 vendidas" con 1 unidad cargada de 48).
+    #
+    # `bloqueado` es distinto: la unidad SÍ está en la lista y el dev la retiró a propósito. Tampoco
+    # es una venta (Wish tenía 38 bloqueadas publicadas como vendidas).
     bloq = sc.get("bloqueado", 0) + sc.get("bloqueada", 0)
     otros = sum(v for k, v in sc.items()
                 if k not in ("disponible", "reservado", "vendido", "bloqueado", "bloqueada"))
-    no_detalladas = max(0, total - len(deptos))      # están en el brochure pero no en la lista
+    fuera_de_lista = max(0, total - len(deptos))   # en el brochure pero no en la lista de precios
     agg["units_total"] = total
     agg["units_available"] = disp
     agg["units_reserved"] = resv
     agg["units_blocked"] = bloq
-    agg["units_sold"] = sc.get("vendido", 0) + no_detalladas
-    agg["units_sold_estimadas"] = no_detalladas      # honestidad: cuántas de las "vendidas" son inferidas
+    agg["units_sold"] = sc.get("vendido", 0)       # SOLO las que la lista marca vendidas
+    # Las que ya no están a la venta sin que se sepa si es por apartado o por venta.
+    agg["units_no_disponibles"] = fuera_de_lista
+    agg["units_no_disponibles_nota"] = (
+        f"{fuera_de_lista} unidades del edificio no vienen en la lista de precios: están apartadas "
+        f"o ya se vendieron" if fuera_de_lista else "")
+    # Lo colocado (vendido + apartado + fuera de lista) — la cifra buena para absorción.
+    agg["units_colocadas"] = sc.get("vendido", 0) + resv + fuera_de_lista
     agg["units_otros_estatus"] = otros
     return agg
 
