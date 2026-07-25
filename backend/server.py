@@ -133,6 +133,10 @@ _CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(","
 from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
+# Freno anti-copia del catálogo (auditoría 07-24: se bajaba entero en 117 peticiones y 6.4 s).
+from freno_peticiones import freno_publico  # noqa: E402
+app.middleware("http")(freno_publico)
+
 app.add_middleware(
     CORSMiddleware,
     # Spec: si allow_credentials=True NO se puede usar "*" en allow_origins

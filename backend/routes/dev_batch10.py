@@ -141,8 +141,9 @@ async def list_projects_with_stats(request: Request):
     leads_closed_agg = {}
     since_30d = datetime.now(timezone.utc) - timedelta(days=30)
     TERMINAL_STATUSES = {"cerrado_ganado", "cerrado_perdido", "archivado"}
+    from leads_reales import con_reales as _reales
     async for lead in db.leads.find(
-        {"development_id": {"$in": dev_ids}},
+        _reales({"development_id": {"$in": dev_ids}}),
         {"_id": 0, "development_id": 1, "status": 1, "created_at": 1}
     ):
         did = lead["development_id"]
@@ -599,12 +600,13 @@ async def get_project_summary(project_id: str, request: Request):
     avg_price = (price_from + price_to) / 2 if price_to > price_from else price_from
     revenue_mtd_est = int(by_status.get("vendido", 0) * avg_price)
 
-    leads_active = await db.leads.count_documents({
+    from leads_reales import con_reales
+    leads_active = await db.leads.count_documents(con_reales({
         "development_id": project_id,
         "status": {"$nin": ["cerrado_ganado", "cerrado_perdido", "archivado"]}
-    })
+    }))
     # Embudo real (sin filtros de fecha → robusto): total, ganados, conversión.
-    leads_total = await db.leads.count_documents({"development_id": project_id})
+    leads_total = await db.leads.count_documents(con_reales({"development_id": project_id}))
     leads_won = await db.leads.count_documents({
         "development_id": project_id, "status": {"$in": ["cerrado_ganado", "ganado", "won"]}
     })
