@@ -86,6 +86,25 @@ async def public_snapshot(
             "zone_id": zone_id, "tier": tier, "period": period,
             "available": False, "reason": "no_snapshot",
         }
+    # ÍNDICE SINTÉTICO NO SE PUBLICA COMO ÍNDICE (auditoría A–Z 07-24). De los 59,956 snapshots,
+    # 59,832 son `synthetic` y 59,944 tienen `sample_size: 0` — es decir, prácticamente todo el
+    # "histórico de precios por zona" es un proxy rellenado, sin una sola transacción detrás.
+    # Servía index_value 115.155 y delta +0.565% para Polanco como si fueran mediciones.
+    # El número proxy se conserva aparte (sirve para dibujar tendencia interna) pero NO ocupa el
+    # lugar del índice: el público recibe available:false y el motivo, sin cifra que parezca medida.
+    if snap.get("synthetic") is True or not (snap.get("sample_size") or 0):
+        snap = {
+            **snap,
+            "index_value": None,
+            "delta_pct": None,
+            "available": False,
+            "reason": "sin_transacciones_suficientes",
+            "motivo_humano": "Todavía no hay suficientes operaciones registradas en esta zona "
+                             "para calcular su índice de precios",
+            # el proxy queda a la vista pero etiquetado, para que nadie lo confunda con medición
+            "index_proxy": snap.get("index_value"),
+            "delta_proxy_pct": snap.get("delta_pct"),
+        }
 
     out: dict = {
         "snapshot": snap,
