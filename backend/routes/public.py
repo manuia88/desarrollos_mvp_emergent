@@ -136,32 +136,28 @@ def _aggregates_from_units(units: list, total_edificio: int = 0) -> dict:
     #
     # `bloqueado` es distinto: la unidad SÍ está en la lista y el dev la retiró a propósito. Tampoco
     # es una venta (Wish tenía 38 bloqueadas publicadas como vendidas).
+    # REGLA DEL FOUNDER (07-25, definitiva): **si la unidad desaparece de la lista de precios, está
+    # VENDIDA.** No tenemos acceso a las listas internas del desarrollador donde se van marcando, así
+    # que la desaparición ES la señal de venta. Un edificio de 150 con 50 en la lista vendió 100.
+    #
+    # El bug que sí había: las vendidas se calculaban restando TODO lo demás, así que las unidades
+    # `bloqueado` —que SÍ están en la lista, retiradas a propósito por el dev— se contaban como
+    # ventas (38 en Wish Residencial). Esas no se vendieron: siguen listadas y pueden volver.
     bloq = sc.get("bloqueado", 0) + sc.get("bloqueada", 0)
-    vend = sc.get("vendido", 0)
     otros = sum(v for k, v in sc.items()
                 if k not in ("disponible", "reservado", "vendido", "bloqueado", "bloqueada"))
-    fuera_de_lista = max(0, total - len(deptos))   # en el brochure pero no en la lista de precios
+    fuera_de_lista = max(0, total - len(deptos))   # en el brochure pero YA NO en la lista → vendidas
     agg["units_total"] = total
     agg["units_available"] = disp
     agg["units_reserved"] = resv
-    agg["units_blocked"] = bloq
-    agg["units_sold"] = vend                       # las que la lista marca vendidas, cuando lo hace
-
-    # **units_sold NUNCA es el total de ventas.** Sólo 39 de 115 desarrollos traen el estatus
-    # 'vendido' en su lista; en los otros 76 la unidad vendida simplemente DESAPARECE de la lista.
-    # Presentar ese 0 como "no ha vendido nada" es tan falso como la resta que ponía 47 ventas que
-    # nadie hizo. Cuando faltan unidades contra el brochure, el conteo de ventas es PARCIAL y se dice.
-    agg["units_sold_es_parcial"] = bool(fuera_de_lista)
-
-    # La única cifra defendible de cara al comprador: lo que YA NO se puede comprar. Junta apartadas,
-    # bloqueadas, vendidas y las que desaparecieron de la lista, sin afirmar por cuál motivo.
+    agg["units_blocked"] = bloq                    # retiradas por el dev, NO vendidas
+    agg["units_sold"] = sc.get("vendido", 0) + fuera_de_lista
+    # Trazabilidad: cuántas de esas ventas vienen marcadas en la lista y cuántas se deducen de que
+    # la unidad ya no aparece. Las dos cuentan como venta; esto solo dice de dónde salió el número.
+    agg["units_sold_marcadas"] = sc.get("vendido", 0)
+    agg["units_sold_por_ausencia"] = fuera_de_lista
+    # Todo lo que ya no se puede comprar (vendidas + apartadas + bloqueadas).
     agg["units_no_disponibles"] = max(0, total - disp)
-    agg["units_no_disponibles_nota"] = (
-        f"{fuera_de_lista} unidades del edificio ya no vienen en la lista de precios: están "
-        f"apartadas o ya se vendieron" if fuera_de_lista else "")
-    # Colocado = todo lo que salió del inventario vendible (para absorción). Excluye 'bloqueado',
-    # que el dev retiró a propósito y puede regresar a la venta.
-    agg["units_colocadas"] = vend + resv + fuera_de_lista
     agg["units_otros_estatus"] = otros
     return agg
 
