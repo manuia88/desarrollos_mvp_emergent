@@ -171,6 +171,19 @@ def _sin_internos(d: dict, extra: set) -> dict:
     return {k: v for k, v in d.items() if not _es_interno(k, extra)}
 
 
+# ── Demanda pública: no publicar el tráfico del propio equipo como si fuera mercado ─────────
+# Auditoría 07-24: /api/public/pulso-zona publicaba "22 compradores buscando en Polanco,
+# presupuesto $14,000,000". Los 22 eran corridas de la batería de pruebas desde 127.0.0.1.
+# De 744 búsquedas registradas sólo hay 2 direcciones de internet distintas: casi todo es interno.
+_IP_HASH_INTERNAS = [
+    "12ca17b49af22894",   # sha256("127.0.0.1")[:16] — la máquina de desarrollo
+]
+_SIN_TRAFICO_INTERNO = {"ip_hash": {"$nin": _IP_HASH_INTERNAS}}
+# Mínimo de personas DISTINTAS para que una cifra de demanda sea publicable. Por debajo de esto
+# no es señal de mercado: es ruido con cara de dato. Preferimos decir "aún no alcanza" a inventar.
+MIN_PERSONAS_PULSO = 5
+
+
 def _rango(v) -> list:
     """Normaliza cualquier `*_range` a una lista [min, max] de números.
 
@@ -2836,15 +2849,29 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
             if _fold_txt(_sc.get("name")) == _nf and _sc.get("id"):
                 _ids.add(_sc["id"])
     base = {"colonia_id": {"$in": list(_ids)}, "created_at_dt": {"$gte": _d.utcnow() - _t(days=30)}}
+    # Excluye el tráfico del propio equipo: las corridas de prueba desde la máquina de desarrollo
+    # se estaban publicando como demanda real ("22 compradores buscando en Polanco, presupuesto
+    # $14,000,000" salían de la batería de pruebas en 127.0.0.1 · auditoría 07-24).
+    base.update(_SIN_TRAFICO_INTERNO)
     try:
         demanda = await db.marketplace_searches.count_documents(base)
     except Exception:
+        demanda = 0
+    # Un "pulso de zona" hecho con 2 personas no es una señal de mercado, es ruido con cara de dato.
+    # Si no hay un mínimo de visitantes DISTINTOS, no se publica cifra: se dice que aún no alcanza.
+    _personas = 0
+    try:
+        _personas = len([v for v in await db.marketplace_searches.distinct("visitor_id", base) if v])
+    except Exception:
+        pass
+    if _personas < MIN_PERSONAS_PULSO:
         demanda = 0
     pres = rec = None
     try:
         import statistics as _stt
         from collections import Counter as _Counter
-        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "ps": {"$push": "$precio_max"}, "rs": {"$push": "$recamaras_min"}}}]).to_list(1)
+        _a = ([] if _personas < MIN_PERSONAS_PULSO else
+              await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "ps": {"$push": "$precio_max"}, "rs": {"$push": "$recamaras_min"}}}]).to_list(1))
         if _a:
             _ps = [x for x in (_a[0].get("ps") or []) if isinstance(x, (int, float)) and x]
             _rs = [int(x) for x in (_a[0].get("rs") or []) if isinstance(x, (int, float)) and x]
