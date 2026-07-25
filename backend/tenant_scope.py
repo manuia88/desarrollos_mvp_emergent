@@ -179,9 +179,38 @@ def assert_dev_org(user, dev_org_id):
 
 
 def assert_dev_project(user, project_id):
-    """Lanza 403 si el proyecto no pertenece al usuario."""
+    """Lanza 403 si el proyecto no pertenece al usuario. SOLO mira el seed en memoria.
+
+    ⚠️ Prefiere `assert_dev_project_db` en cualquier ruta que pueda tocar un proyecto REAL: los
+    desarrollos ingeridos viven en db.developments y esta versión no los conoce, así que le negaba
+    al dueño su propio proyecto (auditoría A–Z 07-24: 403 en rutas vivas del portal del dev).
+    """
     from fastapi import HTTPException
     if not dev_can_access_project(user, project_id):
+        raise HTTPException(403, "Este proyecto es de otra desarrolladora")
+
+
+async def dev_can_access_project_db(db, user, project_id) -> bool:
+    """¿El proyecto es del usuario? Mira el seed Y los desarrollos reales de la base.
+
+    Es la versión que hay que usar: `dev_can_access_project` sólo conoce el catálogo demo en
+    memoria, y con 116 desarrollos reales en db.developments eso significa negarle al dueño lo suyo.
+    Fail-closed: si la base no responde, se queda con lo que diga el seed (no abre de más).
+    """
+    if dev_can_access_project(user, project_id):
+        return True
+    if not project_id:
+        return False
+    try:
+        return project_id in await user_dev_ids_db(db, user)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+async def assert_dev_project_db(db, user, project_id):
+    """Lanza 403 sólo si el proyecto de verdad no es del usuario (seed + base real)."""
+    from fastapi import HTTPException
+    if not await dev_can_access_project_db(db, user, project_id):
         raise HTTPException(403, "Este proyecto es de otra desarrolladora")
 
 

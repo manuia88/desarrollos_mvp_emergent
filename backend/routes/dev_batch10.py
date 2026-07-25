@@ -175,9 +175,26 @@ async def list_projects_with_stats(request: Request):
     # Ventas reales por semana (units_history) — antes se inventaban.
     weekly_map = await _real_weekly_sales_map(db, dev_ids)
 
+    # FUENTE DE PROYECTOS (auditoría A–Z 07-24): antes esto recorría SOLO `DEVELOPMENTS`, el
+    # catálogo demo en memoria. Los 116 desarrollos reales viven en db.developments, así que el
+    # portal le devolvía CERO proyectos a las 5 inmobiliarias de verdad — su pantalla principal
+    # estaba vacía y ninguna podía siquiera cambiar un precio. Ahora se recorre seed + base.
+    _en_seed = {d["id"] for d in DEVELOPMENTS}
+    _fuente = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
+    _faltan = [i for i in dev_ids if i not in _en_seed]
+    if _faltan:
+        from ingested_reader import units_for_dev
+        async for _d in db.developments.find({"id": {"$in": _faltan}}, {"_id": 0}):
+            if not _d.get("units"):
+                try:
+                    _d["units"] = await units_for_dev(db, _d["id"])
+                except Exception:  # noqa: BLE001
+                    _d["units"] = []
+            _fuente.append(_d)
+
     # Build result
     results = []
-    for dev in DEVELOPMENTS:
+    for dev in _fuente:
         if dev["id"] not in dev_ids:
             continue
 

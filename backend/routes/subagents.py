@@ -214,8 +214,8 @@ async def apply_recommendation(rec_id: str, request: Request):
             # P2 (defensa en profundidad): si el dev se resolvió por fallback (unit_id es global), revalida pertenencia
             # antes de mutar el precio público — la unidad NO puede ser de otra desarrolladora.
             if dev_id and getattr(user, "role", "") != "superadmin":
-                from tenant_scope import dev_can_access_project
-                if not dev_can_access_project(user, dev_id):
+                from tenant_scope import dev_can_access_project_db
+                if not await dev_can_access_project_db(db, user, dev_id):
                     raise HTTPException(403, "La unidad pertenece a otra desarrolladora")
             ov = await db.developer_unit_overrides.find_one({"dev_id": dev_id, "unit_id": unit_id}, {"_id": 0}) if dev_id else None
             base_price = (unit or {}).get("price")          # precio de LISTA original = el ancla del tope

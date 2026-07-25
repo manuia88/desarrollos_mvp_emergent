@@ -1259,8 +1259,8 @@ async def get_hold(unit_id: str, request: Request):
     if not hold:
         return {"active": False, "unit_id": unit_id}
     # No revelar datos del apartado (holder/razón/vencimiento) de otra dev.
-    from tenant_scope import dev_can_access_project
-    if not dev_can_access_project(user, hold.get("dev_id")):
+    from tenant_scope import dev_can_access_project_db
+    if not await dev_can_access_project_db(db, user, hold.get("dev_id")):
         return {"active": False, "unit_id": unit_id}
     # Compute remaining seconds
     try:

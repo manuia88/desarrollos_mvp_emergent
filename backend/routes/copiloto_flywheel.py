@@ -207,12 +207,12 @@ async def cierre(b: CierreIn, request: Request):
         # del caller (asesor) o un desarrollo suyo (developer). cron/superadmin pasan.
         _role = getattr(_u, "role", "") if _u else ""
         if _u is not None and _role != "superadmin":
-            from tenant_scope import assert_lead_owner, dev_can_access_project
+            from tenant_scope import assert_lead_owner, dev_can_access_project_db
             if b.lead_id:
                 await assert_lead_owner(db, _u, b.lead_id)           # 403 si el lead no es del caller
             elif _role in ("developer_admin", "developer_director"):
                 # developer sin lead: solo puede cerrar sobre un desarrollo SUYO (no demo-fallback).
-                if not dev_can_access_project(_u, b.dev_id):
+                if not await dev_can_access_project_db(db, _u, b.dev_id):
                     raise _HTTPException(403, "No puedes registrar un cierre para este desarrollo")
             else:
                 # asesor sin lead_id: no puede atribuir el cierre a nada suyo → rechazar (cierra el envenenamiento
