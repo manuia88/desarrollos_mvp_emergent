@@ -128,10 +128,22 @@ def _aggregates_from_units(units: list, total_edificio: int = 0) -> dict:
     # vendidas no detalladas (07-17: Chilpancingo 48 deptos, 1 cargado, mostraba 'total 1').
     total = max(len(deptos), total_edificio or 0)
     disp, resv = sc.get("disponible", 0), sc.get("reservado", 0)
+    # `bloqueado` = el dev la retiró de la venta (no está vendida). Antes se contaba como VENDIDA
+    # porque las vendidas se calculaban por resta: 38 unidades bloqueadas de Wish Residencial se
+    # publicaban como vendidas, y Chilpancingo 57 anunciaba "47 vendidas" teniendo 1 unidad cargada
+    # de un edificio de 48 (auditoría A–Z 07-24). Sólo la DIFERENCIA contra el total del brochure
+    # se puede presumir vendida: son las que ya no aparecen en la lista de disponibilidad.
+    bloq = sc.get("bloqueado", 0) + sc.get("bloqueada", 0)
+    otros = sum(v for k, v in sc.items()
+                if k not in ("disponible", "reservado", "vendido", "bloqueado", "bloqueada"))
+    no_detalladas = max(0, total - len(deptos))      # están en el brochure pero no en la lista
     agg["units_total"] = total
     agg["units_available"] = disp
     agg["units_reserved"] = resv
-    agg["units_sold"] = max(sc.get("vendido", 0), total - disp - resv)   # + vendidas ocultas
+    agg["units_blocked"] = bloq
+    agg["units_sold"] = sc.get("vendido", 0) + no_detalladas
+    agg["units_sold_estimadas"] = no_detalladas      # honestidad: cuántas de las "vendidas" son inferidas
+    agg["units_otros_estatus"] = otros
     return agg
 
 

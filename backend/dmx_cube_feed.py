@@ -135,6 +135,10 @@ def db_unit_to_atom(u: Dict[str, Any], dev: Dict[str, Any]) -> Dict[str, Any]:
         "unit_id": u.get("id"),
         "development_id": u.get("development_id") or dev.get("id"),
         "prototype_id": u.get("type"),
+        # Tipo REAL de la unidad (casa/depto/loft/estudio). Antes no viajaba al cubo y el corte por
+        # tipo devolvía "departamento" para todo — 150 casas y 7 roof gardens salían mal clasificados
+        # (auditoría A–Z 07-24).
+        "tipo_unidad": (u.get("type") or u.get("property_type") or "").strip().lower() or None,
         "org_id": u.get("developer_id") or dev.get("developer_id"),
         "developer_id": u.get("developer_id") or dev.get("developer_id"),
         "tipologia": tipologia_from_beds(beds),
@@ -255,6 +259,37 @@ async def juez_cubo_universos(db) -> Dict[str, Any]:
 
 
 # ─── átomo → plano (para el agregador del cubo) ──────────────────────────────
+def _tipo_normalizado(v) -> str:
+    """Tipo de unidad para el cubo: casa / depto / loft / estudio / terreno. 'depto' sólo si no hay dato."""
+    t = str(v or "").strip().lower()
+    if not t:
+        return "depto"
+    if "casa" in t:
+        return "casa"
+    if "terreno" in t or "lote" in t:
+        return "terreno"
+    if "loft" in t:
+        return "loft"
+    if "estudio" in t or "studio" in t:
+        return "estudio"
+    if "roof" in t:
+        return "roof_garden"
+    if "local" in t or "oficina" in t:
+        return t
+    return "depto"
+
+
+def _entero_si_cabe(v):
+    """2.0 → 2 (mismo valor, misma cubeta). Deja intacto lo que no sea número."""
+    if v is None:
+        return "sin_dato"
+    try:
+        f = float(v)
+        return int(f) if f.is_integer() else f
+    except (TypeError, ValueError):
+        return v
+
+
 def flatten_atom(a: Dict[str, Any]) -> Dict[str, Any]:
     """Aplana el átomo al shape plano que cube_olap_engine agrega, + dimensiones ricas."""
     com = a.get("commercial") or {}
@@ -275,13 +310,18 @@ def flatten_atom(a: Dict[str, Any]) -> Dict[str, Any]:
         "price_mxn": precio,
         "m2_privative": m2,
         "size_m2": m2,
-        "unit_type": "depto" if (a.get("tipologia") or "").endswith("recamaras") or a.get("tipologia") in ("estudio", "1_recamara") else "depto",
+        # Las DOS ramas del ternario anterior devolvían "depto", así que el corte por tipo estaba
+        # muerto: una casa se reportaba como departamento. Ahora se lee el tipo real del átomo y
+        # sólo se cae a "depto" cuando de verdad no hay dato.
+        "unit_type": _tipo_normalizado(a.get("tipo_unidad")),
         "colonia_id": geo.get("colonia_id"),
         "zone_id": geo.get("colonia_id"),
         "alcaldia": geo.get("alcaldia"),
         # dimensiones RICAS (nuevas)
         "tipologia": a.get("tipologia") or "sin_dato",
-        "recamaras": interior.get("recamaras") if interior.get("recamaras") is not None else "sin_dato",
+        # '2' y '2.0' eran cubetas SEPARADAS en los cortes (1,016 + 1,349 unidades partidas en dos).
+        # Se normaliza a entero cuando el valor es entero, antes de que el agregador lo pase por str().
+        "recamaras": _entero_si_cabe(interior.get("recamaras")),
         "banda_m2": banda_m2(m2),
         "has_roof": "con_roof" if (areas.get("m2_roof_garden_privado") or 0) > 0 else "sin_roof",
         "has_bodega": "con_bodega" if a.get("storage") else "sin_bodega",
