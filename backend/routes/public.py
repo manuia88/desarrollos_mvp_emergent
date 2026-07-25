@@ -211,6 +211,34 @@ _SIN_TRAFICO_INTERNO = {"ip_hash": {"$nin": _IP_HASH_INTERNAS}}
 MIN_PERSONAS_PULSO = 5
 
 
+def precision_ubicacion(dev: dict) -> tuple:
+    """¿El pin del mapa es la dirección real o el centro de la colonia? → (precision, nota).
+
+    Auditoría A–Z 07-24: 42 desarrollos comparten 15 coordenadas — en la Roma hay 7 edificios
+    distintos cayendo en el mismo punto. No es un error de captura: son proyectos geocodificados al
+    CENTRO DE LA COLONIA porque no se pudo resolver la calle. El dato es honesto, pero el mapa los
+    pintaba como pines exactos y el comprador cree que ahí está el edificio.
+
+    `geo_confianza` viene inconsistente (etiquetas 'colonia'/'baja'/'nombre' mezcladas con números
+    0.053, 0.341, y 21 vacíos), así que se normaliza aquí, en un solo lugar.
+    """
+    v = dev.get("geo_confianza")
+    nivel = str(dev.get("geo_nivel") or "").strip().lower()
+    txt = str(v).strip().lower() if v is not None else ""
+    if txt in ("exacta", "direccion", "dirección", "calle", "rooftop") or nivel in ("direccion", "calle"):
+        return "exacta", None
+    if txt in ("colonia", "baja", "nombre") or nivel == "colonia":
+        return "aproximada", "Ubicación aproximada: el pin marca el centro de la colonia, no la dirección exacta"
+    try:  # forma numérica: 0–1, donde <0.6 es poco confiable
+        f = float(txt)
+        if f >= 0.6:
+            return "exacta", None
+        return "aproximada", "Ubicación aproximada: el pin marca el centro de la colonia, no la dirección exacta"
+    except (TypeError, ValueError):
+        pass
+    return "desconocida", "No hemos verificado la ubicación exacta de este desarrollo"
+
+
 def _rango(v) -> list:
     """Normaliza cualquier `*_range` a una lista [min, max] de números.
 
@@ -2462,8 +2490,12 @@ async def get_development(dev_id: str, request: Request):
     # de ingeridos copiaba todo el documento y por eso la ficha pública servía la comisión de DMX,
     # la carpeta de Drive del cliente, el nombre de su Excel y las notas forenses del equipo.
     _units_limpias = [unit_public(u) for u in (out.get("units") or []) if isinstance(u, dict)]
+    _prec, _nota = precision_ubicacion(out)
     out = _sin_internos(out, _INTERNOS_DEV)
     out["units"] = _units_limpias
+    # El mapa debe poder distinguir un pin exacto de uno puesto en el centro de la colonia.
+    out["ubicacion_precision"] = _prec
+    out["ubicacion_nota"] = _nota
     return out
 
 
