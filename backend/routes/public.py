@@ -1653,8 +1653,8 @@ async def get_properties(
     if tag:
         results = [p for p in results if p["tag"] == tag]
     if amenity:
-        aset = set(amenity)
-        results = [p for p in results if aset.issubset(set(p.get("amenities", [])))]
+        from amenidades import cumple_todas
+        results = [p for p in results if cumple_todas(p.get("amenities", []), amenity)]
     if sort == "price_asc":
         results.sort(key=lambda p: p["price"])
     elif sort == "price_desc":
@@ -1875,8 +1875,11 @@ async def list_developments(
         _na = alcaldia.lower().replace("_", " ").strip()
         results = [d for d in results if (d.get("alcaldia") or "").lower().replace("_", " ").strip() == _na]
     if amenity:
-        aset = set(amenity)  # amenidades = del EDIFICIO → se piden al desarrollo (gym/alberca/roof/concierge…)
-        results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
+        # Diccionario único de amenidades: el filtro manda códigos ('roof') y el catálogo guarda
+        # 207 formas distintas ('Roof Garden', 'roof garden comunal', 'Roof Garden Común'…). Sin
+        # esta traducción, 11 de los 16 botones devolvían CERO (auditoría 07-24).
+        from amenidades import cumple_todas
+        results = [d for d in results if cumple_todas(d.get("amenities", []), amenity)]
     if featured is not None:
         results = [d for d in results if d["featured"] == featured]
 
