@@ -209,15 +209,32 @@ async def internal_login(payload: InternalLoginPayload, request: Request, respon
     """
     from server import verify_password, create_access_token, create_refresh_token
 
+    # SEGURIDAD (auditoría A–Z 07-24): esta era una SEGUNDA puerta de login sin ninguno de los
+    # candados que sí tiene /api/auth/login — se podía adivinar la contraseña del superadmin sin
+    # límite de intentos. Se replican los tres candados de la puerta principal.
+    from routes.auth import _login_guard, _login_fail, _login_ok, _client_ip
+
     db = _db(request)
     email = payload.email.lower().strip()
+    ip = _client_ip(request)
+    _login_guard(ip, email)                     # 1) freno de fuerza bruta
     user_doc = await db.users.find_one({"email": email}, {"_id": 0})
-    if not user_doc or not verify_password(payload.password, user_doc.get("password_hash", "")):
+    # 2) bcrypt SIEMPRE, aunque el correo no exista: mismo tiempo de respuesta exista o no la
+    #    cuenta, para que no se puedan enumerar usuarios midiendo el retraso.
+    _hash = (user_doc or {}).get("password_hash") or "$2b$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+    _pw_ok = verify_password(payload.password, _hash)
+    if not user_doc or not _pw_ok:
+        _login_fail(ip, email)
         raise HTTPException(401, "Email o contraseña incorrectos")
+
+    # 3) cuenta suspendida: no se entrega sesión (la puerta principal ya lo hacía)
+    if user_doc.get("account_blocked"):
+        raise HTTPException(403, "Cuenta suspendida. Contactar soporte.")
 
     # Must be an internal-user flavoured role (dev_admin / dev_member / superadmin).
     if user_doc.get("role") not in ("developer_admin", "developer_member", "superadmin"):
         raise HTTPException(403, "Usuario no pertenece al Portal Desarrollador")
+    _login_ok(ip, email)
 
     user_id = user_doc["user_id"]
     access  = create_access_token(user_id, email)
