@@ -479,6 +479,14 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         )
 
     # Placeholder units
+    # GUARDIÁN DE PRECIO (auditoría A–Z 07-24): aquí no hay precio anterior contra el cual comparar
+    # —son unidades nuevas— pero sí aplica el filtro absoluto: un precio en cero o de dos dígitos
+    # casi siempre es una celda mal leída, y nacería publicado.
+    if target_price:
+        from guardian_precio import precio_plausible
+        _ok, _motivo = precio_plausible(None, target_price)
+        if not _ok:
+            raise HTTPException(422, f"Precio de arranque frenado por el guardián: {_motivo}")
     for i in range(min(total_units, 200)):  # cap insert batch
         uid = f"{slug}-u{i+1:03d}"
         await db.units.update_one(

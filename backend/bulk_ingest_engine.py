@@ -2073,7 +2073,33 @@ async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
                 except Exception as e:  # noqa: BLE001
                     log.warning(f"[bulk_ingest] price_event: {e}")
             if _price:
-                upd.update({"price": _price, "price_mxn": _price, "price_display": f"${int(_price):,}"})
+                # GUARDIÁN DE PRECIO (auditoría A–Z 07-24): la ingesta masiva era la puerta más
+                # transitada de las 15 que escribían precios sin ningún control. Si el cambio no es
+                # creíble (salto >±40%, $/m² fuera de rango, un dígito de más o de menos) NO se
+                # aplica: se deja el precio vigente y se registra para que un humano lo revise.
+                _g_ok, _g_motivo = True, None
+                try:
+                    from guardian_precio import precio_plausible
+                    _g_ok, _g_motivo = precio_plausible(
+                        old_price, _price,
+                        existing.get("m2_total") or existing.get("m2_privative") or existing.get("size_m2"))
+                except Exception:  # noqa: BLE001
+                    pass
+                if _g_ok:
+                    upd.update({"price": _price, "price_mxn": _price, "price_display": f"${int(_price):,}"})
+                else:
+                    log.warning(f"[bulk_ingest] precio FRENADO en {existing.get('unit_number')} "
+                                f"de {target_dev_id}: {_g_motivo}")
+                    try:
+                        await db.price_events.insert_one({
+                            "unit_id": existing.get("id"), "dev_id": target_dev_id,
+                            "unit_number": existing.get("unit_number"),
+                            "old_price": old_price, "new_price": _price,
+                            "changed_at": now, "fuente": "reingesta", "actor": "bulk_ingest",
+                            "guardian_ok": False, "guardian_motivo": _g_motivo,
+                            "aplicado": False, "forzado": False})
+                    except Exception:  # noqa: BLE001
+                        pass
             # HISTÓRICO #2 · estatus cambió → unit_status_events (vendido ⇒ días-para-vender REALES). Fail-open.
             old_st = existing.get("status")
             if _new_st and _new_st != old_st:

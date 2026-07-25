@@ -644,6 +644,9 @@ async def ficha_de_unidad(request: Request, unit_id: str):
 class UnidadPatch(BaseModel):
     status: Optional[str] = None
     price_mxn: Optional[float] = Field(default=None, ge=0)
+    # El guardián de precio frena saltos absurdos (>±40%, $/m² fuera de rango, precios de un dígito
+    # de más o de menos). Si el humano ya revisó y el precio es correcto, reenvía con esto en true.
+    forzar_precio: bool = False
     orientacion: Optional[str] = None      # norte/sur/oriente/poniente/…
     vista: Optional[str] = Field(default=None, max_length=80)   # calle/interior/parque…
     # corrección de datos desde la ficha (founder 07-15: "un botón que permita editar")
@@ -694,8 +697,30 @@ async def editar_unidad(request: Request, unit_id: str, body: UnidadPatch):
             raise HTTPException(400, f"Estado inválido; usa uno de {sorted(ESTADOS_VALIDOS)}")
         cambios["status"] = st
     if body.price_mxn is not None:
+        # GUARDIÁN DE PRECIO (auditoría A–Z 07-24): esta era una de las 15 puertas que podían
+        # cambiar un precio sin ningún control. Se valida antes de escribir y queda registro de
+        # quién lo cambió, desde cuánto y con qué fuente — aplicado o frenado.
+        from guardian_precio import precio_plausible
+        _ok, _motivo = precio_plausible(
+            u.get("price") or u.get("price_mxn"), float(body.price_mxn),
+            u.get("m2_total") or u.get("m2_privative") or u.get("size_m2"))
+        if not _ok and not getattr(body, "forzar_precio", False):
+            raise HTTPException(422, f"Precio frenado por el guardián: {_motivo}. "
+                                     f"Si es correcto, reenvía con forzar_precio=true.")
         cambios["price_mxn"] = float(body.price_mxn)
         cambios["price"] = float(body.price_mxn)
+        cambios["price_fuente"] = "inventario_superadmin"
+        try:
+            await db.price_events.insert_one({
+                "unit_id": unit_id, "dev_id": u.get("development_id"),
+                "unit_number": u.get("unit_number"),
+                "old_price": u.get("price") or u.get("price_mxn"),
+                "new_price": float(body.price_mxn), "changed_at": _now_iso(),
+                "fuente": "inventario_superadmin", "actor": str(getattr(user, "user_id", user)),
+                "guardian_ok": bool(_ok), "guardian_motivo": _motivo,
+                "aplicado": True, "forzado": bool(not _ok)})
+        except Exception:
+            pass
     if body.orientacion is not None:
         o = body.orientacion.strip().lower()
         if o and o not in ORIENTACIONES:
