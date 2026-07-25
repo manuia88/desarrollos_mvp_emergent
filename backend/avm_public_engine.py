@@ -248,16 +248,26 @@ async def avm_quick_async(
             # FIX auditoría (honestidad): NO exponer un 2º precio que contradice el principal. El modelo FSD
             # aún sin calibrar da valores/bandas absurdas (ej. 28.7M con banda 5M–52M vs principal 10.7M).
             # Solo lo mostramos si su banda es creíble (±≤35%) y no se aleja >40% del estimado principal.
+            # Tolerancias CERRADAS (auditoría A–Z 07-24): con ±40% se colaba una segunda valuación
+            # 30.1% más alta que la principal, en la MISMA respuesta y etiquetada "confianza ALTA"
+            # (Doctores 80 m²: $2,857,600 referencial vs $3,716,868 con banda 3.25M–4.18M). Dos
+            # precios distintos del mismo departamento no es un rango: es una contradicción.
             _main = response.get("precio_estimado")
             _fsdv = fsd.get("value")
-            _banda_ok = (fsd.get("fsd_pct") or 999) <= 35
-            _cerca = bool(_main and _fsdv and abs(_fsdv / _main - 1) <= 0.40)
+            _banda_ok = (fsd.get("fsd_pct") or 999) <= 20
+            _cerca = bool(_main and _fsdv and abs(_fsdv / _main - 1) <= 0.10)
             if _banda_ok and _cerca:
                 response["fsd_value"] = fsd["value"]
                 response["low_estimate"] = fsd["low_estimate"]
                 response["high_estimate"] = fsd["high_estimate"]
                 response["fsd_pct"] = fsd["fsd_pct"]
-                response["confidence_lvl"] = fsd["confidence_lvl"]
+                # Un modelo SIN calibrar (sin r²) o con coeficientes de colonia incompletos no puede
+                # anunciar confianza ALTA: se degrada a media y se dice por qué.
+                _sin_calibrar = fsd.get("r_squared") is None or bool(fsd.get("missing_data_flag"))
+                response["confidence_lvl"] = "MEDIA" if _sin_calibrar else fsd["confidence_lvl"]
+                if _sin_calibrar:
+                    response["confidence_nota"] = ("El modelo aún no está calibrado para esta colonia: "
+                                                   "tómalo como referencia, no como avalúo")
                 response["feature_breakdown"] = fsd["feature_breakdown"]
             # Persistencia best-effort SIEMPRE (para entrenar/track), aunque no se muestre.
             property_id = f"{colonia_slug}_m2{int(m2)}_r{int(recamaras)}_b{int(banos)}_a{int(antiguedad_anos)}"
