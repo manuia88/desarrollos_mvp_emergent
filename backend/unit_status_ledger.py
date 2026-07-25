@@ -127,6 +127,23 @@ async def record_status_event(db, dev_id: str, unit: Dict[str, Any], old_status:
             for k, v in extra.items():
                 ev.setdefault(k, v)
         await db.unit_status_events.insert_one(ev)
+
+        # REVERSIÓN (auditoría A–Z 07-24): el ledger sólo agregaba, nunca marcaba lo que se
+        # deshacía. Cuando una unidad "se vendía" y después volvía a estar disponible —una lista
+        # incompleta, un renglón que faltó y reapareció— el evento de venta seguía contando: el
+        # motor de absorción reportaba 14 ventas de Casa Condesa que NUNCA ocurrieron, varias con
+        # "vendidas en 0 días". Al registrar el regreso a un estado anterior, se marca el evento
+        # que queda sin efecto para que los motores dejen de leerlo como venta.
+        if uid and old_status:
+            try:
+                await db.unit_status_events.update_many(
+                    {"unit_id": uid, "new_status": old_status,
+                     "id": {"$ne": ev["id"]}, "revertido": {"$ne": True}},
+                    {"$set": {"revertido": True, "revertido_at": ts,
+                              "revertido_por": ev["id"],
+                              "revertido_nota": f"la unidad volvió a '{new_status}': este cambio quedó sin efecto"}})
+            except Exception as exc:  # noqa: BLE001 — nunca romper el registro por esto
+                log.warning(f"[ledger] marcar reversión de {uid}: {exc}")
         return ev["id"]
     except Exception as e:  # noqa: BLE001 — fail-open
         log.warning(f"[ledger] status_event {unit.get('id')}: {e}")
