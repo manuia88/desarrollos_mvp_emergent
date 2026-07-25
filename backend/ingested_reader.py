@@ -104,10 +104,30 @@ async def units_for_dev(db, dev_id: str) -> List[Dict[str, Any]]:
         llenos = sum(1 for v in u.values() if v not in (None, "", []))
         return (price, proto_rico, llenos)
 
-    mejor: Dict[str, Dict[str, Any]] = {}
+    # DEDUP POR TORRE + NÚMERO (auditoría A–Z 07-24). Antes la llave era SOLO el número de
+    # departamento, así que en un conjunto multi-torre el 101 de la torre A mataba al 101 de la
+    # torre C y al de la torre D: **281 departamentos reales quedaban invisibles** en el
+    # marketplace, con sus precios y sus metros. Río Churubusco perdía 145 y Camarones 136.
+    # La llave correcta es (torre, número): dos unidades distintas dejan de pisarse, y el
+    # duplicado de verdad —mismo número Y misma torre— sigue colapsando como debe.
+    mejor: Dict[tuple, Dict[str, Any]] = {}
+    colisiones: Dict[tuple, int] = {}
     for u in raw:
-        k = str(u.get("unit_number") or u.get("id") or id(u)).strip().upper()
-        if k not in mejor or _rank(u) > _rank(mejor[k]):
+        torre = str(u.get("tower") or u.get("torre") or "").strip().upper()
+        num = str(u.get("unit_number") or u.get("id") or id(u)).strip().upper()
+        k = (torre, num)
+        if k in mejor:
+            # Choque REAL: dos filas con el mismo número en la MISMA torre. Casi siempre es un
+            # error de la lista del desarrollador, no dos departamentos. Se conserva la fila más
+            # completa (nunca se pierde el dato) pero se marca para que un humano lo resuelva:
+            # elegir en silencio es justo lo que produjo los errores que venimos arreglando.
+            colisiones[k] = colisiones.get(k, 1) + 1
+            if _rank(u) > _rank(mejor[k]):
+                mejor[k] = u
+            mejor[k] = {**mejor[k], "pelea_duplicado": True,
+                        "pelea_nota": f"la lista trae {colisiones[k]} filas con el número {num}"
+                                      f"{' en la torre ' + torre if torre else ''} — revisar con el desarrollador"}
+        else:
             mejor[k] = u
     return [normalize_unit(u) for u in mejor.values()]
 
