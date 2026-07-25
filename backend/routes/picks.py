@@ -209,8 +209,34 @@ async def zona_fundamentales(slug: str, request: Request):
     # fix auditoría: resolución robusta (prefiere doc con AVM, escapa slug) en vez de regex prefijo suelto
     cv = await _resolver_colonia_doc(db, slug, {"_id": 0, "name": 1, "alcaldia": 1, "market_m2": 1,
                                                 "plusvalia": 1, "gentrification": 1, "colonia_id": 1})
-    zs = await db.zone_scores.find_one({"zone_id": slug}, {"_id": 0, "components": 1, "score_letter": 1, "score_numeric": 1})
+    zs = await db.zone_scores.find_one({"zone_id": slug}, {"_id": 0, "components": 1, "score_letter": 1,
+                                                           "score_numeric": 1, "placeholder_flags": 1})
     comp = (zs or {}).get("components") or {}
+    # RELLENO ≠ MEDICIÓN (auditoría A–Z 07-24). El documento YA trae `placeholder_flags` diciendo qué
+    # componentes son valor neutro por falta de dato, pero se publicaban igual: Condesa salía con
+    # "Calificación C" y liquidez/demanda/oferta/yield en 50, sin una sola medición detrás. Son 819
+    # de 4,936 zonas con TODOS sus componentes en 50. Un 50 inventado presentado como calificación
+    # es peor que no decir nada: el comprador lo lee como "esta zona está en la media" y no lo está.
+    _flags = (zs or {}).get("placeholder_flags") or {}
+
+    def _real(clave):
+        """Valor del componente sólo si está medido; None si es relleno.
+
+        Dos señales, porque ninguna basta sola:
+        · `placeholder_flags` lo dice cuando lo sabe, pero está incompleto y a veces miente
+          (en Condesa marca risk=False y el valor es 50.0 exacto).
+        · **50.0 EXACTO es el valor neutro por falta de dato.** Las mediciones reales caen en
+          68.8, 74.4, 30.1, 57.3… Que una medición legítima aterrice en 50.000 es rarísimo, y
+          esconder ese caso aislado cuesta muchísimo menos que publicar 819 zonas de 50 inventados.
+        """
+        v = comp.get(clave)
+        if v is None or _flags.get(clave) is True:
+            return None
+        if isinstance(v, (int, float)) and abs(v - 50) < 0.001:
+            return None
+        return v
+
+    _medidos = sum(1 for k in ("liquidez", "demand", "supply", "risk", "yield_score") if _real(k) is not None)
     # Señal transaccional real (cierres) de la zona. Fix auditoría: si un promedio no existe → null (NO "0",
     # que se leería como 'se vende en 0 días' — placeholder presentado como hecho).
     tx = {"n": 0}
@@ -237,7 +263,12 @@ async def zona_fundamentales(slug: str, request: Request):
         "slug": slug,
         "name": (cv or {}).get("name") or " ".join(w.capitalize() for w in slug.replace("-", " ").split()),
         "alcaldia": (cv or {}).get("alcaldia"),
-        "calificacion": (zs or {}).get("score_letter"),
+        # Sin al menos 3 fundamentos medidos NO se publica letra: una "C" construida con puros
+        # valores neutros no informa, engaña.
+        "calificacion": (zs or {}).get("score_letter") if _medidos >= 3 else None,
+        "calificacion_fundamentos_medidos": _medidos,
+        "calificacion_nota": (None if _medidos >= 3 else
+                              "Aún no hay datos suficientes de esta colonia para calificarla"),
         "precio_m2": ((cv or {}).get("market_m2") or {}).get("valor"),
         "precio_muestra_n": ((cv or {}).get("market_m2") or {}).get("muestra_n"),
         "plusvalia_yoy": (serie[-1]["yoy"] if serie else None),
@@ -246,9 +277,9 @@ async def zona_fundamentales(slug: str, request: Request):
                            "componentes": [{"nombre": c.get("nombre"), "valor": c.get("valor"), "fuente": c.get("fuente")}
                                            for c in (gent.get("componentes") or [])]},
         "fundamentos": {
-            "liquidez": comp.get("liquidez"), "demanda": comp.get("demand"), "oferta": comp.get("supply"),
-            "riesgo": _riesgo(comp.get("risk")), "yield_score": comp.get("yield_score"),
-            "servicios_cercanos": comp.get("denue_density"),
+            "liquidez": _real("liquidez"), "demanda": _real("demand"), "oferta": _real("supply"),
+            "riesgo": _riesgo(_real("risk")), "yield_score": _real("yield_score"),
+            "servicios_cercanos": _real("denue_density"),
         },
         "transaccional": tx,
     }
