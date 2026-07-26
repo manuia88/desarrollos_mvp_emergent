@@ -24,9 +24,16 @@ log = logging.getLogger("dmx.osm_engine")
 # P2.1 · resiliencia: Overpass se satura seguido (504/429). Cacheamos el último resultado bueno
 # por punto y, si la API falla, servimos ese caché (≤24h) en vez de None → la densidad de zona
 # sigue funcionando durante caídas externas. (In-memory; multi-instancia → mover a colección/Redis.)
+import asyncio
 import time as _time
 _OSM_CACHE: Dict[str, tuple] = {}
 _OSM_CACHE_TTL = 86400  # 24h
+
+# Enfriamiento cuando Overpass nos frena (429/504). En lista de un elemento para poder cambiarlo
+# desde dentro de la función sin declararlo global. Media hora es suficiente para que el servicio
+# nos vuelva a atender, y el cron de zonas corre cada 12 min: en la pausa usa caché y no falla.
+_OVERPASS_PAUSA_S = 1800
+_OVERPASS_PAUSA_HASTA = [0.0]
 
 
 def _osm_key(lat: float, lng: float, radius_m: int) -> str:
@@ -99,6 +106,22 @@ async def fetch_osm_pois(lat: float, lng: float, radius_m: int = 700, *, retries
         f');out tags;'
     )
     key = _osm_key(lat, lng, radius_m)
+
+    # DEJAR DE MARTILLAR (auditoría A–Z 07-26). Overpass es un servicio público GRATUITO y le
+    # estábamos pegando cada 12 minutos, reintentando tres veces seguidas sin pausa. Resultado:
+    # nos devolvía 429 (demasiadas peticiones) de forma permanente, el cron de zonas fallaba cada
+    # 12 min, y el registro se llenaba de ese error tapando los que sí importan.
+    # Cuando nos frenan, esperamos: no volvemos a llamar hasta que pase el enfriamiento y mientras
+    # tanto se sirve la caché. Es lo correcto con un servicio gratuito y de paso el registro vuelve
+    # a ser legible.
+    if _time.time() < _OVERPASS_PAUSA_HASTA[0]:
+        faltan = int(_OVERPASS_PAUSA_HASTA[0] - _time.time())
+        hit = _OSM_CACHE.get(key)
+        if hit and (_time.time() - hit[0]) < _OSM_CACHE_TTL:
+            return hit[1]
+        log.info(f"[osm] Overpass nos frenó; en pausa {faltan}s más y sin caché para {key}")
+        return None
+
     for attempt in range(retries + 1):
         try:
             async with httpx.AsyncClient(timeout=45) as c:
@@ -109,10 +132,17 @@ async def fetch_osm_pois(lat: float, lng: float, radius_m: int = 700, *, retries
                 elements = r.json().get("elements", [])
                 _OSM_CACHE[key] = (_time.time(), elements)  # P2.1 · guarda el último bueno
                 return elements
-            # 504/429 = instancia saturada → reintenta
+            if r.status_code in (429, 504):
+                # Nos están frenando a propósito. Reintentar de inmediato solo empeora el freno.
+                _OVERPASS_PAUSA_HASTA[0] = _time.time() + _OVERPASS_PAUSA_S
+                log.warning(f"[osm] Overpass HTTP {r.status_code} — en pausa "
+                            f"{_OVERPASS_PAUSA_S // 60} min para no seguir insistiendo")
+                break
             log.warning(f"[osm] Overpass HTTP {r.status_code} (intento {attempt + 1})")
         except Exception as e:
             log.warning(f"[osm] error de red (intento {attempt + 1}): {e}")
+        if attempt < retries:
+            await asyncio.sleep(2 ** attempt)   # 1s, 2s — respirar entre intentos
     # P2.1 · Overpass falló todos los intentos → sirve el último resultado bueno cacheado (≤24h).
     hit = _OSM_CACHE.get(key)
     if hit and (_time.time() - hit[0]) < _OSM_CACHE_TTL:

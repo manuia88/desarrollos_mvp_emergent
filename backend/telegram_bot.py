@@ -300,8 +300,15 @@ async def _contexto_de(db, p: Dict[str, Any]) -> Dict[str, Any]:
             if ult:
                 ctx["ultima_ingesta"] = ult.get("started_at")
         if p.get("proyecto") and p["proyecto"] != "(raíz)":
+            # El nombre entraba CRUDO al patrón de búsqueda, así que cualquier proyecto con un
+            # paréntesis en el nombre reventaba la consulta (auditoría A–Z 07-26). Real:
+            # "PARK SAN ANGEL ((Blvd. Adolfo López mateos 2004)" → paréntesis sin cerrar → error.
+            # El error se traga tres líneas abajo, así que la tarjeta llegaba SIN el contexto
+            # justo en los proyectos de nombre largo, que son los que más falta hacen para decidir.
+            # `re.escape` trata el nombre como texto literal, que es lo que siempre debió ser.
             d = await db.developments.find_one(
-                {"name": {"$regex": f"^{p['proyecto'][:40]}", "$options": "i"}}, {"_id": 0, "id": 1})
+                {"name": {"$regex": f"^{re.escape(p['proyecto'][:40])}", "$options": "i"}},
+                {"_id": 0, "id": 1})
             if d:
                 ctx["n_unidades_proyecto"] = await db.units.count_documents({"development_id": d["id"]})
     except Exception as e:  # noqa: BLE001
