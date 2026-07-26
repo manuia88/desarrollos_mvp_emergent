@@ -137,12 +137,18 @@ async def test_g1_estudio_dmx_se_genera_y_guarda(monkeypatch):
 # ═══ G2 · DMX-30 ═══
 @pytest.mark.asyncio
 async def test_g2_dmx30_serie_beta_sharpe(monkeypatch):
-    """5 días de clima por colonia → índice base-100 y beta/sharpe calculados de la serie."""
+    """5 días de clima por colonia → índice base-100 y beta/sharpe calculados de la serie.
+
+    Van 3 colonias, no 2: el índice exige un mínimo de colonias con dato en AMBAS fechas para
+    reencadenarse (`_MIN_COLONIAS_ENCADENAR`, auditoría 07-26). Con menos, el nivel se arrastra sin
+    cambio a propósito — un índice llamado DMX-30 no puede saltar por el vaivén de una colonia.
+    """
     from ola_g_products import dmx30
     db = _DB()
-    _patch(monkeypatch, [_unidad("u1", "condesa"), _unidad("u2", "roma_norte", precio=6000000.0)])
+    _patch(monkeypatch, [_unidad("u1", "condesa"), _unidad("u2", "roma_norte", precio=6000000.0),
+                         _unidad("u3", "juarez", precio=5000000.0)])
     await _atomo(db, "v1", "producto.recamaras", "2", colonia="condesa")
-    base = {"condesa": 90000, "roma_norte": 70000}
+    base = {"condesa": 90000, "roma_norte": 70000, "juarez": 80000}
     for d in range(5):
         fecha = f"2026-07-{10 + d:02d}"
         await db.contexto_timeline.insert_one({"fecha": fecha, "por_colonia": {
@@ -154,6 +160,32 @@ async def test_g2_dmx30_serie_beta_sharpe(monkeypatch):
     filas = {f["colonia"]: f for f in r["constituyentes"]}
     assert filas["roma_norte"]["beta"] is not None and filas["condesa"]["beta"] is not None
     assert filas["roma_norte"]["beta"] > filas["condesa"]["beta"]   # roma se mueve 2× el índice
+
+
+@pytest.mark.asyncio
+async def test_g2_dmx30_no_salta_con_una_sola_colonia(monkeypatch):
+    """UN día con una sola colonia NO puede mover el índice.
+
+    Esto pasó de verdad (auditoría 07-26): el 14 de julio el DMX-30 saltó de 100 a 146.92 en un día
+    con `colonias_con_dato: 1`, y como el índice es ENCADENADO el brinco quedó soldado para siempre —
+    marcaba 147 y no significaba "el mercado subió 47%", significaba "una colonia se movió un martes".
+    """
+    from ola_g_products import dmx30
+    db = _DB()
+    _patch(monkeypatch, [_unidad("u1", "condesa"), _unidad("u2", "roma_norte", precio=6000000.0),
+                         _unidad("u3", "juarez", precio=5000000.0)])
+    await _atomo(db, "v1", "producto.recamaras", "2", colonia="condesa")
+    # día 1: las 3 colonias · día 2: SOLO una, y disparada +50%
+    await db.contexto_timeline.insert_one({"fecha": "2026-07-10", "por_colonia": {
+        "condesa": {"pm2_mediana": 90000}, "roma_norte": {"pm2_mediana": 70000},
+        "juarez": {"pm2_mediana": 80000}}})
+    await db.contexto_timeline.insert_one({"fecha": "2026-07-11", "por_colonia": {
+        "condesa": {"pm2_mediana": 135000}}})
+    r = await dmx30(db)
+    niveles = [p["dmx30"] for p in r["indice_serie"]]
+    assert niveles[0] == 100.0
+    assert all(n == 100.0 for n in niveles), (
+        f"el índice se movió con una sola colonia: {niveles} — el nivel debe arrastrarse")
 
 
 # ═══ G3 · CARFAX ═══

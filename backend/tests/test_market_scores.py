@@ -128,10 +128,17 @@ async def test_c5_curva_vertical_intra_edificio(monkeypatch):
     r = await curva_vertical(_DB(), {"condesa"})
     assert r["control"] == "intra-edificio (dev_id)"
     assert r["n_edificios"] == 2                      # d1 (niveles 1-4) y d2 (1 y 8)
-    assert r["es_estimado"] is False
+    # Con el nivel del titular apoyado en 1 edificio, el bloque SE DECLARA estimado (07-26). Antes
+    # decía `False` aunque el titular saliera de un solo caso: la prueba estaba fijando el error.
+    assert r["es_estimado"] is True
     nivel8 = next(n for n in r["niveles"] if n["nivel"] == 8)
     assert nivel8["prima_vs_base_pct"] > 5            # ~+18% vs el piso 1 del MISMO edificio
     assert nivel8["n_edificios"] == 1
+    # La frase debe citar el n DE ESE NIVEL además del global — es el bug que se arregló: antes
+    # pegaba el total del bloque junto al porcentaje, dándole respaldo aparente a un dato flaco.
+    assert "en ese nivel" in r["lectura"] and "en total" in r["lectura"]
+    assert r["n_edificios_del_nivel_citado"] == 2
+    assert "pocos casos" in r["lectura"]               # avisa cuando el titular va flojo
 
 
 @pytest.mark.asyncio

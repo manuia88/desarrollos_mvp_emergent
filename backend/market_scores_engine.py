@@ -203,11 +203,23 @@ async def curva_vertical(db, colonias: Optional[Set[str]] = None) -> Dict[str, A
                for p, v in sorted(primas_nivel.items()) if len(v) >= 1]
     con_muestra = [n for n in niveles if n["n_edificios"] >= 2]
     top = max(con_muestra or niveles or [{}], key=lambda n: n.get("prima_vs_base_pct", 0), default=None)
+    # EL NÚMERO DE CASOS QUE SE CITA DEBE SER EL DE ESE NIVEL, no el global (auditoría 07-26). La
+    # frase decía "nivel 40 vale +25.6% (94 edificios)" y el 94 era el total del bloque: el nivel 40
+    # se apoya en 2. No faltaba el dato — se mostraba el equivocado justo al lado del porcentaje, que
+    # es peor, porque le da respaldo aparente a una cifra que no lo tiene.
+    _n_top = (top or {}).get("n_edificios") or 0
+    _flojo = _n_top < 5
     return {"niveles": niveles, "n_edificios": edificios_usados,
-            "es_estimado": edificios_usados < 2, "procedencia": "observado",
+            "n_edificios_del_nivel_citado": _n_top,
+            # estimado si el nivel del titular se apoya en pocos edificios, no solo si el bloque entero
+            "es_estimado": edificios_usados < 2 or _flojo,
+            "procedencia": "observado",
             "control": "intra-edificio (dev_id)",
             "lectura": (f"La altura cotiza: nivel {top['nivel']} vale {top['prima_vs_base_pct']:+}% "
-                        f"vs el nivel base del MISMO edificio ({edificios_usados} edificios).")
+                        f"vs el nivel base del MISMO edificio "
+                        f"({_n_top} edificio{'s' if _n_top != 1 else ''} en ese nivel, "
+                        f"{edificios_usados} en total)."
+                        + (" Son pocos casos: tómalo como indicio." if _flojo else ""))
                        if niveles and top and top.get("nivel") is not None else
                        "Aún sin edificios con varios niveles muestreados (se llena con inventario)."}
 

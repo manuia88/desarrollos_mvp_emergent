@@ -64,7 +64,14 @@ function BotonFila({ accion, fila }) {
 
 function TablaGenerica({ rows, nombre, accionesFila }) {
   const [verTodo, setVerTodo] = React.useState(false);
-  const cols = Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object' || rows[0][k] == null).slice(0, 8);
+  // Se muestran hasta 12 columnas, y las que dicen CUÁNTOS CASOS hay detrás van primero (auditoría
+  // 07-26). Con el corte de 8 se perdían justo `n_edificios`, `senales` y `es_estimado` —las que
+  // avisan que un porcentaje sale de dos casos— mientras sobrevivían columnas decorativas.
+  const _esMuestra = (k) => /^(n_|n$|senales|muestra|sample|visitantes|comparables|es_estimado)/.test(k);
+  const _todas = Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object' || rows[0][k] == null);
+  const _muestra = _todas.filter(_esMuestra);
+  // Las columnas de muestra NUNCA se cortan: se reservan y el resto llena lo que quede.
+  const cols = [..._todas.filter((k) => !_esMuestra(k)).slice(0, Math.max(4, 12 - _muestra.length)), ..._muestra];
   if (!cols.length) return null;
   const conBoton = (accionesFila || []).filter((a) => a.param_de_fila && rows[0][a.param_de_fila] !== undefined);
   const visibles = verTodo ? rows : rows.slice(0, 12);
@@ -100,7 +107,11 @@ function TablaGenerica({ rows, nombre, accionesFila }) {
   );
 }
 
-const _OMITIR = new Set(['bloque', 'titulo', 'procedencia', 'lectura', 'error', 'es_estimado', 'fuente', 'genoma_v', 'generado']);
+// `es_estimado` y `fuente` SALEN de la lista de omitidos (auditoría 07-26). Los 44 motores calculan
+// bien si un número es medido o estimado y de dónde sale — y esta línea lo borraba justo antes de
+// pintarlo. El backend era honesto y la pantalla tachaba la honestidad: por eso el índice DMX-30, que
+// internamente dice `es_estimado: true`, se leía como un hecho.
+const _OMITIR = new Set(['bloque', 'titulo', 'procedencia', 'lectura', 'error', 'genoma_v', 'generado']);
 
 // Server-driven: el botón de ACCIÓN viene declarado por el bloque (backend). El clic = la
 // autorización explícita del founder — nada llega al dev sin este botón.

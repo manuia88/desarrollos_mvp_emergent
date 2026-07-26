@@ -32,9 +32,35 @@ async def _b_demanda_viva(db, ctx) -> Dict[str, Any]:
                    if k[0] == corte["dimension"] and (not corte.get("valor") or k[1] == str(corte["valor"]))}
     filas = [{"dimension": d, "valor": v, "visitantes": c["visitantes"], "senales": c["senales"]}
              for (d, v), c in sorted(conteos.items(), key=lambda x: -x[1]["visitantes"])[:40]]
-    n_vis = sum(f["visitantes"] for f in filas)
-    return {"procedencia": "observado", "n_senales": n_vis, "filas": filas,
-            "lectura": f"{n_vis} visitantes únicos pidiendo en el territorio (ventana 90 días)."}
+    # NO SUMAR CONTEOS DE ÚNICOS (auditoría 07-26). `conteos[d,v]["visitantes"]` ya es un conteo de
+    # visitantes DISTINTOS por dimensión; sumarlo entre 40 filas cuenta a la misma persona hasta 40
+    # veces. La pantalla decía "262 visitantes únicos" cuando hay 16 — inflación de 16 veces, y con
+    # la palabra "únicos" en la frase. El único total honesto es el de visitantes distintos del
+    # universo; las filas siguen mostrando su propio conteo por dimensión, que ese sí es correcto.
+    # El total honesto son las personas DISTINTAS del universo, no la suma de las filas. Se cuenta
+    # aparte con la misma ventana de 90 días que usa `_demanda_conteos`.
+    n_vis = None
+    try:
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+
+        from demand_mirror import _ts_ok          # la MISMA regla de ventana que usa el conteo por fila
+        _corte = _dt.now(_tz.utc) - _td(days=90)
+        _q: Dict[str, Any] = {"visitor_id": {"$nin": [None, ""]}}
+        if ctx.get("colonias"):
+            _q["colonia"] = {"$in": sorted(ctx["colonias"])}
+        _docs = await db.demand_atoms.find(_q, {"_id": 0, "visitor_id": 1, "ts": 1}).to_list(200000)
+        n_vis = len({a["visitor_id"] for a in _docs if _ts_ok(a.get("ts"), _corte)})
+    except Exception as e:  # noqa: BLE001
+        log.warning("[reporte] conteo de personas distintas falló: %s", e)
+
+    n_filas = sum(f["visitantes"] for f in filas)   # suma con repetición: ordena, NO se lee como total
+    return {"procedencia": "observado",
+            "n_senales": n_vis if n_vis is not None else n_filas,
+            "n_personas_distintas": n_vis,
+            "filas": filas,
+            "lectura": (f"{n_vis} personas distintas pidiendo en el territorio (ventana 90 días)."
+                        if n_vis is not None else
+                        "Aún sin conteo de personas distintas para esta ventana.")}
 
 
 async def _b_genoma_kpi(db, ctx) -> Dict[str, Any]:

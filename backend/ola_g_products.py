@@ -24,6 +24,11 @@ from typing import Any, Dict, List, Optional, Set
 
 log = logging.getLogger("dmx.ola_g")
 
+# Mínimo de colonias con dato en AMBAS fechas para que el índice se reencadene. Con una sola colonia
+# el índice deja de medir el mercado y mide el vaivén de esa colonia — y como es encadenado, el
+# brinco no se corrige nunca (07-14: saltó 46.9% en un día con una colonia).
+_MIN_COLONIAS_ENCADENAR = 3
+
 
 def _med(vals):
     s = sorted(v for v in vals if v is not None)
@@ -141,7 +146,13 @@ async def dmx30(db) -> Dict[str, Any]:
         if prev_fecha is not None:
             pares = [(mapas[c][prev_fecha], mapas[c][f]) for c in con_dato
                      if mapas.get(c, {}).get(prev_fecha)]
-            if pares:
+            # MÍNIMO DE COLONIAS PARA MOVER EL ÍNDICE (auditoría 07-26). Con `if pares:` bastaba UNA
+            # colonia para reencadenar el nivel, y eso ya pasó: el 14 de julio el índice saltó de
+            # 100 a 146.92 en un día con `colonias_con_dato: 1`. Como el índice es encadenado, ese
+            # brinco quedó soldado para siempre — hoy marca 147 y no significa "el mercado subió
+            # 47%", significa "una colonia se movió un martes". Con menos del mínimo, el nivel se
+            # ARRASTRA sin cambio: un día sin muestra suficiente no es un día sin mercado.
+            if len(pares) >= _MIN_COLONIAS_ENCADENAR:
                 nivel *= 1 + sum(b / a - 1 for a, b in pares) / len(pares)
         if con_dato:
             indice_serie.append({"fecha": f, "dmx30": round(nivel, 2),
