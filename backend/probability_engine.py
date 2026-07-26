@@ -64,13 +64,37 @@ def _norm_cdf(z: float) -> float:
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
-def _confidence_label(prob_pct: float) -> str:
-    """ALTA si señal clara (lejos de 50%), BAJA si cerca de 50% (incierto)."""
+# Mínimos para poder afirmar con confianza. Debajo de esto, la confianza se topa aunque el número
+# salga muy lejos del 50%.
+_MIN_CASOS_ALTA = 20      # unidades/observaciones detrás del cálculo
+_MIN_CASOS_MEDIA = 8
+
+
+def _confidence_label(prob_pct: float, n_casos: Optional[int] = None) -> str:
+    """Qué tan confiable es la probabilidad. Mira la SEÑAL y la MUESTRA, no solo la señal.
+
+    LA CONFIANZA MEDÍA LO EQUIVOCADO (auditoría A–Z 07-26). Esto solo miraba qué tan lejos estaba el
+    número del 50%: cuanto más extremo, más "confianza". Pero un resultado extremo salido de pocos
+    casos no es confiable — es justamente lo contrario, porque con pocos datos los extremos son lo
+    más probable. Así se publicaba *"92.7% de probabilidad de subida, confianza ALTA"* sobre un índice
+    cuyo insumo es 99.8% sintético.
+
+    Ahora la muestra pone el techo: sin casos suficientes, la confianza no puede ser ALTA por muy
+    contundente que se vea el número. Si no se sabe cuántos casos hay (`n_casos=None`), se conserva
+    el comportamiento anterior para no romper a quien todavía no lo manda — pero eso es transitorio,
+    y el objetivo es que todos los llamadores declaren su muestra.
+    """
     dist = abs(prob_pct - 50.0)
+    techo = "ALTA"
+    if n_casos is not None:
+        if n_casos < _MIN_CASOS_MEDIA:
+            return "BAJA"
+        if n_casos < _MIN_CASOS_ALTA:
+            techo = "MEDIA"
     if dist >= 25.0:
-        return "ALTA"
+        return techo
     if dist >= 15.0:
-        return "MEDIA"
+        return "MEDIA" if techo == "ALTA" else techo
     return "BAJA"
 
 
@@ -180,7 +204,8 @@ async def compute_sells_complete(db, project_id: str, months: int = 12) -> Dict[
     prob = _sigmoid(x) * 100.0
     prob = round(min(99.0, max(1.0, prob)), 1)
 
-    confidence = _confidence_label(prob)
+    # La muestra son las unidades del proyecto: 24 unidades no sostienen una afirmación "ALTA".
+    confidence = _confidence_label(prob, n_casos=units_total)
 
     wb_contrib = absorption_rate * 70.0
     leads_contrib = leads_signal * 30.0
@@ -275,7 +300,25 @@ async def compute_zone_drpi_up(db, zone_slug: str, months: int = 3) -> Dict[str,
     prob = _sigmoid(k * delta_pct) * 100.0
     prob = round(min(99.0, max(1.0, prob)), 1)
 
-    confidence = _confidence_label(prob)
+    # LA CONFIANZA MIRA EL INSUMO, NO EL AJUSTE (auditoría 07-26). Este bloque publicaba
+    # "92.7% de probabilidad de subida, confianza ALTA" con 23 períodos y un error de 0.13%.
+    # Parecía un modelo excelente. Y lo era — de una serie INVENTADA: el 99.8% de los snapshots del
+    # DRPI son `synthetic` con `sample_size: 0`. Un error bajísimo sobre datos sintéticos no es señal
+    # de calidad, es señal de que el modelo está prediciendo su propia fabricación: una curva lisa es
+    # trivial de ajustar. Contar los 23 períodos como "muestra" repetía el engaño con otro nombre.
+    #
+    # Regla: si el índice del que cuelga este pronóstico no tiene transacciones reales detrás, la
+    # confianza es BAJA — por muy contundente que se vea el número.
+    _reales = 0
+    try:
+        _reales = await db.drpi_snapshots.count_documents({
+            "zone_id": zone_slug, "synthetic": {"$ne": True}, "sample_size": {"$gt": 0}})
+    except Exception:  # noqa: BLE001
+        _reales = 0
+    _n_idx = _reales
+    if mape >= 15.0:                      # y si además el modelo yerra mucho, se baja otro escalón
+        _n_idx = min(_n_idx, _MIN_CASOS_MEDIA - 1)
+    confidence = _confidence_label(prob, n_casos=_n_idx)
     # MAPE alto degradar confianza un nivel
     if mape > 5.0 and confidence == "ALTA":
         confidence = "MEDIA"
@@ -389,7 +432,9 @@ async def compute_closes_below_listed(db, property_id: str, listed_price: float)
     prob = _norm_cdf(z) * 100.0
     prob = round(min(99.0, max(1.0, prob)), 1)
 
-    confidence = _confidence_label(prob)
+    # La muestra son los comparables con los que el AVM estimó el valor.
+    _n_comps = int(avm_result.get("n_comparables") or avm_result.get("comparables_usados") or 0)
+    confidence = _confidence_label(prob, n_casos=_n_comps or None)
     if not fsd_available and confidence == "ALTA":
         confidence = "MEDIA"
 

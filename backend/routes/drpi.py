@@ -66,6 +66,40 @@ async def _user_tier(request: Request) -> str:
 # 1. PUBLIC — current snapshot (tier-gated)
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ── LA REGLA DEL ÍNDICE, EN UN SOLO LUGAR ────────────────────────────────────
+def _sin_indice_si_sintetico(snap: dict) -> dict:
+    """Un snapshot sintético (o sin transacciones) NO publica cifra de índice.
+
+    POR QUÉ (auditoría A–Z 07-24, ampliada 07-26): de los 59,956 snapshots, **59,832 son
+    `synthetic`** y 59,944 traen `sample_size: 0`. Es decir: prácticamente todo el "histórico de
+    precios por zona" es un proxy rellenado, sin una sola operación detrás. Se servía
+    `index_value: 115.155` y `delta +0.565%` para Polanco como si fueran mediciones, y encima de eso
+    se calculaba "92.7% de probabilidad de subida, confianza ALTA".
+
+    Esta regla vivía escrita a mano dentro del endpoint de UNA zona, y la LISTA no la aplicaba: servía
+    las filas crudas con `available: true`. Por eso ahora es una función: los dos la usan y no pueden
+    volver a divergir.
+
+    El proxy no se tira —sirve para dibujar tendencia interna— pero queda etiquetado aparte, nunca
+    ocupando el lugar del índice.
+    """
+    if not snap:
+        return snap
+    if snap.get("synthetic") is True or not (snap.get("sample_size") or 0):
+        return {
+            **snap,
+            "index_value": None,
+            "delta_pct": None,
+            "available": False,
+            "reason": "sin_transacciones_suficientes",
+            "motivo_humano": ("Todavía no hay suficientes operaciones registradas en esta zona "
+                              "para calcular su índice de precios"),
+            "index_proxy": snap.get("index_value"),
+            "delta_proxy_pct": snap.get("delta_pct"),
+        }
+    return snap
+
+
 @router.get("/api/drpi/snapshot/{zone_id}")
 async def public_snapshot(
     zone_id: str, request: Request,
@@ -86,25 +120,7 @@ async def public_snapshot(
             "zone_id": zone_id, "tier": tier, "period": period,
             "available": False, "reason": "no_snapshot",
         }
-    # ÍNDICE SINTÉTICO NO SE PUBLICA COMO ÍNDICE (auditoría A–Z 07-24). De los 59,956 snapshots,
-    # 59,832 son `synthetic` y 59,944 tienen `sample_size: 0` — es decir, prácticamente todo el
-    # "histórico de precios por zona" es un proxy rellenado, sin una sola transacción detrás.
-    # Servía index_value 115.155 y delta +0.565% para Polanco como si fueran mediciones.
-    # El número proxy se conserva aparte (sirve para dibujar tendencia interna) pero NO ocupa el
-    # lugar del índice: el público recibe available:false y el motivo, sin cifra que parezca medida.
-    if snap.get("synthetic") is True or not (snap.get("sample_size") or 0):
-        snap = {
-            **snap,
-            "index_value": None,
-            "delta_pct": None,
-            "available": False,
-            "reason": "sin_transacciones_suficientes",
-            "motivo_humano": "Todavía no hay suficientes operaciones registradas en esta zona "
-                             "para calcular su índice de precios",
-            # el proxy queda a la vista pero etiquetado, para que nadie lo confunda con medición
-            "index_proxy": snap.get("index_value"),
-            "delta_proxy_pct": snap.get("delta_pct"),
-        }
+    snap = _sin_indice_si_sintetico(snap)
 
     out: dict = {
         "snapshot": snap,
@@ -231,8 +247,21 @@ async def superadmin_list(
         q, {"_id": 0, "computed_at_dt": 0},
     ).sort([("period", -1), ("zone_id", 1)]).skip(skip).limit(limit)
     items = [d async for d in cursor]
+
+    # LA LISTA TAMBIÉN SE CALLA (auditoría 07-26). El snapshot individual ya devolvía
+    # `available:false` para los sintéticos desde el 07-24, pero ESTA lista servía las filas crudas:
+    # 194 de 200 con `synthetic:true`, `sample_size:0` y aun así `available:true`. Encima de esas
+    # cifras se calculaba "92.7% de probabilidad de subida, confianza ALTA".
+    # Se aplica la misma regla que arriba, en un solo lugar, para que no vuelvan a divergir.
+    items = [_sin_indice_si_sintetico(d) for d in items]
+    n_reales = sum(1 for d in items if d.get("available"))
+
     total = await db.drpi_snapshots.count_documents(q)
     return {"items": items, "count": len(items), "count_total": total,
+            "con_indice_real": n_reales,
+            "nota": (None if n_reales == len(items) else
+                     f"{len(items) - n_reales} de {len(items)} zonas no tienen operaciones "
+                     f"suficientes para calcular su índice; se muestra su proxy etiquetado."),
             "skip": skip, "limit": limit}
 
 # W5.FF4 register_feature marker · NO duplicate
