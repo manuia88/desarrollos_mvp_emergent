@@ -40,12 +40,22 @@ async def ingest_event(db, payload: Dict[str, Any], request) -> str:
     ip_raw = _extract_ip(request)
     ip_hash = _hash_ip(ip_raw)
 
+    # NO INVENTAR EVENTOS (auditoría A–Z 07-24). Antes, cualquier tipo desconocido se reescribía
+    # como "page_view": el chat del asistente manda `asistente.message_sent` y se habría guardado
+    # como una visita de página que nunca ocurrió, envenenando el conteo de tráfico — justo la
+    # métrica con la que se mide si la plataforma tiene visitas. Ahora el tipo crudo se conserva
+    # para poder verlo y arreglarlo, y el evento se marca como no reconocido en vez de disfrazarse.
     event_type = payload.get("event_type", "page_view")
+    event_type_raw = None
     if event_type not in VALID_EVENT_TYPES:
-        event_type = "page_view"
+        event_type_raw = event_type
+        event_type = "otro"
+        log.warning(f"[track] tipo de evento no reconocido: '{event_type_raw}' — se guarda como 'otro'")
 
     doc = {
         "id": event_id,
+        # el tipo tal cual lo mandó el front cuando no lo reconocemos (para arreglarlo, no perderlo)
+        **({"event_type_raw": event_type_raw} if event_type_raw else {}),
         "session_id": payload.get("session_id") or "",
         "user_id": payload.get("user_id") or None,
         "org_id": payload.get("org_id") or None,

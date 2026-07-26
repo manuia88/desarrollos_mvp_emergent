@@ -160,7 +160,11 @@ export default function AsistenteChat({
   const handleSend = () => {
     const text = input.trim();
     if (!text || isLoading) return;
-    track('asistente.message_sent', { metadata: { length: text.length } });
+    // 'asistente.message_sent' no es un TIPO de evento válido — es el nombre de la función usada.
+    // Mandarlo como tipo hacía que el backend lo reescribiera como 'page_view', inflando el conteo
+    // de visitas con mensajes de chat (auditoría A–Z 07-24). La firma correcta es
+    // track(<tipo>, { feature: <qué se usó> }).
+    track('feature_use', { feature: 'asistente.message_sent', metadata: { length: text.length } });
     onSend(text);
     setInput('');
   };

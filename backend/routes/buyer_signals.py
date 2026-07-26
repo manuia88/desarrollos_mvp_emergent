@@ -65,7 +65,14 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "credit_selected",  # eligió banco + plan de crédito (meta = banco/tasa/cat/monto/mensualidad) — intención financiera
          "cierre_computed",  # calculó ISAI + costos de cierre (meta = isai/total/con_credito) — avanza al cierre
          "phone_click",      # tocó el teléfono del desarrollador (value = origen) — intención altísima
-         "card_click"}       # clic en tarjeta del marketplace → ficha (meta.pos = posición) — atribución búsqueda→click + calidad del ranking
+         "card_click",       # clic en tarjeta del marketplace → ficha (meta.pos = posición) — atribución búsqueda→click + calidad del ranking
+         # El front lo emite desde Marketplace.js:304 y el back lo rechazaba en silencio: 5 semanas
+         # de señal perdida sin que nadie se enterara (auditoría A–Z 07-24).
+         "espejo_view",      # abrió el espejo/comparador de zona (value = zona) — interés comparativo
+         # Puntos ciegos de la galería que el comprador SÍ usa (ficha default, 100% del tráfico):
+         "gallery_open",     # abrió la galería de fotos
+         "plano_view",       # cambió a la pestaña de planos — mira la distribución, señal de intención
+         "plano_zoom"}       # expandió un plano — la señal visual más fuerte antes de contactar
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -148,7 +155,20 @@ class SignalIn(BaseModel):
 async def buyer_signal(s: SignalIn, request: Request):
     """Registra una señal de conducta del comprador (anónima). Fail-open. Es el espinazo de las 8 capas."""
     if s.type not in VALID:
-        return {"ok": False, "error": "tipo inválido"}
+        # Antes esto devolvía HTTP 200 con ok:false y NADIE se enteraba: `espejo_view` llevaba 5
+        # semanas perdiéndose. Ahora queda registro de los tipos huérfanos, para que el siguiente se
+        # vea el mismo día en vez de descubrirse en una auditoría.
+        log.warning(f"[buyer_signal] tipo desconocido rechazado: '{s.type}' — ¿falta agregarlo a VALID?")
+        try:
+            db = request.app.state.db
+            await db.senales_rechazadas.update_one(
+                {"tipo": s.type},
+                {"$inc": {"n": 1}, "$set": {"ultimo_at": datetime.now(timezone.utc).isoformat()},
+                 "$setOnInsert": {"tipo": s.type, "nota": "el front lo emite y el backend no lo conoce"}},
+                upsert=True)
+        except Exception:
+            pass
+        return {"ok": False, "error": "tipo inválido", "tipo": s.type}
     # Rate-limit por IP real: frena bots que inflen el espinazo de señales (envenenan gusto/demanda). Fail-soft.
     from services.ratelimit import allow, client_ip
     if not allow("buyer_signal", client_ip(request), 90):
