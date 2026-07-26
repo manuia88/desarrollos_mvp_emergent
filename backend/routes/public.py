@@ -13,6 +13,9 @@ from pydantic import BaseModel
 
 from data_seed import COLONIAS as SEED_COLONIAS, COLONIAS_BY_ID, PROPERTIES as SEED_PROPERTIES
 from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID, DEVELOPERS_BY_ID
+# La puerta de visibilidad pública vive en UN solo lugar (marketplace_contract). Antes esta
+# condición estaba copiada en 6 consultas de este archivo y una de ingested_reader.
+from marketplace_contract import puerta_publica
 
 router = APIRouter(tags=["public"])
 
@@ -1859,7 +1862,7 @@ async def _published_wizard_cards(db):
     out = []
     try:
         async for p in db.projects.find(
-            {"marketplace_published": {"$nin": [False, "pending"]}, "colonia_id": {"$nin": [None, ""]}, "price_from": {"$gt": 0}},
+            puerta_publica(colonia_id={"$nin": [None, ""]}, price_from={"$gt": 0}),
             {"_id": 0}).limit(500):
             c = _project_to_dev_card(p)
             if c:
@@ -2320,10 +2323,10 @@ async def get_development(dev_id: str, request: Request):
         # B0.3 · Proyecto creado/publicado por el dev → leer la tienda unificada (no solo el seed).
         # Mismo gate que la rama hermana de db.projects: NO servir fichas 'pending'/no-aprobadas a compradores.
         pub = await db.developments.find_one(
-            {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0})
+            puerta_publica(id=dev_id), {"_id": 0})
         if not pub:
             # DEV PUBLICA → MARKETPLACE: ficha de un proyecto del wizard (db.projects) convertido a tarjeta.
-            _proj = await db.projects.find_one({"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0})
+            _proj = await db.projects.find_one(puerta_publica(id=dev_id), {"_id": 0})
             if _proj:
                 pub = _project_to_dev_card(_proj)
         if not pub:
@@ -2509,7 +2512,7 @@ async def dev_archivo_publico(dev_id: str, file_id: str, request: Request):
     navegador no puede leer Drive privado directo; esto lo puentea vía OAuth con caché de 1 día."""
     db = request.app.state.db
     pub = await db.developments.find_one(
-        {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+        puerta_publica(id=dev_id), {"_id": 0, "id": 1})
     if not pub:
         raise HTTPException(404, "Desarrollo no encontrado")
     asset = await db.project_assets.find_one(
@@ -2560,10 +2563,10 @@ async def list_dev_units(
         # INGESTA / WIZARD: proyecto fuera de la semilla → sus unidades viven en db.units (development_id/project_id).
         # Sin este fallback el endpoint daba 404 y el cotizador/ficha 360 del asesor quedaba sin unidades (auditoría 07-07).
         pub = await db.developments.find_one(
-            {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+            puerta_publica(id=dev_id), {"_id": 0, "id": 1})
         if not pub:
             pub = await db.projects.find_one(
-                {"id": dev_id, "marketplace_published": {"$nin": [False, "pending"]}}, {"_id": 0, "id": 1})
+                puerta_publica(id=dev_id), {"_id": 0, "id": 1})
         if not pub:
             raise HTTPException(404, "Desarrollo no encontrado")
         from ingested_reader import units_for_dev, attach_planos

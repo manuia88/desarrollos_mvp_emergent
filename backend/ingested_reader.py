@@ -435,7 +435,11 @@ async def ingested_dev_cards(db, published_only: bool = True) -> List[Dict[str, 
         q: Dict[str, Any] = {"source": {"$in": ["bulk_ingest", "masivo_gdc", "masivo_class",
                                                 "prueba_2proyectos", "ingesta_en_sesion"]}}
         if published_only:
-            q["marketplace_published"] = {"$nin": [False, "pending"]}
+            # MISMA puerta que la ficha (marketplace_contract): si CUALQUIER interruptor dice que
+            # no, no se publica. Antes esto miraba solo `marketplace_published` y dejaba pasar
+            # desarrollos marcados `published: False` — apagados en la pantalla, vivos al público.
+            from marketplace_contract import PUERTA_PUBLICA
+            q.update(PUERTA_PUBLICA)
         async for d in db.developments.find(q, {"_id": 0}).limit(500):
             card = dev_doc_to_card(d)
             if not card:

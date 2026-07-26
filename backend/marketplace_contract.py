@@ -55,6 +55,40 @@ NUNCA_PUBLICO = {
 }
 
 
+# ─── LA PUERTA: qué desarrollo alcanza a ver un comprador ─────────────────────
+# POR QUÉ (auditoría A–Z 07-26): había DOS interruptores de publicación y solo uno conectado. La
+# puerta miraba `marketplace_published` y nadie leía `published`, así que NUA Interlomas y Nupol
+# Nuevo Polanco estaban marcados "no publicado" y seguían VIVOS al público captando compradores.
+# Creer que bajaste un desarrollo y que siga publicado es de las fallas más caras que puede tener
+# esto, porque nadie la nota: la pantalla te dice que está apagado.
+#
+# Regla, en una línea: **si CUALQUIER interruptor dice que no, no se publica.** Un "no" explícito
+# siempre gana; para publicar hacen falta los dos en sí (o en blanco, que es el estado normal de
+# casi todo el catálogo y significa "nunca se tocó").
+#
+# Vive aquí, con el resto del contrato, para que sea UN solo lugar: antes esta condición estaba
+# copiada en 7 consultas distintas, y arreglar una dejaba las otras seis mal.
+_NO_PUBLICABLE = [False, "pending", "no", "off"]
+
+PUERTA_PUBLICA: Dict[str, Any] = {
+    "marketplace_published": {"$nin": _NO_PUBLICABLE},
+    "published": {"$nin": _NO_PUBLICABLE},
+}
+
+
+def puerta_publica(**extra: Any) -> Dict[str, Any]:
+    """La condición de visibilidad pública, más lo que le quieras sumar.
+
+    Uso:  db.developments.find(puerta_publica(id=dev_id))
+    """
+    return {**PUERTA_PUBLICA, **extra}
+
+
+def es_publico(d: Dict[str, Any]) -> bool:
+    """Misma regla que `PUERTA_PUBLICA`, para documentos que ya están en memoria."""
+    return not any(d.get(k) in _NO_PUBLICABLE for k in PUERTA_PUBLICA)
+
+
 def tarjeta_publica_unidad(u: Dict[str, Any]) -> Dict[str, Any]:
     """La tarjeta pública, construida SOLO desde el contrato. La usa routes/public.py."""
     return {campo: fn(u) for campo, fn in CONTRATO_UNIDAD}
