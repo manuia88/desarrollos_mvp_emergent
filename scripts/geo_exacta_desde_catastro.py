@@ -43,13 +43,22 @@ def norm(s) -> str:
 
 
 def calle_y_numero(direccion: str):
-    """'AV. REVOLUCIÓN 1412, COL. GUADALUPE INN' → ('REVOLUCION', '1412')."""
+    """'AV. REVOLUCIÓN 1412, COL. GUADALUPE INN' → ('REVOLUCION', '1412').
+
+    Tolera lo que traen las listas reales:
+      · paréntesis de apertura — "(Blvd. Adolfo López mateos 2004"
+      · número con letra       — "Eje Central Lázaro Cárdenas 909A"
+      · almohadilla            — "Tomas Alva Edison #106"
+      · varios números         — "Ignacio L. Vallarta 7, 9" → se queda con el primero de la cabeza
+    """
     cabeza = norm(str(direccion or "").split(",")[0])
+    cabeza = cabeza.lstrip("( ").strip()
     cabeza = re.sub(_VIALIDAD, "", cabeza)
-    # el número exterior es el último grupo de dígitos de la cabeza
-    nums = re.findall(r"\b(\d{1,5})\b", cabeza)
+    # número exterior: dígitos con posible letra pegada (909A). Se toma el ÚLTIMO de la cabeza,
+    # que es el patrón normal "<calle> <número>".
+    nums = re.findall(r"\b(\d{1,5}[A-Z]?)\b", cabeza)
     if not nums:
-        return cabeza.strip() or None, None
+        return (cabeza.strip() or None), None
     numero = nums[-1]
     calle = norm(cabeza[:cabeza.rfind(numero)])
     return (calle or None), numero
@@ -93,6 +102,32 @@ async def main(aplicar: bool):
             {"calle": {"$regex": patron}},
             {"_id": 0, "calle": 1, "colonia": 1, "alcaldia": 1, "lat": 1, "lng": 1}
         ).limit(60).to_list(60)
+
+        # RESPALDO — el número exacto no siempre está en el catastro (predios fusionados, obra
+        # nueva, numeración cambiada). En vez de rendirse, se busca la MISMA CALLE en la MISMA
+        # COLONIA y se toma el predio con el número más parecido: queda en la misma cuadra, que es
+        # infinitamente mejor que el centro de la colonia. Se marca aparte, sin fingir exactitud.
+        aproximado_por_calle = False
+        if not cands and calle:
+            pat_calle = re.compile(rf"(?:^|\b)(?:{_VIALIDAD})?{re.escape(calle)}\b", re.I)
+            q = {"calle": {"$regex": pat_calle}}
+            if col:
+                q["colonia"] = {"$regex": re.escape(d.get("colonia") or ""), "$options": "i"}
+            vecinos = await db.catastro_predios.find(
+                q, {"_id": 0, "calle": 1, "colonia": 1, "alcaldia": 1, "lat": 1, "lng": 1}
+            ).limit(80).to_list(80)
+            if vecinos:
+                try:
+                    objetivo = int(re.sub(r"\D", "", numero) or 0)
+                    def _dif(c):
+                        m = re.search(r"\b(\d{1,5})\b", str(c.get("calle") or ""))
+                        return abs(int(m.group(1)) - objetivo) if m else 9e9
+                    vecinos.sort(key=_dif)
+                except (TypeError, ValueError):
+                    pass
+                cands = vecinos[:10]
+                aproximado_por_calle = True
+
         if not cands:
             sin_match += 1
             continue
@@ -134,18 +169,23 @@ async def main(aplicar: bool):
                 continue
 
         exactas += 1
-        if exactas <= 8:
+        _icono = "✅" if not aproximado_por_calle else "📍"
+        if exactas <= 10:
             _v = "colonia coincide" if col_ok else f"{dist:.2f} km del punto previo"
-            print(f"  ✅ {str(d.get('name'))[:26]:26} «{calle} {numero}» → {elegido.get('calle')} "
-                  f"({elegido.get('colonia')}) · {_v}")
+            _extra = " · MISMA CUADRA (el número exacto no está en el catastro)" if aproximado_por_calle else ""
+            print(f"  {_icono} {str(d.get('name'))[:26]:26} «{calle} {numero}» → {elegido.get('calle')} "
+                  f"({elegido.get('colonia')}) · {_v}{_extra}")
         if aplicar:
             await db.developments.update_one({"id": d["id"]}, {"$set": {
                 "lat": elegido["lat"], "lng": elegido["lng"],
                 "center": [elegido["lng"], elegido["lat"]],
-                "geo_confianza": "exacta",
-                "geo_nivel": "direccion",
-                "geo_fuente": f"catastro SIGCDMX · predio «{elegido.get('calle')}»",
-                "geo_verificado_at": "2026-07-25",
+                # Honestidad: "exacta" sólo cuando el predio es el del número que dice la dirección.
+                # Si se tomó el vecino más cercano de la misma calle, es "cuadra", no exacta.
+                "geo_confianza": "cuadra" if aproximado_por_calle else "exacta",
+                "geo_nivel": "calle" if aproximado_por_calle else "direccion",
+                "geo_fuente": (f"catastro SIGCDMX · {'predio más cercano de la calle' if aproximado_por_calle else 'predio'} "
+                               f"«{elegido.get('calle')}»"),
+                "geo_verificado_at": "2026-07-26",
             }})
 
     print(f"\n  ubicaciones EXACTAS encontradas: {exactas}")

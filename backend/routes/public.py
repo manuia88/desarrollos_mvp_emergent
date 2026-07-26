@@ -227,6 +227,8 @@ def precision_ubicacion(dev: dict) -> tuple:
     txt = str(v).strip().lower() if v is not None else ""
     if txt in ("exacta", "direccion", "dirección", "calle", "rooftop") or nivel in ("direccion", "calle"):
         return "exacta", None
+    if txt == "cuadra" or nivel == "calle":
+        return "cuadra", "El pin marca la misma cuadra: el número exacto no está en el catastro"
     if txt in ("colonia", "baja", "nombre") or nivel == "colonia":
         return "aproximada", "Ubicación aproximada: el pin marca el centro de la colonia, no la dirección exacta"
     try:  # forma numérica: 0–1, donde <0.6 es poco confiable
