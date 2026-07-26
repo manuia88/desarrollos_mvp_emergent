@@ -1519,28 +1519,59 @@ async def _macro_ciudad(db, zona=None, segmento=None):
                             "impacto": "alto" if abs(corr) >= 0.5 else "medio" if abs(corr) >= 0.25 else "bajo"})
     drivers.sort(key=lambda x: -abs(x["corr_precio"]))
 
-    # ── 2. Tasa Banxico → crédito (dato real) ───────────────────────────────────────
-    tasa_actual = None
-    tasa_prev = None
+    # ── 2. Tasa de referencia (Banxico) → crédito ──────────────────────────────────
+    # NO ERA UNA TASA (auditoría A–Z 07-26). Esto leía `banxico_series` SIN FILTRAR la serie y tomaba
+    # el registro más reciente. En esa tabla conviven tres series distintas, y la más nueva es
+    # SP68257 = **el valor de la UDI en pesos** (8.7977), con fecha 15 días en el FUTURO. Se mostraba
+    # como "la tasa de Banxico está en 8.8%", la flecha de tendencia comparaba UDIS contra TIIE, y de
+    # ese número salía la mensualidad que se le enseña al comprador.
+    #
+    # Ahora: se pide la serie POR SU NOMBRE, se ignoran las fechas futuras, y se distingue la tasa de
+    # REFERENCIA (TIIE, la que publica Banxico) del costo real de una hipoteca — que no es la misma:
+    # un crédito hipotecario cotiza varios puntos arriba de TIIE. Antes se usaba una sola cifra para
+    # las dos cosas, y eso subestimaba la mensualidad.
+    _SERIE_TIIE = "SF43783"           # TIIE 28 días · la tasa de referencia de Banxico
+    _SPREAD_HIPOTECARIO = 4.0         # puntos sobre TIIE · rango de mercado CDMX 2026 (documentado)
+    _FALLBACK_HIPOTECA = 10.5
+
+    tasa_ref = tasa_ref_prev = tasa_fecha = None
     try:
-        rows = await db.banxico_series.find({}, {"_id": 0, "date": 1, "value": 1}).sort("date", -1).limit(40).to_list(40)
+        from datetime import date as _date
+        hoy = _date.today().isoformat()
+        rows = await db.banxico_series.find(
+            {"series_id": _SERIE_TIIE}, {"_id": 0, "date": 1, "value": 1}
+        ).sort("date", -1).limit(60).to_list(60)
+        # fuera las fechas futuras: Banxico publica algunas series por adelantado
+        rows = [r for r in rows if str(r.get("date") or "")[:10] <= hoy]
         if rows:
-            tasa_actual = round(rows[0]["value"], 2)
-            tasa_prev = round(rows[-1]["value"], 2)
-    except Exception:
+            tasa_ref = round(rows[0]["value"], 2)
+            tasa_fecha = str(rows[0]["date"])[:10]
+            tasa_ref_prev = round(rows[-1]["value"], 2)
+    except Exception:  # noqa: BLE001
         pass
-    rate = tasa_actual if tasa_actual is not None else 10.5  # fallback razonable
+
+    # La mensualidad se calcula con la tasa HIPOTECARIA, no con la de referencia.
+    rate = (tasa_ref + _SPREAD_HIPOTECARIO) if tasa_ref is not None else _FALLBACK_HIPOTECA
     ticket = _pctile([d.get("price_from") for d in devs if d.get("price_from")], 50) or 8_000_000
     loan = round(ticket * 0.8)
     pago_actual = _mortgage_payment(loan, rate)
     pago_menos1 = _mortgage_payment(loan, rate - 1)
     ahorro_si_baja = (pago_actual - pago_menos1) if (pago_actual and pago_menos1) else None
     tendencia_tasa = None
-    if tasa_actual is not None and tasa_prev is not None:
-        tendencia_tasa = "bajando" if tasa_actual < tasa_prev - 0.05 else "subiendo" if tasa_actual > tasa_prev + 0.05 else "estable"
-    credito = {"tasa": tasa_actual, "tendencia": tendencia_tasa, "ticket_referencia": ticket,
-               "credito": loan, "pago_mensual": pago_actual, "ahorro_si_baja_1pt": ahorro_si_baja,
-               "fuente": "banxico_series" if tasa_actual is not None else "estimado"}
+    if tasa_ref is not None and tasa_ref_prev is not None:
+        tendencia_tasa = ("bajando" if tasa_ref < tasa_ref_prev - 0.05
+                          else "subiendo" if tasa_ref > tasa_ref_prev + 0.05 else "estable")
+    credito = {
+        "tasa": tasa_ref, "tasa_nombre": "TIIE 28 días (Banxico)", "tasa_fecha": tasa_fecha,
+        "tendencia": tendencia_tasa,
+        "tasa_hipotecaria_estimada": round(rate, 2),
+        "tasa_hipotecaria_nota": f"TIIE + {_SPREAD_HIPOTECARIO:.0f} puntos (estimación de mercado)",
+        "ticket_referencia": ticket, "credito": loan, "pago_mensual": pago_actual,
+        "ahorro_si_baja_1pt": ahorro_si_baja,
+        "es_estimado": tasa_ref is None,
+        "fuente": (f"Banxico serie {_SERIE_TIIE} al {tasa_fecha}" if tasa_ref is not None
+                   else "sin dato de Banxico — tasa hipotecaria estimada"),
+    }
 
     # ── 3. Gentrificación: zonas que se calientan (momentum + pendiente del trend) ──
     calientan = []

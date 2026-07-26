@@ -59,9 +59,14 @@ function Spark({ values, label, accent = 'var(--theme)' }) {
             strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12,
-          color: 'rgba(240, 235, 224, 0.68)', height: 50,
-          display: 'flex', alignItems: 'center' }}>Sin datos.</div>
+        // El vacío explica POR QUÉ está vacío (regla: vacío se ve vacío, y se dice la razón).
+        // Antes esta caja nunca se veía porque la serie se fabricaba multiplicando el valor de hoy
+        // por constantes; ahora aparece hasta que haya historia de verdad que graficar.
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, lineHeight: 1.4,
+          color: 'rgba(240, 235, 224, 0.5)', height: 50,
+          display: 'flex', alignItems: 'center' }}>
+          Todavía no hay historia suficiente para dibujar la tendencia.
+        </div>
       )}
       <div style={{
         marginTop: 4, fontFamily: 'DM Mono, monospace', fontSize: 11,
@@ -331,25 +336,19 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
     }
   };
 
-  // Simulated 90d sparkline data for visual interest (real data would come from
-  // ai_cost_aggregations.tenant_timeseries or an MRR history collection).
-  const mrrSeries = dashboard ? [
-    dashboard.mrr_estimated_mxn * 0.78, dashboard.mrr_estimated_mxn * 0.82,
-    dashboard.mrr_estimated_mxn * 0.86, dashboard.mrr_estimated_mxn * 0.91,
-    dashboard.mrr_estimated_mxn * 0.94, dashboard.mrr_estimated_mxn * 0.97,
-    dashboard.mrr_estimated_mxn,
-  ] : [];
-  const aiSeries = dashboard ? [
-    dashboard.ai_cost_mtd_mxn * 0.18, dashboard.ai_cost_mtd_mxn * 0.42,
-    dashboard.ai_cost_mtd_mxn * 0.55, dashboard.ai_cost_mtd_mxn * 0.71,
-    dashboard.ai_cost_mtd_mxn * 0.85, dashboard.ai_cost_mtd_mxn,
-  ] : [];
-  const convSeries = dashboard ? [
-    Math.max(0, (dashboard.conversion_rate_30d || 0) - 1.5),
-    Math.max(0, (dashboard.conversion_rate_30d || 0) - 0.8),
-    Math.max(0, (dashboard.conversion_rate_30d || 0) - 0.3),
-    dashboard.conversion_rate_30d || 0,
-  ] : [];
+  // GRÁFICAS FABRICADAS, ELIMINADAS (auditoría A–Z 07-26). Estas tres series se construían
+  // multiplicando el valor de HOY por constantes fijas (0.78, 0.82, 0.86…) y se pintaban etiquetadas
+  // "MRR (90d trend)", "Costo IA (30d)" y "Conversión (30d)". El comentario original lo admitía:
+  // *"Simulated 90d sparkline data for visual interest"*. El efecto era una curva SIEMPRE ascendente,
+  // a un clic de la Sala de Inversionistas — no era decoración, era un número inventado con forma de
+  // evidencia.
+  //
+  // Se sirven solo si el backend manda historia REAL. Mientras no la mande, la tarjeta muestra su
+  // número sin gráfica: un dato sin tendencia es honesto; una tendencia inventada, no.
+  const _serieReal = (v) => (Array.isArray(v) && v.length >= 2 ? v : []);
+  const mrrSeries = _serieReal(dashboard?.mrr_series_90d);
+  const aiSeries = _serieReal(dashboard?.ai_cost_series_30d);
+  const convSeries = _serieReal(dashboard?.conversion_series_30d);
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>

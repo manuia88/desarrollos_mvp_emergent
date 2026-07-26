@@ -1,4 +1,6 @@
-// Inteligencia de Zona — cada zona es un panel de mercado con data REAL y
+// Inteligencia de Zona — panel de mercado por zona.
+// OJO (auditoría 07-26): lo de TU inventario (unidades, ritmo, leads, obra) es dato real; el
+// contexto de mercado de la colonia sale de `data/colonias.js`, que son cifras de EJEMPLO.
 // visualizaciones variadas según el tipo de dato:
 //  · Radar de 6 ejes de calidad (vida/movilidad/seguridad/comercio/plusvalía/educación)
 //  · Tendencia de precio/m² (24 meses, área)
@@ -29,7 +31,8 @@ const avgPrice = (p) => { const f = p.price_from || 0, t = p.price_to || 0; retu
 const norm8 = (arr) => { const a = (arr || []).map(Number).map(v => (isNaN(v) ? 0 : v)).slice(-8); while (a.length < 8) a.unshift(0); return a; };
 const speedColor = (m) => (m == null ? 'var(--cream-3)' : m <= 6 ? 'var(--ok, #1FA06A)' : m <= 18 ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
 
-// Índice de mercado por colonia (data real, frontend/src/data/colonias.js)
+// Índice de mercado por colonia. OJO: `data/colonias.js` son DATOS DE EJEMPLO escritos a mano,
+// no mediciones (auditoría 07-26). Se usan para contexto visual, nunca para recomendar.
 const COL = {};
 COLONIAS.forEach(c => { COL[c.key] = c; COL[slug(c.name)] = c; });
 const momentumNum = (m) => { const n = parseFloat(String(m || '').replace(/[^0-9.-]/g, '')); return isNaN(n) ? null : n; };
@@ -50,7 +53,11 @@ function verdict({ heat, months, demandaRel, avail, obra, momentum, plusvalia })
   if (avail === 0) return { txt: 'Agotada — replica el modelo', tone: 'good', why: 'no te queda inventario aquí' };
   if (demandaRel >= 3) return { txt: 'Subir precio o liberar más unidades', tone: 'good', why: 'muchos leads por unidad disponible' };
   if (heat != null && heat >= 70 && months != null && months <= 9) return { txt: 'Ventana para subir precio', tone: 'good', why: 'demanda alta y se agota pronto' };
-  if (momentum != null && momentum >= 6 && months != null && months <= 18) return { txt: 'Zona apreciándose — sube precio', tone: 'good', why: `precio/m² subiendo ${momentum}%` };
+  // El `momentum` viene de `data/colonias.js`, que son 16 colonias con cifras ESCRITAS A MANO
+  // (auditoría A–Z 07-26). Recomendarle a un cliente que suba sus precios basándose en un número
+  // inventado es el peor uso posible de un dato de ejemplo, así que esta regla queda fuera hasta que
+  // el momentum venga medido. Las demás reglas del veredicto sí usan datos propios (inventario,
+  // leads, avance de obra) y siguen operando.
   if (months != null && months > 24) return { txt: 'Promocionar / revisar precio', tone: 'bad', why: 'inventario lento, tarda en venderse' };
   if (demandaRel < 1) return { txt: 'Generar demanda (marketing/fotos)', tone: 'warn', why: 'pocos leads por unidad' };
   if (obra != null && obra < 50 && months != null && months <= 12) return { txt: 'Acelerar obra', tone: 'warn', why: 'se vende más rápido de lo que construyes' };
@@ -115,7 +122,7 @@ export default function ZoneIntelligence({ user, colonia }) {
   return (
     <div data-testid="zone-intelligence" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 14 }}>
       {zones.map(z => {
-        const mkt = COL[z.slug] || null;                       // data real de mercado de la colonia
+        const mkt = COL[z.slug] || null;                       // contexto de colonia · DATO DE EJEMPLO
         const pulse = pulseMap[z.slug] || null;
         const heat = pulse ? Number(pulse.score) : null;
         const bm = bucketMeta(heat);

@@ -1,6 +1,17 @@
-// Diverse CDMX colonias dataset — shared across landing sections
-// 16 barrios covering Miguel Hidalgo, Cuauhtémoc, Benito Juárez, Coyoacán, Álvaro Obregón, Cuajimalpa
-// Scores are deterministic values (not randomized) to keep the UI stable between renders.
+// ⚠️ DATOS DE EJEMPLO — ESCRITOS A MANO. NO SON MEDICIONES.
+//
+// 16 colonias de CDMX con `momentum`, `trend`, precios y scores **inventados a mano** para que la
+// landing tenga algo que mostrar. Son estables entre renders a propósito, no porque se midan.
+//
+// POR QUÉ ESTE AVISO (auditoría A–Z 07-26): estos números salieron de aquí hacia SEIS componentes,
+// y en dos de ellos —el portal del DESARROLLADOR, donde los lee un cliente que paga— se presentaban
+// como mercado real. Un comentario en `ZoneIntelligence.js` decía literalmente "data real". Peor: el
+// `momentum` inventado disparaba la recomendación **"Zona apreciándose — sube precio"**.
+//
+// REGLA: nada de este archivo puede alimentar una recomendación, un score publicado ni un número que
+// el usuario pueda confundir con una medición. Para la landing, como ilustración, está bien.
+// El reemplazo por dato real está en el plan (Fase 0.3 de PLAN_REBUILD_SUPERADMIN.md).
+export const ES_DATO_DE_EJEMPLO = true;
 
 export const COLONIAS = [
   {
