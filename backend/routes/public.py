@@ -2375,7 +2375,15 @@ async def get_development(dev_id: str, request: Request):
     _total_hint = 0 if _hidden_n else (out.get("total_units") or 0)
     out.update(_aggregates_from_units(out.get("units"), _total_hint))
     # Founder 07-22: las unidades ocultas NO se cuentan en la ficha pública → el total refleja lo mostrado.
-    out["total_units"] = len(out.get("units") or [])
+    #
+    # PERO SOLO CUANDO HAY OCULTAS (auditoría 07-26). Antes esta línea pisaba el total SIEMPRE, así
+    # que un edificio casi agotado se contradecía consigo mismo: Chilpancingo 57 salía con "48
+    # unidades" en el listado y con "1" al abrir su ficha — el comprador ve el total cambiar al hacer
+    # clic. Y de paso tiraba la regla del founder (el brochure dice cuántas son en total; las que ya
+    # no están en la lista se cuentan como colocadas), que dos líneas arriba se acababa de aplicar
+    # bien. Sin ocultas, el total del brochure manda y se conserva.
+    if _hidden_n:
+        out["total_units"] = len(out.get("units") or [])
     # HIPERGRANULARIDAD (07-22): métricas por unidad desde el desglose por cuarto del plano CAD
     # (eficiencia, metros vivibles, $/m² vivible, aire libre, muros%, score) + perfil de producto del dev.
     try:

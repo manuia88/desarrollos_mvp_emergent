@@ -170,7 +170,12 @@ def apply_unit_aggregates(card: Dict[str, Any], units: List[Dict[str, Any]]) -> 
     # las unidades cargadas, las que faltan son vendidas no detalladas (07-17: Chilpancingo
     # 48 deptos con 1 disponible mostraba 'total 1'). units_available/reserved sí son reales.
     cargadas = len(deptos)
-    total_edif = max(card.get("units_total") or 0, cargadas)   # brochure manda el total
+    # El total del brochure vive en `total_units` en los ingeridos y en `units_total` en las tarjetas
+    # ya construidas. Aquí solo se leía `units_total`, y de 122 desarrollos SOLO 1 lo usa: los otros
+    # 90 guardan `total_units` (auditoría 07-26). Resultado: el total del brochure NUNCA se aplicaba y
+    # el edificio se reportaba con las unidades cargadas como si fueran todas — justo lo contrario de
+    # la regla del founder. Se leen los dos nombres.
+    total_edif = max(card.get("total_units") or card.get("units_total") or 0, cargadas)
     disp = sum(1 for u in deptos if u.get("status") == "disponible")
     resv = sum(1 for u in deptos if u.get("status") == "reservado")
     vend_vis = sum(1 for u in deptos if u.get("status") == "vendido")
