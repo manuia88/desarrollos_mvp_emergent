@@ -75,16 +75,44 @@ def test_is_stale_borderline_above_threshold_is_stale():
     assert is_stale(hb) is True
 
 
-def test_is_stale_unknown_job_uses_default_interval():
-    """job_id no registrado → default interval 3600s · stale si >7200s."""
-    # Job desconocido · default 1h · 2x = 2h
-    fresh = (_now() - timedelta(minutes=30)).isoformat()
-    hb_fresh = {"job_id": "job_unknown_xyz", "last_run_at": fresh}
-    assert is_stale(hb_fresh) is False
+def test_is_stale_unknown_job_no_asume_que_corre_cada_hora():
+    """Un trabajo de ritmo DESCONOCIDO no se marca atrasado a las 2 horas.
 
-    ancient = (_now() - timedelta(hours=10)).isoformat()
-    hb_old = {"job_id": "job_unknown_xyz", "last_run_at": ancient}
-    assert is_stale(hb_old) is True
+    Antes el valor por defecto era 1 hora, así que cualquier trabajo no declarado se reportaba como
+    crítico a las 2 horas. De 72 trabajos, 26 caían ahí: produjo 84 alertas críticas casi todas
+    falsas, y un tablero que grita por nada entrena a ignorarlo (auditoría 07-26).
+    Sin saber su ritmo se le da un día de margen; 10 horas ya no es motivo de alarma.
+    """
+    fresh = (_now() - timedelta(minutes=30)).isoformat()
+    assert is_stale({"job_id": "job_unknown_xyz", "last_run_at": fresh}) is False
+
+    diez_horas = (_now() - timedelta(hours=10)).isoformat()
+    assert is_stale({"job_id": "job_unknown_xyz", "last_run_at": diez_horas}) is False
+
+    cuatro_dias = (_now() - timedelta(days=4)).isoformat()
+    assert is_stale({"job_id": "job_unknown_xyz", "last_run_at": cuatro_dias}) is True
+
+
+def test_is_stale_deduce_el_ritmo_del_nombre():
+    """`_daily`, `_weekly`, `_monthly` en el nombre dicen cada cuánto corre."""
+    hace_dos_dias = (_now() - timedelta(days=2)).isoformat()
+    # un trabajo MENSUAL a los 2 días está a tiempo; antes se marcaba crítico
+    assert is_stale({"job_id": "algo_monthly", "last_run_at": hace_dos_dias}) is False
+    assert is_stale({"job_id": "algo_weekly", "last_run_at": hace_dos_dias}) is False
+    # uno diario a los 3 días SÍ está atrasado (su margen es 2× 26h ≈ 2.2 días)
+    hace_tres_dias = (_now() - timedelta(days=3)).isoformat()
+    assert is_stale({"job_id": "algo_daily", "last_run_at": hace_tres_dias}) is True
+
+
+def test_is_stale_usa_el_ritmo_MEDIDO_cuando_no_esta_declarado():
+    """Si el sistema ya observó cada cuánto corre, ese dato manda sobre cualquier suposición."""
+    hace_3h = (_now() - timedelta(hours=3)).isoformat()
+    # ritmo medido de 30 min → a las 3 horas lleva 6× su ritmo: atrasado
+    assert is_stale({"job_id": "job_medido", "last_run_at": hace_3h,
+                     "intervalo_observado_sec": 1800}) is True
+    # ritmo medido de 6 h → a las 3 horas va a tiempo
+    assert is_stale({"job_id": "job_medido", "last_run_at": hace_3h,
+                     "intervalo_observado_sec": 6 * 3600}) is False
 
 
 def test_is_stale_invalid_date_format_returns_true():

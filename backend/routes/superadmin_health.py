@@ -404,6 +404,24 @@ async def health_critical_check(db) -> None:
                              "last_run_at": hb.get("last_run_at"),
                              "fail_count_24h": hb.get("fail_count_24h", 0)})
 
+    # LAS ALERTAS SE CIERRAN SOLAS CUANDO EL PROBLEMA SE VA (auditoría 07-26). Esta función abría
+    # alertas y NUNCA las cerraba: había críticas abiertas desde el 7 de junio de trabajos que ya
+    # llevaban semanas corriendo bien. Se acumularon 84, y un tablero que grita por cosas resueltas
+    # entrena a ignorarlo — así se pierden las que sí importan.
+    _con_problema = {f"cron:{p['job_id']}" for p in problems}
+    try:
+        _cerradas = await db.system_alerts.update_many(
+            {"resolved_at": None,
+             "source": {"$regex": "^cron:", "$nin": sorted(_con_problema)}},
+            {"$set": {"resolved_at": now.isoformat(),
+                      "resolved_by": "auto:el trabajo volvió a correr a tiempo"}},
+        )
+        if _cerradas.modified_count:
+            log.info("[health] %s alertas de cron cerradas solas (el trabajo se recuperó)",
+                     _cerradas.modified_count)
+    except Exception:  # noqa: BLE001
+        log.warning("[health] no se pudieron cerrar alertas resueltas", exc_info=True)
+
     for p in problems:
         source = f"cron:{p['job_id']}"
         # Already an open alert for this source?

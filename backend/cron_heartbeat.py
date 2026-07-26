@@ -133,6 +133,26 @@ async def heartbeat_end(db, trace: dict, ok: bool, error: Optional[str] = None) 
     schedule_expr = SCHEDULE_LABELS.get(job_id, "")
     now = _now()
 
+    # EL RITMO SE MIDE, NO SE ADIVINA (auditoría 07-26). De 72 trabajos, 33 declaran su intervalo en
+    # una tabla escrita a mano y 13 se deducen del nombre; los otros 26 no se sabían, y suponerlos
+    # horarios es lo que producía decenas de alertas falsas de "atrasado".
+    # En vez de inventar un valor: se anota cuánto pasó desde la corrida anterior. A la segunda
+    # corrida el sistema ya conoce el ritmo real del trabajo, sin que nadie tenga que declararlo.
+    # Se guarda el intervalo MÁS LARGO observado, que es el que evita falsos atrasos.
+    observado = None
+    try:
+        prev = await db.cron_heartbeats.find_one(
+            {"job_id": job_id}, {"_id": 0, "last_run_at": 1, "intervalo_observado_sec": 1})
+        anterior = (prev or {}).get("last_run_at")
+        if anterior:
+            t = datetime.fromisoformat(str(anterior).replace("Z", "+00:00"))
+            hueco = (now - t).total_seconds()
+            # se ignoran huecos absurdos (reinicios largos, la Mac dormida): no son el ritmo del job
+            if 30 <= hueco <= 40 * 86400:
+                observado = max(int(hueco), int((prev or {}).get("intervalo_observado_sec") or 0))
+    except Exception:  # noqa: BLE001
+        observado = None
+
     update = {
         "$set": {
             "job_id": job_id,
@@ -142,6 +162,7 @@ async def heartbeat_end(db, trace: dict, ok: bool, error: Optional[str] = None) 
             "last_error": (error or "")[:500] if error else None,
             "schedule_expr": schedule_expr,
             "updated_at": now.isoformat(),
+            **({"intervalo_observado_sec": observado} if observado else {}),
         },
         "$inc": {"run_count_24h": 1, **({"fail_count_24h": 1} if not ok else {})},
         "$setOnInsert": {"created_at": now.isoformat()},
@@ -192,12 +213,52 @@ async def reset_24h_counters(db) -> None:
 
 # ─── Stale detection ──────────────────────────────────────────────────────────
 
+# Ritmo deducido del propio nombre del trabajo. Los nombres son consistentes en todo el sistema
+# (`ds_banxico_daily`, `intelligence_insights_weekly`, `construction_costs_monthly`), así que decirlo
+# una vez aquí evita mantener 72 renglones a mano.
+_RITMO_POR_NOMBRE = (
+    ("_quarterly", 95 * 86400), ("_monthly", 32 * 86400), ("_weekly", 8 * 86400),
+    ("_daily", 26 * 3600), ("_hourly", 3600), ("_5min", 300), ("_10min", 600),
+)
+# Un trabajo cuyo ritmo NO conocemos NO se asume horario: se le da un día de margen. Suponer que
+# todo corre cada hora es lo que producía las alarmas falsas.
+_INTERVALO_DESCONOCIDO = 26 * 3600
+
+
+def _intervalo_de(job_id: str, hb: Optional[dict] = None) -> int:
+    """Cada cuánto DEBERÍA correr este trabajo, en segundos.
+
+    Orden: lo declarado a mano · lo deducido del nombre · **lo MEDIDO en corridas anteriores** ·
+    y solo al final un valor por defecto holgado.
+    """
+    if job_id in SCHEDULE_INTERVAL_SEC:
+        return SCHEDULE_INTERVAL_SEC[job_id]
+    j = (job_id or "").lower()
+    for sufijo, seg in _RITMO_POR_NOMBRE:
+        if sufijo in j:
+            return seg
+    medido = int((hb or {}).get("intervalo_observado_sec") or 0)
+    if medido >= 60:
+        return medido
+    return _INTERVALO_DESCONOCIDO
+
+
 def is_stale(hb: dict) -> bool:
-    """True if last_run_at is older than 2× the schedule interval."""
+    """True si el trabajo lleva más de 2× su ritmo sin correr.
+
+    EL TABLERO GRITABA DE MÁS (auditoría 07-26). El intervalo salía de una tabla escrita a mano con
+    33 entradas, y **39 de los 72 trabajos no están en ella** — así que caían al valor por defecto de
+    una hora y se marcaban atrasados a las 2 horas. Un trabajo MENSUAL aparecía como crítico a los dos
+    días. Resultado: 84 alertas críticas, casi todas falsas, y por eso nadie miraba el tablero.
+    Un aviso que miente por exceso entrena a ignorarlo, y así se pierden los 4 atrasos de verdad.
+
+    Ahora el ritmo se deduce del nombre del trabajo cuando no está declarado, y lo desconocido recibe
+    un día de margen en vez de una hora.
+    """
     if not hb:
         return True
     job_id = hb.get("job_id") or ""
-    interval = SCHEDULE_INTERVAL_SEC.get(job_id, 3600)
+    interval = _intervalo_de(job_id, hb)
     last = hb.get("last_run_at")
     if not last:
         return True

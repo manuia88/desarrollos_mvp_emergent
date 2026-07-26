@@ -189,20 +189,30 @@ async def dashboard_route(request: Request):
         pass
     conversion_rate_30d = round((leads_won_30d / max(leads_30d, 1)) * 100, 2) if leads_30d else 0
 
-    # Top 5 alerts (severity desc + ts desc)
+    # LAS CRÍTICAS NUNCA SE VEÍAN (auditoría 07-26). Se ordenaba por `severity` descendente, y como
+    # es texto eso significa orden ALFABÉTICO: "warning" > "info" > "critical". Resultado: había
+    # **84 críticas sin resolver** y el top-5 mostraba 5 advertencias. Llevaban semanas invisibles.
+    #
+    # Además las que salían no se podían abrir: `id` venía en `None` porque el identificador vive en
+    # `details.id`. Un aviso que no se puede abrir ni resolver es decoración.
+    _ORDEN = {"critical": 0, "error": 1, "warning": 2, "info": 3}
     top_alerts = []
     try:
-        cur = db.system_alerts.find(
-            {"resolved_at": None}, {"_id": 0},
-        ).sort([("severity", -1), ("ts", -1)]).limit(5)
-        async for a in cur:
+        crudas = [a async for a in db.system_alerts.find(
+            {"resolved_at": None}, {"_id": 0}).sort("ts", -1).limit(400)]
+        crudas.sort(key=lambda a: (_ORDEN.get(str(a.get("severity") or "").lower(), 9),
+                                   str(a.get("ts") or ""),))
+        for a in crudas[:5]:
+            det = a.get("details") or {}
             top_alerts.append({
-                "id": a.get("id"), "severity": a.get("severity"),
-                "source": a.get("source"), "message": a.get("message"),
+                "id": a.get("id") or det.get("id") or a.get("alert_id"),
+                "severity": a.get("severity"),
+                "source": a.get("source"),
+                "message": a.get("message") or a.get("title"),
                 "ts": a.get("ts"),
             })
-    except Exception:
-        pass
+    except Exception:  # noqa: BLE001
+        log.warning("[founder] top de alertas falló", exc_info=True)
 
     # Anomalies open
     anomalies_open = 0
