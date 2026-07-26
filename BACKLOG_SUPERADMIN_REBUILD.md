@@ -18,6 +18,7 @@
 | ✅ | **"Nivel 40 vale +25.6% (94 edificios)"** — el 94 era el total del bloque; ese nivel se apoya en 2. Ahora cita el n de ese nivel y avisa "son pocos casos" | `2f937540` |
 | ✅ | **La pantalla borraba `es_estimado` y `fuente`** antes de pintar, y cortaba las tablas a 8 columnas justo donde caían las que dicen cuántos casos hay | `2f937540` |
 | ✅ | **FUGA DE DATOS ENTRE CLIENTES en el Cerebro.** El filtro leía la semilla vacía → lista vacía → `{}` = sin filtro. Cada dev veía las **6,420 unidades de todos** y el Cerebro le proponía bajar el precio de una unidad de otro cliente. Cerrado y probado en ambos sentidos | `3d7d8aa1` |
+| ✅ | **Las 41 notificaciones decían todas "Notificación".** La campana leía `message`/`text`; la API manda `title`/`body`. El aviso útil estaba escrito desde siempre y no se leía | `b5989b6c` |
 | ✅ | **Prueba nueva que vigila el error real**: un día con una sola colonia no puede mover el índice | `2f937540` |
 
 ---
@@ -53,6 +54,31 @@
 **El founder NO puede desde su consola:** reasignar un lead real · borrar un desarrollo o unidad ·
 resetear la contraseña de un cliente (por eso quedaron 5 cuentas sin acceso) · crear o administrar
 asesores · ocultar/mostrar una unidad al público · limpiar los 5 desarrollos basura.
+
+
+### 🔴 CRÍTICO — no se puede TERMINAR la tarea *(agente de flujos, 07-26)*
+
+**2 de 8 flujos se completan.** Encontrar no era el problema; **actuar** sí.
+
+| # | Qué | Costo |
+|---|---|---|
+| E45 | **No existe "Publicar" en la ficha del desarrollo.** Y tres mecanismos escriben campos distintos: la pantalla del founder lee `published_at` (**1** registro), el botón escribe `marketplace_published` (**115**), y el portón público filtra `!= False` (**abierto por defecto**). El founder **no tiene forma de saber qué está publicado**: su catálogo dice 1 y en la calle hay 113 | medio |
+| E46 | **El mensaje de confirmación se pinta 4,564 px arriba del botón** — cinco pantallas fuera de vista. El founder hace clic, no ve nada, concluye "no sirve" y vuelve a hacer clic. Es el patrón que más daño hace | chico |
+| E47 | **No se puede rechazar ni borrar un proyecto pendiente.** Los 6 tienen "Aprobar" deshabilitado y no hay otra acción: las 5 carpetas de Drive quedan atoradas para siempre | chico |
+| E48 | **El mismo proyecto tiene "Aprobar" bloqueado en una pantalla y "Publicar" libre en otra**, sin candado ni confirmación | chico |
+| E49 | **"Aprobar e ingerir" dispara una ingesta que gasta API sin confirmación.** Y "Ignorar" no tiene vuelta atrás | chico |
+| E50 | **En el semáforo del vigía, la única salida a un error real es silenciarlo** (🔇 "esto está bien"). El botón "Arreglar" por diseño no toca campos faltantes: en un proyecto en rojo reporta "0 arreglados" | medio |
+| E51 | **Tres bandejas conviven y la campana lleva a la que NO puede arreglar nada.** La buena (Inventario → "Tu bandeja de hoy") sí edita y guarda, y tiene "Copiar mensaje para WhatsApp" — es la mejor pieza de la app y está escondida | medio |
+| E52 | **La pantalla de leads tiene 0 botones y 0 enlaces.** No hay detalle, ni nota, ni teléfono, ni historial: no se puede dejar constancia | medio |
+| E53 | **No se puede borrar ni suspender un desarrollador, ni corregir su correo de acceso.** "Editar" cambia el correo de *contacto*, no el de entrada. Un typo = un dev que nunca entra y no se puede quitar | chico |
+| E54 | **El Estudio DMX se genera excelente y no se puede entregar**: no hay descargar PDF, ni correo, ni liga para compartir | chico |
+| E55 | **KPI "Anomalías abiertas: 1" contra el panel de abajo "(0)" con "Cargando…" congelado** (14 s, dos recargas). Y los Quick actions salen duplicados | chico |
+
+**Lo que el flujo enseñó sobre el rebuild:** toda acción confirma **donde se hizo el clic** · cada
+objeto declara su juego completo de acciones y las mismas en todas partes · un estado, un campo, una
+lectura, y **el portón público cerrado por defecto** · todo número clicable aterriza en el dato que lo
+produce, no en otro número · gastar dinero pide confirmación, lo demás se deshace · **una sola
+bandeja** · silenciar nunca puede ser la única salida a un error real.
 
 ### 🔴 ALTO — datos sucios
 
