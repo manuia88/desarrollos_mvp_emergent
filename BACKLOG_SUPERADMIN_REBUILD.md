@@ -17,6 +17,7 @@
 | ✅ | **El índice DMX-30 marcaba 147 y era 91.** Bastaba UNA colonia para reencadenar el nivel; el 14-jul saltó +46.9% con una sola. Ahora exige mínimo 3 | `2f937540` |
 | ✅ | **"Nivel 40 vale +25.6% (94 edificios)"** — el 94 era el total del bloque; ese nivel se apoya en 2. Ahora cita el n de ese nivel y avisa "son pocos casos" | `2f937540` |
 | ✅ | **La pantalla borraba `es_estimado` y `fuente`** antes de pintar, y cortaba las tablas a 8 columnas justo donde caían las que dicen cuántos casos hay | `2f937540` |
+| ✅ | **FUGA DE DATOS ENTRE CLIENTES en el Cerebro.** El filtro leía la semilla vacía → lista vacía → `{}` = sin filtro. Cada dev veía las **6,420 unidades de todos** y el Cerebro le proponía bajar el precio de una unidad de otro cliente. Cerrado y probado en ambos sentidos | `3d7d8aa1` |
 | ✅ | **Prueba nueva que vigila el error real**: un día con una sola colonia no puede mover el índice | `2f937540` |
 
 ---
@@ -33,6 +34,25 @@
 | E4 | **El índice de precios DRPI es 99.8% sintético** (59,832 de 59,956 con `synthetic:true`) y responde `available:true`. Encima de eso se calcula *"92.7% de probabilidad de subida, confianza ALTA"* | `drpi` | medio |
 | E5 | **Las calificaciones de zona salen al PÚBLICO con relleno**: 50/50 con `placeholder_flags`, `denue_density` exactamente 50.0. Lo ve el comprador | `/api/public/zone-score` | medio |
 | E6 | **Clientes: 0 en el inicio vs 6 en la pantalla a la que ese número lleva.** El inicio lee `db.tenants` (vacía), la pantalla lee `db.dev_orgs`. Por eso los ingresos son $0 siempre | `founder_console.py:75` vs `superadmin_tenants.py:140` | chico |
+
+
+### 🔴 CRÍTICO — vinculación rota entre portales *(agente 07-26)*
+
+| # | Qué | Costo |
+|---|---|---|
+| E36 | **Asignar un lead a un asesor NO llega.** El founder escribe `assigned_asesor_id` en `visit_requests` (3 registros); el asesor lee `assigned_to`/`asesor_id` en `db.leads` (59). Nunca se cruzan. El founder **no puede reasignar un lead real** | medio |
+| E37 | **El cotizador del asesor lee la semilla muerta** → devuelve `[]` siempre. Afecta 4 pantallas. El mismo asesor ve dos catálogos distintos según la pantalla | medio |
+| E38 | **Suspender un cliente no despublica su inventario.** Corta el acceso, pero sus proyectos siguen en el marketplace. Y la suspensión se guarda en un documento fantasma: `Tenants` usa `org_id`, las otras 18 partes usan `tenant_id` — **0 documentos tienen `org_id`** | medio |
+| E39 | **El dashboard del desarrollador calcula sobre la semilla vacía** → le salen ceros pase lo que pase (4 endpoints) | medio |
+| E40 | **El dueño legítimo recibe 403 en 2 pantallas** (`dev_can_access_project` usa la semilla) | chico |
+| E41 | **`oculto_ficha` esconde 1,791 unidades (30%) y NO tiene un solo escritor** en código ni interfaz. Solo se puede tocar a mano en la base. Entre ellas 4 disponibles invisibles al comprador | chico |
+| E42 | **"El precio efectivo de una unidad" tiene 3 implementaciones distintas.** Hoy coinciden solo porque los overrides están vacíos; el día que un dev edite, los tres portales dirán cosas distintas | medio |
+| E43 | **"El dueño de un lead": 4 campos en 3 colecciones** (`assignee_id` 42 · `assigned_to` 17 · `asesor_id` 3 · `assigned_asesor_id`) | medio |
+| E44 | **161 archivos siguen importando la semilla muerta** | grande |
+
+**El founder NO puede desde su consola:** reasignar un lead real · borrar un desarrollo o unidad ·
+resetear la contraseña de un cliente (por eso quedaron 5 cuentas sin acceso) · crear o administrar
+asesores · ocultar/mostrar una unidad al público · limpiar los 5 desarrollos basura.
 
 ### 🔴 ALTO — datos sucios
 
