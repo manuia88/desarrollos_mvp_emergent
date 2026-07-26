@@ -434,7 +434,34 @@ function GalleryModal({ dev, scans, startAt, startTab, onClose }) {
   const [tab, setTab] = useState(startTab && tabs.some(([k]) => k === startTab) ? startTab : 'fotos');
   const [i, setI] = useState(startAt || 0);
   const list = tab === 'planos' ? planos : photos;
-  useEffect(() => { const onKey = (e) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') setI((x) => (x + 1) % list.length); if (e.key === 'ArrowLeft') setI((x) => (x - 1 + list.length) % list.length); }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [list.length, onClose]);
+
+  // ── TELEMETRÍA DE LA GALERÍA (auditoría A–Z 07-24) ─────────────────────────
+  // La galería es lo que más mira un comprador antes de contactar, y no emitía NADA. Se cablean
+  // sólo señales de intención; el paso de fotos se ACUMULA y se manda una vez al cerrar, para no
+  // disparar una petición por cada flechazo.
+  const vistas = useRef(0);
+  const abiertaEn = useRef(Date.now());
+  useEffect(() => {
+    fvSignal('gallery_open', { entity_type: 'dev', entity_id: dev.id, value: startTab || 'fotos', n_fotos: photos.length, n_planos: planos.length });
+    const t0 = abiertaEn.current;
+    return () => {
+      // dwell = cuánto tiempo estuvo mirando y cuántas imágenes pasó. Sólo si hubo interacción real.
+      const seg = Math.round((Date.now() - t0) / 1000);
+      if (seg >= 2 || vistas.current > 0) {
+        fvSignal('photo_dwell', { entity_type: 'dev', entity_id: dev.id, seconds: seg, imagenes_vistas: vistas.current });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cambiarTab = (k) => {
+    setTab(k); setI(0);
+    if (k === 'planos') fvSignal('plano_view', { entity_type: 'dev', entity_id: dev.id, value: 'galeria', n_planos: planos.length });
+    else if (k === 'tour') fvSignal('tour_view', { entity_type: 'dev', entity_id: dev.id, value: '3d' });
+    else if (k === 'video') fvSignal('tour_view', { entity_type: 'dev', entity_id: dev.id, value: 'video' });
+  };
+
+  useEffect(() => { const onKey = (e) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') { vistas.current += 1; setI((x) => (x + 1) % list.length); } if (e.key === 'ArrowLeft') { vistas.current += 1; setI((x) => (x - 1 + list.length) % list.length); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [list.length, onClose]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#fff', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '16px 22px', borderBottom: `1px solid ${C.line}` }}>
@@ -443,7 +470,7 @@ function GalleryModal({ dev, scans, startAt, startTab, onClose }) {
           <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 24, color: C.ink2, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
-          {tabs.map(([k, l]) => <button key={k} onClick={() => { setTab(k); setI(0); }} style={{ padding: '9px 4px', marginRight: 14, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{l}</button>)}
+          {tabs.map(([k, l]) => <button key={k} onClick={() => cambiarTab(k)} style={{ padding: '9px 4px', marginRight: 14, border: 'none', borderBottom: tab === k ? `2.5px solid ${C.accent}` : '2.5px solid transparent', background: 'none', color: tab === k ? C.accent : C.ink2, fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{l}</button>)}
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 60px', background: C.bgSoft }}>
@@ -456,15 +483,15 @@ function GalleryModal({ dev, scans, startAt, startTab, onClose }) {
         ) : <div style={{ color: C.faint, fontFamily: FONT }}>Sin elementos</div>}
         {list.length > 1 && tab !== 'tour' && tab !== 'video' && (
           <>
-            <button onClick={() => setI((x) => (x - 1 + list.length) % list.length)} aria-label="Anterior" style={navArrow('left')}>‹</button>
-            <button onClick={() => setI((x) => (x + 1) % list.length)} aria-label="Siguiente" style={navArrow('right')}>›</button>
+            <button onClick={() => { vistas.current += 1; setI((x) => (x - 1 + list.length) % list.length); }} aria-label="Anterior" style={navArrow('left')}>‹</button>
+            <button onClick={() => { vistas.current += 1; setI((x) => (x + 1) % list.length); }} aria-label="Siguiente" style={navArrow('right')}>›</button>
             <div style={{ position: 'absolute', bottom: 18, fontFamily: FONT, fontSize: 13, color: C.ink2 }}>{i + 1} / {list.length}</div>
           </>
         )}
       </div>
       {tab !== 'tour' && tab !== 'video' && list.length > 1 && (
         <div style={{ display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto', borderTop: `1px solid ${C.line}` }}>
-          {list.map((src, k) => <img key={k} src={src} alt="" onClick={() => setI(k)} style={{ width: 96, height: 66, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', flex: 'none', border: k === i ? `2px solid ${C.accent}` : `1px solid ${C.line}` }} />)}
+          {list.map((src, k) => <img key={k} src={src} alt="" onClick={() => { vistas.current += 1; setI(k); if (tab === 'planos') fvSignal('plano_zoom', { entity_type: 'dev', entity_id: dev.id, value: String(k) }); else fvSignal('photo_zoom', { entity_type: 'dev', entity_id: dev.id, value: String(k) }); }} style={{ width: 96, height: 66, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', flex: 'none', border: k === i ? `2px solid ${C.accent}` : `1px solid ${C.line}` }} />)}
         </div>
       )}
     </div>
@@ -816,7 +843,7 @@ function ModeloModal({ dev, unit: initUnit, avm, scans = [], onClose, onSelectUn
               <div className="dmx-card" style={{ ...box, padding: 12 }}>
                 <div style={{ position: 'relative', borderRadius: R_CARD, overflow: 'hidden', background: C.bgSoft, aspectRatio: '4/3' }}>
                   {plano ? (esPdf(u, plano) ? <object data={plano} type="application/pdf" aria-label={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%' }} /> : <img src={plano} alt={`Plano unidad ${u.unit_number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />) : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: C.faint }}>{uLabel}</div>}
-                  {plano && <button onClick={() => setExpand(true)} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
+                  {plano && <button onClick={() => { setExpand(true); try { fvSignal('plano_zoom', { entity_type: 'unit', entity_id: u?.id, unit_number: u?.unit_number, value: 'ficha' }); } catch { /* fail-open */ } }} aria-label="Expandir plano" style={{ position: 'absolute', right: 10, bottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: R_BTN, border: `1px solid ${C.line}`, background: 'rgba(255,255,255,0.95)', color: C.ink, fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>⤢ Expandir</button>}
                 </div>
                 <div style={{ textAlign: 'center', fontFamily: HEAD, fontSize: 13, fontWeight: 700, color: C.ink2, marginTop: 10 }}>{uLabel}</div>
                 <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>Los planos e imágenes son ilustrativos. Medidas, acabados y áreas pueden variar según el contrato de compraventa.</div>
