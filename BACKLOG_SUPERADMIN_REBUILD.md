@@ -19,6 +19,15 @@
 | ✅ | **La pantalla borraba `es_estimado` y `fuente`** antes de pintar, y cortaba las tablas a 8 columnas justo donde caían las que dicen cuántos casos hay | `2f937540` |
 | ✅ | **FUGA DE DATOS ENTRE CLIENTES en el Cerebro.** El filtro leía la semilla vacía → lista vacía → `{}` = sin filtro. Cada dev veía las **6,420 unidades de todos** y el Cerebro le proponía bajar el precio de una unidad de otro cliente. Cerrado y probado en ambos sentidos | `3d7d8aa1` |
 | ✅ | **Las 41 notificaciones decían todas "Notificación".** La campana leía `message`/`text`; la API manda `title`/`body`. El aviso útil estaba escrito desde siempre y no se leía | `b5989b6c` |
+| ✅ | **FASE 0 COMPLETA · las 9 cosas que te mentían al abrir la consola** — ver detalle abajo | `712f74e3`…`b437413d` |
+| ✅ | E1 · La "tasa de Banxico 8.8%" era el valor de la UDI, con fecha del futuro. Ahora TIIE 6.76% real; la mensualidad pasa de $56,762 a **$65,018** | `712f74e3` |
+| ✅ | E2 · Las 3 gráficas del inicio se fabricaban multiplicando el valor de hoy por constantes | `712f74e3` |
+| ✅ | E3 · Las 16 colonias escritas a mano ya no disparan "sube precio" a tus clientes | `712f74e3` |
+| ✅ | E4 · DRPI: **194→0** filas con índice falso publicado · y la confianza mira el INSUMO, no el ajuste (92.7% ALTA → BAJA) | `66149522` |
+| ✅ | E5 · La calificación de zona declara qué componente es estimado, también sin sesión | `44245623` |
+| ✅ | E6 · Clientes 0→**7** y coincide con la pantalla · ingresos: cobrado ($0) separado de potencial ($3,495) | `ae23e3b2` |
+| ✅ | E21+E22 · Alertas críticas: **84→12** · 72 se cerraron solas · el ritmo de cada trabajo ahora se MIDE, no se adivina | `a77e772f` |
+| ✅ | E55 · El panel de anomalías ya carga (nadie disparaba la carga) · acciones rápidas 12→6 con candado | `b437413d` |
 | ✅ | **Prueba nueva que vigila el error real**: un día con una sola colonia no puede mover el índice | `2f937540` |
 
 ---
