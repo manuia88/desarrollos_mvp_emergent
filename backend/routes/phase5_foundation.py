@@ -188,11 +188,21 @@ async def public_zone_score(zone_id: str, request: Request):
     """
     db = _db(request)
     doc = await score_engine.get_score_or_compute(db, zone_id)
+    # LA CALIFICACIÓN DICE DE QUÉ ESTÁ HECHA, también aquí (auditoría 07-26). Este endpoint no pide
+    # sesión: lo que devuelve lo puede ver cualquiera, incluido el comprador. De 5,321 zonas, 5,042
+    # traen al menos un componente estimado (hoy `liquidez` en todas) y salía mudo.
+    # No se suprime la letra —la mayoría de sus componentes sí están medidos— pero deja de aparentar
+    # que todo el score se midió.
+    _estimados = sorted(k for k, v in (doc.get("placeholder_flags") or {}).items() if v)
     return {
         "zone_id": zone_id,
         "score_letter": doc.get("score_letter"),
         "score_numeric": doc.get("score_numeric"),
         "zone_name": doc.get("zone_name"),
         "computed_at": doc.get("computed_at"),
+        "componentes_estimados": _estimados,
+        "es_estimado": bool(_estimados),
+        "nota": (f"El componente «{'», «'.join(_estimados)}» todavía no se mide directamente en esta "
+                 f"zona; se usa una referencia del mercado." if _estimados else None),
         "source": "via DMX",
     }

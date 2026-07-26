@@ -155,17 +155,33 @@ async def v1_zone_score(zone_id: str, request: Request, response: Response):
         {"zone_id": zone_id}, {"_id": 0, "computed_at_dt": 0},
         sort=[("computed_at_dt", -1)],
     )
+    # LA CALIFICACIÓN DECLARA DE QUÉ ESTÁ HECHA (auditoría 07-26). De 5,321 zonas, **5,042 traen al
+    # menos un componente estimado** (hoy: `liquidez` en todas ellas) y se servían sin decirlo — a
+    # través de la API que se licencia a terceros.
+    #
+    # No se suprime la calificación: la mayoría de sus componentes SÍ están medidos y borrarla tiraría
+    # valor real. Lo que se corrige es que salga muda: ahora dice qué partes son estimadas, en todos
+    # los niveles de plan. Quien paga por este dato tiene derecho a saber de qué está compuesto.
+    _estimados = sorted(k for k, v in (zs or {}).get("placeholder_flags", {}).items() if v)
+    _honestidad = {
+        "componentes_estimados": _estimados,
+        "es_estimado": bool(_estimados),
+        "nota": (f"El componente «{'», «'.join(_estimados)}» todavía no se mide directamente en esta "
+                 f"zona; se usa una referencia del mercado." if _estimados else None),
+    }
+
     if not zs:
         out = {"zone_id": zone_id, "available": False, "reason": "no_score_yet"}
     elif ctx.tier == "free":
-        out = {"zone_id": zone_id, "available": True, "score_letter": zs.get("score_letter")}
+        out = {"zone_id": zone_id, "available": True, "score_letter": zs.get("score_letter"),
+               **_honestidad}
     elif ctx.tier == "pro":
         out = {"zone_id": zone_id, "available": True,
                "score_letter": zs.get("score_letter"),
                "score_numeric": zs.get("score_numeric"),
-               "components": zs.get("components")}
+               "components": zs.get("components"), **_honestidad}
     else:
-        out = {"zone_id": zone_id, "available": True, **zs}
+        out = {"zone_id": zone_id, "available": True, **zs, **_honestidad}
 
     _set_headers(response, ctx)
     await auth.track_api_call(db, ctx, request, status_code=200,
