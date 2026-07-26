@@ -405,3 +405,47 @@ es gratis. Un promedio bonito ("71% con plano") esconde exactamente el dev podri
 Doctrina aplicable: [[feedback_verificar_realidad_no_extraccion]] · [[feedback_cobertura_no_solo_correctitud]] ·
 [[feedback_leer_documentos_no_heuristica]] · [[feedback_grep_before_build]] · [[feedback_no_orphan_features]] ·
 [[feedback_build_for_endstate]] · [[feedback_fix_in_scope_zero_debt]] · [[AUTHZ_MODEL_LEADS]].
+
+---
+
+# RESULTADO · los 26 bloques cerrados (2026-07-26)
+
+Cinco olas de agentes internos, cada uno con orden de revisar su trabajo dos veces e intentar
+**tumbar sus propios hallazgos** antes de entregar. Lo que sigue es solo lo que sobrevivió.
+
+## Lo más grave que se encontró — y ya está arreglado
+
+| | Qué pasaba | Estado |
+|---|---|---|
+| **Respaldo** | Nunca funcionó: el reloj arranca sin ver `docker`. Y al fallar **borraba el respaldo bueno** del mismo día (escribía sobre él antes de fallar). Solo quedaba un volcado de 10 días atrás, y el otro sistema de respaldo moría en `catastro_predios` sin llegar nunca a developments/leads/units/users | ✅ arreglado y **probado restaurando**: 116 devs · 5,896 unidades · 4,097 archivos · 59 leads · 1,089,684 predios, todos coinciden |
+| **Leads perdidos** | El backend devolvía "todo bien" (HTTP 200) cuando NO guardaba, y el comprador veía "¡Listo! Un asesor te contacta" con su teléfono en ninguna parte | ✅ ahora falla de verdad y el intento se guarda aparte para rescatarlo |
+| **El freno que puse yo** | Contaba en el mismo cubo una respuesta de 41 bytes y una de 212 KB. Con 113 tarjetas, una sola vista del catálogo costaba 227 peticiones y el tope era 180: **el comprador no podía abrir ninguna ficha** | ✅ dos cubos según lo que protegen · comprador libre, robot cortado a los 1.4s |
+| **Apagador de publicación** | Dos interruptores, uno desconectado: NUA Interlomas y Nupol Polanco marcados "no publicado" seguían vivos al público | ✅ puerta única · si cualquiera dice no, no se publica |
+| **Celular** | El pie de página y 4 rejillas de la portada empujaban toda pantalla pública a 600px en un teléfono de 390px | ✅ 0 desborde en portada, marketplace y ficha · escritorio idéntico |
+| **Acentos** | 32 desarrollos salían como "Medellin 360", "Cuauhtemoc 1193", "Icon San Angel" | ✅ 0 mal escritos en la API pública (+23 avisos del vigía realineados para no romper el cruce) |
+| **Overpass / Telegram** | Martillábamos un servicio gratuito cada 12 min → 429 permanente. Nombres con paréntesis reventaban el cruce del bot | ✅ pausa al frenarnos · los 67 avisos cruzan bien |
+
+## Lo que NO se puede arreglar desde aquí — decisiones del founder
+
+1. **No hay una sola copia fuera de esta Mac.** El respaldo ya funciona, pero vive en el mismo disco
+   que el repositorio (`/dev/disk2s5`). Time Machine sin destino. Un disco muerto se lleva todo.
+2. **98 commits existen únicamente en esta laptop.** GitHub está 9 días atrás.
+3. **Ningún lead tiene consentimiento registrado** (0 de 59) y el formulario de la ficha captura sin
+   aviso de privacidad. La infraestructura correcta YA existe (`compliance_consent.py`); el modal
+   público no la usa.
+4. **Google no puede indexar ni una ficha**: el sitemap se arma de la semilla apagada (0 URLs de
+   `/desarrollo/`), está bajo `/api/` que `robots.txt` bloquea, y no hay render en servidor.
+5. **115 de 116 desarrollos se publicaron saltándose el filtro de calidad** (completitud real: 46%).
+6. **Cerebro está ENCENDIDO** en el entorno vivo contra lo que dicen el código y todos los documentos.
+7. **Nadie recibe aviso de un lead**: Resend y Twilio están pagados y configurados, y el código de
+   leads nunca los llama.
+
+## Veredicto honesto del negocio
+
+**¿Se puede vender hoy? No** — pero no por falta de producto. El marketplace muestra 113 fichas sin
+foto en el listado, no hay forma de cobrar (0 llaves de Stripe, 0 suscripciones) y todo corre en una
+laptop con el servidor de desarrollo. **Lo que sí se vende hoy es el servicio**: armar y mantener al
+día el catálogo. 5 desarrolladoras, 5,896 unidades con precio y plano.
+
+**El único foso real** no es la IA: es que cinco desarrolladoras te abrieron su Drive. Eso no se
+compra por 500 dólares al mes. Los 1.08M de predios del catastro los baja cualquiera en una tarde.
