@@ -83,7 +83,34 @@ if [ -d "$ASSETS" ]; then
     || echo "⚠️ el material no se pudo copiar"
 fi
 
-# ── 3 · limpieza: conservar los últimos N días ───────────────────────────────
+# ── 3 · COPIA FUERA DE LA MAC (decisión del founder 07-26: disco externo) ────
+# Un respaldo en el mismo disco que protege no es un respaldo: si muere el disco, se va con él. Aquí
+# se copia a un disco externo si hay alguno conectado. No se exige que esté: si no lo está, se dice
+# y ya — el respaldo local sigue siendo válido. Lo que NO se hace es fingir que hay copia externa.
+#
+# Reconoce el disco por una marca: crea un archivo vacío llamado `.dmx-respaldo` en la raíz del disco
+# que quieras usar y este script lo encuentra solo. Así puedes cambiar de disco sin tocar código.
+EXTERNO=""
+for v in /Volumes/*; do
+  [ -d "$v" ] && [ -f "$v/.dmx-respaldo" ] && { EXTERNO="$v"; break; }
+done
+if [ -n "$EXTERNO" ]; then
+  DESTEXT="$EXTERNO/dmx_backups"
+  mkdir -p "$DESTEXT/auto_$HOY"
+  if cp -f "$ARCH" "$DESTEXT/auto_$HOY/" 2>/dev/null; then
+    rsync -a --delete "$DEST/assets_espejo/" "$DESTEXT/assets_espejo/" 2>/dev/null
+    # el externo también conserva los últimos N días, para no llenarlo
+    find "$DESTEXT" -maxdepth 1 -type d -name "auto_*" -mtime "+$RETENER_DIAS" -exec rm -rf {} + 2>/dev/null
+    echo "✅ copia FUERA de la Mac: $EXTERNO ($(du -sh "$DESTEXT" 2>/dev/null | cut -f1))"
+  else
+    echo "⚠️ encontré el disco $EXTERNO pero no pude escribir en él (¿lleno? ¿solo lectura?)"
+  fi
+else
+  echo "⚠️ SIN copia fuera de la Mac — no hay disco externo conectado."
+  echo "   Para activarla: conecta el disco y crea en su raíz un archivo vacío llamado .dmx-respaldo"
+fi
+
+# ── 4 · limpieza: conservar los últimos N días ───────────────────────────────
 # Solo se borran carpetas que SÍ tengan un volcado bueno adentro. Antes bastaba con ser vieja, así
 # que una carpeta vacía (de un día que falló) contaba como respaldo y ayudaba a borrar uno real.
 find "$DEST" -maxdepth 1 -type d -name "auto_*" -mtime "+$RETENER_DIAS" -exec rm -rf {} + 2>/dev/null
