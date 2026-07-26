@@ -21,6 +21,10 @@ import dmx_hedonic_atom
 from cerebro import store
 from cerebro.contract import CEREBRO_TASKS
 
+import logging
+
+log = logging.getLogger("dmx.cerebro_market")
+
 UNITS = COLLECTIONS["units"]
 
 
@@ -36,16 +40,39 @@ async def _already_open(db, user, action: str, titulo: Optional[str]) -> bool:
         return False
 
 
-async def _dev_unit_query(user) -> Dict[str, Any]:
-    """Filtro del átomo acotado a los desarrollos del usuario (superadmin = todo)."""
+# Filtro imposible: no empata con nada. Es lo que se devuelve cuando NO se puede establecer qué
+# desarrollos son del usuario. Un filtro de permisos que falla debe CERRAR, nunca abrir.
+_NADA: Dict[str, Any] = {"development_id": {"$in": []}}
+
+
+async def _dev_unit_query(db, user) -> Dict[str, Any]:
+    """Filtro del átomo acotado a los desarrollos del usuario (superadmin = todo).
+
+    FUGA DE DATOS ENTRE CLIENTES, corregida (auditoría 07-26). Tenía dos fallas encadenadas:
+
+      1. Leía `user_dev_ids`, que resuelve contra la semilla EN MEMORIA — y esa semilla se apagó el
+         14-jul: hoy tiene 0 elementos. Así que cualquier usuario que no fuera superadmin obtenía
+         lista vacía, siempre.
+      2. Y con la lista vacía devolvía `{}`, que en Mongo significa **sin filtro**. O sea: no poder
+         determinar qué es tuyo daba acceso a TODO.
+
+    El resultado real: el Cerebro recorría las 6,420 unidades de los 134 desarrollos y proponía
+    "baja el precio de esta unidad" nombrando el identificador, el precio por m² y la colonia **de
+    otro cliente**. Con `CEREBRO_ENABLED=true` y aceptando a cualquier usuario con sesión.
+
+    Ahora: se resuelve contra la BASE (`user_dev_ids_db`, que es la que conoce los desarrollos
+    ingeridos), y si no se puede determinar la pertenencia se devuelve un filtro que no empata con
+    nada. Sin datos propios se ve vacío, no se ve todo.
+    """
     try:
         import tenant_scope
         if tenant_scope.is_superadmin(user):
             return {}
-        ids = tenant_scope.user_dev_ids(user)
-        return {"development_id": {"$in": ids}} if ids else {}
-    except Exception:
-        return {}
+        ids = await tenant_scope.user_dev_ids_db(db, user)
+        return {"development_id": {"$in": ids}} if ids else _NADA
+    except Exception:  # noqa: BLE001
+        log.warning("[cerebro] no se pudo acotar por cliente — se cierra el filtro", exc_info=True)
+        return _NADA
 
 
 async def _zone_medians(db) -> Dict[str, float]:
@@ -54,7 +81,7 @@ async def _zone_medians(db) -> Dict[str, float]:
 
 async def _price_outlier(db, user, medians: Dict[str, float]) -> Optional[Dict[str, Any]]:
     """Unidad disponible del dev con precio/m² más por ENCIMA de la mediana de su zona."""
-    q = {**(await _dev_unit_query(user)), "commercial.status": "disponible"}
+    q = {**(await _dev_unit_query(db, user)), "commercial.status": "disponible"}
     worst = None
     async for a in db[UNITS].find(q, {"_id": 0, "unit_id": 1, "areas": 1, "commercial": 1, "geo": 1, "tipologia": 1}):
         com = a.get("commercial") or {}; areas = a.get("areas") or {}
@@ -76,7 +103,7 @@ async def _price_outlier(db, user, medians: Dict[str, float]) -> Optional[Dict[s
 
 async def _stale_units(db, user) -> Optional[Dict[str, Any]]:
     """Unidades disponibles del dev con prob. de venta baja (estancadas)."""
-    q = {**(await _dev_unit_query(user)), "commercial.status": "disponible",
+    q = {**(await _dev_unit_query(db, user)), "commercial.status": "disponible",
          "demand.prob_venta": {"$lt": 0.4}}
     n = await db[UNITS].count_documents(q)
     if n <= 0:
