@@ -137,3 +137,32 @@
   4-auditor+cotejo post-carga · 5-JUEZ AUTOMÁTICO (muestra semilla fija re-leída desde los
   bytes de la fuente por un camino independiente; ≥98% = gate; discrepancia entre fuentes
   ≠ error de carga, va al cotejo). Verificado: NUA y Nupol 20/20 = 100% cada uno.
+
+---
+
+## 6 · LECCIONES DEL DEV #6 · ESTRATEGIA URBANA (2026-07-26 · fuente Dropbox)
+
+Primer dev cuyo material NO viene de Google Drive. Patrón completo en
+[[PATRON_ESTRATEGIA_URBANA]]. Lo que agrega a la doctrina:
+
+- **L16 · Una lista por forma de pago NO es un duplicado.** Traen 4-7 listas por proyecto y el mismo
+  departamento cuesta distinto en cada una (Liverpool 202: de $5,689,142 de contado a $6,317,042
+  financiado = **11%**). Antes de tratar dos precios de la misma unidad como conflicto, revisar si
+  las listas se distinguen por ESQUEMA. El costo de no verlo: 4 unidades fantasma por unidad real, y
+  el guardián de plausibilidad gritando por algo que está bien. Encaja sin código nuevo en
+  `payment_schemes.py` (`firma_pct/mensualidades_pct/escritura_pct` + `descuento_pct`).
+- **L17 · Los zips de carpetas compartidas rompen los acentos.** `SENNSE JU�?REZ`: el zip marca UTF-8
+  en unos archivos y CP437 en otros. Normalizar al leer el índice, o los nombres nacen mal escritos.
+- **L18 · Buscar las listas por CARPETA, no por nombre de archivo.** Monumento las nombra
+  `200326 Monumento contado.pdf`, sin las palabras "lista" ni "precio". Un filtro por nombre pierde
+  archivos EN SILENCIO — en la primera pasada se me perdieron 3 de 34.
+- **L19 · Revisar si el dev ya hizo el trabajo pesado.** Antes de reducir 96 renders de 20-40 MB,
+  buscar carpetas `BAJA`/`compressed`: aquí ya existían.
+- **L20 · La carpeta del render ES el concepto de la foto.** `Renders/GYM/`, `Renders/ROOF PRIVADO/`,
+  `Renders/PLANTAS/` clasifican la imagen gratis, sin adivinar y sin IA.
+- **L21 · Un parser por dev NO alcanza: es uno por PROYECTO.** Dentro del mismo dev, Liverpool usa
+  tabla limpia, Chilpancingo numera `GH A 101`, Monumento organiza en rejilla por piso, y Vasconcelos
+  publica su comparativo como IMAGEN. El "patrón del dev" declara los vicios por proyecto, no uno solo.
+- **L22 · El nombre del proyecto necesita la MARCA.** `Hamburgo`, `Juárez` y `Chilpancingo` ya existen
+  en el catálogo como edificios de OTROS desarrolladores en la misma calle. Sin la marca
+  (`Sennse Hamburgo`) el vigía y el guardián los cruzan. Se aplica la lección K8 de la auditoría A–Z.
