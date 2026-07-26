@@ -96,14 +96,32 @@ for v in /Volumes/*; do
 done
 if [ -n "$EXTERNO" ]; then
   DESTEXT="$EXTERNO/dmx_backups"
-  mkdir -p "$DESTEXT/auto_$HOY"
-  if cp -f "$ARCH" "$DESTEXT/auto_$HOY/" 2>/dev/null; then
-    rsync -a --delete "$DEST/assets_espejo/" "$DESTEXT/assets_espejo/" 2>/dev/null
+  # Los archivos "._algo": macOS los crea en discos exFAT/FAT para guardar metadatos que ese formato
+  # no sabe almacenar. Duplican la cuenta (7,292 reales → 14,584) e inflan 7.2 GB a ~10 GB.
+  # COPYFILE_DISABLE=1 se queda porque evita que `cp` los genere, pero NO basta: los crea el propio
+  # sistema al escribir, por debajo de rsync. Se borran después de copiar. Para un respaldo de planos
+  # y fotos, esos metadatos no valen nada; lo que importa es el contenido del archivo.
+  export COPYFILE_DISABLE=1
+  if mkdir -p "$DESTEXT/auto_$HOY" 2>/dev/null && cp -f "$ARCH" "$DESTEXT/auto_$HOY/" 2>/dev/null; then
+    # --no-perms/owner/group: exFAT no tiene permisos de Unix y rsync fallaría intentando ponerlos.
+    rsync -rltD --delete --no-perms --no-owner --no-group \
+      "$DEST/assets_espejo/" "$DESTEXT/assets_espejo/" 2>/dev/null
+    find "$DESTEXT" -name "._*" -type f -delete 2>/dev/null   # los sobrantes de macOS (ver arriba)
     # el externo también conserva los últimos N días, para no llenarlo
     find "$DESTEXT" -maxdepth 1 -type d -name "auto_*" -mtime "+$RETENER_DIAS" -exec rm -rf {} + 2>/dev/null
     echo "✅ copia FUERA de la Mac: $EXTERNO ($(du -sh "$DESTEXT" 2>/dev/null | cut -f1))"
   else
-    echo "⚠️ encontré el disco $EXTERNO pero no pude escribir en él (¿lleno? ¿solo lectura?)"
+    # SI ESTO SALE, casi seguro es el candado de privacidad de macOS con los discos extraíbles, NO
+    # el disco (auditoría 07-26). Comprobado: lanzado con /bin/bash, macOS niega el USB con
+    # "Operation not permitted" aunque a mano sí se pueda escribir; lanzado con el intérprete propio
+    # `~/bin/dmx-respaldo-runner` —que es como está configurado el reloj— sí lo permite, tanto en la
+    # raíz del disco como dentro. Se dice explícitamente para no mandar a nadie a revisar si el
+    # disco está lleno o dañado, que fue el primer diagnóstico equivocado.
+    echo "🚨 el disco $EXTERNO está conectado pero no se pudo escribir en él."
+    echo "   Antes de sospechar del disco: revisa que el reloj siga usando $HOME/bin/dmx-respaldo-runner"
+    echo "   y no /bin/bash — macOS le niega los discos extraíbles a /bin/bash."
+    echo "   Si el intérprete es el correcto: Configuración → Privacidad y seguridad →"
+    echo "   Acceso total al disco → añadir $HOME/bin/dmx-respaldo-runner"
   fi
 else
   echo "⚠️ SIN copia fuera de la Mac — no hay disco externo conectado."

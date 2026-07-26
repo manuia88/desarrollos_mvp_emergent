@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.desarrollosmx.respaldo</string>
+  <!-- Corre con un intérprete PROPIO en vez de /bin/bash (auditoría 07-26). macOS niega los discos
+       extraíbles a las tareas automáticas, y para permitirlo hay que darle "Acceso total al disco"
+       al programa que las ejecuta. Si ese programa fuera /bin/bash, el permiso valdría para TODOS
+       los scripts de la Mac. Esta copia tiene identidad propia, así que el permiso alcanza solo al
+       respaldo. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/manuelacosta/bin/dmx-respaldo-runner</string>
+    <string>/Users/manuelacosta/Developer/desarrollos_mvp_emergent/scripts/respaldo-diario.sh</string>
+  </array>
+  <!-- Todos los días a las 3:30 am -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>3</integer>
+    <key>Minute</key><integer>30</integer>
+  </dict>
+  <!-- launchd arranca con un PATH mínimo que NO trae /usr/local/bin, donde vive el docker de
+       OrbStack. Por eso el respaldo programado falló SIEMPRE y solo funcionaba a mano. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <!-- Si la Mac estaba dormida a esa hora, corre en cuanto despierte -->
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>/Users/manuelacosta/dmx_backups/respaldo.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/manuelacosta/dmx_backups/respaldo.log</string>
+</dict>
+</plist>
