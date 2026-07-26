@@ -15,8 +15,23 @@ const COLS = [
 export default function Footer() {
   return (
     <footer style={{ borderTop: '1px solid var(--border)', background: 'var(--surface-card)', marginTop: 64 }}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '48px 32px 32px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1.4fr) repeat(3, 1fr)', gap: 32, marginBottom: 36 }}>
+      {/* El pie iba con 4 columnas fijas y sin punto de quiebre, así que su ancho mínimo
+          (220px de la marca + 3 columnas + separaciones + márgenes) empujaba la página a ~600px:
+          TODA pantalla pública se desbordaba de lado en un celular de 390px, que es donde la gente
+          compra (auditoría A–Z 07-26). Se apila en pantalla angosta. Va como regla con punto de
+          quiebre y no como estilo en línea porque un estilo en línea no puede consultar el ancho. */}
+      <style>{`
+        .dmx-footer-wrap { max-width: 1240px; margin: 0 auto; padding: 48px 32px 32px; }
+        .dmx-footer-cols { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(3, 1fr); gap: 32px; margin-bottom: 36px; }
+        @media (max-width: 720px) {
+          .dmx-footer-wrap { padding: 32px 20px 24px; }
+          .dmx-footer-cols { grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+          .dmx-footer-cols > :first-child { grid-column: 1 / -1; }
+        }
+        @media (max-width: 380px) { .dmx-footer-cols { grid-template-columns: 1fr; } }
+      `}</style>
+      <div className="dmx-footer-wrap">
+        <div className="dmx-footer-cols">
           <div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, letterSpacing: '-0.02em', color: 'var(--cream)' }}>
               Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span>

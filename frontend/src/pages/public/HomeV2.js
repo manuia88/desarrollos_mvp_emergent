@@ -191,7 +191,7 @@ export default function HomeV2() {
         <Aurora intensity={0.95} />
         <Container style={{ position: 'relative' }}>
           <Section py={48}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.08fr) minmax(0,0.92fr)', gap: 48, alignItems: 'center' }}>
+            <div className="dmx-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.08fr) minmax(0,0.92fr)', gap: 48, alignItems: 'center' }}>
               <FadeUp>
                 <Eyebrow>Vivienda Nueva en la Ciudad de México</Eyebrow>
                 <h1 style={h1}>Encuentra Tu <span style={{ ...SERIF, ...GRAD }}>Hogar</span> Ideal.</h1>
@@ -256,7 +256,7 @@ export default function HomeV2() {
       {/* VALOR (números honestos) */}
       <Section py={80}>
         <Container>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.85fr) minmax(0,1.15fr)', gap: 56, alignItems: 'start' }}>
+          <div className="dmx-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.85fr) minmax(0,1.15fr)', gap: 56, alignItems: 'start' }}>
             <FadeUp>
               <Eyebrow>Por Qué DesarrollosMX</Eyebrow>
               <div className="dmx-photo" style={{ borderRadius: 20, overflow: 'hidden', aspectRatio: '5/4', marginBottom: 28 }}>
@@ -355,7 +355,7 @@ export default function HomeV2() {
       {/* SERVICIOS */}
       <Section py={72}>
         <Container>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.8fr) minmax(0,1.2fr)', gap: 48, alignItems: 'center' }}>
+          <div className="dmx-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.8fr) minmax(0,1.2fr)', gap: 48, alignItems: 'center' }}>
             <FadeUp>
               <Eyebrow>Lo Que Te Damos</Eyebrow>
               <h2 style={h2}>De cada colonia, en <span style={SERIF}>palabras claras</span>.</h2>
@@ -380,7 +380,7 @@ export default function HomeV2() {
       {/* PROCESO */}
       <Section py={72} style={{ background: 'var(--surface-card)' }}>
         <Container>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 48, alignItems: 'center' }}>
+          <div className="dmx-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 48, alignItems: 'center' }}>
             <FadeUp>
               <div className="dmx-photo" style={{ borderRadius: 20, overflow: 'hidden', aspectRatio: '4/3' }}>
                 <img src={IMG('photo-1560518883-ce09059eeffa', 800)} alt="Comprar con DesarrollosMX" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
