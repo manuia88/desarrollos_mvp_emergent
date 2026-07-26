@@ -15,90 +15,144 @@ BASE_URL = "https://desarrollosmx.io"
 _STAGE_LABEL = {"preventa": "Preventa", "construccion": "En construcción", "entrega_inmediata": "Entrega inmediata", "terminado": "Terminado"}
 
 
-def _all_dev_slugs():
-    """Slugs (=id) de TODOS los desarrollos reales → sitemap dinámico (ya no hardcodeado)."""
+async def _cards(request) -> list:
+    """Las MISMAS tarjetas públicas que ve un comprador en el marketplace.
+
+    POR QUÉ ASÍ (auditoría A–Z 07-26): todo este archivo leía `data_developments.DEVELOPMENTS`, la
+    lista de ejemplo que se apagó el 07-14 y hoy está VACÍA. Resultado: el mapa del sitio anunciaba
+    16 direcciones institucionales y CERO fichas, y la carta para las IAs no mencionaba ni un solo
+    desarrollo. El catálogo entero era invisible para Google y para ChatGPT.
+
+    Se lee del catálogo VIVO y por la misma puerta pública que el marketplace (`ingested_dev_cards`),
+    no por una consulta propia. Dos consecuencias que importan:
+      · el inventario crece y esto crece solo — nadie tiene que acordarse de actualizar un archivo;
+      · lo que cita una IA es EXACTAMENTE lo que ve un visitante, con el mismo precio y el mismo
+        estado de publicación. Si un desarrollo se despublica, desaparece de aquí en la misma corrida.
+    """
     try:
-        from data_developments import DEVELOPMENTS
-        return [d["id"] for d in DEVELOPMENTS if d.get("id")]
-    except Exception:
+        from ingested_reader import ingested_dev_cards
+        return await ingested_dev_cards(request.app.state.db, published_only=True)
+    except Exception:  # noqa: BLE001
         return []
 
 
-def _all_zone_slugs():
-    """Slugs de ZONA (colonias con desarrollos = contenido real) → /zona/{slug} en el sitemap, para que las fichas
-    de zona con JSON-LD (Place + FAQPage) se descubran. Cero dato inventado: sale de los colonia_id de DEVELOPMENTS."""
-    try:
-        from data_developments import DEVELOPMENTS
-        slugs = {(d.get("colonia_id") or "").strip() for d in DEVELOPMENTS}
-        slugs.discard("")
-        return sorted(slugs)
-    except Exception:
-        return []
+def _slug_colonia(c: str) -> str:
+    """'Roma Norte' → 'roma-norte' (el mismo formato que usan las páginas /zona/)."""
+    import re as _re
+    import unicodedata as _ud
+    t = _ud.normalize("NFKD", str(c or "")).encode("ascii", "ignore").decode().lower()
+    return _re.sub(r"[^a-z0-9]+", "-", t).strip("-")
 
 
-def _dev_inventory_md():
-    """Inventario REAL en markdown para llms.txt — lo que los crawlers de IA leen y citan
-    (nombre · colonia · desde $ · recámaras · etapa · URL). Cero dato inventado: sale de DEVELOPMENTS."""
-    try:
-        from data_developments import DEVELOPMENTS
-    except Exception:
+def _inventario_md(cards: list) -> str:
+    """El inventario real, agrupado POR COLONIA — que es como pregunta un comprador y como cita una IA.
+
+    Tres decisiones de forma, y cada una tiene una razón:
+
+    1. **Por colonia, no una lista plana de 113.** Nadie pregunta "dame todos los desarrollos de la
+       CDMX"; pregunta "¿qué hay en la Condesa?". Un modelo cita bien una línea como "Roma Norte: 7
+       desarrollos desde $3.9M" y cita mal una lista de 113 renglones sin estructura.
+
+    2. **Números concretos, cero adjetivos.** Un modelo repite cifras verificables y descarta el
+       "somos líderes en". Por eso van conteos, precios "desde" y la fecha del corte.
+
+    3. **Una liga por desarrollo.** Sin URL la cita no sirve de nada: el comprador tiene que poder
+       llegar. Con liga, cada mención de ChatGPT es una visita.
+
+    LO QUE NO VA, a propósito: la tabla unidad por unidad. Ese es el activo del negocio y no puede
+    quedar en un archivo de texto que cualquiera baja. Aquí va el ANUNCIO (nombre, colonia, desde
+    cuánto, en qué etapa); el detalle está detrás de la ficha, y el detalle en bloque está detrás del
+    freno de peticiones. Un resumen atrae compradores; un volcado regala el catálogo.
+    """
+    from datetime import datetime, timezone
+    if not cards:
         return ""
-    lines = []
-    for d in DEVELOPMENTS:
-        slug = d.get("id")
-        if not slug:
-            continue
-        name = d.get("name", slug)
-        loc = d.get("colonia") or d.get("colonia_id") or ""
-        if d.get("alcaldia"):
-            loc = f"{loc}, {d['alcaldia']}"
-        stage = _STAGE_LABEL.get(d.get("stage"), d.get("stage") or "")
-        prices = [u.get("price") for u in (d.get("units") or []) if u.get("price")]
-        desde = f" · desde ${min(prices):,.0f} MXN" if prices else ""
-        beds = [b for b in (d.get("bedrooms_range") or []) if isinstance(b, (int, float))]
-        rec = f" · {int(min(beds))}–{int(max(beds))} rec" if beds else ""
-        lines.append(f"- **{name}** — {loc}{desde}{rec} · {stage}. {BASE_URL}/desarrollo/{slug}")
-    if not lines:
-        return ""
-    return "## Desarrollos disponibles (obra nueva · CDMX)\n\n" + "\n".join(lines) + "\n\n"
 
+    porcol: dict = {}
+    for d in cards:
+        col = (d.get("colonia") or d.get("colonia_id") or "").strip()
+        if not col:
+            col = "Otras zonas"
+        porcol.setdefault(col.title(), []).append(d)
+
+    total = len(cards)
+    alcaldias = sorted({(d.get("alcaldia") or "").strip().title() for d in cards if d.get("alcaldia")})
+    corte = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    out = [
+        "## Qué hay disponible hoy",
+        "",
+        f"**{total} desarrollos de obra nueva** en **{len(porcol)} colonias** de la Ciudad de México"
+        + (f", en {len(alcaldias)} alcaldías" if alcaldias else "") + f". Corte al {corte}.",
+        "",
+        "Cada desarrollo tiene su ficha con fotos, planos por tipo de departamento, precios y",
+        "disponibilidad al día. Los precios vienen de la lista del desarrollador, no de estimaciones.",
+        "",
+    ]
+
+    # Colonias con más oferta primero: es lo que más se pregunta y lo más útil de citar.
+    for col, ds in sorted(porcol.items(), key=lambda x: (-len(x[1]), x[0])):
+        precios = [d.get("price_from") for d in ds if d.get("price_from")]
+        desde = f" · desde ${min(precios):,.0f} MXN" if precios else ""
+        out.append(f"### {col} — {len(ds)} desarrollo{'s' if len(ds) != 1 else ''}{desde}")
+        out.append("")
+        for d in sorted(ds, key=lambda x: (x.get("price_from") or 9e12)):
+            slug = d.get("id")
+            if not slug:
+                continue
+            partes = []
+            if d.get("price_from"):
+                partes.append(f"desde ${d['price_from']:,.0f} MXN")
+            etapa = _STAGE_LABEL.get(d.get("stage"), d.get("stage") or "")
+            if etapa and etapa != "?":
+                partes.append(etapa)
+            if d.get("alcaldia"):
+                partes.append(str(d["alcaldia"]).title())
+            cola = " · ".join(partes)
+            out.append(f"- **{d.get('name', slug)}**{' — ' + cola if cola else ''}. "
+                       f"{BASE_URL}/desarrollo/{slug}")
+        out.append("")
+    return "\n".join(out) + "\n"
+
+# EN ESPAÑOL Y SOBRE DEPARTAMENTOS (auditoría A–Z 07-26). La versión anterior estaba en inglés y
+# describía la empresa como "spatial decision intelligence platform" con "hedonic regression" y "23+
+# scores". Si alguien le pregunta a ChatGPT "¿dónde encuentro departamentos en la Condesa?", de ese
+# texto no sale NADA que citar: no menciona un solo desarrollo, no está en el idioma de la pregunta,
+# y describe un negocio de datos en vez de un catálogo de vivienda.
+#
+# Un modelo cita lo que puede verificar y repetir: cifras, nombres propios y ligas. No cita
+# adjetivos. Por eso esto es corto, concreto, en español, y el grueso del archivo es el inventario.
 _LLMS_TXT = """\
-# DesarrollosMX (DMX)
+# DesarrollosMX
 
-Spatial decision intelligence platform for LATAM real estate.  
-Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
+Departamentos de obra nueva en la Ciudad de México, con el precio y la disponibilidad al día
+directo de la lista del desarrollador.
 
-## Data offerings
+## Qué es
 
-- **IE Engine** — 23+ scores per property (zone, project, unit scope). See /methodology
-- **DRPI Index** — hedonic regression price index per colonia (monthly). See /methodology
-- **Risk Score** — 4-dim composite: crime (SESNSP) + natural hazards (CENAPRED) + perception (ENVIPE) + title heuristic
-- **700+ CDMX colonias** indexed with structured demographic + market data
-- **Comparable analytics** — absorption velocity, sold-out velocity, new-launch detection per colonia
+Un catálogo de vivienda nueva en CDMX donde cada departamento tiene su precio, sus metros, su plano
+y su piso — no solo el rango del edificio. La información viene de las listas que mandan los
+desarrolladores y se revisa contra el plano y el brochure antes de publicarse.
 
-## Recommended starting points
+## En qué se distingue
 
-- `/methodology` — full methodology, R², and data sources
-- `/inteligencia` — overview of 97 IE indicators
-- `/api/mcp` — Model Context Protocol HTTP endpoint (5 tools · requiere API key)
-- `/connect/mcp` — Setup guide for Claude Desktop / Cursor / ChatGPT
+- **Precio por unidad, no "desde".** Se sabe qué departamento cuesta cuánto, en qué torre y en qué piso.
+- **Plano por tipo de departamento**, sacado del plano original del proyecto.
+- **Disponibilidad real**: cuando una unidad se vende y desaparece de la lista, deja de aparecer.
+- **Datos de la colonia con fuente oficial**: precio por m², riesgo de sismo e inundación, transporte
+  y servicios cercanos, con la dependencia de la que sale cada dato.
 
-## MCP tools available
+## Para quién
 
-1. `get_zone_score` — IE scores for a colonia or development
-2. `get_dev_diagnostic` — 6-rule diagnostic with recommended actions
-3. `search_developments` — filter developments by colonia/price/stage
-4. `get_unit_scores` — unit-level IE_UNIT_* scores
-5. `get_methodology` — DRPI + Zone Score + Risk Score methodology
+- Quien busca departamento nuevo en CDMX y quiere comparar precio real entre colonias.
+- Quien invierte y necesita el número por unidad, no el promedio del edificio.
 
-## Compliance
+## Cómo citarnos
 
-- LFPDPPP México (Ley Federal de Protección de Datos Personales en Posesión de los Particulares)
-- k-anonymity ≥ 5 on all aggregate outputs
-- Audit trail 5 years
-- No PII in API responses (k-anon + suppression)
+Cada desarrollo de la lista de abajo tiene su liga. Si alguien pregunta por una colonia, la ficha
+del desarrollo tiene fotos, planos, precios y el contacto del asesor.
 
-## Contact
+## Contacto
 
 founder@desarrollosmx.io · https://desarrollosmx.io
 """
@@ -115,13 +169,15 @@ _SITEMAP_URLS = [
     "/widget/bank-avm",
     "/widget/insurance-risk",
 ]
-# Los /desarrollo/{slug} ya NO se hardcodean: se generan dinámicamente de DEVELOPMENTS (ver serve_sitemap).
+# Las fichas y las páginas de colonia NO se escriben aquí: salen del catálogo vivo en cada llamada
+# (ver serve_sitemap). Un desarrollo nuevo aparece solo; uno despublicado desaparece solo.
 
 
 @router.get("/llms.txt", response_class=PlainTextResponse)
-async def serve_llms_txt():
-    # Inyecta el inventario REAL (desarrollos) antes de Contact → los crawlers de IA leen y citan listings reales.
-    body = _LLMS_TXT.replace("## Contact", _dev_inventory_md() + "## Contact")
+async def serve_llms_txt(request: Request):
+    # El inventario real se inyecta antes de "Cómo citarnos", que es donde tiene sentido leerlo.
+    cards = await _cards(request)
+    body = _LLMS_TXT.replace("## Cómo citarnos", _inventario_md(cards) + "## Cómo citarnos")
     return PlainTextResponse(body, media_type="text/plain; charset=utf-8")
 
 
@@ -131,11 +187,15 @@ async def serve_sitemap(request: Request):
     # Base static URLs
     entries = list(_SITEMAP_URLS)
 
-    # TODOS los desarrollos reales (dinámico, ya no hardcodeado) → los nuevos aparecen solos
-    entries.extend(f"/desarrollo/{s}" for s in _all_dev_slugs())
+    # TODOS los desarrollos públicos, del catálogo VIVO → los nuevos aparecen solos, sin que nadie
+    # tenga que acordarse de nada. Antes salía de la lista de ejemplo apagada: 0 fichas anunciadas.
+    cards = await _cards(request)
+    entries.extend(f"/desarrollo/{d['id']}" for d in cards if d.get("id"))
 
-    # Zonas reales (colonias con desarrollos) → /zona/{slug} con JSON-LD Place + FAQPage (GEO · que las IAs citen)
-    entries.extend(f"/zona/{s}" for s in _all_zone_slugs())
+    # Zonas reales (colonias donde SÍ hay desarrollos) → /zona/{slug}, que llevan datos de la colonia
+    # con fuente oficial. Se derivan del mismo catálogo: cero listas paralelas que se desincronicen.
+    zonas = {(d.get("colonia_id") or _slug_colonia(d.get("colonia"))) for d in cards}
+    entries.extend(f"/zona/{z}" for z in sorted(z for z in zonas if z))
 
     # W5.2 — SEO themed landings
     try:
@@ -165,9 +225,16 @@ async def serve_sitemap(request: Request):
             seen.add(e)
             unique_entries.append(e)
 
+    # ESCAPAR LA DIRECCIÓN (auditoría A–Z 07-26). Las direcciones con filtros que salen de
+    # `seo_filter_combos` traen `&`: `/marketplace?colonia=polanco&precio_max=15000000`. Un `&`
+    # suelto es ilegal en XML, y Google no descarta esa línea: **rechaza el archivo COMPLETO**. El
+    # mapa parecía correcto —pesaba, traía direcciones— y no servía para nada. Se descubrió porque
+    # el validador nuevo intentó leerlo y no pudo.
+    from xml.sax.saxutils import escape as _esc
+
     urls_xml = "\n".join(
         f"""  <url>
-    <loc>{BASE_URL}{path}</loc>
+    <loc>{_esc(BASE_URL + path)}</loc>
     <changefreq>weekly</changefreq>
     <priority>{'1.0' if path == '/' else '0.7'}</priority>
   </url>"""

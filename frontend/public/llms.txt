@@ -1,38 +1,374 @@
-# DesarrollosMX (DMX)
+# DesarrollosMX
 
-Spatial decision intelligence platform for LATAM real estate.  
-Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
+Departamentos de obra nueva en la Ciudad de México, con el precio y la disponibilidad al día
+directo de la lista del desarrollador.
 
-## Data offerings
+## Qué es
 
-- **IE Engine** — 23+ scores per property (zone, project, unit scope). See /methodology
-- **DRPI Index** — hedonic regression price index per colonia (monthly). See /methodology
-- **Risk Score** — 4-dim composite: crime (SESNSP) + natural hazards (CENAPRED) + perception (ENVIPE) + title heuristic
-- **700+ CDMX colonias** indexed with structured demographic + market data
-- **Comparable analytics** — absorption velocity, sold-out velocity, new-launch detection per colonia
+Un catálogo de vivienda nueva en CDMX donde cada departamento tiene su precio, sus metros, su plano
+y su piso — no solo el rango del edificio. La información viene de las listas que mandan los
+desarrolladores y se revisa contra el plano y el brochure antes de publicarse.
 
-## Recommended starting points
+## En qué se distingue
 
-- `/methodology` — full methodology, R², and data sources
-- `/inteligencia` — overview of 97 IE indicators
-- `/api/mcp` — Model Context Protocol HTTP endpoint (5 tools · requiere API key)
-- `/connect/mcp` — Setup guide for Claude Desktop / Cursor / ChatGPT
+- **Precio por unidad, no "desde".** Se sabe qué departamento cuesta cuánto, en qué torre y en qué piso.
+- **Plano por tipo de departamento**, sacado del plano original del proyecto.
+- **Disponibilidad real**: cuando una unidad se vende y desaparece de la lista, deja de aparecer.
+- **Datos de la colonia con fuente oficial**: precio por m², riesgo de sismo e inundación, transporte
+  y servicios cercanos, con la dependencia de la que sale cada dato.
 
-## MCP tools available
+## Para quién
 
-1. `get_zone_score` — IE scores for a colonia or development
-2. `get_dev_diagnostic` — 6-rule diagnostic with recommended actions
-3. `search_developments` — filter developments by colonia/price/stage
-4. `get_unit_scores` — unit-level IE_UNIT_* scores
-5. `get_methodology` — DRPI + Zone Score + Risk Score methodology
+- Quien busca departamento nuevo en CDMX y quiere comparar precio real entre colonias.
+- Quien invierte y necesita el número por unidad, no el promedio del edificio.
 
-## Compliance
+## Qué hay disponible hoy
 
-- LFPDPPP México (Ley Federal de Protección de Datos Personales en Posesión de los Particulares)
-- k-anonymity ≥ 5 on all aggregate outputs
-- Audit trail 5 years
-- No PII in API responses (k-anon + suppression)
+**113 desarrollos de obra nueva** en **74 colonias** de la Ciudad de México, en 13 alcaldías. Corte al 2026-07-26.
 
-## Contact
+Cada desarrollo tiene su ficha con fotos, planos por tipo de departamento, precios y
+disponibilidad al día. Los precios vienen de la lista del desarrollador, no de estimaciones.
+
+### Juárez — 7 desarrollos · desde $3,851,730 MXN
+
+- **Viena 20** — desde $3,851,730 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_viena_20
+- **Casa Juárez 22** — desde $4,033,091 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_juarez_22
+- **Reforma** — desde $4,310,023 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_reforma
+- **Jai Reforma 36** — desde $4,406,200 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_jai_reforma
+- **Icon Chapultepec** — desde $4,444,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_icon_chapultepec
+- **Chateau Reforma** — desde $5,459,853 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_chateau_reforma
+- **Icon Hamburgo** — desde $5,657,454 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_icon_hamburgo
+
+### Roma Norte — 7 desarrollos · desde $3,892,649 MXN
+
+- **San Luis Potosí 70** — desde $3,892,649 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_san_luis_potosi_70
+- **San Luis 58** — desde $3,955,357 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_san_luis_58
+- **Casa Roma Norte** — desde $4,159,536 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_norte
+- **Coahuila 34** — desde $5,450,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_coahuila_34
+- **Único Roma** — desde $5,900,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_unico_roma
+- **Colima 410** — desde $9,000,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_colima_410
+- **Chiapas 13** — desde $10,500,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_chiapas_13
+
+### Tabacalera — 6 desarrollos · desde $1,959,808 MXN
+
+- **Edison Park** — desde $1,959,808 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_edison_park
+- **Mariscal** — desde $2,759,230 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_mariscal
+- **Vía Insurgentes** — desde $3,100,176 MXN · entrega inmediata · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_via_insurgentes
+- **Vía Colón** — desde $3,582,546 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_v_a_colon
+- **Casa Colón** — desde $3,827,900 MXN · entrega inmediata · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_colon
+- **Insurgentes Centro** — desde $4,441,285 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_insurgentes_centro
+
+### Roma Sur — 5 desarrollos · desde $3,533,065 MXN
+
+- **Vía Roma 386** — desde $3,533,065 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_v_a_roma_386
+- **Casa Roma 269** — desde $3,741,905 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_269
+- **Medellín 360** — desde $6,007,500 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_medellin_360
+- **Monterrey 280** — desde $6,855,635 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_monterrey_280
+- **Casa Roma 222** — desde $8,410,972 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_222
+
+### San Rafael — 4 desarrollos · desde $3,452,311 MXN
+
+- **Antonio Caso 61** — desde $3,452,311 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_antonio_caso_61
+- **Serapio Rendón 15** — desde $3,960,170 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_serapio_rendon_15
+- **Gabino Barreda 93** — desde $5,991,034 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_gabino_barreda_93
+- **Gabino Barreda 89** — desde $6,650,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_gabino_barreda_89
+
+### Alpes — 3 desarrollos · desde $3,450,000 MXN
+
+- **Park San Ángel** — desde $3,450,000 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_park_san_angel
+- **Icon Beyond** — desde $8,035,451 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_icon_beyond
+- **Icon San Ángel** — desde $8,869,655 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_icon_san_angel
+
+### Escandón I Secc. — 3 desarrollos · desde $3,335,000 MXN
+
+- **Zetina 73** — desde $3,335,000 MXN · Preventa · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_td_zetina_73
+- **Ciencias 55** — desde $5,068,000 MXN · Preventa · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_td_ciencias_55
+- **Escandón 13 de Septiembre** — desde $10,089,900 MXN · Preventa · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_td_escandon_13_de_septiembre
+
+### Guadalupe Inn — 3 desarrollos · desde $2,977,400 MXN
+
+- **Revolución 1412** — desde $2,977,400 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_revolucion_1412
+- **Chateau Insurgentes** — desde $2,996,015 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_td_chateau_insurgentes
+- **The Park Guadalupe Inn** — desde $3,041,745 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_the_park_guadalupe_inn
+
+### Merced Gómez — 3 desarrollos · desde $3,094,293 MXN
+
+- **The Park Torre Bell - Etapa Ii** — desde $3,094,293 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_the_park_torre_bell_etapa_ii
+- **BM571** — desde $3,522,000 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_bm571
+- **The Park** — desde $5,067,246 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_the_park
+
+### Portales Oriente — 3 desarrollos · desde $3,578,690 MXN
+
+- **Emperadores 14** — desde $3,578,690 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_emperadores_14
+- **Monte Alegre 22** — desde $3,990,800 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_monte_alegre_22
+- **Montes 35** — desde $4,585,100 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_montes_35
+
+### Granjas México — 2 desarrollos · desde $2,295,046 MXN
+
+- **Oasis Churubusco** — desde $2,295,046 MXN · Preventa · Iztacalco. https://desarrollosmx.io/desarrollo/dev_td_oasis_churubusco
+- **Chicle 160** — desde $3,100,000 MXN · Preventa · Iztacalco. https://desarrollosmx.io/desarrollo/dev_td_chicle_160
+
+### Roma Norte I — 2 desarrollos · desde $3,940,901 MXN
+
+- **Casa Roma 336** — desde $3,940,901 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_336
+- **Casa Roma 151** — desde $4,150,797 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_151
+
+### Santa María La Ribera — 2 desarrollos · desde $4,045,700 MXN
+
+- **Life Santa María la Ribera** — desde $4,045,700 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_life_smr
+- **Hortensia 122** — desde $4,167,200 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_hortensia_122
+
+### Sta. María La Ribera — 2 desarrollos · desde $3,045,000 MXN
+
+- **San Cosme 45** — desde $3,045,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_san_cosme_45
+- **Santa María 3** — desde $4,704,181 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_santa_maria_3
+
+### Zacahuitzco — 2 desarrollos · desde $3,480,284 MXN
+
+- **Bretaña 92** — desde $3,480,284 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_bretana_92
+- **Bretaña 45** — desde $3,857,500 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_bretana_45
+
+### Actipan — 1 desarrollo · desde $4,988,460 MXN
+
+- **Único Manacar** — desde $4,988,460 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_gdc_nico_manacar
+
+### Agrícola Pantitlán — 1 desarrollo · desde $2,238,447 MXN
+
+- **Comunal 50** — desde $2,238,447 MXN · Preventa · Iztacalco. https://desarrollosmx.io/desarrollo/dev_qc_comunal_50
+
+### Alamos — 1 desarrollo · desde $4,236,500 MXN
+
+- **Nueve22** — desde $4,236,500 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_nueve22
+
+### Alcantarilla — 1 desarrollo · desde $4,279,489 MXN
+
+- **Agatha Monolith Torre C** — desde $4,279,489 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_qc_agatha_monolith_torre_c
+
+### Artes Gráficas — 1 desarrollo · desde $2,162,002 MXN
+
+- **La Viga 2** — desde $2,162,002 MXN · Preventa · Venustiano Carranza. https://desarrollosmx.io/desarrollo/dev_qc_la_viga_2
+
+### Barrio De Zapotla — 1 desarrollo · desde $2,430,978 MXN
+
+- **Puerta 58** — desde $2,430,978 MXN · Preventa · Iztacalco. https://desarrollosmx.io/desarrollo/dev_qc_puerta_58
+
+### Barrio La Otra Banda — 1 desarrollo · desde $8,294,200 MXN
+
+- **NOB San Jerónimo** — desde $8,294,200 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_nob_san_jeronimo
+
+### Buenavista — 1 desarrollo · desde $3,288,615 MXN
+
+- **Eclipse 6** — desde $3,288,615 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_eclipse_6
+
+### Buenos Aires — 1 desarrollo · desde $1,767,743 MXN
+
+- **Central 32** — desde $1,767,743 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_central_32
+
+### Centro — 1 desarrollo · desde $2,233,255 MXN
+
+- **Lázaro Cárdenas 71** — desde $2,233,255 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_lazaro_cardenas_71
+
+### Condesa (Hipodromo Condesa) — 1 desarrollo · desde $11,500,000 MXN
+
+- **Chilpancingo 57** — desde $11,500,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_pd_chilpancingo_57
+
+### Cuauhtémoc — 1 desarrollo · desde $10,696,980 MXN
+
+- **Rio Guadalquivir 81** — desde $10,696,980 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_rio_guadalquivir_81
+
+### Del Valle Norte — 1 desarrollo · desde $4,373,925 MXN
+
+- **Mier y Pesado 220** — desde $4,373,925 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_mier_y_pesado_220
+
+### Del Valle Sur — 1 desarrollo · desde $5,713,003 MXN
+
+- **Gabriel Mancera 1360** — desde $5,713,003 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_gabriel_mancera_1360
+
+### Doctores — 1 desarrollo · desde $4,045,248 MXN
+
+- **Río de la Loza 250** — desde $4,045,248 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_rio_de_la_loza_250
+
+### Fraccionamiento El Mirador — 1 desarrollo · desde $3,827,374 MXN
+
+- **Jilotepec, Lomas Verdes** — desde $3,827,374 MXN · Preventa · Naucalpan. https://desarrollosmx.io/desarrollo/dev_qc_jilotepec_lomas_verdes
+
+### Gral. Pedro María Anaya — 1 desarrollo · desde $4,867,050 MXN
+
+- **Av. México Coyoacán 350** — desde $4,867,050 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_qc_av_mexico_coyoacan_350
+
+### Granada — 1 desarrollo · desde $7,981,000 MXN
+
+- **Cervantes 101** — desde $7,981,000 MXN · entrega inmediata · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_cervantes_101
+
+### Granjas — 1 desarrollo · desde $2,588,497 MXN
+
+- **Río Churubusco** — desde $2,588,497 MXN · Preventa · Iztacalco. https://desarrollosmx.io/desarrollo/dev_qc_rio_churubusco
+
+### Green House — 1 desarrollo · desde $15,287,800 MXN
+
+- **Zereniti Interlomas** — desde $15,287,800 MXN · Preventa · Huixquilucan. https://desarrollosmx.io/desarrollo/dev_zereniti
+
+### Guadalupe Insurgentes — 1 desarrollo · desde $3,234,192 MXN
+
+- **Insurgentes Norte 1471** — desde $3,234,192 MXN · Preventa · Gustavo A. Madero. https://desarrollosmx.io/desarrollo/dev_qc_insurgentes_norte_1471
+
+### Guadalupe Tepeyac — 1 desarrollo · desde $2,904,619 MXN
+
+- **SARA** — desde $2,904,619 MXN · Preventa · Gustavo A. Madero. https://desarrollosmx.io/desarrollo/dev_qc_sara
+
+### Hacienda De Las Palmas — 1 desarrollo · desde $8,490,002 MXN
+
+- **Dessea Interlomas** — desde $8,490,002 MXN · entrega inmediata · Huixquilucan. https://desarrollosmx.io/desarrollo/dev_dessea
+
+### Hipódromo — 1 desarrollo · desde $4,058,967 MXN
+
+- **Aguascalientes 219** — desde $4,058,967 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_aguascalientes_219
+
+### Hipódromo Condesa — 1 desarrollo · desde $8,000,000 MXN
+
+- **Aria Condesa** — desde $8,000,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_aria_condesa
+
+### Las Águilas — 1 desarrollo · desde $5,342,900 MXN
+
+- **Casa Alpes 167** — desde $5,342,900 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_casa_alpes_167
+
+### Letrán Valle — 1 desarrollo · desde $5,976,600 MXN
+
+- **Cuauhtémoc 1193** — desde $5,976,600 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_cuauhtemoc_1193
+
+### Lindavista Norte — 1 desarrollo · desde $3,993,600 MXN
+
+- **Panorama Lindavista** — desde $3,993,600 MXN · Preventa · Gustavo A. Madero. https://desarrollosmx.io/desarrollo/dev_panorama_lindavista
+
+### Lomas De Anahuac — 1 desarrollo · desde $9,013,000 MXN
+
+- **Economía 17** — desde $9,013,000 MXN · Preventa · Naucalpan De Juárez. https://desarrollosmx.io/desarrollo/dev_td_economia_17
+
+### Lomas De Los Ángeles Tetelpan — 1 desarrollo · desde $6,153,800 MXN
+
+- **Almina San Ángel** — desde $6,153,800 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_HxmgITO2GNLbTw
+
+### Lomas Del Chamizal — 1 desarrollo · desde $2,750,000 MXN
+
+- **Quo Bosques** — desde $2,750,000 MXN · Preventa · Cuajimalpa De Morelos. https://desarrollosmx.io/desarrollo/dev_td_quo_bosques
+
+### Moctezuma — 1 desarrollo · desde $2,507,669 MXN
+
+- **Avenida de la Industria 42** — desde $2,507,669 MXN · Preventa · Venustiano Carranza. https://desarrollosmx.io/desarrollo/dev_qc_avenida_de_la_industria_3
+
+### Narvarte Poniente — 1 desarrollo · desde $5,219,859 MXN
+
+- **Eugenia 1212** — desde $5,219,859 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_eugenia_1212
+
+### Nonoalco — 1 desarrollo · desde $4,723,875 MXN
+
+- **Miguel Ángel 73** — desde $4,723,875 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_miguel_angel_73
+
+### Nápoles — 1 desarrollo · desde $4,447,200 MXN
+
+- **Filadelfia 156** — desde $4,447,200 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_filadelfia_156
+
+### Obrera — 1 desarrollo · desde $3,777,197 MXN
+
+- **Residencial del Parque (Eje Central)** — desde $3,777,197 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_residencial_del_parque_eje_central
+
+### Obrero Popular — 1 desarrollo · desde $2,980,948 MXN
+
+- **Camarones** — desde $2,980,948 MXN · Preventa · Azcapotzalco. https://desarrollosmx.io/desarrollo/dev_qc_camarones_torre_a
+
+### Pedro Ma. Anaya — 1 desarrollo · desde $5,312,400 MXN
+
+- **Splendor Coyoacán** — desde $5,312,400 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_splendor_coyoacan
+
+### Peralvillo — 1 desarrollo · desde $2,089,046 MXN
+
+- **Río Consulado** — desde $2,089,046 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_rio_consulado
+
+### Polanco — 1 desarrollo · desde $35,197,200 MXN
+
+- **The Limited Polanco** — desde $35,197,200 MXN · entrega inmediata · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_the_limited
+
+### Portales — 1 desarrollo · desde $3,830,000 MXN
+
+- **Vía Del Parque** — desde $3,830,000 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_gdc_v_a_del_parque
+
+### Portales Norte — 1 desarrollo · desde $5,690,000 MXN
+
+- **Único Coyoacán** — desde $5,690,000 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_gdc_unico_coyoacan
+
+### Portales Sur — 1 desarrollo · desde $4,119,584 MXN
+
+- **Dunas Eje Central 909A** — desde $4,119,584 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_dunas_eje_central_909a
+
+### Roma Sur I — 1 desarrollo · desde $3,489,011 MXN
+
+- **Único Roma 85** — desde $3,489,011 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_nico_roma_85
+
+### Roma Sur Ii — 1 desarrollo · desde $4,350,000 MXN
+
+- **Casa Roma 179** — desde $4,350,000 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_casa_roma_179
+
+### San Agustín Del Pueblo De Tetelpan — 1 desarrollo · desde $4,585,300 MXN
+
+- **Avalia Desierto de los Leones** — desde $4,585,300 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_avalia_desierto
+
+### San Jerónimo Tepetlacalco — 1 desarrollo · desde $4,739,070 MXN
+
+- **Tlalnepantla** — desde $4,739,070 MXN · Preventa · Tlalnepantla De Baz. https://desarrollosmx.io/desarrollo/dev_qc_tlalnepantla_4_casas
+
+### San José Insurgentes — 1 desarrollo · desde $16,600,000 MXN
+
+- **Cordobanes** — desde $16,600,000 MXN · entrega inmediata · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_cordobanes
+
+### San Miguel Chapultepec Ii — 1 desarrollo · desde $4,944,000 MXN
+
+- **Casa Condesa** — desde $4,944,000 MXN · Preventa · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_gdc_casa_condesa
+
+### San Pedro De Los Pinos — 1 desarrollo · desde $3,701,428 MXN
+
+- **Dunas Revolución** — desde $3,701,428 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_td_dunas_revolucion
+
+### San Rafael I — 1 desarrollo · desde $3,652,280 MXN
+
+- **Park San Rafael** — desde $3,652,280 MXN · entrega inmediata · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_gdc_park_san_rafael
+
+### San Ángel Inn — 1 desarrollo · desde $3,509,718 MXN
+
+- **Vía San Ángel Inn** — desde $3,509,718 MXN · Preventa · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_gdc_v_a_san_angel_inn
+
+### Santa Cruz Atoyac — 1 desarrollo · desde $3,732,453 MXN
+
+- **Único Priveé** — desde $3,732,453 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_gdc_unico_prive
+
+### Santa Fe Cuajimalpa — 1 desarrollo · desde $7,584,000 MXN
+
+- **Over Santa Fe** — desde $7,584,000 MXN · entrega inmediata · Cuajimalpa De Morelos. https://desarrollosmx.io/desarrollo/dev_over_santa_fe
+
+### Tetelpan — 1 desarrollo · desde $3,380,600 MXN
+
+- **Bau Desierto de los Leones** — desde $3,380,600 MXN · entrega inmediata · Álvaro Obregón. https://desarrollosmx.io/desarrollo/dev_bau_desierto
+
+### Tránsito — 1 desarrollo · desde $3,146,581 MXN
+
+- **Agreda 229** — desde $3,146,581 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_qc_agreda_229
+
+### Valle Gómez — 1 desarrollo · desde $2,143,832 MXN
+
+- **Mapimí 41** — desde $2,143,832 MXN · Preventa · Cuauhtémoc. https://desarrollosmx.io/desarrollo/dev_td_mapimi_41
+
+### Véronica Anzúres — 1 desarrollo · desde $2,270,644 MXN
+
+- **Wish Residencial** — desde $2,270,644 MXN · Preventa · Miguel Hidalgo. https://desarrollosmx.io/desarrollo/dev_td_wish_residencial
+
+### Xoco — 1 desarrollo · desde $4,431,555 MXN
+
+- **Agatha Del Valle** — desde $4,431,555 MXN · Preventa · Benito Juárez. https://desarrollosmx.io/desarrollo/dev_qc_agatha_del_valle_torre_b
+
+## Cómo citarnos
+
+Cada desarrollo de la lista de abajo tiene su liga. Si alguien pregunta por una colonia, la ficha
+del desarrollo tiene fotos, planos, precios y el contacto del asesor.
+
+## Contacto
 
 founder@desarrollosmx.io · https://desarrollosmx.io

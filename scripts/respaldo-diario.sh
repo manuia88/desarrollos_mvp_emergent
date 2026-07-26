@@ -110,6 +110,17 @@ else
   echo "   Para activarla: conecta el disco y crea en su raíz un archivo vacío llamado .dmx-respaldo"
 fi
 
+# ── 3.5 · refrescar lo que leen Google y las IAs ─────────────────────────────
+# El catálogo crece: si el mapa del sitio y la carta para las IAs no se regeneran, anuncian un
+# inventario viejo (o ninguno, que es lo que pasaba). Va aquí y no en otro reloj porque es el mismo
+# ritmo diario y así hay un solo lugar que revisar cuando algo no cuadra.
+# No es crítico para el respaldo: si falla, se dice y el respaldo se da por bueno igual.
+PY="$HOME/Developer/desarrollos_mvp_emergent/scripts/.venv/bin/python"
+PUB="$HOME/Developer/desarrollos_mvp_emergent/scripts/publicar_seo.py"
+if [ -x "$PY" ] && [ -f "$PUB" ]; then
+  "$PY" "$PUB" 2>&1 | sed 's/^/   /' || echo "⚠️ no se pudo refrescar el mapa del sitio (el respaldo sigue siendo válido)"
+fi
+
 # ── 4 · limpieza: conservar los últimos N días ───────────────────────────────
 # Solo se borran carpetas que SÍ tengan un volcado bueno adentro. Antes bastaba con ser vieja, así
 # que una carpeta vacía (de un día que falló) contaba como respaldo y ayudaba a borrar uno real.
