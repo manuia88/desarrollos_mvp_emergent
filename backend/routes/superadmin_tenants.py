@@ -138,7 +138,7 @@ async def _tenant_status(db, tenant_id: str, type_: str) -> str:
         )
         return (doc or {}).get("status") or "active"
     doc = await db.dev_orgs.find_one(
-        {"org_id": tenant_id}, {"_id": 0, "status": 1},
+        {"$or": [{"tenant_id": tenant_id}, {"org_id": tenant_id}]}, {"_id": 0, "status": 1},
     )
     return (doc or {}).get("status") or "active"
 
@@ -161,7 +161,7 @@ async def _build_summary(db, tenant_id: str, type_: str, *, name: Optional[str] 
         )
     else:
         org_doc = await db.dev_orgs.find_one(
-            {"org_id": tenant_id},
+            {"$or": [{"tenant_id": tenant_id}, {"org_id": tenant_id}]},
             {"_id": 0, "created_at": 1, "name": 1, "display_name": 1},
         )
     if org_doc:
@@ -181,6 +181,11 @@ async def _build_summary(db, tenant_id: str, type_: str, *, name: Optional[str] 
         "tenant_id": tenant_id,
         "type": type_,
         "name": name or _tenant_name_from_id(tenant_id),
+        # SIN FICHA DE CLIENTE: hay una cuenta de usuario con este tenant pero NO existe la
+        # organización en `dev_orgs` (auditoría 07-26). Es el caso de `constructora_ariel`, que es la
+        # cuenta de demostración. Aparece en la lista para que se vea que está ahí, pero NO cuenta
+        # como cliente — y por eso el inicio y esta pantalla ya pueden decir el mismo número.
+        "sin_ficha_cliente": org_doc is None,
         "status": status,
         "members_count": members,
         "projects_count": projects,
@@ -210,9 +215,17 @@ async def list_tenants(
 
     # Devs: distinct tenant_id from users with in-house dev role
     if type in ("dev", "all"):
+        # LA LISTA SON LOS CLIENTES, NO LOS USUARIOS (auditoría 07-26). Esto salía de
+        # `users.distinct("tenant_id")`, así que mostraba organizaciones que solo existen porque
+        # alguien tiene cuenta (`constructora_ariel`) y OMITÍA a los clientes dados de alta que
+        # todavía no han entrado — Deca y Estrategia Urbana no aparecían. Por eso el inicio y esta
+        # pantalla nunca coincidían. Ahora se unen las dos fuentes: quien tiene cuenta y quien está
+        # dado de alta.
         dev_tenant_ids = await db.users.distinct(
             "tenant_id", {"role": {"$in": list(DEV_IN_HOUSE_ROLES)}, "tenant_id": {"$ne": None}},
         )
+        _de_alta = await db.dev_orgs.distinct("tenant_id", {"tenant_id": {"$ne": None}})
+        dev_tenant_ids = list(dict.fromkeys([*dev_tenant_ids, *_de_alta]))
         for tid in dev_tenant_ids:
             if not tid:
                 continue
@@ -492,10 +505,10 @@ async def patch_tenant_status(tenant_id: str, payload: StatusPatch, request: Req
         )
     else:
         await db.dev_orgs.update_one(
-            {"org_id": tenant_id},
+            {"$or": [{"tenant_id": tenant_id}, {"org_id": tenant_id}]},
             {"$set": {"status": new_status, "status_updated_at": _now().isoformat(),
                       "status_reason": payload.reason},
-             "$setOnInsert": {"org_id": tenant_id, "created_at": _now().isoformat()}},
+             "$setOnInsert": {"tenant_id": tenant_id, "created_at": _now().isoformat()}},
             upsert=True,
         )
 

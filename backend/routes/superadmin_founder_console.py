@@ -71,9 +71,16 @@ async def dashboard_route(request: Request):
     await _require_superadmin(request)
     db = _db(request)
 
-    # Active / trial tenants
-    active_tenants = await db.tenants.count_documents({"status": {"$in": ["active", None]}})
-    trial_tenants = await db.tenants.count_documents({"status": "trial"})
+    # LOS CLIENTES VIVEN EN `dev_orgs`, NO EN `tenants` (auditoría 07-26). `db.tenants` está VACÍA
+    # (0 documentos) y esta pantalla la leía, así que el inicio decía "Clientes: 0" mientras la
+    # pantalla de Clientes —a la que ese mismo número te lleva al hacer clic— mostraba 6. Y por lo
+    # mismo los ingresos salían en $0 siempre.
+    _orgs = [o async for o in db.dev_orgs.find(
+        {}, {"_id": 0, "tenant_id": 1, "name": 1, "status": 1, "plan_tier": 1})]
+    # "por reclamar" = se dio de alta pero el cliente todavía no entra. No es un cliente activo.
+    active_tenants = sum(1 for o in _orgs if (o.get("status") or "active") not in ("pending_claim", "suspended"))
+    trial_tenants = sum(1 for o in _orgs if o.get("status") == "trial")
+    pending_claim = sum(1 for o in _orgs if o.get("status") == "pending_claim")
 
     # MRR/ARR — aggregate enabled tenant_features → join plan_templates
     mrr = 0.0
@@ -85,32 +92,41 @@ async def dashboard_route(request: Request):
                 tpl_price[t.get("plan_tier")] = max(
                     tpl_price.get(t.get("plan_tier"), 0), float(t.get("price_mxn") or 0),
                 )
-        # For each tenant: pick highest plan_tier in their enabled features
-        async for tnt in db.tenants.find({}, {"_id": 0, "id": 1}):
-            tid = tnt.get("id")
+        # El precio del plan de cada cliente real, tomando el más alto de sus funciones habilitadas.
+        for o in _orgs:
+            tid = o.get("tenant_id")
             if not tid:
                 continue
-            # Get plan tier from tenants doc OR features
-            top_price = 0.0
-            cur = db.tenant_features.find(
-                {"tenant_id": tid, "enabled": True},
-                {"_id": 0, "plan_tier": 1},
-            )
-            async for f in cur:
+            top_price = float(tpl_price.get(o.get("plan_tier")) or 0)
+            async for f in db.tenant_features.find(
+                    {"tenant_id": tid, "enabled": True}, {"_id": 0, "plan_tier": 1}):
                 pt = f.get("plan_tier")
                 if pt and tpl_price.get(pt):
                     top_price = max(top_price, tpl_price[pt])
             mrr += top_price
     except Exception as e:
         log.warning(f"[founder] mrr calc failed: {e}")
+
+    # ESTO NO ES INGRESO: ES LO QUE SE FACTURARÍA SI TODOS PAGARAN SU PLAN. Hoy hay 0 suscripciones
+    # y 0 cobros registrados, así que llamarlo "MRR" a secas sería inventar facturación — el mismo
+    # error que las gráficas del inicio. Se reporta el cobrado (real) y el potencial, por separado.
+    mrr_cobrado = 0.0
+    try:
+        async for pago in db.payments.find({"status": {"$in": ["paid", "succeeded"]}},
+                                           {"_id": 0, "amount_mxn": 1}):
+            mrr_cobrado += float(pago.get("amount_mxn") or 0)
+    except Exception:  # noqa: BLE001
+        pass
+    mrr_potencial = round(mrr, 2)
+    mrr = mrr_cobrado
     arr = round(mrr * 12, 2)
 
     # Churn risk: tenants pro/enterprise inactive >7d
     churn_risk = 0
     try:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        async for t in db.tenants.find({"plan_tier": {"$in": ["pro", "enterprise"]}}, {"_id": 0, "id": 1}):
-            tid = t.get("id")
+        for t in [o for o in _orgs if o.get("plan_tier") in ("pro", "enterprise")]:
+            tid = t.get("tenant_id")
             if not tid:
                 continue
             recent = await db.audit_log.find_one(
@@ -196,9 +212,18 @@ async def dashboard_route(request: Request):
         pass
 
     return {
+        # `mrr_estimated_mxn` es lo COBRADO de verdad (hoy 0: no hay ni una suscripción registrada).
+        # Lo que se facturaría si todos pagaran su plan va aparte y con su nombre, para que nadie lo
+        # lea como ingreso — es el mismo cuidado que con las gráficas fabricadas.
         "mrr_estimated_mxn": round(mrr, 2),
         "arr_estimated_mxn": arr,
+        "mrr_potencial_mxn": mrr_potencial,
+        "mrr_nota": ("Cobrado: $0 — todavía no hay suscripciones activas. "
+                     f"Si los {len(_orgs)} clientes dados de alta pagaran su plan, serían "
+                     f"${mrr_potencial:,.0f} al mes." if not mrr else None),
         "active_tenants_count": active_tenants,
+        "pending_claim_count": pending_claim,
+        "clientes_dados_de_alta": len(_orgs),
         "trial_tenants_count": trial_tenants,
         "churn_risk_count": churn_risk,
         "ai_cost_mtd_mxn": ai_cost_mtd,
