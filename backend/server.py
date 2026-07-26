@@ -2693,34 +2693,60 @@ async def startup():
                           misfire_grace_time=3600)
         except Exception as e:  # noqa: BLE001
             logging.warning(f"[estado_catalogo] cron register failed: {e}")
-        # RESPALDO AUTOMÁTICO (founder 07-15: "no puedo perder el catálogo"): JSON diario
-        # de TODAS las colecciones de negocio a ~/dmx_backups, rotación de 7. Hasta que
-        # haya deploy, la laptop es el datacenter — esto es el cinturón de seguridad.
+        # VIGILANTE DEL RESPALDO (founder 07-15: "no puedo perder el catálogo").
+        #
+        # ANTES esto volcaba cada colección a JSON, y era peor que no tener nada (auditoría A–Z
+        # 07-26). Cuatro fallas encadenadas:
+        #   · Cargaba la colección ENTERA a memoria (`[d async for d in ...]`). Con 1,089,684
+        #     predios reventaba, y como no había try/except por colección, ahí MORÍA la corrida:
+        #     alfabéticamente `catastro_predios` va antes que developments, leads, units y users,
+        #     así que justo las cuatro que importan nunca se escribieron. 87 colecciones perdidas,
+        #     tres días seguidos, en silencio.
+        #   · `limit(200000)` truncaba sin avisar lo que sí alcanzaba a guardar.
+        #   · Guardaba con `{"_id": 0}` — sin identificador, un JSON así NO se puede restaurar.
+        #   · Y su rotación de 7 borraba las carpetas del respaldo BUENO (el .archive.gz del
+        #     script), que promete conservar 14 días. Dos sistemas peleándose por el mismo lugar.
+        #
+        # AHORA no duplica trabajo: el volcado de verdad lo hace `scripts/respaldo-diario.sh` con
+        # mongodump (probado: restaura 116 desarrollos, 5,896 unidades y 1,089,684 predios sin
+        # perder uno). Lo que faltaba era que ALGUIEN VIGILARA que ese respaldo ocurrió — el
+        # tablero de salud no lo listaba, así que podía llevar días fallando en verde. Este job
+        # solo revisa y grita. No escribe respaldos y no borra nada.
         try:
             from apscheduler.triggers.cron import CronTrigger as _CT
 
-            async def _respaldo_diario():
-                import json as _json
+            async def _vigilar_respaldo():
                 import pathlib
-                import shutil
-                from datetime import datetime as _dt
+                import time as _time
                 base = pathlib.Path.home() / "dmx_backups"
-                hoy = base / f"auto_{_dt.now().strftime('%Y%m%d')}"
-                hoy.mkdir(parents=True, exist_ok=True)
-                n = 0
-                for c in await db.list_collection_names():
-                    docs = [d async for d in db[c].find({}, {"_id": 0}).limit(200000)]
-                    if docs:
-                        (hoy / f"{c}.json").write_text(
-                            _json.dumps(docs, ensure_ascii=False, default=str))
-                        n += len(docs)
-                # rotación: solo los 7 más recientes
-                autos = sorted(p for p in base.glob("auto_*") if p.is_dir())
-                for viejo in autos[:-7]:
-                    shutil.rmtree(viejo, ignore_errors=True)
-                logging.info(f"[respaldo] {n} docs → {hoy}")
+                MIN_BYTES = 5 * 1024 * 1024
+                MAX_HORAS = 36        # margen sobre el diario de las 3:30am
+                buenos = [p for p in base.glob("auto_*/mongo_*.archive.gz")
+                          if p.stat().st_size >= MIN_BYTES]
+                if not buenos:
+                    raise RuntimeError(
+                        "NO hay ningún respaldo restaurable de la base en ~/dmx_backups. "
+                        "Revisa scripts/respaldo-diario.sh y el demonio io.desarrollosmx.respaldo.")
+                reciente = max(buenos, key=lambda p: p.stat().st_mtime)
+                horas = (_time.time() - reciente.stat().st_mtime) / 3600
+                if horas > MAX_HORAS:
+                    raise RuntimeError(
+                        f"el último respaldo bueno tiene {horas:.0f} horas ({reciente.name}). "
+                        f"El diario no está corriendo.")
+                mb = reciente.stat().st_size / 1024 / 1024
+                logging.info(f"[respaldo] OK · {reciente.name} · {mb:.0f} MB · hace {horas:.1f} h "
+                             f"· {len(buenos)} respaldos útiles")
 
-            sched.add_job(_respaldo_diario, _CT(hour=9, minute=30),   # 3:30am MX
+            # Envuelto en el latido para que SÍ aparezca en el tablero de salud: un respaldo que
+            # falla sin que la pantalla se ponga roja es exactamente cómo se llegó a no tener
+            # ninguno restaurable.
+            try:
+                from cron_heartbeat import wrap_apscheduler_job
+                _job_respaldo = wrap_apscheduler_job(_vigilar_respaldo, "respaldo_diario")
+            except Exception:  # noqa: BLE001
+                _job_respaldo = _vigilar_respaldo
+
+            sched.add_job(_job_respaldo, _CT(hour=11, minute=0),   # 5:00am MX, tras el de las 3:30
                           id="respaldo_diario", replace_existing=True,
                           misfire_grace_time=3600)
         except Exception as e:

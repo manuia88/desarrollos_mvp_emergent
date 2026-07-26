@@ -1105,9 +1105,27 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
         lead_id, house_inm = await create_buyer_lead(db, b.visitor_id, b.name, b.email, b.phone, b.dev_id, b.source,
                                                       unit_number=b.unit_number, lens=b.lens, contexto=b.contexto)
         return {"ok": True, "lead_id": lead_id, "asignado": "tu inmobiliaria" if house_inm else "asesor"}
+    except HTTPException:
+        raise
     except Exception as e:  # noqa: BLE001
-        log.warning(f"[buyer_signals] registrar lead fail: {e}")
-        return {"ok": False}
+        # NO FINGIR ÉXITO (auditoría A–Z 07-26). Antes esto respondía HTTP 200 con {"ok": false},
+        # y el front solo mira el código HTTP (`if (!resp.ok) throw`) — así que al comprador se le
+        # enseñaba "¡Listo! Un asesor te contacta" mientras su dato NO se guardó en ninguna parte.
+        # Un lead perdido en silencio es la falla más cara del sistema: se pagó por traer a esa
+        # persona, dejó su teléfono, y nadie se entera de que nunca llegó. Ahora falla de verdad,
+        # el front muestra el error, y el comprador puede reintentar.
+        log.error(f"[buyer_signals] registrar lead FALLÓ — lead perdido: {e}", exc_info=True)
+        # Se guarda el intento aparte para poder rescatarlo a mano: el dato del comprador vale más
+        # que la excepción que lo tiró.
+        try:
+            await request.app.state.db.leads_no_guardados.insert_one({
+                "cuando": datetime.now(timezone.utc), "error": str(e)[:500],
+                "nombre": b.name, "email": b.email, "telefono": b.phone,
+                "dev_id": b.dev_id, "visitor_id": b.visitor_id, "origen": b.source,
+            })
+        except Exception:  # noqa: BLE001
+            pass
+        raise HTTPException(503, "No pudimos registrar tus datos. Inténtalo de nuevo en un momento.")
 
 
 class ClaimIn(BaseModel):

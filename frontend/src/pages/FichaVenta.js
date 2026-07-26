@@ -220,7 +220,10 @@ function AlertaValor({ units, onLead }) {
         {cta && onLead && (
           <button onClick={() => onLead()} style={{ marginTop: 9, background: color, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{cta} →</button>
         )}
-        <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 6 }}>Referencia: {fuente === 'comparables' ? 'comparables de la colonia' : 'valor de mercado (AVM)'}. Análisis, no asesoría.</div>
+        {/* "AVM" es jerga de tasador y aquí la lee un comprador (auditoría A–Z 07-26). Decir de
+            dónde sale el número genera más confianza que la sigla: si hay ventas parecidas cerca,
+            se dice; si no, es el precio estimado de la zona. */}
+        <div style={{ fontFamily: FONT, fontSize: 11, color: C.faint, marginTop: 6 }}>Referencia: {fuente === 'comparables' ? 'departamentos parecidos en la misma colonia' : 'precio estimado de la zona'}. Es un análisis, no una asesoría.</div>
       </div>
     </div>
   );
