@@ -304,7 +304,13 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
 
   useEffect(() => {
     if (!dashboard) loadDashboard();
-    if (!anomalies.length && !loadingAnoms) loadAnomalies();
+    // NUNCA EMPEZABA A CARGAR (auditoría 07-26). `loadingAnoms` arranca en `true` cuando no hay
+    // anomalías precargadas, y esta línea solo cargaba si era `false`: la condición no se cumplía
+    // jamás. El panel se quedaba en "Cargando anomalías…" para siempre —verificado a los 20 s— y
+    // mostraba "(0)" mientras la tarjeta de arriba decía "1". No era lentitud: era que nadie
+    // disparaba la carga. Este efecto corre una sola vez al montar, así que no hace falta el
+    // candado contra doble llamada.
+    if (!anomalies.length) loadAnomalies();
     if (!quickActions.length) loadQuickActions();
     // record last login
     if (!lastLogin) {

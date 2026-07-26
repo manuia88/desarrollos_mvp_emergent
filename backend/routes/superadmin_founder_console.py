@@ -631,14 +631,17 @@ async def list_quick_actions(request: Request):
              "payload": {"route": "/superadmin/bulk-ingest"},
              "sort_order": 5, "icon_key": "FolderUp"},
         ]
+        # SEMBRAR SIN DUPLICAR (auditoría 07-26). Esto insertaba a ciegas cuando la lista venía
+        # vacía, y dos cargas simultáneas de la pantalla veían las dos "vacío" y sembraban las dos:
+        # el founder terminó con 12 botones que son 6 repetidos. Con `upsert` por (usuario, etiqueta)
+        # sembrar dos veces deja el mismo resultado que sembrar una.
         for d in defaults:
-            doc = {
-                "id": "qa_" + secrets.token_urlsafe(8),
-                "user_id": user.user_id,
-                **d,
-                "created_at": _iso(),
-            }
-            await db.founder_quick_actions.insert_one(dict(doc))
+            await db.founder_quick_actions.update_one(
+                {"user_id": user.user_id, "label": d["label"]},
+                {"$set": {**d, "user_id": user.user_id},
+                 "$setOnInsert": {"id": "qa_" + secrets.token_urlsafe(8), "created_at": _iso()}},
+                upsert=True,
+            )
         cur = db.founder_quick_actions.find(
             {"user_id": user.user_id}, {"_id": 0},
         ).sort("sort_order", 1)
