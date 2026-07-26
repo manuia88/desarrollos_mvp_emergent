@@ -175,9 +175,20 @@ export function NotificationsBell({ user }) {
                       >
                         <Icon size={15} className={`shrink-0 mt-0.5 ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.35)]'}`} />
                         <div className="min-w-0 flex-1">
-                          <p className={`text-xs leading-snug ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.55)]'}`}>
-                            {n.message || n.text || 'Notificación'}
+                          {/* La API manda `title` y `body`, y aquí se leían `message`/`text`, que no
+                              existen — por eso las 41 notificaciones decían todas "Notificación" con
+                              el cuerpo vacío (auditoría 07-26). El aviso útil estaba escrito desde
+                              siempre: "Vigía: 3 pendientes por aprobar", "La bitácora detectó
+                              movimientos del mercado · 1 alza de precio, 2 unidades reaparecieron".
+                              Solo no se estaba leyendo. */}
+                          <p className={`text-xs leading-snug font-medium ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.55)]'}`}>
+                            {n.title || n.message || n.text || 'Notificación'}
                           </p>
+                          {(n.body || n.detail) && (
+                            <p className="text-[11px] leading-snug mt-0.5 text-[rgba(var(--cream-rgb),0.45)]">
+                              {n.body || n.detail}
+                            </p>
+                          )}
                           <div className="flex items-center gap-1 mt-0.5">
                             <Clock size={9} className="text-[rgba(var(--cream-rgb),0.25)]" />
                             <span className="text-[10px] text-[rgba(var(--cream-rgb),0.25)]">{timeAgo(n.created_at || n.ts)}</span>
